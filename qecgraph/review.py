@@ -185,3 +185,63 @@ def verify_record_review(registry, record):
     expected = next((r for r in final_records(proposal, review) if r['id'] == record['id']), None)
     if expected != record:
         raise ValueError('Review does not bind this statement, hypotheses, dependencies and exact revision')
+
+
+def read_review(registry, review_id):
+    review = read_json(_path(registry, 'reviews', review_id))
+    _validate(review, 'review.v1')
+    if review['id'] != review_id:
+        raise ValueError('Review identity mismatch')
+    return review
+
+
+def apply(corpus, proposal_id, review_id):
+    """CAS publish an entire validated batch; unreferenced objects are harmless.
+
+    The immutable receipt is written before CURRENT, and the published state
+    records the application. A receipt alone never counts as a completed apply.
+    """
+    from .validators import registry_issues
+    registry = Registry(corpus)
+    with writer_lock(registry.root):
+        state, fixed = registry.read()
+        proposal = read_proposal(registry, proposal_id)
+        review = read_review(registry, review_id)
+        if state.get('corpus_id') != proposal['corpus_id'] or review['corpus_id'] != proposal['corpus_id']:
+            raise ValueError('Proposal/review belongs to another corpus')
+        applications = state.get('applications', {})
+        if proposal_id in applications:
+            if applications[proposal_id]['review_id'] != review_id:
+                raise ValueError('Proposal already applied with a different review')
+            receipt = read_json(_path(registry, 'applications', proposal_id))
+            if receipt['review_sha256'] != hash_text(canonical(review)):
+                raise ValueError('Applied review content changed')
+            return {'status': 'applied', 'receipt': receipt}
+        if fixed != proposal['base_registry_revision']:
+            raise ValueError('Stale proposal: registry changed; inspect and propose a new revision')
+        records = final_records(proposal, review)
+        if input_bindings(registry, state, fixed, records) != proposal['input_bindings']:
+            raise ValueError('Proposal input/asset bindings changed')
+        for change in proposal['changes']:
+            identifier = change['after']['id']
+            before = registry.record_from_state(state, identifier) if identifier in state['records'] else None
+            if before != change['before']:
+                raise ValueError('Apply input revision/hash no longer matches the reviewed diff')
+        for record in records:
+            registry._put_record(state, record)
+        after_records = {identifier: registry.record_from_state(state, identifier) for identifier in state['records']}
+        errors = [issue for issue in registry_issues(registry, state, fixed, after_records)
+                  if issue.get('severity', 'error') == 'error']
+        if errors:
+            raise ValueError('Apply cross-record validation failed: ' + canonical(errors))
+        binding = {'review_id': review_id, 'review_sha256': hash_text(canonical(review)),
+                   'records': [{key: record[key] for key in ('id', 'revision', 'content_sha256')} for record in records]}
+        state.setdefault('applications', {})[proposal_id] = binding
+        target_revision = hash_text(canonical(state))
+        receipt = {'schema_version': 'qecgraph.application.v1', 'proposal_id': proposal_id,
+                   'base_registry_revision': fixed, 'registry_revision': target_revision, **binding}
+        immutable_json(_path(registry, 'applications', proposal_id), receipt)
+        published = registry._publish(state)
+        if published != target_revision:
+            raise ValueError('Application state identity mismatch')
+    return {'status': 'applied', 'receipt': receipt}

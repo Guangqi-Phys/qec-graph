@@ -138,6 +138,9 @@ class Registry:
 
     def record(self, identifier, record_revision=None, registry_revision=None):
         state, _ = self.read(registry_revision)
+        return self.record_from_state(state, identifier, record_revision)
+
+    def record_from_state(self, state, identifier, record_revision=None):
         if identifier not in state['records']:
             raise ValueError(f'Unknown entity: {identifier}')
         identity = state['records'][identifier]

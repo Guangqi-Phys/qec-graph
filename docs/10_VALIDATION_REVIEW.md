@@ -79,4 +79,22 @@ AI/program approve 只产生 machine_accepted，最终记录保持 draft/propose
 旧 v1 depends_on_reviewed 仍按原关系名和哈希绑定解释；新增领域 refs 无人工绑定时标为 unbound_review，
 不会因 declared 状态或 include-candidates 而进入确认上下文。原始记录仍可 show 供审核。
 
-apply 事务与恢复语义在下一步骤补入本页。
+## Apply 事务与恢复
+
+```bash
+qecgraph apply <proposal_id> --review-id <review_id> --corpus build/review-demo
+```
+
+apply 在同一写者锁内核对 corpus、整个 registry 基线、review 提案哈希、旧记录内容和实际资产，
+再写入完整新修订，执行端点／跨记录检查，最后原子发布一个 registry state。
+保守的整个 registry CAS 会拒绝并行的无关改动；需要重新取差异和创建提案，不自动刷新 expected hash。
+缺失目标或类型错误使整个批次失败；历史证据过期保留为可见 warning，不删除或重绑旧证据。
+
+已发布状态记录 application；不可变 receipt 绑定 proposal、review、全部结果哈希和发布 revision。
+相同 proposal/review 重复 apply 返回同一 receipt；即使后来有其他更新，也不重复覆盖记录。
+不同 review 不能覆盖已经应用的同一 proposal。
+
+失败或崩溃可留下未引用的完整记录/receipt，不能仅凭 receipt 文件判断已应用；
+只有 CURRENT 指向包含 application 的完整 state 才算发布。指针写入失败保留旧状态，
+对相同有效输入重试可恢复。回滚查看历史 state/record revisions，不删除新证据或改旧哈希。
+POSIX flock 冲突明确报错，不破坏正在执行的写者。

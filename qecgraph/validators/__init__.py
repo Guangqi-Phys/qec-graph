@@ -89,9 +89,10 @@ def validate_graph_types(graph):
         validate_endpoint(lookup[edge['source']]['kind'], lookup[edge['target']]['kind'], edge['relation'])
 
 
-def registry_issues(registry, state, fixed):
+def registry_issues(registry, state, fixed, records=None):
     issues = []
-    records = {identifier: registry.record(identifier, registry_revision=fixed) for identifier in state['records']}
+    if records is None:
+        records = {identifier: registry.record(identifier, registry_revision=fixed) for identifier in state['records']}
     for identifier, record in records.items():
         if record['schema_version'] != 'qecgraph.record.v3':
             issues.append({'code': 'legacy_record_requires_migration', 'record_id': identifier})
@@ -130,7 +131,7 @@ def registry_issues(registry, state, fixed):
                     continue
                 target = records.get(binding.get('id'))
                 if target is None or target['revision'] != binding.get('revision') or target['content_sha256'] != binding.get('content_sha256'):
-                    issues.append({'code': 'evidence_binding_stale', 'record_id': identifier, 'binding': binding})
+                    issues.append({'code': 'evidence_binding_stale', 'severity': 'warning', 'record_id': identifier, 'binding': binding})
         for ref in record['refs']:
             target = records.get(ref['target'])
             if target is None:
@@ -138,8 +139,8 @@ def registry_issues(registry, state, fixed):
                 continue
             try:
                 validate_endpoint(record['kind'], target['kind'], ref['relation'])
-                if ref.get('revision') and ref['revision'] != target['revision']:
-                    raise ValueError('Reference binds a historical revision, not the selected current revision')
             except ValueError as exc:
                 issues.append({'code': 'reference_type_or_revision', 'record_id': identifier, 'target': ref['target'], 'message': str(exc)})
+            if ref.get('revision') and ref['revision'] != target['revision']:
+                issues.append({'code': 'reference_revision_stale', 'severity': 'warning', 'record_id': identifier, 'target': ref['target']})
     return issues

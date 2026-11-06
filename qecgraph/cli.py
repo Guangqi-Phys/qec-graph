@@ -32,6 +32,10 @@ def _add_source_arguments(parser):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graph; no mathematical proof verification")
     sub = parser.add_subparsers(dest="command", required=True)
+    cmd = sub.add_parser('apply', help='Atomically publish a reviewed proposal with input conflict checks')
+    cmd.add_argument('proposal_id')
+    cmd.add_argument('--review-id', required=True)
+    cmd.add_argument('--corpus', required=True)
     cmd = sub.add_parser('review', help='Create an inspectable proposal, without applying changes')
     cmd.add_argument('input', help='JSON with changes and rationale')
     cmd.add_argument('--corpus', required=True)
@@ -119,7 +123,10 @@ def main(argv=None):
                 if getattr(args, 'registry_revision', None) or getattr(args, 'source_version_id', None):
                     raise ValueError('Corpus scope arguments require --corpus')
                 args.store = pin_snapshot(args.store, args.snapshot)
-        if args.command == 'review':
+        if args.command == 'apply':
+            from .review import apply
+            result = apply(args.corpus, args.proposal_id, args.review_id)
+        elif args.command == 'review':
             from .review import create_proposal
             result = create_proposal(args.corpus, actor={'id': args.actor_id, 'kind': args.actor_kind}, **read_json(args.input))
         elif args.command == 'review-decide':

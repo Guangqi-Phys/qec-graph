@@ -19,7 +19,7 @@
 | 08 | P2 | 严格 JSON、领域信封及端点类型验证 | 完成 |
 | 09 | P2 | 距离、矩阵和实验条件验证与筛选 | 完成 |
 | 10 | P2 | review 提案、身份类别与输入绑定 | 完成 |
-| 11 | P2 | 原子 apply、锁、冲突和幂等 | 待执行 |
+| 11 | P2 | 原子 apply、锁、冲突和幂等 | 完成 |
 | 12 | P2 | 状态兼容、资源失效及审核逻辑环 | 待执行 |
 | 13 | P3 | 写者锁、strict staging 与发布恢复 | 待执行 |
 | 14 | P3 | 输入依赖指纹及安全解析缓存 | 待执行 |
@@ -75,3 +75,7 @@
 ## 10 · 可审阅提案与决定
 
 新增 review.py、proposal/review v1 Schema、review/review-decide 命令和示例。绑定 corpus 身份、差异、输入修订、来源及实际资产；明确区分 human/ai/program。AI/program 接受只为 machine_accepted，不提升人工或 Lean 状态；复制旧审核、过期输入、跨 corpus 和变化资产均拒绝。全量 unittest 49 项通过；实际示例提案和 AI 决定保存在 validation/p2。按计划在本步提交后执行首次 push。
+
+## 11 · 原子 apply
+
+第 10 步 0ff466e 已成功推送 origin/main；HTTPS 默认凭据缺失，通过现有 gh keyring 认证临时 helper 完成，无全局配置修改。新增 apply CAS、整批验证、不可变 receipt 和单指针发布；重复 apply 返回相同 receipt，错误/旧提案不覆盖，注入指针失败后旧状态可读且重试恢复。全量 unittest 54 项通过；实际示例连续 apply 两次一致，证据见 validation/p2/application.json。AI 决定后的记录保持 proposed。
