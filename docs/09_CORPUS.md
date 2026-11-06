@@ -60,3 +60,27 @@ Python 使用 `corpus.execute(...)`、`Registry.read(revision)` 或 `store.pin_s
 
 Corpus 搜索当前采用确定性的大小写无关子串匹配，并报告 limit 截断；原单 store 保留 SQLite/FTS5。
 空结果只表示固定作用域内未命中。查询不会写记录、运行来源代码或提升数学证据。
+
+## 显式迁移和资产
+
+```bash
+qecgraph migrate knowledge_starter/records --source-root knowledge_starter --out build/migration
+qecgraph migration-import build/migration --corpus build/corpus
+qecgraph context code:rep3-hgp:13 --corpus build/corpus
+```
+
+迁移输出必须是独立的新目录。`migration-report.json` 记录输入字节哈希、Schema、
+ID/修订映射、接受及拒绝项；原始字节保存到 `originals/`，未知版本只保留为不透明输入并拒绝解释。
+任一拒绝项使迁移返回退出码 2，import 拒绝有未解决拒绝项的批次。
+
+旧 `0.1.0` 记录进入 v2 独立信封；保留原 ID、原记录全部字段、原证据类别和未执行状态。
+旧 refs 采用 `catalog:` 前缀，避免隐式提升为审核依赖。旧 claim 未说明量词时为 null 并注明原因。
+`qecgraph.graph.v1` 与 `qecgraph.annotations.v1` 采用逐字节 passthrough 适配，
+保持来源块和审核绑定原义，不将原文 theorem 转为 claim；完整 store 的跨文档接入使用 register。
+
+旧记录的相对资产路径必须明确提供 `--source-root`，不能相对于新 store 猜测。
+迁移校验旧字节哈希及旧 ensure_ascii=True canonical 哈希，保留旧协议标识，
+将资产复制为 `qecasset:sha256:<digest>`。记录中的实际路径替换为受管理 URI，原字段仍在 legacy_record 中。
+import 复制完整资产后原子发布 registry 状态；搬迁 corpus 不影响 URI 解析。
+`Registry.asset_bytes(uri)` 核对准确字节，损坏或缺失会报错。迁移不会运行任何导入脚本。
+旧原件和迁移报告一并备份；回滚读取旧 registry revision，不删除新对象。

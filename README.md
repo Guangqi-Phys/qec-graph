@@ -133,7 +133,8 @@ QEC_UID=$(id -u) QEC_GID=$(id -g) docker compose run --rm research
 | 语法切割、来源位置、引用和资源 | 已实现，支持范围和诊断见 splitter 文档 |
 | 单工程三视图、全文查询、依赖、影响和上下文 | 已实现 |
 | sidecar 和旧 catalog 的显式导入 | 已实现；人工审核应绑定真实哈希 |
-| 多论文 registry、规范 claim 统一身份、严格领域验证 | 后续 P1/P2 |
+| 多论文 registry、规范 claim 独立修订、固定 corpus 查询及旧格式迁移 | P1 已实现，命令与边界见 docs/09_CORPUS.md |
+| 严格领域验证、review/apply 事务 | 后续 P2 |
 | 真正增量解析、watch、多写者协调 | 后续 P3；目前每次完整重建 |
 | MCP 服务与跨客户端 AI 工具接入 | 后续 P4；当前是 CLI/Python/JSON |
 | 语义向量检索、PDF/OCR、通用代码仓库解析 | 可选扩展；当前未实现 |

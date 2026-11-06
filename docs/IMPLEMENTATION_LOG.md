@@ -15,7 +15,7 @@
 | 04 | P1 | 多文档 work/version 注册、不可变来源绑定 | 完成 |
 | 05 | P1 | 规范 claim、实体修订和多对多来源关系 | 完成 |
 | 06 | P1 | 固定 corpus/snapshot 的跨文档查询 | 完成 |
-| 07 | P1 | 旧图、sidecar、知识样例的显式迁移 | 待执行 |
+| 07 | P1 | 旧图、sidecar、知识样例的显式迁移 | 完成 |
 | 08 | P2 | 严格 JSON、领域信封及端点类型验证 | 待执行 |
 | 09 | P2 | 距离、矩阵和实验条件验证与筛选 | 待执行 |
 | 10 | P2 | review 提案、身份类别与输入绑定 | 待执行 |
@@ -59,3 +59,7 @@
 ## 06 · 固定作用域查询
 
 新增 corpus.py 的版本命名空间投影，复用 query 层；CLI search/show/deps/impact/context 支持 --corpus、--registry-revision 和 --source-version-id，原 store 支持 --snapshot。来源出现带准确版本与快照，空结果及截断可观察。全量 unittest 32 项通过；实际执行 register → record-add → claim-link → search CLI 演示。
+
+## 07 · 显式迁移与 P1 验收
+
+新增 migrations.py、migrate/migration-import；独立输出、字节原件、ID/修订映射与拒绝报告。旧 0.1.0 记录保留全部原字段及证据，图/sidecar 逐字节透传；资产核对旧协议后变为受管理 URI，不重验数学。全量 unittest 35 项通过；实际迁移并导入 10 条样例记录，报告见 validation/p1。P1 核心验收完成；POSIX 本地文件锁、保守 corpus 子串查询及 passthrough 边界见 09_CORPUS.md。

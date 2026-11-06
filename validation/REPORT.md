@@ -10,3 +10,5 @@ P0 基线命令：`.venv/bin/python tools/reproduce.py --out build/reproduce`，
 
 `handoff/` 是历史交付证据。后续阶段须增加自己的测试及报告。
 本次 P0 未运行 Docker、Lean、真实用户论文或 MCP 客户端。
+
+P1：35 项全量回归通过，日志和实际 10 条记录的迁移/import 报告见 p1/。

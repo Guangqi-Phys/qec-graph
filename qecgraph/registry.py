@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import shutil
 import tempfile
 from pathlib import Path
@@ -39,8 +40,14 @@ class Registry:
     def _state_or_empty(self):
         if (self.root / 'CURRENT.json').exists():
             return self.read()[0]
-        if any(p.name not in {'.writer.lock', 'states', 'source_snapshots'} for p in self.root.iterdir()):
-            raise ValueError('Registry must be initialized in an empty directory')
+        marker = self.root / '.qecgraph-registry.json'
+        if marker.exists():
+            if read_json(marker) != {'format': FORMAT}:
+                raise ValueError('Incompatible registry marker')
+        else:
+            if any(p.name != '.writer.lock' for p in self.root.iterdir()):
+                raise ValueError('Registry must be initialized in an empty directory')
+            atomic_json(marker, {'format': FORMAT})
         return empty_state()
 
     def _publish(self, state):
@@ -157,3 +164,37 @@ class Registry:
                 state['links'].sort(key=lambda x: x['id'])
             revision = self._publish(state)
         return {'registry_revision': revision, 'link': link}
+
+    def import_migration(self, migration_root):
+        migration_root = Path(migration_root).resolve()
+        report = read_json(migration_root / 'migration-report.json')
+        if report.get('schema_version') != 'qecgraph.migration.v1' or report.get('rejected'):
+            raise ValueError('Import requires a migration report with no rejected inputs')
+        records = [read_json(safe_relative(migration_root, item['output_path'])) for item in report['accepted']
+                   if item['output_schema'] == 'qecgraph.record.v2']
+        with writer_lock(self.root):
+            state = self._state_or_empty()
+            for record in records:
+                for asset in record['assets']:
+                    source = safe_relative(migration_root, asset['path'])
+                    raw = source.read_bytes()
+                    if hashlib.sha256(raw).hexdigest() != asset['sha256']:
+                        raise ValueError('Migrated asset hash mismatch')
+                    target = safe_relative(self.root, asset['path'])
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    if target.exists() and target.read_bytes() != raw:
+                        raise ValueError('Managed asset is corrupted')
+                    target.write_bytes(raw)
+                self._put_record(state, record)
+            revision = self._publish(state)
+        return {'registry_revision': revision, 'imported_records': len(records), 'mathematical_recheck': 'not_performed'}
+
+    def asset_bytes(self, uri):
+        prefix = 'qecasset:sha256:'
+        digest = uri.removeprefix(prefix)
+        if not uri.startswith(prefix) or len(digest) != 64 or any(c not in '0123456789abcdef' for c in digest):
+            raise ValueError('Unknown managed asset URI')
+        raw = (self.root / 'assets' / digest).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != digest:
+            raise ValueError('Managed asset content changed')
+        return raw

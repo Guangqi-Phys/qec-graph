@@ -32,6 +32,13 @@ def _add_source_arguments(parser):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graph; no mathematical proof verification")
     sub = parser.add_subparsers(dest="command", required=True)
+    cmd = sub.add_parser('migrate', help='Adapt legacy inputs into a new location with a rejection report')
+    cmd.add_argument('input')
+    cmd.add_argument('--out', required=True)
+    cmd.add_argument('--source-root')
+    cmd = sub.add_parser('migration-import', help='Import adapted records and managed assets atomically')
+    cmd.add_argument('input')
+    cmd.add_argument('--corpus', required=True)
     for name in ('record-add', 'claim-link'):
         cmd = sub.add_parser(name, help="Add an explicit record or provenance mapping from JSON")
         cmd.add_argument("input")
@@ -77,7 +84,12 @@ def main(argv=None):
                 if getattr(args, 'registry_revision', None) or getattr(args, 'source_version_id', None):
                     raise ValueError('Corpus scope arguments require --corpus')
                 args.store = pin_snapshot(args.store, args.snapshot)
-        if args.command == 'record-add':
+        if args.command == 'migrate':
+            from .migrations import migrate
+            result = migrate(args.input, args.out, source_root=args.source_root)
+        elif args.command == 'migration-import':
+            result = Registry(args.corpus).import_migration(args.input)
+        elif args.command == 'record-add':
             result = Registry(args.corpus).add_record(read_json(args.input))
         elif args.command == 'claim-link':
             result = Registry(args.corpus).link_claim(**read_json(args.input))
@@ -108,7 +120,7 @@ def main(argv=None):
             result = dependencies(args.store, args.id_or_label, args.depth, args.include_candidates,
                                   args.command == "impact", args.max_nodes)
         print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 2 if result.get("extraction_status") == "partial" else 0
+        return result.get('suggested_exit_code', 2 if result.get("extraction_status") == "partial" else 0)
     except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
         print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
         return 1
