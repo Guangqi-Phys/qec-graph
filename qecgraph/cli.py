@@ -32,6 +32,19 @@ def _add_source_arguments(parser):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graph; no mathematical proof verification")
     sub = parser.add_subparsers(dest="command", required=True)
+    cmd = sub.add_parser('review', help='Create an inspectable proposal, without applying changes')
+    cmd.add_argument('input', help='JSON with changes and rationale')
+    cmd.add_argument('--corpus', required=True)
+    cmd.add_argument('--actor-id', required=True)
+    cmd.add_argument('--actor-kind', choices=['ai', 'program', 'human'], default='ai')
+    cmd = sub.add_parser('review-decide', help='Bind an explicit decision to an exact proposal')
+    cmd.add_argument('proposal_id')
+    cmd.add_argument('--corpus', required=True)
+    cmd.add_argument('--actor-id', required=True)
+    cmd.add_argument('--actor-kind', choices=['ai', 'program', 'human'], default='ai')
+    cmd.add_argument('--decision', choices=['approve', 'reject'], required=True)
+    cmd.add_argument('--rationale', required=True)
+    cmd.add_argument('--checked-scope', choices=['statement', 'hypotheses', 'dependencies'], action='append', default=[])
     cmd = sub.add_parser('check-css', help='Validate binary check matrices; optionally enumerate a small distance')
     cmd.add_argument('--hx', required=True)
     cmd.add_argument('--hz', required=True)
@@ -106,7 +119,14 @@ def main(argv=None):
                 if getattr(args, 'registry_revision', None) or getattr(args, 'source_version_id', None):
                     raise ValueError('Corpus scope arguments require --corpus')
                 args.store = pin_snapshot(args.store, args.snapshot)
-        if args.command == 'check-css':
+        if args.command == 'review':
+            from .review import create_proposal
+            result = create_proposal(args.corpus, actor={'id': args.actor_id, 'kind': args.actor_kind}, **read_json(args.input))
+        elif args.command == 'review-decide':
+            from .review import decide
+            result = decide(args.corpus, args.proposal_id, actor={'id': args.actor_id, 'kind': args.actor_kind},
+                            decision=args.decision, rationale=args.rationale, checked_scopes=args.checked_scope)
+        elif args.command == 'check-css':
             from .validators.qec import check_css
             result = check_css(read_json(args.hx), read_json(args.hz), read_json(args.lx) if args.lx else None,
                                read_json(args.lz) if args.lz else None, enumerate_distance=args.enumerate_distance, max_n=args.max_n)

@@ -5,6 +5,7 @@ import copy
 import hashlib
 import shutil
 import tempfile
+import uuid
 from pathlib import Path
 
 from .graph import canonical, hash_text, read_json
@@ -38,17 +39,24 @@ class Registry:
         return copy.deepcopy(state), revision
 
     def _state_or_empty(self):
-        if (self.root / 'CURRENT.json').exists():
-            return self.read()[0]
+        existing = (self.root / 'CURRENT.json').exists()
+        state = self.read()[0] if existing else empty_state()
         marker = self.root / '.qecgraph-registry.json'
         if marker.exists():
-            if read_json(marker) != {'format': FORMAT}:
+            identity = read_json(marker)
+            if identity.get('format') != FORMAT:
                 raise ValueError('Incompatible registry marker')
         else:
-            if any(p.name != '.writer.lock' for p in self.root.iterdir()):
+            if not existing and any(p.name != '.writer.lock' for p in self.root.iterdir()):
                 raise ValueError('Registry must be initialized in an empty directory')
-            atomic_json(marker, {'format': FORMAT})
-        return empty_state()
+            identity = {'format': FORMAT}
+        if not identity.get('corpus_id'):
+            identity['corpus_id'] = 'corpus:' + str(uuid.uuid4())
+            atomic_json(marker, identity)
+        if state.get('corpus_id', identity['corpus_id']) != identity['corpus_id']:
+            raise ValueError('Corpus identity differs from its marker')
+        state['corpus_id'] = identity['corpus_id']
+        return state
 
     def _publish(self, state):
         revision = hash_text(canonical(state))
@@ -102,6 +110,8 @@ class Registry:
 
     def _put_record(self, state, record):
         record = prepare_record(record)
+        from .review import verify_record_review
+        verify_record_review(self, record)
         from .validators import validate_endpoint
         for ref in record['refs']:
             if ref['target'] in state['records']:
@@ -136,6 +146,9 @@ class Registry:
             raise ValueError(f'Unknown revision for {identifier}: {revision}')
         binding = identity['revisions'][revision]
         record = prepare_record(read_json(safe_relative(self.root, binding['path'])), allow_legacy=True)
+        if record['schema_version'] == 'qecgraph.record.v3':
+            from .review import verify_record_review
+            verify_record_review(self, record)
         if record['id'] != identifier or record['revision'] != revision or record['content_sha256'] != binding['content_sha256']:
             raise ValueError('Registered record identity/hash mismatch')
         return record

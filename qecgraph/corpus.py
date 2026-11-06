@@ -76,9 +76,12 @@ def project(corpus, registry_revision=None, source_version_id=None):
                 unresolved.append({'code': 'unresolved_reference', 'record_id': node['id'], 'reference': ref})
                 continue
             fresh = not ref.get('revision') or target.get('record', {}).get('revision') == ref['revision']
+            status = ref.get('status', 'declared') if fresh else 'stale'
+            if fresh and ref['relation'] == 'depends_on_reviewed' and record['review']['status'] != 'reviewed':
+                status = 'unbound_review'
             edges.append({'id': 'ref:' + hash_text(canonical([node['id'], ref])), 'source': node['id'],
                           'target': ref['target'], 'relation': ref['relation'],
-                          'status': ref.get('status', 'declared') if fresh else 'stale', 'evidence': ref})
+                          'status': status, 'evidence': ref})
     graph = {'schema_version': 'qecgraph.corpus_graph.v1', 'snapshot_id': fixed,
              'project_source_hash': hash_text(canonical(versions)), 'nodes': nodes, 'edges': edges,
              'labels': labels, 'diagnostics': unresolved,

@@ -1,0 +1,84 @@
+{
+  "id": "proposal:e7f190897d37b32e707f32d981454f35373ed6d0e33c98e3ddd509392a62082a",
+  "schema_version": "qecgraph.proposal.v1",
+  "corpus_id": "corpus:9ef84c0b-8d6a-4733-af3e-993628134f73",
+  "base_registry_revision": "3af35e2d85bc7a6f9b65590d2424156d50b3e72df6b7bddf9b936ec830045d82",
+  "actor": {
+    "id": "codex",
+    "kind": "ai"
+  },
+  "rationale": "Explicit normalized claim proposal for inspection; not human-reviewed or formally proved",
+  "created_at": "2026-11-06T08:26:06.891291+00:00",
+  "status": "proposed",
+  "changes": [
+    {
+      "before": null,
+      "after": {
+        "schema_version": "qecgraph.record.v3",
+        "id": "claim:demo:proposal-example",
+        "revision": "1",
+        "kind": "claim",
+        "title": "Proposed ordinary HGP length statement",
+        "data": {
+          "statement": "The ordinary HGP construction has n = n1*n2 + r1*r2 physical qubits.",
+          "hypotheses": [
+            "Finite binary seed matrices with the stated ordinary HGP construction and column order"
+          ],
+          "quantifiers": [
+            "For all such seed matrices H1 and H2"
+          ]
+        },
+        "aliases": [],
+        "refs": [],
+        "assets": [],
+        "evidence_ids": [],
+        "provenance": {},
+        "review": {
+          "status": "proposed"
+        },
+        "extensions": {},
+        "hash_protocol": "sha256:json-sort-utf8-v1:record-excluding-content_sha256",
+        "content_sha256": "785fb30c17ad9de296dde1f3d9f59a192e244f7f337369765ddec8c989df7a7d"
+      },
+      "diff": [
+        {
+          "path": "",
+          "operation": "replace",
+          "before": null,
+          "after": {
+            "schema_version": "qecgraph.record.v3",
+            "id": "claim:demo:proposal-example",
+            "revision": "1",
+            "kind": "claim",
+            "title": "Proposed ordinary HGP length statement",
+            "data": {
+              "statement": "The ordinary HGP construction has n = n1*n2 + r1*r2 physical qubits.",
+              "hypotheses": [
+                "Finite binary seed matrices with the stated ordinary HGP construction and column order"
+              ],
+              "quantifiers": [
+                "For all such seed matrices H1 and H2"
+              ]
+            },
+            "aliases": [],
+            "refs": [],
+            "assets": [],
+            "evidence_ids": [],
+            "provenance": {},
+            "review": {
+              "status": "proposed"
+            },
+            "extensions": {},
+            "hash_protocol": "sha256:json-sort-utf8-v1:record-excluding-content_sha256",
+            "content_sha256": "785fb30c17ad9de296dde1f3d9f59a192e244f7f337369765ddec8c989df7a7d"
+          }
+        }
+      ]
+    }
+  ],
+  "input_bindings": {
+    "records": [],
+    "source_versions": {},
+    "assets": []
+  }
+}

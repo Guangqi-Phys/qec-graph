@@ -57,4 +57,26 @@ importance/MCMC 必须提供估计器和采样信息，不套用 errors/shots。
 `comparable_experiments` 保守比较精确输入/配置/度量/采样；不做每轮、每逻辑比特换算。
 该插件的输入版本检查是结构检查，调用方需另外解析并核对引用的实际记录；返回明确标示此范围。
 
-Review/apply 的命令、事务和失效语义在后续步骤补入本页。
+## 提案和决定
+
+```bash
+qecgraph review examples/proposal.example.json --corpus build/review-demo --actor-id codex --actor-kind ai
+qecgraph review-decide <返回的proposal_id> --corpus build/review-demo --actor-id codex --actor-kind ai --decision approve --rationale '结构检查接受，保持未人工审核'
+```
+
+review 只保存 proposed 提案和差异，不应用记录。新 ID 的 expected_revision/hash 都为 null；
+改动已有 ID 时必须填写准确旧 revision/hash，并指定新 revision。差异包含完整陈述、假设和依赖。
+提案绑定 corpus_id、registry revision、当前记录、来源快照及实际读取的资产字节；
+相同内容的不同 corpus 不互借提案。Corpus 搬迁保留 marker 中的身份，不以路径作为身份。
+
+review-decide 保存执行者 ID/类别、时间、范围、理由、决定和准确提案哈希。
+AI/program approve 只产生 machine_accepted，最终记录保持 draft/proposed。
+人工 approve 必须明确核对 statement、hypotheses、dependencies 三个 scope（重复使用 --checked-scope），
+不能只刷新 expected hash。身份是本地操作者显式声明，不是身份认证；自动化不得冒充 human。
+人工审核绑定其完整提案和精确最终记录，改变陈述、假设、依赖或 revision 后不能复制旧审核。
+资产缺失或变化、输入 revision/hash 不符、另一个 corpus 或过期 registry 均拒绝决定。
+
+旧 v1 depends_on_reviewed 仍按原关系名和哈希绑定解释；新增领域 refs 无人工绑定时标为 unbound_review，
+不会因 declared 状态或 include-candidates 而进入确认上下文。原始记录仍可 show 供审核。
+
+apply 事务与恢复语义在下一步骤补入本页。

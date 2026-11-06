@@ -175,8 +175,33 @@
             "disputed",
             "stale"
           ]
+        },
+        "review_id": {
+          "type": "string",
+          "pattern": "^review:"
+        },
+        "review_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "reviewed"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "review_id",
+              "review_sha256"
+            ]
+          }
+        }
+      ]
     },
     "evidence_ids": {
       "type": "array",

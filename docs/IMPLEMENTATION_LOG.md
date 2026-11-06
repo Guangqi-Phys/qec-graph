@@ -18,7 +18,7 @@
 | 07 | P1 | 旧图、sidecar、知识样例的显式迁移 | 完成 |
 | 08 | P2 | 严格 JSON、领域信封及端点类型验证 | 完成 |
 | 09 | P2 | 距离、矩阵和实验条件验证与筛选 | 完成 |
-| 10 | P2 | review 提案、身份类别与输入绑定 | 待执行 |
+| 10 | P2 | review 提案、身份类别与输入绑定 | 完成 |
 | 11 | P2 | 原子 apply、锁、冲突和幂等 | 待执行 |
 | 12 | P2 | 状态兼容、资源失效及审核逻辑环 | 待执行 |
 | 13 | P3 | 写者锁、strict staging 与发布恢复 | 待执行 |
@@ -71,3 +71,7 @@
 ## 09 · 数学插件与精确筛选
 
 新增 validators/qec.py、domain_query.py 和 check-css/check-experiment/codes。上界、未知下界、度量/sector 不符、无当前绑定证据或资产变化不会匹配下界硬条件。GF(2) 秩、CSS 对易、逻辑配对和受预算限制的完整穷举独立报告；实验区分采样、分母与可比性。全量 unittest 44 项通过；实际 check-css 输出 n=13、k=1、dX=dZ=3，保存在 validation/p2/css-check.json，未执行 Lean。
+
+## 10 · 可审阅提案与决定
+
+新增 review.py、proposal/review v1 Schema、review/review-decide 命令和示例。绑定 corpus 身份、差异、输入修订、来源及实际资产；明确区分 human/ai/program。AI/program 接受只为 machine_accepted，不提升人工或 Lean 状态；复制旧审核、过期输入、跨 corpus 和变化资产均拒绝。全量 unittest 49 项通过；实际示例提案和 AI 决定保存在 validation/p2。按计划在本步提交后执行首次 push。
