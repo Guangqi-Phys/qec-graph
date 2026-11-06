@@ -28,6 +28,7 @@ def _add_source_arguments(parser):
     parser.add_argument("--project-root")
     parser.add_argument("--config")
     parser.add_argument('--strict', action='store_true', help='Keep partial extraction in staging without changing CURRENT')
+    parser.add_argument('--incremental', action='store_true', help='Reuse content-checked per-file ASTs; rebuild semantic projections')
 
 
 def main(argv=None):
@@ -191,9 +192,11 @@ def main(argv=None):
             result = Registry(args.corpus).register_source(args.work_id, args.source_version_id, args.store,
                                                          title=args.title, upstream_version=args.upstream_version)
         elif args.command == "ingest":
-            result = ingest(args.entry, args.project_id, args.out, args.project_root, args.config, args.annotations, args.catalog, strict=args.strict)
+            result = ingest(args.entry, args.project_id, args.out, args.project_root, args.config, args.annotations, args.catalog,
+                            strict=args.strict, incremental=args.incremental)
         elif args.command == "split":
-            result = split_project(args.entry, args.project_id, args.out, args.project_root, args.config, strict=args.strict)
+            result = split_project(args.entry, args.project_id, args.out, args.project_root, args.config,
+                                   strict=args.strict, incremental=args.incremental)
         elif getattr(args, 'corpus', None):
             from .corpus import execute
             result = execute(args.corpus, args.command, getattr(args, 'id_or_label', None),

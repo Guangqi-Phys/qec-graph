@@ -271,7 +271,8 @@ def _children(node):
 
 
 class _ProjectParser:
-    def __init__(self, entry: Path, project_root: Path, config: dict[str, Any]):
+    def __init__(self, entry: Path, project_root: Path, config: dict[str, Any], node_cache=None):
+        self.node_cache = node_cache
         self.root = project_root.resolve()
         self.entry = entry.resolve()
         if not self.entry.is_relative_to(self.root):
@@ -372,9 +373,18 @@ class _ProjectParser:
 
     def parse_nodes(self, path: str):
         text = self.files[path]["text"]
+        key = None
+        if self.node_cache:
+            key = self.node_cache.key(path, text, {'environments': self.environment_map,
+                                                  'macro_specs': self.macro_specs, 'conditionals': sorted(self._conditional_names)})
+            cached = self.node_cache.get(key, text)
+            if cached is not None:
+                return cached
         try:
             nodes, _, _ = LatexWalker(text, latex_context=self.context,
                                       tolerant_parsing=False).get_latex_nodes()
+            if self.node_cache:
+                self.node_cache.put(key, nodes)
             return nodes
         except (LatexWalkerParseError, IndexError) as exc:
             pos = max(0, min(getattr(exc, "pos", 0) or 0, len(text)))
@@ -775,7 +785,7 @@ class _ProjectParser:
 
 
 def parse_project(entry: str | Path, project_root: str | Path | None = None,
-                  config: dict | None = None) -> dict:
+                  config: dict | None = None, *, node_cache=None) -> dict:
     """Parse a UTF-8 LaTeX project without executing it.
 
     ``environment_map`` in config can map custom environment names to supported
@@ -788,4 +798,4 @@ def parse_project(entry: str | Path, project_root: str | Path | None = None,
     root = Path(project_root).expanduser().resolve() if project_root is not None else entry.parent
     if not entry.is_file():
         raise ValueError(f"LaTeX entry file does not exist: {entry}")
-    return _ProjectParser(entry, root, config or {}).run()
+    return _ProjectParser(entry, root, config or {}, node_cache=node_cache).run()

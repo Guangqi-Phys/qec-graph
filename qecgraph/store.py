@@ -7,6 +7,7 @@ import os
 import shutil
 import sqlite3
 import tempfile
+import time
 from collections import Counter
 from importlib.metadata import version
 from pathlib import Path
@@ -141,16 +142,18 @@ def check_output_directory(out, *, allow_lock=False):
     return out
 
 
-def ingest(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None, *, strict=False):
+def ingest(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None, *, strict=False, incremental=False):
     out = check_output_directory(out)
     with writer_lock(out):
         check_output_directory(out, allow_lock=True)
         if not (out / '.qecgraph-store.json').exists():
             atomic_json(out / '.qecgraph-store.json', {'format': 'qecgraph.store.v1'})
-        return _ingest_locked(entry, project_id, out, project_root, config_path, annotations_path, catalog_dir, strict=strict)
+        return _ingest_locked(entry, project_id, out, project_root, config_path, annotations_path, catalog_dir,
+                              strict=strict, incremental=incremental)
 
 
-def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None, *, strict=False):
+def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None, *, strict=False, incremental=False):
+    started = time.perf_counter()
     parser_version = version("pylatexenc")
     if parser_version != "2.10":
         raise ValueError(f"This release requires pylatexenc==2.10; found {parser_version}")
@@ -168,7 +171,11 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
             catalog.append(record)
             catalog_inputs.append({"path": str(path.relative_to(Path(catalog_dir))), "sha256": hash_text(canonical(record))})
 
-    parsed = parse_project(entry, project_root=root, config=config)
+    node_cache = None
+    if incremental:
+        from .incremental import ParseCache
+        node_cache = ParseCache(out, root, config)
+    parsed = parse_project(entry, project_root=root, config=config, node_cache=node_cache)
     source_bytes = {}
     for item in parsed["files"]:
         raw = item["text"].encode("utf-8")
@@ -283,16 +290,37 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
             raise
     else:
         validate_snapshot(target)
+    # Editors may save again while parsing. Publish only if the inputs that
+    # this snapshot actually read still match; a watcher can retry a newer save.
+    for captured in (source_bytes, resource_bytes):
+        for relative, raw in captured.items():
+            if safe_relative(root, relative).read_bytes() != raw:
+                raise ValueError(f'Input changed during build: {relative}; retry')
+    if config_path and read_json(config_path) != config or annotations_path and read_json(annotations_path) != annotations:
+        raise ValueError('Config/annotations changed during build; retry')
+    if catalog_dir:
+        current_catalog = [{'path': str(path.relative_to(Path(catalog_dir))), 'sha256': hash_text(canonical(read_json(path)))}
+                           for path in sorted(Path(catalog_dir).rglob('*.json'))]
+        if current_catalog != catalog_inputs:
+            raise ValueError('Catalog changed during build; retry')
     if not staged:
         atomic_json(out / 'CURRENT.json', {'format': 'qecgraph.current.v1', 'snapshot_id': snapshot_id,
                                            'path': 'snapshots/' + snapshot_id})
     report = read_json(target / "report.json")
-    return {"store": str(out), "snapshot": str(target), "snapshot_id": snapshot_id,
+    result = {"store": str(out), "snapshot": str(target), "snapshot_id": snapshot_id,
             "node_count": report["node_count"], "edge_count": report["edge_count"],
             "kinds": report["kinds"], "relations": report["relations"],
             "extraction_status": report["extraction_status"], "diagnostics": report["diagnostics"],
             "review_queue_count": len(report["review_queue"]), 'published': not staged,
             'publication_status': 'staged_partial' if staged else 'published'}
+    if node_cache:
+        try:
+            node_cache.finish(parsed, result)
+        except (OSError, ValueError) as exc:
+            node_cache.stats['cache_state_error'] = str(exc)
+        result['incremental'] = {**node_cache.stats, 'elapsed_seconds': time.perf_counter() - started,
+                                 'semantic_rebuild': 'full discovery, resolution, graph, reviews and projections'}
+    return result
 
 
 def recover_store(store, *, remove_abandoned=False):

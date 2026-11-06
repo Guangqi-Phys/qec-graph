@@ -24,7 +24,7 @@ def split_project(
     out: str | Path,
     project_root: str | Path | None = None,
     config_path: str | Path | None = None,
-    *, strict: bool = False,
+    *, strict: bool = False, incremental: bool = False,
 ) -> dict:
     """Split a LaTeX project into source-provenanced semantic fragments.
 
@@ -56,6 +56,7 @@ def split_project(
         annotations_path=None,
         catalog_dir=None,
         strict=strict,
+        incremental=incremental,
     )
     # Read the exact returned immutable snapshot, not CURRENT: another writer
     # may advance CURRENT after ingestion without changing this result.
