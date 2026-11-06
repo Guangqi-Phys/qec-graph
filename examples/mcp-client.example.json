@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "qecgraph": {
+      "command": "/ABSOLUTE/PATH/qec-graph/.venv/bin/python",
+      "args": ["-m", "qecgraph", "serve-mcp", "--store", "/ABSOLUTE/PATH/qec-graph/build/demo", "--snapshot", "REPLACE_WITH_ACTUAL_SNAPSHOT_ID"]
+    }
+  }
+}

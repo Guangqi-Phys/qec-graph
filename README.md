@@ -137,7 +137,7 @@ QEC_UID=$(id -u) QEC_GID=$(id -g) docker compose run --rm research
 | 多论文 registry、规范 claim 独立修订、固定 corpus 查询及旧格式迁移 | P1 已实现，命令与边界见 docs/09_CORPUS.md |
 | 严格领域验证、review/apply 事务、证据条件筛选与失效 | P2 已实现，见 docs/10_VALIDATION_REVIEW.md |
 | 逐文件 AST 复用、polling watch、单写者锁和 strict 发布 | P3 已实现；语义图/投影仍全量重建，见 docs/11_INCREMENTAL.md |
-| MCP 服务与跨客户端 AI 工具接入 | 后续 P4；当前是 CLI/Python/JSON |
+| 固定版本只读 AI 工具与 MCP stdio | P4 已实现；官方 2025-06-18 协议，CLI/Python/MCP 一致，见 docs/12_AI_MCP.md |
 | 语义向量检索、PDF/OCR、通用代码仓库解析 | 可选扩展；当前未实现 |
 | Lean 实际构建、声明/依赖导出、公理审计 | 后续 P5；当前未执行 |
 

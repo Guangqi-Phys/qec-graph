@@ -101,6 +101,21 @@ class MCPTests(unittest.TestCase):
                                   for p in self.store.rglob('*') if p.is_file()})
         self.assertEqual(proc.stderr, '')
 
+    def test_full_interactive_client_reproduction(self):
+        script = Path(__file__).resolve().parents[1] / 'tools/reproduce_mcp.py'
+        proc = subprocess.run([sys.executable, str(script), '--out', str(self.root / 'client-reproduction')],
+                               capture_output=True, text=True, timeout=45)
+        self.assertEqual(proc.returncode, 0, proc.stderr + proc.stdout)
+        summary = json.loads(proc.stdout)
+        self.assertEqual(summary['status'], 'passed')
+        self.assertGreaterEqual(summary['checks'], 22)
+        config = subprocess.run([sys.executable, '-m', 'qecgraph', 'mcp-config', '--store', str(self.store)],
+                                 capture_output=True, text=True, timeout=10)
+        self.assertEqual(config.returncode, 0, config.stderr)
+        server = json.loads(config.stdout)['mcpServers']['qecgraph']
+        self.assertEqual(server['command'], sys.executable)
+        self.assertIn('--snapshot', server['args'])
+
 
 if __name__ == '__main__':
     unittest.main()

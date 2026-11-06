@@ -108,6 +108,9 @@ class AIToolTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout), expected)
         self.assertEqual(session.invoke('qecgraph_show', {'identifier': 'a'})['error']['code'], 'SCOPE_REQUIRED')
+        _, archive, _ = registry.source_graph('version:ai:1')
+        (archive / 'sources/main.tex').write_text('tampered archived corpus source')
+        self.assertFalse(session.invoke('qecgraph_show', args)['ok'])
 
 
 if __name__ == '__main__':

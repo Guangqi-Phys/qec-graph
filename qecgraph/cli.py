@@ -50,6 +50,8 @@ def _add_source_arguments(parser):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graph; no mathematical proof verification")
     sub = parser.add_subparsers(dest="command", required=True)
+    cmd = sub.add_parser('mcp-config', help='Print a reviewable fixed-scope client config without editing user settings')
+    _add_ai_arguments(cmd)
     cmd = sub.add_parser('serve-mcp', help='Serve only fixed-scope read tools over local MCP stdio')
     _add_ai_arguments(cmd)
     cmd = sub.add_parser('query-tool', help='Call the fixed-scope read-only AI contract from JSON')
@@ -163,7 +165,20 @@ def main(argv=None):
                 if getattr(args, 'registry_revision', None) or getattr(args, 'source_version_id', None):
                     raise ValueError('Corpus scope arguments require --corpus')
                 args.store = pin_snapshot(args.store, args.snapshot)
-        if args.command == 'serve-mcp':
+        if args.command == 'mcp-config':
+            from pathlib import Path
+            session = _ai_session(args)
+            arguments = ['-m', 'qecgraph', 'serve-mcp']
+            if args.corpus:
+                arguments += ['--corpus', str(Path(args.corpus).resolve()), '--registry-revision', session.scope['registry_revision']]
+                if args.source_version_id:
+                    arguments += ['--source-version-id', args.source_version_id]
+            else:
+                arguments += ['--store', str(Path(args.store).resolve()), '--snapshot', session.scope['snapshot_id']]
+            for name in ('nodes', 'depth', 'chars', 'results'):
+                arguments += ['--session-max-' + name, str(getattr(args, 'session_max_' + name))]
+            result = {'mcpServers': {'qecgraph': {'command': sys.executable, 'args': arguments}}}
+        elif args.command == 'serve-mcp':
             from .mcp_server import serve_stdio
             return serve_stdio(_ai_session(args))
         elif args.command == 'query-tool':

@@ -9,6 +9,7 @@ from jsonschema import Draft202012Validator
 
 from . import query
 from .corpus import project
+from .registry import Registry
 from .store import GraphInput, load_graph, pin_snapshot, validate_snapshot
 
 TOOL_NAMES = ('qecgraph_search', 'qecgraph_show', 'qecgraph_context', 'qecgraph_deps', 'qecgraph_impact')
@@ -38,6 +39,7 @@ class ReadOnlySession:
             if snapshot_id:
                 raise ValueError('snapshot_id belongs to a store, not a corpus')
             source, full_scope = project(corpus, registry_revision, source_version_id)
+            self._check_corpus_sources(corpus, full_scope)
             self.source = GraphInput(copy.deepcopy(source.graph))
             self.scope = {'kind': 'corpus', 'registry_revision': full_scope['registry_revision'],
                           'source_version_id': source_version_id,
@@ -56,12 +58,20 @@ class ReadOnlySession:
 
     def _refresh(self):
         if self.corpus:
-            source, _ = project(self.corpus, self.scope['registry_revision'], self.scope['source_version_id'])
+            source, full_scope = project(self.corpus, self.scope['registry_revision'], self.scope['source_version_id'])
+            self._check_corpus_sources(self.corpus, full_scope)
             self.source = GraphInput(copy.deepcopy(source.graph))
         else:
             validate_snapshot(self.reference.path)
             graph, snapshot = load_graph(self.reference)
             self.source = GraphInput(copy.deepcopy(graph), snapshot)
+
+    @staticmethod
+    def _check_corpus_sources(corpus, scope):
+        registry = Registry(corpus)
+        for version_id in scope['source_versions']:
+            _, snapshot, _ = registry.source_graph(version_id, scope['registry_revision'])
+            validate_snapshot(snapshot)
 
     def tools(self):
         tools = []

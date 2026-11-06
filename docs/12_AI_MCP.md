@@ -48,4 +48,20 @@ stdout 只发送逐行 UTF-8 JSON-RPC，兼容 text content 和 structuredConten
 输入 JSON 拒绝重复 key、非有限数、错误 UTF-8、批量请求及未完成行。
 协议协商只提供本服务支持的 2025-06-18；其他协议客户端应接受该版本或断开，不能假设实现了未来版本。
 安装后的 qecgraph-mcp 别名等价于 `python -m qecgraph.mcp_server`。
-具体客户端配置和三种入口一致性演示在下一步骤补入本页。
+## 客户端接入和实测
+
+```bash
+qecgraph mcp-config --store build/demo > build/mcp-client.json
+python tools/reproduce_mcp.py --out build/reproduce-mcp
+```
+
+mcp-config 生成使用当前虚拟环境 Python、绝对 store 路径和固定 snapshot 的可审阅配置；
+corpus 同样固定 registry revision。它不修改 Codex 或其他客户端的配置文件。
+`examples/mcp-client.example.json` 是常见 mcpServers 配置示例，需替换占位符并按具体客户端的格式接入。
+安装包后运行不依赖客户端工作目录；不要使用缺少本项目依赖的另一个 Python。
+
+实际 stdio 测试客户端已完成握手、发现、全部工具调用，验证 text/structuredContent、
+CLI/Python/MCP 相同 envelope、固定旧 snapshot/corpus、空结果、重复 label、错误作用域、
+节点/字符预算和 partial 状态，共 22 项端到端断言。报告与真实协议 transcript 保存在 validation/p4。
+客户端没有运行 TeX/论文脚本/Lean，也没有修改外部应用配置；测试进程通过 EOF 退出。
+新会话若需要新版，显式重建配置或选择新 revision，不在一次任务中混读 CURRENT。

@@ -56,9 +56,10 @@ def main(argv=None) -> int:
         "code_sha256": {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
                         for p in sorted((ROOT / "qecgraph").rglob("*")) if p.suffix in {'.py', '.json'}},
         "steps": [],
-        "not_executed_by_this_command": ["Lean build / declaration export / axiom audit", "Docker build",
-                         "External CodeGraph checkout or code reuse", "MCP client connection",
-                         "Tests on a user-supplied real paper"],
+        "execution_scope": ["Exact top-level steps are listed below; unit tests include subprocess MCP clients",
+                            "Separate Lean/MCP reproduction reports record their own environment and scope",
+                            "No Docker build or external desktop client configuration in this command",
+                            "No user-supplied real paper is included in the fixture suite"],
     }
 
     def run(name: str, arguments: list[str], json_output=True) -> dict:

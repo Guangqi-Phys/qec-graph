@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "qecgraph": {
+      "command": "/Users/guangqi/Workspace/qec-graph/.venv/bin/python",
+      "args": [
+        "-m",
+        "qecgraph",
+        "serve-mcp",
+        "--store",
+        "/Users/guangqi/Workspace/qec-graph/build/reproduce-p4-final/graph",
+        "--snapshot",
+        "88835edee077422bec0252aecdda0c8548a3ca7af36f76a8ed7184da4d3a71d7",
+        "--session-max-nodes",
+        "100",
+        "--session-max-depth",
+        "4",
+        "--session-max-chars",
+        "64000",
+        "--session-max-results",
+        "50"
+      ]
+    }
+  }
+}
