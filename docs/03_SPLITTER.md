@@ -56,6 +56,7 @@ python3 -m qecgraph.splitter examples/paper/main.tex \
 |---|---|
 | `--project-root DIR` | 限定工程文件的根目录；默认使用入口文件所在目录 |
 | `--config FILE` | JSON 格式的解析器配置，例如自定义环境映射 |
+| `--strict` | 部分抽取放入 staging，不更新 CURRENT；退出码仍为 2 |
 
 `split` 是 source-only 操作，不接收 `--annotations` 或 `--catalog`。需要合并人工注释和既有数据记录时，使用完整的 `ingest` 命令。
 

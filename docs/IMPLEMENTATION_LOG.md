@@ -21,7 +21,7 @@
 | 10 | P2 | review 提案、身份类别与输入绑定 | 完成 |
 | 11 | P2 | 原子 apply、锁、冲突和幂等 | 完成 |
 | 12 | P2 | 状态兼容、资源失效及审核逻辑环 | 完成 |
-| 13 | P3 | 写者锁、strict staging 与发布恢复 | 待执行 |
+| 13 | P3 | 写者锁、strict staging 与发布恢复 | 完成 |
 | 14 | P3 | 输入依赖指纹及安全解析缓存 | 待执行 |
 | 15 | P3 | watch 调度、变更和全量一致性 | 待执行 |
 | 16 | P3 | 恢复演练和真实增量测量 | 待执行 |
@@ -83,3 +83,7 @@
 ## 12 · 状态、失效与 P2 验收
 
 新增共享 status.py；遍历、proof/祖先补入、最终边和注释一致过滤候选及失效。人工审核从固定版本记录、来源和实际资产派生 freshness；历史决定保持不可变，依赖变化/资产缺失时 stale。仅审计有效 depends_on_reviewed SCC，v1 status=declared 保持兼容，引用环不报 DAG 错误。完整 reproduce-p2 退出 0、58 项回归通过；报告见 validation/p2。P2 完成，POSIX/CAS 保守范围和数值插件限制见 10_VALIDATION_REVIEW.md。
+
+## 13 · 发布与恢复
+
+store/split 共享目录保护和跨进程锁；增加 strict partial staging（旧默认 partial 发布和退出 2 不变）、单独 staged 验证和受控遗留构建清理。项目管理标识阻止无 CURRENT 时串用 store。跨进程争用与 os._exit 崩溃测试确认锁释放，未识别目录不会被恢复命令删除。全量 unittest 62 项通过，见 11_INCREMENTAL.md 的本地 POSIX 边界。

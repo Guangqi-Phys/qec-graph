@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from . import __version__
 from .graph import build_graph, canonical, hash_text, node_filename, read_json, views
 from .parser import parse_project
+from .transactions import atomic_json, writer_lock
 
 
 def write_json(path, value):
@@ -117,7 +118,39 @@ def build_sqlite(path, graph):
         con.close()
 
 
-def ingest(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None):
+def check_output_directory(out, *, allow_lock=False):
+    out = Path(out).expanduser().resolve()
+    if out.exists() and not out.is_dir():
+        raise ValueError('--out must be a directory')
+    if out.is_dir():
+        marker = out / '.qecgraph-store.json'
+        if marker.is_symlink():
+            raise ValueError('The store marker must be a regular local file')
+        if marker.exists():
+            if read_json(marker) != {'format': 'qecgraph.store.v1'}:
+                raise ValueError('Incompatible qecgraph store marker')
+        elif any(not (allow_lock and path.name == '.writer.lock') for path in out.iterdir()):
+            raise ValueError('Refusing to write into an unrecognized nonempty directory; choose a new --out')
+        for name in ('snapshots', 'staging', 'cache'):
+            path = out / name
+            if path.is_symlink() or path.exists() and not path.is_dir():
+                raise ValueError(f'The {name} directory must be a regular local directory')
+        for name in ('CURRENT.json', '.qecgraph-project.json'):
+            if (out / name).is_symlink():
+                raise ValueError(f'{name} must be a regular local pointer')
+    return out
+
+
+def ingest(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None, *, strict=False):
+    out = check_output_directory(out)
+    with writer_lock(out):
+        check_output_directory(out, allow_lock=True)
+        if not (out / '.qecgraph-store.json').exists():
+            atomic_json(out / '.qecgraph-store.json', {'format': 'qecgraph.store.v1'})
+        return _ingest_locked(entry, project_id, out, project_root, config_path, annotations_path, catalog_dir, strict=strict)
+
+
+def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None, *, strict=False):
     parser_version = version("pylatexenc")
     if parser_version != "2.10":
         raise ValueError(f"This release requires pylatexenc==2.10; found {parser_version}")
@@ -179,11 +212,19 @@ def ingest(entry, project_id, out, project_root=None, config_path=None, annotati
         previous_graph, _ = load_graph(out)
         if previous_graph["project_id"] != project_id:
             raise ValueError("Use a separate output store for a different project-id")
-    target = out / "snapshots" / snapshot_id
+    project_marker = out / '.qecgraph-project.json'
+    if project_marker.exists():
+        if read_json(project_marker) != {'format': 'qecgraph.store-project.v1', 'project_id': project_id}:
+            raise ValueError('Use a separate output store for a different project-id')
+    else:
+        atomic_json(project_marker, {'format': 'qecgraph.store-project.v1', 'project_id': project_id})
+    staged = bool(strict and graph['extraction_status'] == 'partial')
+    target = safe_relative(out, ('staging/' if staged else 'snapshots/') + snapshot_id)
     target.parent.mkdir(parents=True, exist_ok=True)
     if not target.exists():
         temporary = Path(tempfile.mkdtemp(prefix=".building-", dir=target.parent))
         try:
+            write_json(temporary / '.qecgraph-building.json', {'format': 'qecgraph.building.v1', 'snapshot_id': snapshot_id})
             for rel, raw in source_bytes.items():
                 path = safe_relative(temporary / "sources", rel)
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -228,6 +269,7 @@ def ingest(entry, project_id, out, project_root=None, config_path=None, annotati
                                                             if current_nodes[k] != previous_nodes[k])},
                       "mathematical_verification": "not_performed", "lean_build": "not_performed"}
             write_json(temporary / "report.json", report)
+            (temporary / '.qecgraph-building.json').unlink()
             outputs = [{"path": str(p.relative_to(temporary)), "sha256": hashlib.sha256(p.read_bytes()).hexdigest()}
                        for p in sorted(temporary.rglob("*")) if p.is_file()]
             write_json(temporary / "manifest.json", {"format": "qecgraph.manifest.v1", "snapshot_id": snapshot_id,
@@ -241,16 +283,49 @@ def ingest(entry, project_id, out, project_root=None, config_path=None, annotati
             raise
     else:
         validate_snapshot(target)
-    pointer_tmp = out / "CURRENT.new.json"
-    write_json(pointer_tmp, {"format": "qecgraph.current.v1", "snapshot_id": snapshot_id,
-                             "path": "snapshots/" + snapshot_id})
-    os.replace(pointer_tmp, out / "CURRENT.json")
+    if not staged:
+        atomic_json(out / 'CURRENT.json', {'format': 'qecgraph.current.v1', 'snapshot_id': snapshot_id,
+                                           'path': 'snapshots/' + snapshot_id})
     report = read_json(target / "report.json")
     return {"store": str(out), "snapshot": str(target), "snapshot_id": snapshot_id,
             "node_count": report["node_count"], "edge_count": report["edge_count"],
             "kinds": report["kinds"], "relations": report["relations"],
             "extraction_status": report["extraction_status"], "diagnostics": report["diagnostics"],
-            "review_queue_count": len(report["review_queue"])}
+            "review_queue_count": len(report["review_queue"]), 'published': not staged,
+            'publication_status': 'staged_partial' if staged else 'published'}
+
+
+def recover_store(store, *, remove_abandoned=False):
+    store = check_output_directory(store)
+    if not (store / '.qecgraph-store.json').exists():
+        raise ValueError('Recovery requires a managed store')
+    with writer_lock(store):
+        result = {'store': str(store), 'abandoned': [], 'removed': [], 'unrecognized': [], 'current': None}
+        if (store / 'CURRENT.json').exists():
+            result['current'] = validate_snapshot(current_snapshot(store))
+        for parent in ('snapshots', 'staging'):
+            for path in sorted((store / parent).glob('.building-*')):
+                if path.is_symlink() or not path.is_dir():
+                    result['unrecognized'].append(str(path))
+                    continue
+                marker = path / '.qecgraph-building.json'
+                owned = False
+                try:
+                    if marker.exists():
+                        owned = read_json(marker).get('format') == 'qecgraph.building.v1'
+                    elif (path / 'manifest.json').exists():
+                        validate_snapshot(path, read_json(path / 'graph.json')['snapshot_id'])
+                        owned = True
+                except (OSError, ValueError, KeyError):
+                    pass
+                if not owned:
+                    result['unrecognized'].append(str(path))
+                    continue
+                result['abandoned'].append(str(path))
+                if remove_abandoned:
+                    shutil.rmtree(path)
+                    result['removed'].append(str(path))
+        return result
 
 
 def validate_snapshot(snapshot, expected_snapshot_id=None):

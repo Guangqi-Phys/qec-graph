@@ -17,7 +17,10 @@ from pathlib import Path
 def writer_lock(root):
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
-    with (root / '.writer.lock').open('a+b') as handle:
+    lock_path = root / '.writer.lock'
+    if lock_path.is_symlink():
+        raise ValueError('Writer lock must be a regular local file')
+    with lock_path.open('a+b') as handle:
         try:
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as exc:

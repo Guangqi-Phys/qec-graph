@@ -27,11 +27,18 @@ def _add_source_arguments(parser):
     parser.add_argument("--out", required=True)
     parser.add_argument("--project-root")
     parser.add_argument("--config")
+    parser.add_argument('--strict', action='store_true', help='Keep partial extraction in staging without changing CURRENT')
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graph; no mathematical proof verification")
     sub = parser.add_subparsers(dest="command", required=True)
+    cmd = sub.add_parser('recover-store', help='Validate CURRENT and inventory abandoned tool-owned builds')
+    cmd.add_argument('--store', required=True)
+    cmd.add_argument('--remove-abandoned', action='store_true')
+    cmd = sub.add_parser('validate-staged', help='Validate an explicitly selected staged snapshot')
+    cmd.add_argument('--store', required=True)
+    cmd.add_argument('--snapshot', required=True)
     cmd = sub.add_parser('audit-dependencies', help='Report SCCs only in active reviewed logical dependencies')
     _add_query_scope(cmd)
     cmd = sub.add_parser('apply', help='Atomically publish a reviewed proposal with input conflict checks')
@@ -125,7 +132,16 @@ def main(argv=None):
                 if getattr(args, 'registry_revision', None) or getattr(args, 'source_version_id', None):
                     raise ValueError('Corpus scope arguments require --corpus')
                 args.store = pin_snapshot(args.store, args.snapshot)
-        if args.command == 'audit-dependencies':
+        if args.command == 'recover-store':
+            from .store import recover_store
+            result = recover_store(args.store, remove_abandoned=args.remove_abandoned)
+        elif args.command == 'validate-staged':
+            from pathlib import Path
+            from .store import safe_relative
+            if len(args.snapshot) != 64 or any(c not in '0123456789abcdef' for c in args.snapshot):
+                raise ValueError('Invalid staged snapshot ID')
+            result = validate_snapshot(safe_relative(Path(args.store).resolve(), 'staging/' + args.snapshot))
+        elif args.command == 'audit-dependencies':
             from .status import reviewed_cycles
             if args.corpus:
                 from .corpus import project
@@ -175,9 +191,9 @@ def main(argv=None):
             result = Registry(args.corpus).register_source(args.work_id, args.source_version_id, args.store,
                                                          title=args.title, upstream_version=args.upstream_version)
         elif args.command == "ingest":
-            result = ingest(args.entry, args.project_id, args.out, args.project_root, args.config, args.annotations, args.catalog)
+            result = ingest(args.entry, args.project_id, args.out, args.project_root, args.config, args.annotations, args.catalog, strict=args.strict)
         elif args.command == "split":
-            result = split_project(args.entry, args.project_id, args.out, args.project_root, args.config)
+            result = split_project(args.entry, args.project_id, args.out, args.project_root, args.config, strict=args.strict)
         elif getattr(args, 'corpus', None):
             from .corpus import execute
             result = execute(args.corpus, args.command, getattr(args, 'id_or_label', None),

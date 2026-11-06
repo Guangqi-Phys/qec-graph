@@ -10,27 +10,12 @@ from pathlib import Path
 import sys
 
 from .graph import read_json
-from .store import ingest, safe_relative
+from .store import check_output_directory, ingest, safe_relative
 
 
 def _check_output_directory(out: str | Path) -> Path:
     """Avoid claiming an unrelated nonempty directory as a splitter store."""
-    target = Path(out).expanduser().resolve()
-    if target.exists() and not target.is_dir():
-        raise ValueError("--out must be a directory, not a file")
-    if target.is_dir():
-        marker = target / ".qecgraph-store.json"
-        if marker.is_symlink():
-            raise ValueError("The store marker must be a regular local file")
-        if marker.exists():
-            if read_json(marker) != {"format": "qecgraph.store.v1"}:
-                raise ValueError("Output directory has an incompatible qecgraph marker")
-        elif any(target.iterdir()):
-            raise ValueError("Refusing to write into an unrecognized nonempty directory; choose a new --out")
-        snapshots = target / "snapshots"
-        if snapshots.is_symlink() or (snapshots.exists() and not snapshots.is_dir()):
-            raise ValueError("The snapshots directory must be a regular local directory")
-    return target
+    return check_output_directory(out)
 
 
 def split_project(
@@ -39,6 +24,7 @@ def split_project(
     out: str | Path,
     project_root: str | Path | None = None,
     config_path: str | Path | None = None,
+    *, strict: bool = False,
 ) -> dict:
     """Split a LaTeX project into source-provenanced semantic fragments.
 
@@ -69,6 +55,7 @@ def split_project(
         config_path=config_path,
         annotations_path=None,
         catalog_dir=None,
+        strict=strict,
     )
     # Read the exact returned immutable snapshot, not CURRENT: another writer
     # may advance CURRENT after ingestion without changing this result.
