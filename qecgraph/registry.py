@@ -9,6 +9,8 @@ from pathlib import Path
 from .graph import canonical, hash_text, read_json
 from .store import current_snapshot, safe_relative, validate_snapshot
 from .transactions import atomic_json, immutable_json, writer_lock
+from .records import prepare_record
+from .query import resolve
 
 FORMAT = 'qecgraph.registry.v1'
 
@@ -90,3 +92,68 @@ class Registry:
         if graph['snapshot_id'] != version['snapshot_id']:
             raise ValueError('Registered snapshot identity mismatch')
         return graph, snapshot, version
+
+    def _put_record(self, state, record):
+        record = prepare_record(record)
+        identifier, revision = record['id'], record['revision']
+        identity = state['records'].setdefault(identifier, {'kind': record['kind'], 'revisions': {}})
+        if identity['kind'] != record['kind']:
+            raise ValueError('An entity cannot change kind without explicit migration')
+        path = 'records/' + hash_text(identifier) + '/' + hash_text(revision) + '.json'
+        binding = {'path': path, 'content_sha256': record['content_sha256']}
+        if revision in identity['revisions'] and identity['revisions'][revision] != binding:
+            raise ValueError('Entity revision already binds different content')
+        immutable_json(self.root / path, record)
+        identity['revisions'][revision] = binding
+        identity['current_revision'] = revision
+        return record
+
+    def add_record(self, record):
+        with writer_lock(self.root):
+            state = self._state_or_empty()
+            record = self._put_record(state, record)
+            revision = self._publish(state)
+        return {'registry_revision': revision, 'record': record}
+
+    def record(self, identifier, record_revision=None, registry_revision=None):
+        state, _ = self.read(registry_revision)
+        if identifier not in state['records']:
+            raise ValueError(f'Unknown entity: {identifier}')
+        identity = state['records'][identifier]
+        revision = record_revision or identity['current_revision']
+        if revision not in identity['revisions']:
+            raise ValueError(f'Unknown revision for {identifier}: {revision}')
+        binding = identity['revisions'][revision]
+        record = prepare_record(read_json(safe_relative(self.root, binding['path'])))
+        if record['id'] != identifier or record['revision'] != revision or record['content_sha256'] != binding['content_sha256']:
+            raise ValueError('Registered record identity/hash mismatch')
+        return record
+
+    def link_claim(self, link_id, source_version_id, source_selector, claim_id, *, claim_revision=None,
+                   assumptions=None, notation_scope=None):
+        if not isinstance(link_id, str) or not link_id.strip():
+            raise ValueError('Link requires explicit identity')
+        with writer_lock(self.root):
+            state, fixed = self.read()
+            graph, _, version = self.source_graph(source_version_id, fixed)
+            node_id = resolve(graph, source_selector)
+            node = next(n for n in graph['nodes'] if n['id'] == node_id)
+            if node['origin'] != 'parser' or not node.get('source'):
+                raise ValueError('Claim provenance requires an actual source block')
+            claim = self.record(claim_id, claim_revision, fixed)
+            if claim['kind'] != 'claim':
+                raise ValueError('Source normalization target must be a claim')
+            link = {'id': link_id, 'relation': 'normalizes_to', 'status': 'proposed',
+                    'source_version_id': source_version_id, 'source_snapshot_id': version['snapshot_id'],
+                    'source_node_id': node_id, 'source_content_sha256': node['content_sha256'],
+                    'claim_id': claim_id, 'claim_revision': claim['revision'],
+                    'claim_content_sha256': claim['content_sha256'],
+                    'assumptions': assumptions or [], 'notation_scope': notation_scope or {}}
+            prior = next((x for x in state['links'] if x['id'] == link_id), None)
+            if prior and prior != link:
+                raise ValueError('Provenance link identity already binds different content')
+            if not prior:
+                state['links'].append(link)
+                state['links'].sort(key=lambda x: x['id'])
+            revision = self._publish(state)
+        return {'registry_revision': revision, 'link': link}

@@ -9,6 +9,7 @@ from .query import context, dependencies, search, show
 from .splitter import split_project
 from .store import current_snapshot, ingest, validate_snapshot
 from .registry import Registry
+from .graph import read_json
 
 
 def _add_source_arguments(parser):
@@ -22,6 +23,10 @@ def _add_source_arguments(parser):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graph; no mathematical proof verification")
     sub = parser.add_subparsers(dest="command", required=True)
+    for name in ('record-add', 'claim-link'):
+        cmd = sub.add_parser(name, help="Add an explicit record or provenance mapping from JSON")
+        cmd.add_argument("input")
+        cmd.add_argument("--corpus", required=True)
     cmd = sub.add_parser("register", help="Archive a store as an explicit work/source version in a corpus")
     cmd.add_argument("--corpus", required=True)
     cmd.add_argument("--store", required=True)
@@ -54,7 +59,11 @@ def main(argv=None):
     cmd.add_argument("--store", required=True)
     args = parser.parse_args(argv)
     try:
-        if args.command == "register":
+        if args.command == 'record-add':
+            result = Registry(args.corpus).add_record(read_json(args.input))
+        elif args.command == 'claim-link':
+            result = Registry(args.corpus).link_claim(**read_json(args.input))
+        elif args.command == "register":
             result = Registry(args.corpus).register_source(args.work_id, args.source_version_id, args.store,
                                                          title=args.title, upstream_version=args.upstream_version)
         elif args.command == "ingest":

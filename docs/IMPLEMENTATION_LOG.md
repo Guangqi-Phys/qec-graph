@@ -13,7 +13,7 @@
 | 02 | P0 | 安装、复现原型并保存本次证据 | 完成 |
 | 03 | P0 | 核对固定版本 CodeGraph、许可证和架构映射 | 完成 |
 | 04 | P1 | 多文档 work/version 注册、不可变来源绑定 | 完成 |
-| 05 | P1 | 规范 claim、实体修订和多对多来源关系 | 待执行 |
+| 05 | P1 | 规范 claim、实体修订和多对多来源关系 | 完成 |
 | 06 | P1 | 固定 corpus/snapshot 的跨文档查询 | 待执行 |
 | 07 | P1 | 旧图、sidecar、知识样例的显式迁移 | 待执行 |
 | 08 | P2 | 严格 JSON、领域信封及端点类型验证 | 待执行 |
@@ -51,3 +51,7 @@
 ## 04 · 来源注册
 
 新增 registry.py、transactions.py、register CLI 和 09_CORPUS.md。work/version 明确身份，快照验证后归档，历史 state 内容寻址、单写者锁及原子指针发布。两个同 label 项目保持不同来源；新版本不覆盖历史；原路径删除后归档仍可查。`.venv/bin/python -m unittest discover -s tests -p test_registry.py -v`：2 项通过。
+
+## 05 · 独立领域身份
+
+新增 record.v2、records.py、record-add/claim-link。实体修订与原文块分离，显式 normalizes_to 保留双方版本/哈希、假设和记号域；新映射默认 proposed。相同参数不合并，新修订不覆盖旧内容。registry 回归 5 项通过；覆盖两处来源到一个 claim 和一处来源到多个 claim。

@@ -22,3 +22,19 @@ qecgraph register --corpus build/corpus --store build/demo --work-id work:demo -
 
 运行边界：本地 POSIX 文件系统（macOS/Linux），单写者、多快照读者；
 不宣称支持分布式文件系统或 Windows 文件锁。
+
+## 规范记录与来源映射
+
+```bash
+qecgraph record-add examples/claim.example.json --corpus build/corpus
+qecgraph claim-link examples/claim-link.example.json --corpus build/corpus
+```
+
+记录采用 `qecgraph.record.v2`，`id` 和 `revision` 由作者指定；内容哈希及协议由程序补齐。
+同一 ID/revision 不能覆盖不同内容；新修订保留旧文件。不同 ID 即使标题和参数相同也独立保存。
+自动输入默认 `review.status=proposed`；导入或语法解析不构成人工审核。
+
+`normalizes_to` 是新增的 registry 关系，表示来源块与独立 claim 的显式映射，
+每个映射绑定 source version、snapshot、准确节点和双方哈希、claim revision、假设和记号作用域。
+可多对多映射；它不把来源 lemma 改为 claim，也不宣称两种陈述等价。原 graph.v1 关系含义不变。
+未知 Schema 被拒绝，必须先走显式迁移；新记录不重解释旧格式。
