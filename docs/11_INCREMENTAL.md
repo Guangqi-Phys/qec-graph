@@ -64,3 +64,20 @@ watch 只调度同一 ingest，自动使用 AST 复用，支持同样的 project
 stdout 为逐行 JSON：built/build_failed/superseded/reconciled 等事件，最后 stopped 摘要。
 退出 1 表示最后仍失败，2 表示 partial 或停止时还有待处理输入，0 表示已核对到稳定输入。
 watch 与显式 ingest 的最终 snapshot、图和查询语义相同；此接口不执行 TeX、源代码或 Lean。
+
+## 实际恢复与测量
+
+```bash
+python tools/reproduce_incremental.py --out build/reproduce-incremental
+python tools/reproduce.py --out build/reproduce-p3
+```
+
+本次生成 13 个 TeX 源文件、96 个 lemma，cold 一次，其余三种情境各三次，交替全量/增量顺序。
+实际中位数：无变化 full 0.0641s、incremental 0.0464s；叶文件编辑 0.1074s/0.0917s；
+资源编辑 0.1048s/0.0871s。样本少、工作负载为生成输入，不能推导真实论文或其他机器的固定收益。
+完整样本、顺序、环境和源码/输入指纹见 `validation/p3/incremental-recovery.json`。
+
+脚本实际复制备份、搬走原输入，再验证归档和查询；用备份输入重建得到相同 snapshot。
+标记过的遗留构建清理、strict partial 保留旧 CURRENT、恢复 include 以及故意篡改副本后的检测均执行通过。
+每次使用新的 run 目录，原生成样例和失败副本保留供检查；只操作脚本管理的输出。
+另一次 watch --once 的快照与同版本 split 相同；71 项回归和原型完整复现结果保存在 validation/p3。

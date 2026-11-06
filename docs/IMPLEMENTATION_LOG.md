@@ -24,7 +24,7 @@
 | 13 | P3 | 写者锁、strict staging 与发布恢复 | 完成 |
 | 14 | P3 | 输入依赖指纹及安全解析缓存 | 完成 |
 | 15 | P3 | watch 调度、变更和全量一致性 | 完成 |
-| 16 | P3 | 恢复演练和真实增量测量 | 待执行 |
+| 16 | P3 | 恢复演练和真实增量测量 | 完成 |
 | 17 | P4 | 只读工具契约、固定作用域和预算 | 待执行 |
 | 18 | P4 | MCP stdio 传输及协议测试 | 待执行 |
 | 19 | P4 | CLI/Python/MCP 一致性和客户端说明 | 待执行 |
@@ -95,3 +95,7 @@ store/split 共享目录保护和跨进程锁；增加 strict partial staging（
 ## 15 · 内容核对 watch
 
 新增 watch.py/CLI，轮询内容、debounce 批量保存，忽略编辑器临时文件并跟踪显式资源与外部 sidecar/config/catalog。失败不推进 accepted_signature，锁释放后同输入重试；构建中再变更继续核对。strict partial 保留 staging，恢复 include 后与显式 ingest 一致。逐行 JSON 事件与停止摘要，不启动后台服务。全量 unittest 71 项通过，包括 --once CLI/显式流程一致性。
+
+## 16 · P3 恢复与测量验收
+
+新增 tools/reproduce_incremental.py，实际生成 13 份源文件/96 个 lemma，交替全量/增量运行，保存 cold、unchanged、leaf_edit、asset_edit 的本机测量。每轮快照、三视图和查询一致；备份搬迁、原路径消失、输入重放、遗留清理、strict partial/恢复及故意损坏检测全部通过。完整 reproduce-p3 和 71 项回归通过；实际 watch --once 与 split 快照相同。报告见 validation/p3。P3 完成，测量仅限生成工作负载，不承诺普遍加速。

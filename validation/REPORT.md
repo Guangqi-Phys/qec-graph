@@ -14,3 +14,5 @@ P0 基线命令：`.venv/bin/python tools/reproduce.py --out build/reproduce`，
 P1：35 项全量回归通过，日志和实际 10 条记录的迁移/import 报告见 p1/。
 
 P2：完整复现 `.venv/bin/python tools/reproduce.py --out build/reproduce-p2` 退出 0，58 项回归、原型流程及有限 HGP 计算通过。准确环境、输入、命令及结果见 p2/results.json；审核提案、AI 决定、幂等应用及 CSS 检查均独立保存在 p2/。未运行 Docker 或 Lean。
+
+P3：71 项回归与完整 reproduce-p3 通过；13 源文件、96 lemma 的实际增量/恢复演练及 watch --once 证据见 p3/。全量与增量语义一致；测量仅为本机生成工作负载。

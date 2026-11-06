@@ -1,0 +1,349 @@
+{
+  "format": "qecgraph.incremental-reproduction.v1",
+  "status": "passed",
+  "command": [
+    "/Users/guangqi/Workspace/qec-graph/.venv/bin/python",
+    "/Users/guangqi/Workspace/qec-graph/tools/reproduce_incremental.py",
+    "--out",
+    "build/reproduce-incremental"
+  ],
+  "script_sha256": "b5c62a593dfa5987ce430ef925b6dab0088249a85e25ead35850be4120874bfd",
+  "runtime": {
+    "python": "3.15.2",
+    "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "sqlite": "3.54.1",
+    "pylatexenc": "2.10",
+    "jsonschema": "4.26.0"
+  },
+  "workload": {
+    "generated_source_files": 13,
+    "lemmas_per_file": 8,
+    "lemma_count": 96,
+    "runs_per_scenario": 3,
+    "scope": "generated fixtures, not user papers or mathematical validation"
+  },
+  "measurements": [
+    {
+      "scenario": "cold",
+      "iteration": 0,
+      "snapshot_id": "8e7127dd83908ad9704afbe6a01e9c0d73a88587a643d21f69a8e7c022838849",
+      "execution_order": [
+        "full",
+        "incremental"
+      ],
+      "full_seconds": 0.17362195905297995,
+      "incremental_seconds": 0.1143168332055211,
+      "ast": {
+        "ast_hits": 13,
+        "ast_misses": 13,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [
+          "initial_full_parse"
+        ],
+        "changed_inputs": [
+          "figure.svg",
+          "main.tex",
+          "part-000.tex",
+          "part-001.tex",
+          "part-002.tex",
+          "part-003.tex",
+          "part-004.tex",
+          "part-005.tex",
+          "part-006.tex",
+          "part-007.tex",
+          "part-008.tex",
+          "part-009.tex",
+          "part-010.tex",
+          "part-011.tex"
+        ],
+        "elapsed_seconds": 0.11359995789825916,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    },
+    {
+      "scenario": "unchanged",
+      "iteration": 0,
+      "snapshot_id": "8e7127dd83908ad9704afbe6a01e9c0d73a88587a643d21f69a8e7c022838849",
+      "execution_order": [
+        "incremental",
+        "full"
+      ],
+      "full_seconds": 0.06579520786181092,
+      "incremental_seconds": 0.047621541656553745,
+      "ast": {
+        "ast_hits": 26,
+        "ast_misses": 0,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [],
+        "changed_inputs": [],
+        "elapsed_seconds": 0.04701204178854823,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    },
+    {
+      "scenario": "unchanged",
+      "iteration": 1,
+      "snapshot_id": "8e7127dd83908ad9704afbe6a01e9c0d73a88587a643d21f69a8e7c022838849",
+      "execution_order": [
+        "full",
+        "incremental"
+      ],
+      "full_seconds": 0.06413566693663597,
+      "incremental_seconds": 0.04600687511265278,
+      "ast": {
+        "ast_hits": 26,
+        "ast_misses": 0,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [],
+        "changed_inputs": [],
+        "elapsed_seconds": 0.045496624894440174,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    },
+    {
+      "scenario": "unchanged",
+      "iteration": 2,
+      "snapshot_id": "8e7127dd83908ad9704afbe6a01e9c0d73a88587a643d21f69a8e7c022838849",
+      "execution_order": [
+        "incremental",
+        "full"
+      ],
+      "full_seconds": 0.06369879096746445,
+      "incremental_seconds": 0.04644412500783801,
+      "ast": {
+        "ast_hits": 26,
+        "ast_misses": 0,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [],
+        "changed_inputs": [],
+        "elapsed_seconds": 0.04593558283522725,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    },
+    {
+      "scenario": "leaf_edit",
+      "iteration": 0,
+      "snapshot_id": "9d5935756c0eef90a5612dcd6906fda8b10fe16213d3e885eb5c25392661fe95",
+      "execution_order": [
+        "full",
+        "incremental"
+      ],
+      "full_seconds": 0.10737662483006716,
+      "incremental_seconds": 0.09156654076650739,
+      "ast": {
+        "ast_hits": 25,
+        "ast_misses": 1,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [],
+        "changed_inputs": [
+          "part-000.tex"
+        ],
+        "elapsed_seconds": 0.0908081247471273,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    },
+    {
+      "scenario": "leaf_edit",
+      "iteration": 1,
+      "snapshot_id": "e55f3b15e05da0449863e14c97c98746babdc5dfa8a47faeb24344ca548b4fbb",
+      "execution_order": [
+        "incremental",
+        "full"
+      ],
+      "full_seconds": 0.10741920815780759,
+      "incremental_seconds": 0.09694624971598387,
+      "ast": {
+        "ast_hits": 25,
+        "ast_misses": 1,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [],
+        "changed_inputs": [
+          "part-000.tex"
+        ],
+        "elapsed_seconds": 0.0962258749641478,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    },
+    {
+      "scenario": "leaf_edit",
+      "iteration": 2,
+      "snapshot_id": "961a661ba679bf907f7dda167780ae80afc0d46d3d31c561010f914b367ce800",
+      "execution_order": [
+        "full",
+        "incremental"
+      ],
+      "full_seconds": 0.10485791694372892,
+      "incremental_seconds": 0.09174241684377193,
+      "ast": {
+        "ast_hits": 25,
+        "ast_misses": 1,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [],
+        "changed_inputs": [
+          "part-000.tex"
+        ],
+        "elapsed_seconds": 0.09113716566935182,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    },
+    {
+      "scenario": "asset_edit",
+      "iteration": 0,
+      "snapshot_id": "79663847c646ce4c2e4aabbdb7a73318c33f4094c8e8fc2806180bdd94e507ca",
+      "execution_order": [
+        "incremental",
+        "full"
+      ],
+      "full_seconds": 0.1049582501873374,
+      "incremental_seconds": 0.08823045808821917,
+      "ast": {
+        "ast_hits": 26,
+        "ast_misses": 0,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [],
+        "changed_inputs": [
+          "figure.svg"
+        ],
+        "elapsed_seconds": 0.08766295900568366,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    },
+    {
+      "scenario": "asset_edit",
+      "iteration": 1,
+      "snapshot_id": "fe755ea4622e06c6670596fa19638d5bf8f3c5454857e33a5defd9baa7599802",
+      "execution_order": [
+        "full",
+        "incremental"
+      ],
+      "full_seconds": 0.10476541705429554,
+      "incremental_seconds": 0.08457762515172362,
+      "ast": {
+        "ast_hits": 26,
+        "ast_misses": 0,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [],
+        "changed_inputs": [
+          "figure.svg"
+        ],
+        "elapsed_seconds": 0.0839357078075409,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    },
+    {
+      "scenario": "asset_edit",
+      "iteration": 2,
+      "snapshot_id": "d1e5706ba52b69b71afae87bbabccd6ee584ed6de8d3b47337a2c39da05fdccf",
+      "execution_order": [
+        "incremental",
+        "full"
+      ],
+      "full_seconds": 0.10438358271494508,
+      "incremental_seconds": 0.08705529198050499,
+      "ast": {
+        "ast_hits": 26,
+        "ast_misses": 0,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [],
+        "changed_inputs": [
+          "figure.svg"
+        ],
+        "elapsed_seconds": 0.08646170794963837,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    }
+  ],
+  "recovery": {
+    "archive_without_original_paths": {
+      "passed": true,
+      "snapshot_id": "d1e5706ba52b69b71afae87bbabccd6ee584ed6de8d3b47337a2c39da05fdccf",
+      "nodes": 112,
+      "edges": 220,
+      "source_slices_checked": 97,
+      "scope": "integrity, structure and provenance; no mathematical or Lean proof verification"
+    },
+    "rebuild_snapshot_id": "d1e5706ba52b69b71afae87bbabccd6ee584ed6de8d3b47337a2c39da05fdccf",
+    "abandoned_cleanup": {
+      "store": "/Users/guangqi/Workspace/qec-graph/build/reproduce-incremental/run-3f04d0a0-9a96-4704-af83-b4c83af01e9a/restored-store",
+      "abandoned": [
+        "/Users/guangqi/Workspace/qec-graph/build/reproduce-incremental/run-3f04d0a0-9a96-4704-af83-b4c83af01e9a/restored-store/snapshots/.building-recovery-demo"
+      ],
+      "removed": [
+        "/Users/guangqi/Workspace/qec-graph/build/reproduce-incremental/run-3f04d0a0-9a96-4704-af83-b4c83af01e9a/restored-store/snapshots/.building-recovery-demo"
+      ],
+      "unrecognized": [],
+      "current": {
+        "passed": true,
+        "snapshot_id": "d1e5706ba52b69b71afae87bbabccd6ee584ed6de8d3b47337a2c39da05fdccf",
+        "nodes": 112,
+        "edges": 220,
+        "source_slices_checked": 97,
+        "scope": "integrity, structure and provenance; no mathematical or Lean proof verification"
+      }
+    },
+    "strict_partial_snapshot_id": "f1b2a55f11ec1a8f198a306caeac999c67590f0f3f9d85880c4bd125b897e211",
+    "restored_include_snapshot_id": "d1e5706ba52b69b71afae87bbabccd6ee584ed6de8d3b47337a2c39da05fdccf",
+    "tamper_detection": {
+      "passed": true,
+      "observed_error": "Snapshot file changed: nodes/lemma/incremental-reproduction-label-lemma-0-0--d6b6ba5ee9d1171c.tex"
+    },
+    "elapsed_seconds": 1.1711148750036955
+  },
+  "not_executed": [
+    "Docker",
+    "Lean"
+  ],
+  "performance": {
+    "cold": {
+      "median_full_seconds": 0.17362195905297995,
+      "median_incremental_seconds": 0.1143168332055211,
+      "full_over_incremental_ratio": 1.5187785926578188,
+      "sample_count": 1
+    },
+    "unchanged": {
+      "median_full_seconds": 0.06413566693663597,
+      "median_incremental_seconds": 0.04644412500783801,
+      "full_over_incremental_ratio": 1.3809209867946117,
+      "sample_count": 3
+    },
+    "leaf_edit": {
+      "median_full_seconds": 0.10737662483006716,
+      "median_incremental_seconds": 0.09174241684377193,
+      "full_over_incremental_ratio": 1.1704141718101748,
+      "sample_count": 3
+    },
+    "asset_edit": {
+      "median_full_seconds": 0.10476541705429554,
+      "median_incremental_seconds": 0.08705529198050499,
+      "full_over_incremental_ratio": 1.2034353647077138,
+      "sample_count": 3
+    }
+  },
+  "performance_note": "Actual local samples only; full semantic/SQLite rebuilding and cache I/O may dominate. No guaranteed speedup.",
+  "input_manifest": {
+    "backup-input/figure.svg": "9d03115b4e026b76c171a48e3ab9e1eee55c51594ceb4092786ea5239313749f",
+    "backup-input/main.tex": "1c11ea0b6f27f98af9f200158b2a05150e57567b4f5ab1d75ea18e7771546164",
+    "backup-input/part-000.tex": "2f971cf8d3b7378ae7bbfac8de79252fe9753fe41624a19fbcd3179c789c70b3",
+    "backup-input/part-001.tex": "eecbb78d017a5e1ec96bdf0394abba099694088755fa2d89b8def07c4275e3d2",
+    "backup-input/part-002.tex": "c83262c74e764a922317fa31c1fe63284d9b68581b6a7d1530a0c1c113062fcb",
+    "backup-input/part-003.tex": "acc460e2e1f6a7d2f76d8c6758fb48b760e3372b4647ed23d5b1b2969c56f9bf",
+    "backup-input/part-004.tex": "70a5c7957a650819acd4c26b077ea4bc11ecd16ca6ba37dc2ccd591c13b26636",
+    "backup-input/part-005.tex": "7880e27b23d88f75e17f9484301e6b872d1cdeaacba031968129fa1cb65c8267",
+    "backup-input/part-006.tex": "faa384648a25b6f54ff0719b29f5a16df94aa97eb094f70c740c573ac2fb188b",
+    "backup-input/part-007.tex": "ffe65cbc649fa1eb6e507dfd924b17406893ed0dea2111f1bbe49facdd0e5e60",
+    "backup-input/part-008.tex": "224e815480a7e1bd5ba888a9934994356257420386125ac5f5451ba602e83551",
+    "backup-input/part-009.tex": "075cc09622dbc3d717b54a4265d86664256f69e1167ddea5d5136a9102da1e51",
+    "backup-input/part-010.tex": "e98c9cb65289be74e8c45fd1fb5ac2351eac0e85921df41495f99d9b6a6b1d3f",
+    "backup-input/part-011.tex": "1d45aacf59cdcac68aa4f8032b97231c6073f99f00580cc84a57cb63ece7e4fa"
+  }
+}
