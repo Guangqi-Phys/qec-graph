@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1.0",
+  "id": "source:tillich-zemor-hgp",
+  "kind": "source_work",
+  "title": "Tillich–Zémor ordinary hypergraph-product construction (bibliographic pointer)",
+  "review_status": "draft",
+  "refs": [],
+  "assets": [],
+  "data": {
+    "external_ids": {
+      "arxiv": "0903.0566"
+    },
+    "url": "https://arxiv.org/abs/0903.0566",
+    "availability": "reference_only",
+    "source_version_id": null,
+    "downloaded_file": null,
+    "note": "Background reference for the construction. No original PDF is archived in this starter; the toy instance is generated locally, not extracted from a table in the paper."
+  }
+}

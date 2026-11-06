@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QEC starter record envelope, version 0.1.0",
+  "description": "An intentionally small extensible starter, not a complete QEC ontology.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "kind",
+    "title",
+    "review_status",
+    "refs",
+    "assets",
+    "data"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*:[A-Za-z0-9_.:-]+$"
+    },
+    "kind": {
+      "enum": [
+        "source_work",
+        "source_version",
+        "definition",
+        "family",
+        "construction",
+        "code_instance",
+        "presentation",
+        "claim",
+        "formalization",
+        "evidence",
+        "circuit",
+        "noise",
+        "decoder",
+        "experiment"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "review_status": {
+      "enum": [
+        "draft",
+        "reviewed",
+        "needs_review",
+        "superseded"
+      ]
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "relation",
+          "target_id"
+        ],
+        "properties": {
+          "relation": {
+            "type": "string"
+          },
+          "target_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "sha256",
+          "media_type"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "media_type": {
+            "type": "string"
+          },
+          "canonical_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "data": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "code_instance"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "required": [
+              "construction_id",
+              "parameters"
+            ],
+            "properties": {
+              "construction_id": {
+                "type": "string"
+              },
+              "parameters": {
+                "type": "object",
+                "required": [
+                  "n",
+                  "k"
+                ],
+                "properties": {
+                  "n": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "k": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "claim"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "required": [
+              "subject_id",
+              "metric_definition_id",
+              "relation",
+              "verification_level",
+              "evidence_ids"
+            ],
+            "properties": {
+              "relation": {
+                "enum": [
+                  "exact",
+                  "interval",
+                  "lower_bound",
+                  "upper_bound",
+                  "qualitative"
+                ]
+              },
+              "lower_bound": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1
+              },
+              "upper_bound": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1
+              },
+              "verification_level": {
+                "enum": [
+                  "source_reported",
+                  "heuristic",
+                  "computed_exact",
+                  "certificate_checked",
+                  "formal_checked"
+                ]
+              },
+              "evidence_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "formalization"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "required": [
+              "claim_id",
+              "proof_progress",
+              "semantic_review",
+              "trust_profile"
+            ],
+            "properties": {
+              "proof_progress": {
+                "enum": [
+                  "not_started",
+                  "statement_only",
+                  "in_progress",
+                  "build_passed"
+                ]
+              },
+              "semantic_review": {
+                "enum": [
+                  "not_reviewed",
+                  "equivalent",
+                  "conditional",
+                  "special_case",
+                  "stronger",
+                  "weaker"
+                ]
+              },
+              "trust_profile": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+# Optional research CLI only. Lean environment is defined in docs/05_LEAN.md.
+# Create output first: mkdir -p build/container
+# Set the host user when needed: QEC_UID=$(id -u) QEC_GID=$(id -g) docker compose run --rm research
+services:
+  research:
+    build:
+      context: .
+      args:
+        PYTHON_IMAGE: ${QEC_PYTHON_IMAGE:-python:3.12-slim}
+    user: "${QEC_UID:-1000}:${QEC_GID:-1000}"
+    read_only: true
+    network_mode: none
+    tmpfs:
+      - /tmp
+    volumes:
+      - ./examples/paper:/input:ro
+      - ./build/container:/output
+    command: ["split", "/input/main.tex", "--project-id", "qec-demo", "--project-root", "/input", "--out", "/output"]

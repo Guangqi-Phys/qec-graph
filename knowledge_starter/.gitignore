@@ -1,0 +1,6 @@
+derived/
+__pycache__/
+*.pyc
+.venv/
+.lake/
+.env

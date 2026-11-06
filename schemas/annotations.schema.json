@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QECGraph sidecar v1",
+  "type": "object",
+  "required": [
+    "schema_version"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "qecgraph.annotations.v1"
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "title"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          },
+          "source_labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "source",
+          "target",
+          "relation"
+        ],
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "relation": {
+            "type": "string"
+          },
+          "expected_project_source_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "expected_hashes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        }
+      }
+    },
+    "annotations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "target"
+        ],
+        "properties": {
+          "target": {
+            "type": "string"
+          },
+          "review_status": {
+            "enum": [
+              "draft",
+              "reviewed",
+              "needs_review"
+            ]
+          },
+          "expected_content_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "expected_project_source_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "data": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}

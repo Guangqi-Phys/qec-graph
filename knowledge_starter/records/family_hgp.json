@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1.0",
+  "id": "family:ordinary-hgp",
+  "kind": "family",
+  "title": "Ordinary hypergraph-product CSS codes",
+  "review_status": "draft",
+  "refs": [
+    {
+      "relation": "depends_on",
+      "target_id": "definition:binary-css"
+    },
+    {
+      "relation": "background_source",
+      "target_id": "source:tillich-zemor-hgp"
+    }
+  ],
+  "assets": [],
+  "data": {
+    "construction_class": "ordinary_hgp",
+    "base_field": "GF(2)",
+    "description": "The ordinary tensor/Kronecker product construction from two binary classical parity-check matrices.",
+    "aliases": [
+      "HGP",
+      "hypergraph product",
+      "普通超图乘积码"
+    ],
+    "search_text": "HGP ordinary hypergraph product CSS qLDPC 普通 超图 乘积 量子 码"
+  }
+}

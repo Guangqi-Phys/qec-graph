@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1.0",
+  "id": "formalization:rep3-hgp:distance",
+  "kind": "formalization",
+  "title": "Planned formalization, not implemented",
+  "review_status": "draft",
+  "refs": [
+    {
+      "relation": "formalizes",
+      "target_id": "claim:rep3-hgp:distance"
+    }
+  ],
+  "assets": [],
+  "data": {
+    "claim_id": "claim:rep3-hgp:distance",
+    "proof_progress": "not_started",
+    "semantic_review": "not_reviewed",
+    "planned_declaration": "QEC.Examples.Rep3HGP.distance_eq_three",
+    "lean_declaration": null,
+    "lean_module": null,
+    "lean_project_commit": null,
+    "lean_toolchain": null,
+    "mathlib_commit": null,
+    "statement_relation": "not_established",
+    "statement_hash": null,
+    "build_evidence_id": null,
+    "proof_method": null,
+    "trust_profile": null,
+    "axiom_dependencies": null,
+    "next_step": "Fix the CSS representation and formally prove the finite checker and its connection to CSS distance before translating the example."
+  }
+}

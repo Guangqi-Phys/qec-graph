@@ -1,0 +1,10 @@
+{
+  "environment_map": {
+    "lem": "lemma",
+    "thm": "theorem",
+    "dfn": "definition",
+    "prop": "proposition",
+    "claim": "proposition"
+  },
+  "include_resolution": "root_first"
+}

@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1.0",
+  "id": "definition:css-distance",
+  "kind": "definition",
+  "title": "CSS code distance",
+  "review_status": "draft",
+  "refs": [
+    {
+      "relation": "depends_on",
+      "target_id": "definition:binary-css"
+    }
+  ],
+  "assets": [],
+  "data": {
+    "definition_revision": "1",
+    "domain": "binary CSS stabilizer code, k > 0",
+    "dX": "min wt(x) for x in ker(HZ) but not rowspace(HX)",
+    "dZ": "min wt(z) for z in ker(HX) but not rowspace(HZ)",
+    "d": "min(dX,dZ)",
+    "weight": "binary Hamming support size",
+    "k_zero_policy": "outside this definition domain",
+    "not_applicable_to": [
+      "circuit distance",
+      "graphlike detector distance",
+      "ordered residual distance"
+    ],
+    "search_text": "CSS code distance minimum distance distance lower bound 距离 码距离 下界 上界"
+  }
+}

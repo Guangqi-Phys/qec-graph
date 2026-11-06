@@ -1,0 +1,39 @@
+{
+  "schema_version": "qecgraph.annotations.v1",
+  "nodes": [
+    {
+      "id": "code:qec-demo:reported-rep3",
+      "kind": "code_instance",
+      "title": "论文示例表中描述的普通 HGP 码",
+      "source_labels": ["tab:rep3"],
+      "data": {
+        "construction": "ordinary_hgp",
+        "parameters": {"n": 13, "k": 1},
+        "distance": {"reported_value": 3, "metric": "CSS code distance", "evidence_kind": "source_reported"},
+        "note": "These are explicitly entered sidecar fields. The LaTeX graph tool has not recomputed the parameters."
+      }
+    },
+    {
+      "id": "dataset:qec-demo:parameter-table",
+      "kind": "dataset",
+      "title": "有限 HGP 示例的来源参数表",
+      "source_labels": ["tab:rep3"],
+      "data": {"representation": "LaTeX source table", "numeric_extraction": "not_performed"}
+    }
+  ],
+  "edges": [
+    {"source": "dataset:qec-demo:parameter-table", "target": "code:qec-demo:reported-rep3", "relation": "reports"},
+    {"source": "label:thm:hgp-length", "target": "code:qec-demo:reported-rep3", "relation": "about"}
+  ],
+  "annotations": [
+    {
+      "target": "label:thm:hgp-css",
+      "review_status": "draft",
+      "data": {
+        "normalized_summary_zh": "标准二元普通 HGP 构造满足 CSS 对易条件。",
+        "hypotheses_to_check": ["两个种子矩阵均在 GF(2) 上", "使用原文所写的 Kronecker 拼接约定"],
+        "formalization_status": "not_started"
+      }
+    }
+  ]
+}

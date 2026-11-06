@@ -1,0 +1,72 @@
+from __future__ import annotations
+
+import argparse
+import json
+import sqlite3
+import sys
+
+from .query import context, dependencies, search, show
+from .splitter import split_project
+from .store import current_snapshot, ingest, validate_snapshot
+
+
+def _add_source_arguments(parser):
+    parser.add_argument("entry")
+    parser.add_argument("--project-id", required=True)
+    parser.add_argument("--out", required=True)
+    parser.add_argument("--project-root")
+    parser.add_argument("--config")
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graph; no mathematical proof verification")
+    sub = parser.add_subparsers(dest="command", required=True)
+    cmd = sub.add_parser("ingest", help="Parse a LaTeX project and write an immutable snapshot")
+    _add_source_arguments(cmd)
+    cmd.add_argument("--annotations")
+    cmd.add_argument("--catalog", help="Directory of existing JSON records, such as the earlier starter records/")
+    cmd = sub.add_parser("split", help="Write source-only semantic fragments and return their exact file paths")
+    _add_source_arguments(cmd)
+    cmd = sub.add_parser("search", help="Search titles, labels and text")
+    cmd.add_argument("query")
+    cmd.add_argument("--store", required=True)
+    cmd.add_argument("--kind")
+    cmd.add_argument("--limit", type=int, default=20)
+    cmd = sub.add_parser("show", help="Read one node with its incoming/outgoing edges")
+    cmd.add_argument("id_or_label")
+    cmd.add_argument("--store", required=True)
+    for name in ("deps", "impact", "context"):
+        cmd = sub.add_parser(name)
+        cmd.add_argument("id_or_label")
+        cmd.add_argument("--store", required=True)
+        cmd.add_argument("--depth", type=int, default=2)
+        cmd.add_argument("--include-candidates", action="store_true")
+        cmd.add_argument("--max-nodes", type=int, default=60)
+    cmd = sub.add_parser("validate", help="Validate hashes, source spans, endpoints and SQLite")
+    cmd.add_argument("--store", required=True)
+    args = parser.parse_args(argv)
+    try:
+        if args.command == "ingest":
+            result = ingest(args.entry, args.project_id, args.out, args.project_root, args.config, args.annotations, args.catalog)
+        elif args.command == "split":
+            result = split_project(args.entry, args.project_id, args.out, args.project_root, args.config)
+        elif args.command == "search":
+            result = search(args.store, args.query, args.kind, args.limit)
+        elif args.command == "show":
+            result = show(args.store, args.id_or_label)
+        elif args.command == "validate":
+            result = validate_snapshot(current_snapshot(args.store))
+        elif args.command == "context":
+            result = context(args.store, args.id_or_label, args.depth, args.include_candidates, args.max_nodes)
+        else:
+            result = dependencies(args.store, args.id_or_label, args.depth, args.include_candidates,
+                                  args.command == "impact", args.max_nodes)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 2 if result.get("extraction_status") == "partial" else 0
+    except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
+        print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

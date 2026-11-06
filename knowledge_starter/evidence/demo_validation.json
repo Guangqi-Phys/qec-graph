@@ -1,0 +1,89 @@
+{
+  "report_schema_version": "0.1.0",
+  "results": {
+    "instance_id": "code:rep3-hgp:13",
+    "n": 13,
+    "k": 1,
+    "rank_HX_gf2": 6,
+    "rank_HZ_gf2": 6,
+    "HX_HZ_transpose_zero": true,
+    "dX": 3,
+    "dZ": 3,
+    "X_distance_witness_support": [
+      0,
+      1,
+      2
+    ],
+    "Z_distance_witness_support": [
+      0,
+      3,
+      6
+    ],
+    "HX_row_weights": [
+      3,
+      4,
+      3,
+      3,
+      4,
+      3
+    ],
+    "HZ_row_weights": [
+      3,
+      3,
+      4,
+      4,
+      3,
+      3
+    ],
+    "logical_pairing_identity": true,
+    "vectors_in_search_space": 8192,
+    "method": "exhaustive_binary_enumeration",
+    "formalization_status": "not_started"
+  },
+  "verification_environment": {
+    "python": "3.12.14",
+    "implementation": "CPython",
+    "script": "tools/qec_kb.py",
+    "script_sha256": "24dd242ce3acafe0aebc086d66672389244f9256cb0080b79649bf8be46e6046",
+    "command": "python tools/qec_kb.py verify --json-schema"
+  },
+  "input_artifacts": [
+    {
+      "path": "assets/matrices/H1.gf2.json",
+      "sha256": "6e40d8eb17b818cb18bf5cfeab37ccb1ba928a6956e1f1a6cb85d1b8eb568a9e",
+      "canonical_sha256": "4b4834760e5ebcd30c3dc0df211a772f78bf1b8eb41a1f4313fbf6e81de7d2b8",
+      "media_type": "application/json"
+    },
+    {
+      "path": "assets/matrices/H2.gf2.json",
+      "sha256": "6e40d8eb17b818cb18bf5cfeab37ccb1ba928a6956e1f1a6cb85d1b8eb568a9e",
+      "canonical_sha256": "4b4834760e5ebcd30c3dc0df211a772f78bf1b8eb41a1f4313fbf6e81de7d2b8",
+      "media_type": "application/json"
+    },
+    {
+      "path": "assets/matrices/HX.gf2.json",
+      "sha256": "5f50721febeacdcfcf7090e29a38161c122b4f314c9e963e0ee2c4cf937bce7b",
+      "canonical_sha256": "647d6e389a90cc04cbcfc5a32a5571347b175a5a021d32113f0906ca9fb9bc26",
+      "media_type": "application/json"
+    },
+    {
+      "path": "assets/matrices/HZ.gf2.json",
+      "sha256": "91bfe9df2be86c3b6c5f8250bd8bed3f32bffc30f4f8887b18ca20ff7a96fc90",
+      "canonical_sha256": "51a054852caee49656e33ed17424a26ebae9bb0476a1fd81511835e7be10a914",
+      "media_type": "application/json"
+    },
+    {
+      "path": "assets/matrices/LX.gf2.json",
+      "sha256": "8c78266be4fca7e40fc836bcaf2b84ae7b6a50ed73c9129f674db0124b483259",
+      "canonical_sha256": "4b2c4ee62db963dea46cecb20c393e41d1cdc917f9fb33bfc536951882777e90",
+      "media_type": "application/json"
+    },
+    {
+      "path": "assets/matrices/LZ.gf2.json",
+      "sha256": "04a79c515c91f698e1c769b2acafc3a46fb592186f8a81cd0ba27a4db15d8b2e",
+      "canonical_sha256": "79bc6630de7ec38578ba75f6a1d579cd3d8403724ae7a80ae44ffbadb36b0d36",
+      "media_type": "application/json"
+    }
+  ],
+  "trust_note": "This is a computational report, not a kernel-checked Lean certificate. Recompute with the shipped verifier."
+}

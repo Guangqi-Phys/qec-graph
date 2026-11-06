@@ -1,0 +1,49 @@
+# TEMPLATE ONLY: bind circuit metrics to exact fault and boundary definitions.
+schema_version: 0.1.0
+id: "circuit:REPLACE_ME"
+presentation_id: null
+generator:
+  repository: null
+  commit: null
+  entrypoint: null
+  config_asset: null
+schedule:
+  interaction_order_asset: null
+  check_assignment_asset: null
+  qubit_order_asset: null
+  ancilla_policy: null
+  depth: null
+  gate_durations: null
+  reset_and_measurement_rules: null
+boundaries:
+  rounds: null
+  initialization: null
+  final_measurement: null
+  detector_definitions_asset: null
+  observable_definitions_asset: null
+artifacts:
+  noiseless_stim: null
+  noisy_stim: null
+  detector_error_model: null
+noise_id: null
+dem_conversion:
+  stim_revision: null
+  decompose_errors: null
+  approximate_disjoint_errors: null
+  other_exact_options: null
+metrics:
+  - metric_definition_id: null
+    metric_revision: null
+    fault_set_definition: null
+    fault_counting_convention: null
+    logical_target_set: null
+    lower_bound: null
+    upper_bound: null
+    evidence_ids: []
+  - metric_definition_id: null # residual / DEM proximity as applicable
+    order_semantics: null # exactly_r / at_most_r
+    graph_definition_id: null
+    radius: null
+    symmetry_assumptions: null
+    search_limits: null
+    result_asset: null

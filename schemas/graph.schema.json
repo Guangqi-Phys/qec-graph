@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QEC LaTeX Graph v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "project_id",
+    "snapshot_id",
+    "project_source_hash",
+    "nodes",
+    "edges",
+    "labels",
+    "diagnostics",
+    "extraction_status",
+    "semantic_status"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "qecgraph.graph.v1"
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "project_source_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "origin",
+          "labels",
+          "source",
+          "latex",
+          "content_sha256",
+          "revision",
+          "review_status",
+          "verification_status",
+          "data",
+          "record_path"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "title": {
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "parser",
+              "sidecar",
+              "catalog"
+            ]
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "path",
+                  "char_start",
+                  "char_end",
+                  "line_start",
+                  "line_end",
+                  "file_sha256"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "char_start": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "char_end": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "line_start": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "line_end": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "file_sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  }
+                }
+              }
+            ]
+          },
+          "latex": {
+            "type": "string"
+          },
+          "content_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "revision": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "review_status": {
+            "type": "string"
+          },
+          "verification_status": {
+            "enum": [
+              "not_verified",
+              "not_rechecked",
+              "imported_claim_not_rechecked"
+            ]
+          },
+          "data": {
+            "type": "object"
+          },
+          "record_path": {
+            "type": "string"
+          },
+          "fragment_path": {
+            "type": "string"
+          },
+          "annotations": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "source",
+          "target",
+          "relation",
+          "status",
+          "evidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "relation": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "observed",
+              "declared",
+              "candidate",
+              "stale",
+              "unbound_review",
+              "unresolved"
+            ]
+          },
+          "evidence": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "labels": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "extraction_status": {
+      "enum": [
+        "partial",
+        "complete_for_supported_syntax"
+      ]
+    },
+    "semantic_status": {
+      "const": "not_mathematically_verified"
+    }
+  }
+}

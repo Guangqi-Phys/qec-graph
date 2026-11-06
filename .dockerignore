@@ -1,0 +1,10 @@
+.venv
+__pycache__
+*.pyc
+*.egg-info
+build
+dist
+example_output
+validation
+knowledge_starter
+.git

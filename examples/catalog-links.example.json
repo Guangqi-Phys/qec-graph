@@ -1,0 +1,17 @@
+{
+  "schema_version": "qecgraph.annotations.v1",
+  "nodes": [],
+  "annotations": [],
+  "edges": [
+    {
+      "source": "label:tab:rep3",
+      "target": "code:rep3-hgp:13",
+      "relation": "describes"
+    },
+    {
+      "source": "label:thm:hgp-length",
+      "target": "code:rep3-hgp:13",
+      "relation": "about"
+    }
+  ]
+}

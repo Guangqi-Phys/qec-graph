@@ -1,0 +1,36 @@
+{
+  "schema_version": "0.1.0",
+  "id": "evidence:rep3-hgp:enumeration",
+  "kind": "evidence",
+  "title": "Exhaustive binary enumeration of the 13-qubit example",
+  "review_status": "draft",
+  "refs": [
+    {
+      "relation": "checks",
+      "target_id": "presentation:rep3-hgp:standard"
+    }
+  ],
+  "assets": [
+    {
+      "path": "evidence/demo_validation.json",
+      "sha256": "d808d285dfaa06ea6196556eea96697acc4798db3a2c3f7558c02013cb7c983d",
+      "media_type": "application/json"
+    },
+    {
+      "path": "tools/qec_kb.py",
+      "sha256": "24dd242ce3acafe0aebc086d66672389244f9256cb0080b79649bf8be46e6046",
+      "media_type": "text/x-python"
+    }
+  ],
+  "data": {
+    "evidence_kind": "computed_exact",
+    "method": "exhaustive_binary_enumeration",
+    "input_presentation_id": "presentation:rep3-hgp:standard",
+    "verifier_path": "tools/qec_kb.py",
+    "verifier_sha256": "24dd242ce3acafe0aebc086d66672389244f9256cb0080b79649bf8be46e6046",
+    "report_path": "evidence/demo_validation.json",
+    "status": "computed_exact",
+    "formal_certificate": false,
+    "coverage": "All 8192 binary vectors in each X/Z sector, removing the relevant stabilizer row space."
+  }
+}

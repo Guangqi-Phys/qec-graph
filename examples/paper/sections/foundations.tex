@@ -1,0 +1,55 @@
+\section{Binary CSS conventions}
+\label{sec:foundations}
+
+% 中文注释先于真实定义，用来检查 source slice 是否使用字符位置。
+\begin{definition}[Binary field]
+\label{def:gf2}
+The field $\mathbb{F}_2$ has elements $0$ and $1$, with addition and
+multiplication modulo two. In particular, $1+1=0$.
+\end{definition}
+
+\begin{definition}[Binary CSS presentation]
+\label{def:css}
+\uses{def:gf2}
+Let $H_X\in\mathbb{F}_2^{m_X\times n}$ and
+$H_Z\in\mathbb{F}_2^{m_Z\times n}$. Rows of $H_X$ specify X-type
+stabilizers, and rows of $H_Z$ specify Z-type stabilizers. The binary
+commutation condition is
+\begin{equation}
+\label{eq:css-commutation}
+H_X H_Z^{T}=0.
+\end{equation}
+The columns are labelled data qubits. The field is the one in
+Definition~\ref{def:gf2}; the selected generator rows are part of this
+presentation.
+\end{definition}
+
+\begin{lem}[Pairwise commutation]
+\label{lem:css-commutation}
+\uses{def:css,def:gf2}
+\lean{QEC.Examples.binary_css_commutation}
+\leanok
+For the convention in Definition~\ref{def:css}, all X-type generators
+commute with all Z-type generators if and only if
+Equation~\eqref{eq:css-commutation} holds.
+\end{lem}
+
+\begin{proof}
+\label{proof:css-commutation}
+\uses{def:css}
+For binary row vectors $x,z$, the Pauli relation gives
+\begin{equation*}
+X(x)Z(z)=(-1)^{x\cdot z}Z(z)X(x).
+\end{equation*}
+Thus the pair commutes exactly when its dot product is zero in
+$\mathbb{F}_2$. Applying this statement to every pair of generator rows
+gives Equation~\eqref{eq:css-commutation}.
+\end{proof}
+
+\begin{remarkstar}[Scope of the annotations]
+\label{rem:source-only}
+The metadata above deliberately includes an author-supplied Lean name
+and a completion marker. This fixture does not contain a Lean project,
+and neither declaration existence nor proof validity has been checked.
+An importer should retain these annotations as source claims.
+\end{remarkstar}

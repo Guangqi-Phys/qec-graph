@@ -1,0 +1,23 @@
+{
+  "field": "GF(2)",
+  "format": "coordinate-ones-v1",
+  "shape": [
+    1,
+    13
+  ],
+  "index_base": 0,
+  "ones": [
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      3
+    ],
+    [
+      0,
+      6
+    ]
+  ]
+}
