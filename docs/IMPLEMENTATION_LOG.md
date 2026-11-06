@@ -12,7 +12,7 @@
 | 01 | P0 | 将原型、规范、样例和历史证据迁入工作根目录 | 完成 |
 | 02 | P0 | 安装、复现原型并保存本次证据 | 完成 |
 | 03 | P0 | 核对固定版本 CodeGraph、许可证和架构映射 | 完成 |
-| 04 | P1 | 多文档 work/version 注册、不可变来源绑定 | 待执行 |
+| 04 | P1 | 多文档 work/version 注册、不可变来源绑定 | 完成 |
 | 05 | P1 | 规范 claim、实体修订和多对多来源关系 | 待执行 |
 | 06 | P1 | 固定 corpus/snapshot 的跨文档查询 | 待执行 |
 | 07 | P1 | 旧图、sidecar、知识样例的显式迁移 | 待执行 |
@@ -47,3 +47,7 @@
 ## 03 · 上游核对
 
 实际 checkout 和阅读 CodeGraph f72c9d2efb14454ff4f9fd7b8460abd82f19a287，检查 LICENSE 及提取、存储、解析、查询、上下文、watch 边界。详见 adr/0001-codegraph-reference.md。仅参考设计，无代码复制。修正环境锁文件的 editable 安装为本地路径，避免锁到早期开发提交。
+
+## 04 · 来源注册
+
+新增 registry.py、transactions.py、register CLI 和 09_CORPUS.md。work/version 明确身份，快照验证后归档，历史 state 内容寻址、单写者锁及原子指针发布。两个同 label 项目保持不同来源；新版本不覆盖历史；原路径删除后归档仍可查。`.venv/bin/python -m unittest discover -s tests -p test_registry.py -v`：2 项通过。

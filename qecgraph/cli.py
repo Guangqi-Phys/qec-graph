@@ -8,6 +8,7 @@ import sys
 from .query import context, dependencies, search, show
 from .splitter import split_project
 from .store import current_snapshot, ingest, validate_snapshot
+from .registry import Registry
 
 
 def _add_source_arguments(parser):
@@ -21,6 +22,13 @@ def _add_source_arguments(parser):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graph; no mathematical proof verification")
     sub = parser.add_subparsers(dest="command", required=True)
+    cmd = sub.add_parser("register", help="Archive a store as an explicit work/source version in a corpus")
+    cmd.add_argument("--corpus", required=True)
+    cmd.add_argument("--store", required=True)
+    cmd.add_argument("--work-id", required=True)
+    cmd.add_argument("--source-version-id", required=True)
+    cmd.add_argument("--title")
+    cmd.add_argument("--upstream-version")
     cmd = sub.add_parser("ingest", help="Parse a LaTeX project and write an immutable snapshot")
     _add_source_arguments(cmd)
     cmd.add_argument("--annotations")
@@ -46,7 +54,10 @@ def main(argv=None):
     cmd.add_argument("--store", required=True)
     args = parser.parse_args(argv)
     try:
-        if args.command == "ingest":
+        if args.command == "register":
+            result = Registry(args.corpus).register_source(args.work_id, args.source_version_id, args.store,
+                                                         title=args.title, upstream_version=args.upstream_version)
+        elif args.command == "ingest":
             result = ingest(args.entry, args.project_id, args.out, args.project_root, args.config, args.annotations, args.catalog)
         elif args.command == "split":
             result = split_project(args.entry, args.project_id, args.out, args.project_root, args.config)
