@@ -20,7 +20,7 @@
 | 09 | P2 | 距离、矩阵和实验条件验证与筛选 | 完成 |
 | 10 | P2 | review 提案、身份类别与输入绑定 | 完成 |
 | 11 | P2 | 原子 apply、锁、冲突和幂等 | 完成 |
-| 12 | P2 | 状态兼容、资源失效及审核逻辑环 | 待执行 |
+| 12 | P2 | 状态兼容、资源失效及审核逻辑环 | 完成 |
 | 13 | P3 | 写者锁、strict staging 与发布恢复 | 待执行 |
 | 14 | P3 | 输入依赖指纹及安全解析缓存 | 待执行 |
 | 15 | P3 | watch 调度、变更和全量一致性 | 待执行 |
@@ -79,3 +79,7 @@
 ## 11 · 原子 apply
 
 第 10 步 0ff466e 已成功推送 origin/main；HTTPS 默认凭据缺失，通过现有 gh keyring 认证临时 helper 完成，无全局配置修改。新增 apply CAS、整批验证、不可变 receipt 和单指针发布；重复 apply 返回相同 receipt，错误/旧提案不覆盖，注入指针失败后旧状态可读且重试恢复。全量 unittest 54 项通过；实际示例连续 apply 两次一致，证据见 validation/p2/application.json。AI 决定后的记录保持 proposed。
+
+## 12 · 状态、失效与 P2 验收
+
+新增共享 status.py；遍历、proof/祖先补入、最终边和注释一致过滤候选及失效。人工审核从固定版本记录、来源和实际资产派生 freshness；历史决定保持不可变，依赖变化/资产缺失时 stale。仅审计有效 depends_on_reviewed SCC，v1 status=declared 保持兼容，引用环不报 DAG 错误。完整 reproduce-p2 退出 0、58 项回归通过；报告见 validation/p2。P2 完成，POSIX/CAS 保守范围和数值插件限制见 10_VALIDATION_REVIEW.md。

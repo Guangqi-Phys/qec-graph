@@ -32,6 +32,8 @@ def _add_source_arguments(parser):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graph; no mathematical proof verification")
     sub = parser.add_subparsers(dest="command", required=True)
+    cmd = sub.add_parser('audit-dependencies', help='Report SCCs only in active reviewed logical dependencies')
+    _add_query_scope(cmd)
     cmd = sub.add_parser('apply', help='Atomically publish a reviewed proposal with input conflict checks')
     cmd.add_argument('proposal_id')
     cmd.add_argument('--review-id', required=True)
@@ -115,7 +117,7 @@ def main(argv=None):
     cmd.add_argument('--snapshot')
     args = parser.parse_args(argv)
     try:
-        if args.command in {'search', 'show', 'deps', 'impact', 'context', 'validate'}:
+        if args.command in {'search', 'show', 'deps', 'impact', 'context', 'validate', 'audit-dependencies'}:
             if getattr(args, 'corpus', None):
                 if args.snapshot:
                     raise ValueError('--snapshot belongs to store queries; use --registry-revision for a corpus')
@@ -123,7 +125,18 @@ def main(argv=None):
                 if getattr(args, 'registry_revision', None) or getattr(args, 'source_version_id', None):
                     raise ValueError('Corpus scope arguments require --corpus')
                 args.store = pin_snapshot(args.store, args.snapshot)
-        if args.command == 'apply':
+        if args.command == 'audit-dependencies':
+            from .status import reviewed_cycles
+            if args.corpus:
+                from .corpus import project
+                graph_input, scope = project(args.corpus, args.registry_revision, args.source_version_id)
+                graph = graph_input.graph
+            else:
+                from .store import load_graph
+                graph, _ = load_graph(args.store)
+                scope = {'snapshot_id': graph['snapshot_id']}
+            result = {'scope': scope, 'issues': reviewed_cycles(graph), 'policy': 'Active reviewed logic only; citation cycles are retained'}
+        elif args.command == 'apply':
             from .review import apply
             result = apply(args.corpus, args.proposal_id, args.review_id)
         elif args.command == 'review':

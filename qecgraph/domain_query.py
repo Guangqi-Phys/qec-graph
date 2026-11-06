@@ -3,10 +3,13 @@ from __future__ import annotations
 
 from .registry import Registry
 from .validators.qec import distance_issues
+from .status import review_states
 
 
-def evidence_current(registry, evidence, records, required_ids):
+def evidence_current(registry, evidence, records, required_ids, reviews=None):
     data = evidence['data']
+    if reviews and reviews[evidence['id']]['effective_status'] in {'stale', 'disputed'}:
+        return False
     if evidence['review']['status'] in {'stale', 'disputed'} or not all(data.get(k) is not None for k in ('method', 'checker', 'outputs', 'scope', 'limitations')):
         return False
     if not data['outputs']:
@@ -55,11 +58,12 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
     registry = Registry(corpus)
     state, fixed = registry.read(registry_revision)
     records = {identifier: registry.record(identifier, registry_revision=fixed) for identifier in state['records']}
+    reviews = review_states(registry, state, records, fixed)
     results = []
     for identifier, code in sorted(records.items()):
         if code['kind'] != 'code_instance':
             continue
-        if code['review']['status'] in {'stale', 'disputed'}:
+        if reviews[identifier]['effective_status'] in {'stale', 'disputed'}:
             continue
         data = code['data']
         n = (data.get('parameters') or {}).get('n')
@@ -74,7 +78,7 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
         if distance_at_least is not None:
             for claim_id in data.get('distance_claim_ids') or []:
                 claim = records.get(claim_id)
-                if claim is None or claim['kind'] != 'claim' or claim['review']['status'] in {'stale', 'disputed'}:
+                if claim is None or claim['kind'] != 'claim' or reviews[claim_id]['effective_status'] in {'stale', 'disputed'}:
                     continue
                 measurement = claim['data']
                 if distance_issues(measurement) or measurement['subject_id'] != identifier:
@@ -87,7 +91,7 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
                     continue
                 required = [identifier, measurement['presentation_id'], metric_definition_id]
                 evidence = [records[e] for e in claim['evidence_ids'] if e in records and records[e]['kind'] == 'evidence'
-                            and evidence_current(registry, records[e], records, required)]
+                            and evidence_current(registry, records[e], records, required, reviews)]
                 if evidence:
                     matching.append({'claim_id': claim_id, 'claim_revision': claim['revision'],
                                      'relation': measurement['relation'], 'lower_bound': measurement['lower_bound'],

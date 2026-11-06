@@ -232,6 +232,11 @@ class Registry:
         graph, _ = project(self.root, fixed)
         from .validators import validate_graph_types
         validate_graph_types(graph.graph)
+        from .status import reviewed_cycles
+        issues.extend(reviewed_cycles(graph.graph))
+        issues.extend({'code': 'review_stale', 'severity': 'warning', 'record_id': node['id'],
+                       'reasons': node['review_binding']['reasons']}
+                      for node in graph.graph['nodes'] if node.get('review_binding', {}).get('effective_status') == 'stale')
         passed = not any(issue.get('severity', 'error') == 'error' for issue in issues)
         return {'registry_revision': fixed, 'passed': passed, 'issues': issues,
                 'scope': 'structure, types, references, assets and source integrity; not mathematical verification',

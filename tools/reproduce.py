@@ -56,7 +56,7 @@ def main(argv=None) -> int:
         "code_sha256": {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
                         for p in sorted((ROOT / "qecgraph").rglob("*")) if p.suffix in {'.py', '.json'}},
         "steps": [],
-        "not_executed": ["Lean build / declaration export / axiom audit", "Docker build",
+        "not_executed_by_this_command": ["Lean build / declaration export / axiom audit", "Docker build",
                          "External CodeGraph checkout or code reuse", "MCP client connection",
                          "Tests on a user-supplied real paper"],
     }

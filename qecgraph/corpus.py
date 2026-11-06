@@ -8,6 +8,7 @@ from .graph import canonical, hash_text
 from .registry import Registry
 from .store import GraphInput
 from . import query
+from .status import review_states
 
 
 def occurrence_id(version_id, node_id):
@@ -46,11 +47,13 @@ def project(corpus, registry_revision=None, source_version_id=None):
             edge['source'] = occurrence_id(version_id, edge['source'])
             edge['target'] = occurrence_id(version_id, edge['target'])
             edges.append(edge)
-    for identifier in sorted(state['records']):
-        record = registry.record(identifier, registry_revision=fixed)
+    records = {identifier: registry.record(identifier, registry_revision=fixed) for identifier in sorted(state['records'])}
+    reviews = review_states(registry, state, records, fixed)
+    for identifier, record in records.items():
         nodes.append({'id': identifier, 'kind': record['kind'], 'title': record['title'],
                       'labels': record['aliases'], 'latex': '', 'data': record['data'], 'record': record,
-                      'review_status': record['review']['status'], 'verification_status': 'not_verified',
+                      'review_status': reviews[identifier]['effective_status'], 'review_binding': reviews[identifier],
+                      'verification_status': 'not_verified',
                       'content_sha256': record['content_sha256'], 'origin': 'registry', 'source': None,
                       'provenance': record['provenance']})
     lookup = {n['id']: n for n in nodes}
@@ -77,8 +80,12 @@ def project(corpus, registry_revision=None, source_version_id=None):
                 continue
             fresh = not ref.get('revision') or target.get('record', {}).get('revision') == ref['revision']
             status = ref.get('status', 'declared') if fresh else 'stale'
-            if fresh and ref['relation'] == 'depends_on_reviewed' and record['review']['status'] != 'reviewed':
-                status = 'unbound_review'
+            if ref['relation'] == 'depends_on_reviewed':
+                review_status = reviews[node['id']]['effective_status']
+                if review_status == 'stale':
+                    status = 'stale'
+                elif fresh and review_status != 'reviewed':
+                    status = 'unbound_review'
             edges.append({'id': 'ref:' + hash_text(canonical([node['id'], ref])), 'source': node['id'],
                           'target': ref['target'], 'relation': ref['relation'],
                           'status': status, 'evidence': ref})

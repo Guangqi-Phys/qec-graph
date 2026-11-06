@@ -7,6 +7,7 @@ from collections import deque
 
 from .graph import CANDIDATES, DEPENDENCIES
 from .store import load_graph
+from .status import annotation_eligible, eligible
 
 
 def resolve(graph, identifier):
@@ -85,8 +86,7 @@ def show(store, identifier):
 
 def traverse(graph, root, depth, include_candidates=False, reverse=False, max_nodes=100):
     relations = DEPENDENCIES | (CANDIDATES if include_candidates else set())
-    permitted = [e for e in graph["edges"] if e["relation"] in relations
-                 and e["status"] not in {"stale", "unbound_review", "unresolved"}]
+    permitted = [e for e in graph["edges"] if e["relation"] in relations and eligible(e, include_candidates)]
     visited, selected, queue, omitted = {root}, [], deque([(root, 0)]), set()
     while queue:
         current, level = queue.popleft()
@@ -125,19 +125,13 @@ def context(store, identifier, depth=2, include_candidates=False, max_nodes=60):
         raise ValueError("depth must be 0..20 and max_nodes 1..1000")
     graph, _ = load_graph(store)
     root = resolve(graph, identifier)
-    def eligible(edge):
-        if edge["status"] in {"stale", "unbound_review", "unresolved"}:
-            return False
-        if not include_candidates and (edge["status"] == "candidate" or edge["relation"].endswith("_candidate")):
-            return False
-        return True
     ids, _, omitted = traverse(graph, root, depth, include_candidates, False, max_nodes)
     candidates = list(sorted(ids - {root}))
     chosen = [root] + candidates
     # Include proof text and its dependencies even when no direct theorem edge exists.
     proof_relations = {"proof_of"} | ({"proof_of_candidate"} if include_candidates else set())
     for edge in graph["edges"]:
-        if edge["target"] in ids and edge["relation"] in proof_relations and edge["status"] not in {"stale", "unbound_review", "unresolved"}:
+        if edge["target"] in ids and edge["relation"] in proof_relations and eligible(edge, include_candidates):
             if edge["source"] not in chosen:
                 chosen.append(edge["source"])
                 proof_ids, _, extra_omitted = traverse(graph, edge["source"], depth, include_candidates, False, max_nodes)
@@ -151,7 +145,7 @@ def context(store, identifier, depth=2, include_candidates=False, max_nodes=60):
         next_frontier = set()
         for edge in graph["edges"]:
             relevant = edge["relation"] in contextual or edge["relation"].startswith("catalog:")
-            if relevant and eligible(edge) and (edge["source"] in frontier or edge["target"] in frontier):
+            if relevant and eligible(edge, include_candidates) and (edge["source"] in frontier or edge["target"] in frontier):
                 for endpoint in (edge["source"], edge["target"]):
                     if endpoint not in chosen:
                         chosen.append(endpoint)
@@ -164,7 +158,7 @@ def context(store, identifier, depth=2, include_candidates=False, max_nodes=60):
     while changed:
         changed = False
         for edge in graph["edges"]:
-            if edge["relation"] == "contains" and edge["target"] in chosen and edge["source"] not in chosen and edge["status"] not in {"stale", "unbound_review", "unresolved"}:
+            if edge["relation"] == "contains" and edge["target"] in chosen and edge["source"] not in chosen and eligible(edge, include_candidates):
                 chosen.append(edge["source"])
                 changed = True
     truncated = len(chosen) > max_nodes or bool(omitted)
@@ -175,14 +169,14 @@ def context(store, identifier, depth=2, include_candidates=False, max_nodes=60):
     for identifier in chosen[:max_nodes]:
         node = dict(lookup[identifier])
         if "annotations" in node:
-            usable = [a for a in node["annotations"] if a["effective_status"] not in {"stale", "unbound_review"}]
+            usable = [a for a in node["annotations"] if annotation_eligible(a, include_candidates)]
             excluded_annotations += len(node["annotations"]) - len(usable)
             node["annotations"] = usable
         selected_nodes.append(node)
     return {"snapshot_id": graph["snapshot_id"], "project_source_hash": graph["project_source_hash"],
             "root_id": root, "include_candidates": include_candidates,
             "nodes": selected_nodes,
-            "edges": [e for e in graph["edges"] if e["source"] in selected and e["target"] in selected and eligible(e)],
+            "edges": [e for e in graph["edges"] if e["source"] in selected and e["target"] in selected and eligible(e, include_candidates)],
             "excluded_stale_or_unbound_annotations": excluded_annotations,
             "truncated": truncated, "omitted_node_count_at_least": max(0, len(chosen)-max_nodes)+len(omitted),
             "extraction_status": graph["extraction_status"],

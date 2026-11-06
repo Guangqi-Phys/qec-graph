@@ -98,3 +98,23 @@ apply 在同一写者锁内核对 corpus、整个 registry 基线、review 提�
 只有 CURRENT 指向包含 application 的完整 state 才算发布。指针写入失败保留旧状态，
 对相同有效输入重试可恢复。回滚查看历史 state/record revisions，不删除新证据或改旧哈希。
 POSIX flock 冲突明确报错，不破坏正在执行的写者。
+
+## 派生失效与逻辑环
+
+所有遍历、证明补入、结构补入、最终边集合及注释输出共用同一个状态策略。
+stale/unbound_review/unresolved 始终排除；include-candidates 只增加仍有效的候选。
+v1 depends_on_reviewed 的有效 status 可以是 declared，不错误要求旧数据必须写 reviewed。
+
+人工决定保持不可变；查询根据其绑定的实际记录、来源和资产派生 review_binding。
+任何已绑定依赖 revision/hash 或资产变化，审核为 stale 并列出具体原因；
+不直接修改旧审核、旧 hash 或旧 evidence。读取历史 registry revision 使用其原来的记录版本；
+实物资产缺失仍会明确报告，不能宣称其证据可重放。
+当前失效绑定覆盖审核时已知的整个 corpus，较保守；新增无关 ID 不改写旧决定。
+
+```bash
+qecgraph audit-dependencies --corpus build/corpus
+qecgraph audit-dependencies --store build/demo
+```
+
+只对仍有效的 depends_on_reviewed 子图检查强连通分量，返回节点/边 ID 和待判断问题。
+文献引用环允许保留；候选、无绑定和过期依赖不进入该审计子图；不全图强制 DAG，也不自动删除问题边。
