@@ -6,6 +6,7 @@ dynamic imports, TeX execution, or semantic graph fragments are cached.
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 
 from pylatexenc import __version__ as PYLATEXENC_VERSION
@@ -23,21 +24,27 @@ _STRUCTURAL = (b'\\newcommand', b'\\renewcommand', b'\\providecommand', b'\\Decl
                b'\\newif', b'\\input', b'\\include')
 
 
-def input_inventory(root, exclude=()):
+def input_inventory(root, exclude=(), *, ignore_temporary=False):
     root = Path(root).resolve()
     excluded = [Path(path).resolve() for path in exclude]
     files, structural = {}, {}
-    for path in sorted(root.rglob('*')):
-        if not path.is_file() or not path.resolve().is_relative_to(root) or any(path.resolve().is_relative_to(item) for item in excluded):
-            continue
-        relative = path.relative_to(root)
-        if any(part in {'.git', '.venv', '__pycache__'} for part in relative.parts):
-            continue
-        raw = path.read_bytes()
-        digest = hashlib.sha256(raw).hexdigest()
-        files[relative.as_posix()] = digest
-        if path.suffix.lower() in {'.tex', '.sty', '.cls'} and any(token in raw for token in _STRUCTURAL):
-            structural[relative.as_posix()] = digest
+    for directory, folders, names in os.walk(root, followlinks=False):
+        directory = Path(directory)
+        folders[:] = sorted(name for name in folders if name not in {'.git', '.venv', '__pycache__'}
+                            and not (directory / name).is_symlink()
+                            and not any((directory / name).resolve().is_relative_to(item) for item in excluded))
+        for name in sorted(names):
+            path = directory / name
+            if not path.is_file() or not path.resolve().is_relative_to(root) or any(path.resolve().is_relative_to(item) for item in excluded):
+                continue
+            if ignore_temporary and (name.endswith(('~', '.swp', '.swo', '.tmp', '.temp')) or name.startswith(('.#', '.~lock.'))):
+                continue
+            relative = path.relative_to(root)
+            raw = path.read_bytes()
+            digest = hashlib.sha256(raw).hexdigest()
+            files[relative.as_posix()] = digest
+            if path.suffix.lower() in {'.tex', '.sty', '.cls'} and any(token in raw for token in _STRUCTURAL):
+                structural[relative.as_posix()] = digest
     return files, structural
 
 

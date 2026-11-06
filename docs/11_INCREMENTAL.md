@@ -31,7 +31,7 @@ qecgraph split examples/paper/main.tex --project-id demo --out build/split-incre
 
 缓存对象是 pylatexenc 的逐文件 AST，采用受限 JSON 编码、源文本哈希、解析上下文、
 配置、处理器源码与 pylatexenc 版本绑定，不使用 pickle 或任意类加载。
-损坏缓存重解析；无诊断的成功 AST 才可写入缓存。每次仍重新发现 include、解析资源，
+损坏缓存重解析；解析错误的 AST 不写缓存。每次仍重新发现 include、解析资源，
 重建语义块、引用、审核状态、图视图及 SQLite，故 AST 命中不会让旧审核复活。
 
 普通叶文件修改只重解析变化的 AST；宏/环境声明、include 所在文件、源文件集合、
@@ -46,4 +46,21 @@ qecgraph split examples/paper/main.tex --project-id demo --out build/split-incre
 不进入语义图或快照身份。全量/增量对相同最终输入必须得到相同 snapshot、图、来源和查询结果。
 这里只承诺正确复用，不承诺固定加速比例；实测见后续恢复/测量步骤。
 
-watch 在下一步骤补入本页。
+## 内容轮询 watch
+
+```bash
+qecgraph watch examples/paper/main.tex --project-id demo --out build/watched --strict
+qecgraph watch examples/paper/main.tex --project-id demo --out build/watched --once
+```
+
+watch 只调度同一 ingest，自动使用 AST 复用，支持同样的 project-root/config/annotations/catalog 和 strict 策略。
+初版以内容轮询代替 OS 事件，默认 0.5 秒一轮、0.25 秒 debounce；每轮重新核对内容，事件丢失不成为正确性前提。
+编辑器临时文件、输出 store 和常见缓存目录不触发构建；多次批量保存合并到静默窗口后的最终输入。
+明确的资源依赖即使文件名像临时文件也继续跟踪；外部 sidecar/config/catalog 单独读取内容指纹。
+
+失败不推进 accepted_signature；同输入在锁释放或错误恢复后仍会重试，重复相同错误不刷屏。
+构建过程中又有保存时，标记 superseded 并继续内容核对。严格 partial 保留在 staging；默认行为继续发布 partial。
+`--once` 执行一次实际构建；`--max-polls N` 可做受控短运行；Ctrl-C 结束，无后台常驻进程。
+stdout 为逐行 JSON：built/build_failed/superseded/reconciled 等事件，最后 stopped 摘要。
+退出 1 表示最后仍失败，2 表示 partial 或停止时还有待处理输入，0 表示已核对到稳定输入。
+watch 与显式 ingest 的最终 snapshot、图和查询语义相同；此接口不执行 TeX、源代码或 Lean。

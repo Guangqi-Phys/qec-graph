@@ -34,6 +34,14 @@ def _add_source_arguments(parser):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graph; no mathematical proof verification")
     sub = parser.add_subparsers(dest="command", required=True)
+    cmd = sub.add_parser('watch', help='Debounced content polling; rebuild through the shared ingestion pipeline')
+    _add_source_arguments(cmd)
+    cmd.add_argument('--annotations')
+    cmd.add_argument('--catalog')
+    cmd.add_argument('--interval', type=float, default=0.5)
+    cmd.add_argument('--debounce', type=float, default=0.25)
+    cmd.add_argument('--max-polls', type=int)
+    cmd.add_argument('--once', action='store_true')
     cmd = sub.add_parser('recover-store', help='Validate CURRENT and inventory abandoned tool-owned builds')
     cmd.add_argument('--store', required=True)
     cmd.add_argument('--remove-abandoned', action='store_true')
@@ -133,7 +141,15 @@ def main(argv=None):
                 if getattr(args, 'registry_revision', None) or getattr(args, 'source_version_id', None):
                     raise ValueError('Corpus scope arguments require --corpus')
                 args.store = pin_snapshot(args.store, args.snapshot)
-        if args.command == 'recover-store':
+        if args.command == 'watch':
+            from .watch import Watcher, run
+            watcher = Watcher(args.entry, args.project_id, args.out, args.project_root, args.config, args.annotations, args.catalog,
+                              strict=args.strict, debounce=0 if args.once else args.debounce)
+            result = run(watcher, interval=args.interval, max_polls=1 if args.once else args.max_polls,
+                         emit=lambda event: print(json.dumps(event, ensure_ascii=False), flush=True))
+            print(json.dumps(result, ensure_ascii=False), flush=True)
+            return result['suggested_exit_code']
+        elif args.command == 'recover-store':
             from .store import recover_store
             result = recover_store(args.store, remove_abandoned=args.remove_abandoned)
         elif args.command == 'validate-staged':

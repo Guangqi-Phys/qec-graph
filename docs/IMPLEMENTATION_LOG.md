@@ -23,7 +23,7 @@
 | 12 | P2 | 状态兼容、资源失效及审核逻辑环 | 完成 |
 | 13 | P3 | 写者锁、strict staging 与发布恢复 | 完成 |
 | 14 | P3 | 输入依赖指纹及安全解析缓存 | 完成 |
-| 15 | P3 | watch 调度、变更和全量一致性 | 待执行 |
+| 15 | P3 | watch 调度、变更和全量一致性 | 完成 |
 | 16 | P3 | 恢复演练和真实增量测量 | 待执行 |
 | 17 | P4 | 只读工具契约、固定作用域和预算 | 待执行 |
 | 18 | P4 | MCP stdio 传输及协议测试 | 待执行 |
@@ -91,3 +91,7 @@ store/split 共享目录保护和跨进程锁；增加 strict partial staging（
 ## 14 · 内容指纹和 AST 复用
 
 新增 incremental.py 和 --incremental；白名单 JSON 编码逐文件 AST，绑定源字节、上下文、配置与处理器版本，继续全量语义发现/资源/审核/投影重建。宏、include 拓扑和未解析依赖保守全量回退。测试全量/增量图、三视图、来源和 context 一致，覆盖同 mtime/大小内容变化、文件增删移动、配置/宏、资产失效、损坏缓存及构建途中保存。全量 unittest 67 项通过。发布前重新核对输入，缓存状态写入问题不把已发布结果误报为构建失败。
+
+## 15 · 内容核对 watch
+
+新增 watch.py/CLI，轮询内容、debounce 批量保存，忽略编辑器临时文件并跟踪显式资源与外部 sidecar/config/catalog。失败不推进 accepted_signature，锁释放后同输入重试；构建中再变更继续核对。strict partial 保留 staging，恢复 include 后与显式 ingest 一致。逐行 JSON 事件与停止摘要，不启动后台服务。全量 unittest 71 项通过，包括 --once CLI/显式流程一致性。
