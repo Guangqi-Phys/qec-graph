@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -24,7 +25,7 @@ KNOWN_RELATIONS = {
 
 
 def canonical(value) -> str:
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
 
 
 def hash_text(text: str) -> str:
@@ -39,7 +40,22 @@ def read_json(path):
                 raise ValueError(f"Duplicate key {key!r} in {path}")
             result[key] = value
         return result
-    return json.loads(Path(path).read_text(encoding="utf-8"), object_pairs_hook=pairs)
+    def constant(value):
+        raise ValueError(f'Non-finite JSON number {value!r} in {path}')
+
+    def finite(value):
+        if isinstance(value, float) and not math.isfinite(value):
+            raise ValueError(f'Non-finite JSON number in {path}')
+        if isinstance(value, dict):
+            for item in value.values():
+                finite(item)
+        if isinstance(value, list):
+            for item in value:
+                finite(item)
+
+    value = json.loads(Path(path).read_text(encoding="utf-8"), object_pairs_hook=pairs, parse_constant=constant)
+    finite(value)
+    return value
 
 
 def node_filename(node_id: str) -> str:

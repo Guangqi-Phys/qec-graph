@@ -65,6 +65,7 @@ def project(corpus, registry_revision=None, source_version_id=None):
         edges.append({'id': link['id'], 'source': source, 'target': link['claim_id'], 'relation': 'normalizes_to',
                       'status': ('candidate' if link['status'] == 'proposed' else link['status']) if fresh else 'stale',
                       'evidence': link})
+    unresolved = []
     for node in nodes:
         record = node.get('record')
         if not record:
@@ -72,6 +73,7 @@ def project(corpus, registry_revision=None, source_version_id=None):
         for ref in record['refs']:
             target = lookup.get(ref.get('target'))
             if not target:
+                unresolved.append({'code': 'unresolved_reference', 'record_id': node['id'], 'reference': ref})
                 continue
             fresh = not ref.get('revision') or target.get('record', {}).get('revision') == ref['revision']
             edges.append({'id': 'ref:' + hash_text(canonical([node['id'], ref])), 'source': node['id'],
@@ -79,7 +81,8 @@ def project(corpus, registry_revision=None, source_version_id=None):
                           'status': ref.get('status', 'declared') if fresh else 'stale', 'evidence': ref})
     graph = {'schema_version': 'qecgraph.corpus_graph.v1', 'snapshot_id': fixed,
              'project_source_hash': hash_text(canonical(versions)), 'nodes': nodes, 'edges': edges,
-             'labels': labels, 'extraction_status': 'partial' if partial else 'complete_for_supported_syntax'}
+             'labels': labels, 'diagnostics': unresolved,
+             'extraction_status': 'partial' if partial else 'complete_for_supported_syntax'}
     scope = {'registry_revision': fixed, 'source_versions': versions,
              'entity_revisions': {k: v['current_revision'] for k, v in state['records'].items()}}
     return GraphInput(graph), scope
@@ -105,5 +108,6 @@ def execute(corpus, action, identifier=None, *, registry_revision=None, source_v
         raise ValueError('Unknown read-only corpus action')
     result['scope'] = scope
     result['extraction_status'] = graph_input.graph['extraction_status']
+    result['diagnostics'] = graph_input.graph['diagnostics']
     result['absence_note'] = 'No match means no result in this fixed scope; it does not establish nonexistence.'
     return result

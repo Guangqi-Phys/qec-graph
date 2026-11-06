@@ -102,6 +102,10 @@ class Registry:
 
     def _put_record(self, state, record):
         record = prepare_record(record)
+        from .validators import validate_endpoint
+        for ref in record['refs']:
+            if ref['target'] in state['records']:
+                validate_endpoint(record['kind'], state['records'][ref['target']]['kind'], ref['relation'])
         identifier, revision = record['id'], record['revision']
         identity = state['records'].setdefault(identifier, {'kind': record['kind'], 'revisions': {}})
         if identity['kind'] != record['kind']:
@@ -131,7 +135,7 @@ class Registry:
         if revision not in identity['revisions']:
             raise ValueError(f'Unknown revision for {identifier}: {revision}')
         binding = identity['revisions'][revision]
-        record = prepare_record(read_json(safe_relative(self.root, binding['path'])))
+        record = prepare_record(read_json(safe_relative(self.root, binding['path'])), allow_legacy=True)
         if record['id'] != identifier or record['revision'] != revision or record['content_sha256'] != binding['content_sha256']:
             raise ValueError('Registered record identity/hash mismatch')
         return record
@@ -150,6 +154,8 @@ class Registry:
             claim = self.record(claim_id, claim_revision, fixed)
             if claim['kind'] != 'claim':
                 raise ValueError('Source normalization target must be a claim')
+            from .validators import validate_endpoint
+            validate_endpoint(node['kind'], claim['kind'], 'normalizes_to')
             link = {'id': link_id, 'relation': 'normalizes_to', 'status': 'proposed',
                     'source_version_id': source_version_id, 'source_snapshot_id': version['snapshot_id'],
                     'source_node_id': node_id, 'source_content_sha256': node['content_sha256'],
@@ -171,7 +177,7 @@ class Registry:
         if report.get('schema_version') != 'qecgraph.migration.v1' or report.get('rejected'):
             raise ValueError('Import requires a migration report with no rejected inputs')
         records = [read_json(safe_relative(migration_root, item['output_path'])) for item in report['accepted']
-                   if item['output_schema'] == 'qecgraph.record.v2']
+                   if item['output_schema'] == 'qecgraph.record.v3']
         with writer_lock(self.root):
             state = self._state_or_empty()
             for record in records:
@@ -198,3 +204,18 @@ class Registry:
         if hashlib.sha256(raw).hexdigest() != digest:
             raise ValueError('Managed asset content changed')
         return raw
+
+    def validate(self, registry_revision=None):
+        from .validators import registry_issues
+        from .corpus import project
+        state, fixed = self.read(registry_revision)
+        issues = registry_issues(self, state, fixed)
+        for version_id in state['versions']:
+            _, snapshot, _ = self.source_graph(version_id, fixed)
+            validate_snapshot(snapshot)
+        graph, _ = project(self.root, fixed)
+        from .validators import validate_graph_types
+        validate_graph_types(graph.graph)
+        return {'registry_revision': fixed, 'passed': not issues, 'issues': issues,
+                'scope': 'structure, types, references, assets and source integrity; not mathematical verification',
+                'suggested_exit_code': 0 if not issues else 2}

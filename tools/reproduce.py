@@ -54,7 +54,7 @@ def main(argv=None) -> int:
         "runtime": {"python": platform.python_version(), "platform": platform.platform(),
                     "sqlite": sqlite3.sqlite_version},
         "code_sha256": {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
-                        for p in sorted((ROOT / "qecgraph").glob("*.py"))},
+                        for p in sorted((ROOT / "qecgraph").rglob("*")) if p.suffix in {'.py', '.json'}},
         "steps": [],
         "not_executed": ["Lean build / declaration export / axiom audit", "Docker build",
                          "External CodeGraph checkout or code reuse", "MCP client connection",

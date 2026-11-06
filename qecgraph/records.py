@@ -5,7 +5,7 @@ import copy
 
 from .graph import canonical, hash_text
 
-RECORD_SCHEMA = 'qecgraph.record.v2'
+RECORD_SCHEMA = 'qecgraph.record.v3'
 HASH_PROTOCOL = 'sha256:json-sort-utf8-v1:record-excluding-content_sha256'
 KINDS = {'source_work', 'source_version', 'definition', 'claim', 'family', 'construction',
          'classical_seed', 'code_instance', 'presentation', 'implementation', 'evidence',
@@ -16,10 +16,10 @@ def record_hash(record):
     return hash_text(canonical({k: v for k, v in record.items() if k != 'content_sha256'}))
 
 
-def prepare_record(record):
+def prepare_record(record, *, allow_legacy=False):
     record = copy.deepcopy(record)
-    if record.get('schema_version') != RECORD_SCHEMA:
-        raise ValueError('Expected qecgraph.record.v2; use explicit migration for older formats')
+    if record.get('schema_version') != RECORD_SCHEMA and not (allow_legacy and record.get('schema_version') == 'qecgraph.record.v2'):
+        raise ValueError('Expected qecgraph.record.v3; use explicit migration for older formats')
     for field in ('id', 'revision', 'title'):
         if not isinstance(record.get(field), str) or not record[field].strip():
             raise ValueError(f'Record needs nonempty {field}')
@@ -39,4 +39,6 @@ def prepare_record(record):
     if record.get('content_sha256', expected) != expected:
         raise ValueError('Record content hash mismatch')
     record['content_sha256'] = expected
+    from .validators import validate_record
+    validate_record(record)
     return record

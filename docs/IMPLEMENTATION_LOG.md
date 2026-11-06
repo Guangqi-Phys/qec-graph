@@ -16,7 +16,7 @@
 | 05 | P1 | 规范 claim、实体修订和多对多来源关系 | 完成 |
 | 06 | P1 | 固定 corpus/snapshot 的跨文档查询 | 完成 |
 | 07 | P1 | 旧图、sidecar、知识样例的显式迁移 | 完成 |
-| 08 | P2 | 严格 JSON、领域信封及端点类型验证 | 待执行 |
+| 08 | P2 | 严格 JSON、领域信封及端点类型验证 | 完成 |
 | 09 | P2 | 距离、矩阵和实验条件验证与筛选 | 待执行 |
 | 10 | P2 | review 提案、身份类别与输入绑定 | 待执行 |
 | 11 | P2 | 原子 apply、锁、冲突和幂等 | 待执行 |
@@ -63,3 +63,7 @@
 ## 07 · 显式迁移与 P1 验收
 
 新增 migrations.py、migrate/migration-import；独立输出、字节原件、ID/修订映射与拒绝报告。旧 0.1.0 记录保留全部原字段及证据，图/sidecar 逐字节透传；资产核对旧协议后变为受管理 URI，不重验数学。全量 unittest 35 项通过；实际迁移并导入 10 条样例记录，报告见 validation/p1。P1 核心验收完成；POSIX 本地文件锁、保守 corpus 子串查询及 passthrough 边界见 09_CORPUS.md。
+
+## 08 · 严格结构与类型
+
+新增运行时 JSON Schema、record.v3 最低领域字段、明确 unknown_reason、引用与资产信封及关系端点规则。v2 保留可读并提供显式 v3 新修订迁移；不刷新旧审核。拒绝重复键、非有限数和指数溢出。validate-corpus 显示未解析引用与资产问题；错误 proof_of 在发布前失败。指纹覆盖子模块与 Schema。全量 unittest 40 项通过。运行依赖新增固定 jsonschema==4.26.0；见 10_VALIDATION_REVIEW.md。

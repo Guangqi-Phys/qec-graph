@@ -16,7 +16,8 @@ source .venv/bin/activate
 python -m pip install -e .
 ```
 
-可选的完整 JSON Schema 验证依赖：
+严格领域验证使用固定的 `jsonschema==4.26.0`，已包含在运行依赖中。
+开发依赖入口也保留供已有工作流使用：
 
 ```bash
 python -m pip install -r requirements-dev.txt
@@ -87,7 +88,7 @@ python knowledge_starter/tools/qec_kb.py index
 python knowledge_starter/tools/qec_kb.py codes --n-min 13 --n-max 13 --distance-at-least 3 --construction ordinary_hgp
 ```
 
-不安装可选 jsonschema 时，省略 `--json-schema`。该检查器只验证随包的有限示例，不能当作通用大码距离求解器。
+单独使用旧样例而未安装本项目时，可省略 `--json-schema`。该检查器只验证随包的有限示例，不能当作通用大码距离求解器。
 
 将记录与论文来源连接：
 

@@ -9,6 +9,7 @@ from .graph import canonical, hash_text, read_json
 from .records import RECORD_SCHEMA, prepare_record
 from .store import safe_relative
 from .transactions import atomic_json, immutable_json
+from .validators import DOMAIN_FIELDS
 
 
 def _copy_asset(source_root, out, asset):
@@ -52,8 +53,16 @@ def adapt_legacy_record(record, source_digest, *, source_root=None, out):
         return path_map.get(value, value) if isinstance(value, str) else value
 
     data = managed(record['data'])
+    # Missing legacy fields remain explicitly unknown, never guessed from names.
+    missing = [field for field in DOMAIN_FIELDS[record['kind']] if field not in data]
+    for field in missing:
+        data[field] = None
+    unspecified = [field for field in DOMAIN_FIELDS[record['kind']] if data[field] is None]
+    if unspecified:
+        data.setdefault('unknown_reason', 'Legacy input does not specify: ' + ', '.join(unspecified))
     if record['kind'] == 'claim':
-        data.setdefault('statement', data.get('statement_latex'))
+        if data['statement'] is None:
+            data['statement'] = data.get('statement_latex')
         data.setdefault('hypotheses', None)
         data.setdefault('quantifiers', None)
         data.setdefault('unknown_reason', 'Legacy record does not explicitly enumerate all quantifiers')
@@ -78,7 +87,7 @@ def migrate(source, out, *, source_root=None):
     out.mkdir(parents=True, exist_ok=True)
     report = {'schema_version': 'qecgraph.migration.v1', 'adapter_version': '1',
               'source': str(source), 'accepted': [], 'rejected': [], 'id_map': {},
-              'semantic_changes': ['Explicit v2 envelope; legacy relations retain catalog: prefix',
+              'semantic_changes': ['Explicit v3 envelope; legacy relations retain catalog: prefix',
                                    'External paths become managed content-addressed asset URIs',
                                    'No human review, numerical recheck or Lean status promotion']}
     paths = sorted(source.rglob('*.json')) if source.is_dir() else [source]
@@ -100,6 +109,25 @@ def migrate(source, out, *, source_root=None):
                 item.update({'output_path': relative, 'output_schema': RECORD_SCHEMA, 'id': record['id']})
                 if record['id'] in report['id_map']:
                     raise ValueError('Duplicate legacy ID in migration input')
+                report['id_map'][record['id']] = {'id': record['id'], 'revision': record['revision'],
+                                                'content_sha256': record['content_sha256']}
+            elif schema == 'qecgraph.record.v2':
+                old = prepare_record(value, allow_legacy=True)
+                record = dict(old)
+                record['schema_version'] = RECORD_SCHEMA
+                record['revision'] = 'strict-v3-' + digest
+                record.pop('content_sha256', None)
+                record['extensions'] = {**record['extensions'], 'pre_validation_record': old}
+                record['review'] = {'status': 'imported'}
+                record['assets'] = [_copy_asset(source_root, out, asset) for asset in old['assets']]
+                record['data'] = dict(record['data'])
+                for field in DOMAIN_FIELDS[record['kind']]:
+                    record['data'].setdefault(field, None)
+                record['data'].setdefault('unknown_reason', 'Explicit v2 to v3 migration; unspecified fields remain unknown')
+                record = prepare_record(record)
+                relative = 'records/' + hash_text(record['id']) + '.json'
+                immutable_json(out / relative, record)
+                item.update({'output_path': relative, 'output_schema': RECORD_SCHEMA, 'id': record['id']})
                 report['id_map'][record['id']] = {'id': record['id'], 'revision': record['revision'],
                                                 'content_sha256': record['content_sha256']}
             elif schema in {'qecgraph.graph.v1', 'qecgraph.annotations.v1'}:

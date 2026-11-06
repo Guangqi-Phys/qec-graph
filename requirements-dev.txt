@@ -1,2 +1,2 @@
-# Optional validation dependency; runtime dependency lives in pyproject.toml.
+# Compatibility entry point; strict validation now pins this at runtime too.
 jsonschema==4.26.0

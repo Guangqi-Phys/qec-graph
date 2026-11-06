@@ -1,5 +1,5 @@
 {
-  "schema_version": "qecgraph.record.v2",
+  "schema_version": "qecgraph.record.v3",
   "id": "claim:demo:hgp-length",
   "kind": "claim",
   "revision": "1",

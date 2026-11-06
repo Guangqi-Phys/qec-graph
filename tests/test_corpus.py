@@ -47,7 +47,7 @@ class CorpusTests(unittest.TestCase):
         self.assertIn('Changed.', show(self.root / 'a', 'same')['node']['latex'])
 
     def test_claim_mapping_is_candidate_and_bound_to_exact_revision(self):
-        claim = {'schema_version': 'qecgraph.record.v2', 'id': 'claim:a', 'revision': '1',
+        claim = {'schema_version': 'qecgraph.record.v3', 'id': 'claim:a', 'revision': '1',
                  'kind': 'claim', 'title': 'Claim', 'data': {'statement': 'First.', 'hypotheses': [], 'quantifiers': []}}
         self.registry.add_record(claim)
         self.registry.link_claim('link:a', 'version:a', 'same', 'claim:a')

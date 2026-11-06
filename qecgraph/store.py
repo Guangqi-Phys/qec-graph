@@ -155,11 +155,13 @@ def ingest(entry, project_id, out, project_root=None, config_path=None, annotati
     resource_manifest = [{"path": path, "sha256": hashlib.sha256(raw).hexdigest()} for path, raw in sorted(resource_bytes.items())]
     project_source_hash = hash_text(canonical({"entry": parsed["entry"], "sources": source_manifest,
                                               "resources": resource_manifest, "parser_config": config}))
-    tool_sources = {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
-                    for path in sorted(Path(__file__).parent.glob("*.py"))}
+    package_root = Path(__file__).parent
+    tool_sources = {str(path.relative_to(package_root)): hashlib.sha256(path.read_bytes()).hexdigest()
+                    for path in sorted(package_root.rglob('*')) if path.suffix in {'.py', '.json'}}
     fingerprint = {"project_id": project_id, "project_source_hash": project_source_hash,
                    "annotations": annotations, "catalog_inputs": catalog_inputs,
-                   "tool_version": __version__, "tool_sources": tool_sources, "pylatexenc": parser_version}
+                   "tool_version": __version__, "tool_sources": tool_sources, "pylatexenc": parser_version,
+                   'jsonschema': version('jsonschema')}
     snapshot_id = hash_text(canonical(fingerprint))
     graph = build_graph(parsed, project_id, project_source_hash, annotations, catalog)
     graph["snapshot_id"] = snapshot_id
@@ -252,9 +254,11 @@ def ingest(entry, project_id, out, project_root=None, config_path=None, annotati
 
 
 def validate_snapshot(snapshot, expected_snapshot_id=None):
+    from .validators import validate_graph_types
     snapshot = Path(snapshot)
     manifest = read_json(snapshot / "manifest.json")
     graph = read_json(snapshot / "graph.json")
+    validate_graph_types(graph)
     expected = expected_snapshot_id or snapshot.name
     if graph["snapshot_id"] != expected or manifest["snapshot_id"] != expected:
         raise ValueError("Snapshot identity mismatch")

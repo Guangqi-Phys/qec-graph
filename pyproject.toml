@@ -7,7 +7,7 @@ name = "qec-graph"
 version = "0.2.0"
 description = "Provenance-preserving LaTeX blocks and typed QEC knowledge graphs"
 requires-python = ">=3.11"
-dependencies = ["pylatexenc==2.10"]
+dependencies = ["pylatexenc==2.10", "jsonschema==4.26.0"]
 
 [project.scripts]
 qecgraph = "qecgraph.cli:main"
@@ -16,3 +16,6 @@ qec-latex-split = "qecgraph.splitter:main"
 
 [tool.setuptools.packages.find]
 include = ["qecgraph*"]
+
+[tool.setuptools.package-data]
+"qecgraph.validators" = ["schemas/*.json"]

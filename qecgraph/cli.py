@@ -32,6 +32,9 @@ def _add_source_arguments(parser):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graph; no mathematical proof verification")
     sub = parser.add_subparsers(dest="command", required=True)
+    cmd = sub.add_parser('validate-corpus', help='Check typed records, references, sources and managed assets')
+    cmd.add_argument('--corpus', required=True)
+    cmd.add_argument('--registry-revision')
     cmd = sub.add_parser('migrate', help='Adapt legacy inputs into a new location with a rejection report')
     cmd.add_argument('input')
     cmd.add_argument('--out', required=True)
@@ -84,7 +87,9 @@ def main(argv=None):
                 if getattr(args, 'registry_revision', None) or getattr(args, 'source_version_id', None):
                     raise ValueError('Corpus scope arguments require --corpus')
                 args.store = pin_snapshot(args.store, args.snapshot)
-        if args.command == 'migrate':
+        if args.command == 'validate-corpus':
+            result = Registry(args.corpus).validate(args.registry_revision)
+        elif args.command == 'migrate':
             from .migrations import migrate
             result = migrate(args.input, args.out, source_root=args.source_root)
         elif args.command == 'migration-import':

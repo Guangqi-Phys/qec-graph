@@ -30,7 +30,8 @@ qecgraph record-add examples/claim.example.json --corpus build/corpus
 qecgraph claim-link examples/claim-link.example.json --corpus build/corpus
 ```
 
-记录采用 `qecgraph.record.v2`，`id` 和 `revision` 由作者指定；内容哈希及协议由程序补齐。
+P1 引入 `qecgraph.record.v2`；P2 新写入使用严格的 `qecgraph.record.v3`，迁移见 [10](10_VALIDATION_REVIEW.md)。
+`id` 和 `revision` 由作者指定；内容哈希及协议由程序补齐。
 同一 ID/revision 不能覆盖不同内容；新修订保留旧文件。不同 ID 即使标题和参数相同也独立保存。
 自动输入默认 `review.status=proposed`；导入或语法解析不构成人工审核。
 
@@ -73,7 +74,7 @@ qecgraph context code:rep3-hgp:13 --corpus build/corpus
 ID/修订映射、接受及拒绝项；原始字节保存到 `originals/`，未知版本只保留为不透明输入并拒绝解释。
 任一拒绝项使迁移返回退出码 2，import 拒绝有未解决拒绝项的批次。
 
-旧 `0.1.0` 记录进入 v2 独立信封；保留原 ID、原记录全部字段、原证据类别和未执行状态。
+旧 `0.1.0` 记录进入当前版本独立信封；保留原 ID、原记录全部字段、原证据类别和未执行状态。
 旧 refs 采用 `catalog:` 前缀，避免隐式提升为审核依赖。旧 claim 未说明量词时为 null 并注明原因。
 `qecgraph.graph.v1` 与 `qecgraph.annotations.v1` 采用逐字节 passthrough 适配，
 保持来源块和审核绑定原义，不将原文 theorem 转为 claim；完整 store 的跨文档接入使用 register。
