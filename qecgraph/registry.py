@@ -216,6 +216,7 @@ class Registry:
         graph, _ = project(self.root, fixed)
         from .validators import validate_graph_types
         validate_graph_types(graph.graph)
-        return {'registry_revision': fixed, 'passed': not issues, 'issues': issues,
+        passed = not any(issue.get('severity', 'error') == 'error' for issue in issues)
+        return {'registry_revision': fixed, 'passed': passed, 'issues': issues,
                 'scope': 'structure, types, references, assets and source integrity; not mathematical verification',
-                'suggested_exit_code': 0 if not issues else 2}
+                'suggested_exit_code': 0 if passed else 2}

@@ -12,6 +12,13 @@ from .transactions import atomic_json, immutable_json
 from .validators import DOMAIN_FIELDS
 
 
+def _distance_unknowns(data):
+    if data.get('relation') in {'exact', 'lower_bound', 'upper_bound', 'interval'}:
+        for field in ('subject_id', 'presentation_id', 'metric_definition_id', 'sector', 'method', 'assumptions', 'lower_bound', 'upper_bound'):
+            data.setdefault(field, None)
+        data.setdefault('unknown_reason', 'Legacy distance scope is not fully specified')
+
+
 def _copy_asset(source_root, out, asset):
     if source_root is None:
         raise ValueError('Legacy assets require explicit --source-root')
@@ -66,6 +73,8 @@ def adapt_legacy_record(record, source_digest, *, source_root=None, out):
         data.setdefault('hypotheses', None)
         data.setdefault('quantifiers', None)
         data.setdefault('unknown_reason', 'Legacy record does not explicitly enumerate all quantifiers')
+        data.pop('evidence_ids', None)  # v3 stores this once, in the record envelope.
+        _distance_unknowns(data)
     adapted = {'schema_version': RECORD_SCHEMA, 'id': record['id'], 'kind': record['kind'],
                'revision': 'legacy-0.1.0-' + source_digest, 'title': record.get('title', record['id']),
                'data': data, 'assets': assets,
@@ -121,9 +130,16 @@ def migrate(source, out, *, source_root=None):
                 record['review'] = {'status': 'imported'}
                 record['assets'] = [_copy_asset(source_root, out, asset) for asset in old['assets']]
                 record['data'] = dict(record['data'])
+                nested_evidence = record['data'].pop('evidence_ids', None)
+                if nested_evidence is not None:
+                    if record['evidence_ids'] and record['evidence_ids'] != nested_evidence:
+                        raise ValueError('Conflicting legacy evidence_ids owners require explicit resolution')
+                    record['evidence_ids'] = nested_evidence
                 for field in DOMAIN_FIELDS[record['kind']]:
                     record['data'].setdefault(field, None)
                 record['data'].setdefault('unknown_reason', 'Explicit v2 to v3 migration; unspecified fields remain unknown')
+                if record['kind'] == 'claim':
+                    _distance_unknowns(record['data'])
                 record = prepare_record(record)
                 relative = 'records/' + hash_text(record['id']) + '.json'
                 immutable_json(out / relative, record)

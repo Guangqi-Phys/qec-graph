@@ -11,7 +11,7 @@ STATEMENTS = {'lemma', 'theorem', 'proposition', 'corollary', 'conjecture', 'cla
 MATHEMATICS = STATEMENTS | {'definition', 'proof', 'equation'}
 _SCHEMA = json.loads(files(__package__).joinpath('schemas/record.v3.schema.json').read_text(encoding='utf-8'))
 DOMAIN_FIELDS = {entry['if']['properties']['kind']['const']: entry['then']['properties']['data']['required']
-                 for entry in _SCHEMA['allOf']}
+                 for entry in _SCHEMA['allOf'] if 'data' not in entry['if']['properties']}
 ENDPOINTS = {
     'proof_of': ({'proof'}, STATEMENTS),
     'proof_of_candidate': ({'proof'}, STATEMENTS),
@@ -47,9 +47,17 @@ def validate_record(record):
         if asset['uri'] != 'qecasset:sha256:' + asset['sha256'] or asset['path'] != 'assets/' + asset['sha256']:
             raise ValueError('Managed asset URI/path must bind its exact byte hash')
     if record['kind'] == 'claim':
+        if 'evidence_ids' in data:
+            raise ValueError('evidence_ids belongs in the authoritative record envelope, not data')
         for field in ('statement', 'hypotheses', 'quantifiers'):
             if data[field] is None and not data.get('unknown_reason'):
                 raise ValueError(f'Unknown claim {field} requires unknown_reason')
+        if data.get('relation') in {'exact', 'lower_bound', 'upper_bound', 'interval'}:
+            from .qec import distance_issues
+            errors = [message for message in distance_issues(data)
+                      if not message.startswith(('Distance claim missing', 'Distance sector'))]
+            if errors:
+                raise ValueError('; '.join(errors))
     if record['kind'] == 'code_instance':
         parameters = data['parameters']
         n, k = parameters['n'], parameters['k']
@@ -95,6 +103,34 @@ def registry_issues(registry, state, fixed):
                     raise ValueError('Asset size/hash mismatch')
             except (OSError, ValueError) as exc:
                 issues.append({'code': 'asset_unavailable', 'record_id': identifier, 'asset': asset['uri'], 'message': str(exc)})
+        if record['kind'] == 'claim' and record['data'].get('relation') in {'exact', 'lower_bound', 'upper_bound', 'interval'}:
+            from .qec import distance_issues
+            issues.extend({'code': 'distance_scope_incomplete', 'severity': 'warning', 'record_id': identifier, 'message': message}
+                          for message in distance_issues(record['data']))
+        for evidence_id in record['evidence_ids']:
+            if evidence_id not in records or records[evidence_id]['kind'] != 'evidence':
+                issues.append({'code': 'unresolved_evidence', 'record_id': identifier, 'evidence_id': evidence_id})
+        fields = {
+            'code_instance': {'construction_id': {'construction'}, 'presentation_ids': {'presentation'}, 'distance_claim_ids': {'claim'}},
+            'presentation': {'instance_id': {'code_instance'}, 'matrix_definition_id': {'definition'}},
+            'formalization': {'claim_id': {'claim'}},
+            'claim': {'presentation_id': {'presentation'}, 'metric_definition_id': {'definition', 'metric'}},
+        }.get(record['kind'], {})
+        for field, kinds in fields.items():
+            values = record['data'].get(field)
+            if values is None:
+                continue
+            for target_id in values if isinstance(values, list) else [values]:
+                if target_id not in records or records[target_id]['kind'] not in kinds:
+                    issues.append({'code': 'domain_reference', 'record_id': identifier, 'field': field, 'target': target_id})
+        if record['kind'] == 'evidence' and isinstance(record['data'].get('inputs'), list):
+            for binding in record['data']['inputs']:
+                if not isinstance(binding, dict):
+                    issues.append({'code': 'evidence_binding', 'record_id': identifier, 'message': 'Input binding must be an object'})
+                    continue
+                target = records.get(binding.get('id'))
+                if target is None or target['revision'] != binding.get('revision') or target['content_sha256'] != binding.get('content_sha256'):
+                    issues.append({'code': 'evidence_binding_stale', 'record_id': identifier, 'binding': binding})
         for ref in record['refs']:
             target = records.get(ref['target'])
             if target is None:

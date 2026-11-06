@@ -17,7 +17,7 @@
 | 06 | P1 | 固定 corpus/snapshot 的跨文档查询 | 完成 |
 | 07 | P1 | 旧图、sidecar、知识样例的显式迁移 | 完成 |
 | 08 | P2 | 严格 JSON、领域信封及端点类型验证 | 完成 |
-| 09 | P2 | 距离、矩阵和实验条件验证与筛选 | 待执行 |
+| 09 | P2 | 距离、矩阵和实验条件验证与筛选 | 完成 |
 | 10 | P2 | review 提案、身份类别与输入绑定 | 待执行 |
 | 11 | P2 | 原子 apply、锁、冲突和幂等 | 待执行 |
 | 12 | P2 | 状态兼容、资源失效及审核逻辑环 | 待执行 |
@@ -67,3 +67,7 @@
 ## 08 · 严格结构与类型
 
 新增运行时 JSON Schema、record.v3 最低领域字段、明确 unknown_reason、引用与资产信封及关系端点规则。v2 保留可读并提供显式 v3 新修订迁移；不刷新旧审核。拒绝重复键、非有限数和指数溢出。validate-corpus 显示未解析引用与资产问题；错误 proof_of 在发布前失败。指纹覆盖子模块与 Schema。全量 unittest 40 项通过。运行依赖新增固定 jsonschema==4.26.0；见 10_VALIDATION_REVIEW.md。
+
+## 09 · 数学插件与精确筛选
+
+新增 validators/qec.py、domain_query.py 和 check-css/check-experiment/codes。上界、未知下界、度量/sector 不符、无当前绑定证据或资产变化不会匹配下界硬条件。GF(2) 秩、CSS 对易、逻辑配对和受预算限制的完整穷举独立报告；实验区分采样、分母与可比性。全量 unittest 44 项通过；实际 check-css 输出 n=13、k=1、dX=dZ=3，保存在 validation/p2/css-check.json，未执行 Lean。

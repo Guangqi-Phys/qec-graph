@@ -32,6 +32,25 @@ def _add_source_arguments(parser):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graph; no mathematical proof verification")
     sub = parser.add_subparsers(dest="command", required=True)
+    cmd = sub.add_parser('check-css', help='Validate binary check matrices; optionally enumerate a small distance')
+    cmd.add_argument('--hx', required=True)
+    cmd.add_argument('--hz', required=True)
+    cmd.add_argument('--lx')
+    cmd.add_argument('--lz')
+    cmd.add_argument('--enumerate-distance', action='store_true')
+    cmd.add_argument('--max-n', type=int, default=20)
+    cmd = sub.add_parser('check-experiment', help='Check explicit experiment/metric JSON; no evidence promotion')
+    cmd.add_argument('input')
+    cmd = sub.add_parser('codes', help='Exact code constraints, metric and currently bound distance evidence')
+    cmd.add_argument('--corpus', required=True)
+    cmd.add_argument('--registry-revision')
+    cmd.add_argument('--n-min', type=int)
+    cmd.add_argument('--n-max', type=int)
+    cmd.add_argument('--distance-at-least', type=int)
+    cmd.add_argument('--metric-definition-id')
+    cmd.add_argument('--sector', choices=['X', 'Z', 'joint'], default='joint')
+    cmd.add_argument('--construction')
+    cmd.add_argument('--limit', type=int, default=100)
     cmd = sub.add_parser('validate-corpus', help='Check typed records, references, sources and managed assets')
     cmd.add_argument('--corpus', required=True)
     cmd.add_argument('--registry-revision')
@@ -87,7 +106,21 @@ def main(argv=None):
                 if getattr(args, 'registry_revision', None) or getattr(args, 'source_version_id', None):
                     raise ValueError('Corpus scope arguments require --corpus')
                 args.store = pin_snapshot(args.store, args.snapshot)
-        if args.command == 'validate-corpus':
+        if args.command == 'check-css':
+            from .validators.qec import check_css
+            result = check_css(read_json(args.hx), read_json(args.hz), read_json(args.lx) if args.lx else None,
+                               read_json(args.lz) if args.lz else None, enumerate_distance=args.enumerate_distance, max_n=args.max_n)
+            result['suggested_exit_code'] = 0 if result['passed'] else 2
+        elif args.command == 'check-experiment':
+            from .validators.qec import check_experiment
+            payload = read_json(args.input)
+            result = check_experiment(payload['record'], payload['metric'])
+        elif args.command == 'codes':
+            from .domain_query import codes
+            result = codes(args.corpus, registry_revision=args.registry_revision, n_min=args.n_min, n_max=args.n_max,
+                           distance_at_least=args.distance_at_least, metric_definition_id=args.metric_definition_id,
+                           sector=args.sector, construction=args.construction, limit=args.limit)
+        elif args.command == 'validate-corpus':
             result = Registry(args.corpus).validate(args.registry_revision)
         elif args.command == 'migrate':
             from .migrations import migrate

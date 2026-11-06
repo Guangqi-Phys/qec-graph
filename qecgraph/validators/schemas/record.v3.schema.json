@@ -1164,6 +1164,103 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "claim"
+          },
+          "data": {
+            "required": [
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "enum": [
+                  "exact",
+                  "lower_bound",
+                  "upper_bound",
+                  "interval"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "required": [
+              "subject_id",
+              "presentation_id",
+              "metric_definition_id",
+              "sector",
+              "method",
+              "assumptions",
+              "lower_bound",
+              "upper_bound"
+            ],
+            "properties": {
+              "subject_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "presentation_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "metric_definition_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "sector": {
+                "enum": [
+                  "X",
+                  "Z",
+                  "joint",
+                  null
+                ]
+              },
+              "method": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "assumptions": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "lower_bound": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1
+              },
+              "upper_bound": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }
