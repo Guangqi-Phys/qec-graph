@@ -86,6 +86,10 @@ def validate_graph_types(graph):
     for edge in graph['edges']:
         if edge['source'] not in lookup or edge['target'] not in lookup:
             raise ValueError(f"Dangling edge {edge['id']}")
+        if edge['status'] == 'unresolved' and 'unresolved_reference' in {lookup[edge['source']]['kind'], lookup[edge['target']]['kind']}:
+            from ..graph import KNOWN_RELATIONS
+            if edge['relation'] in KNOWN_RELATIONS or edge['relation'].startswith('catalog:'):
+                continue  # Explicit unknown endpoint, never a usable typed dependency.
         validate_endpoint(lookup[edge['source']]['kind'], lookup[edge['target']]['kind'], edge['relation'])
 
 

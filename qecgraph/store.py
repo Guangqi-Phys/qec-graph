@@ -44,6 +44,7 @@ class SnapshotReference:
 class GraphInput:
     """An already fixed, read-only corpus projection for the shared query layer."""
     graph: dict
+    snapshot: Path | None = None
 
 
 def pin_snapshot(store, snapshot_id=None):
@@ -74,7 +75,7 @@ def current_snapshot(store):
 
 def load_graph(store):
     if isinstance(store, GraphInput):
-        return store.graph, None
+        return store.graph, store.snapshot
     snapshot = current_snapshot(store)
     graph = read_json(snapshot / "graph.json")
     if graph["snapshot_id"] != snapshot.name:

@@ -21,6 +21,22 @@ def _add_query_scope(parser):
     parser.add_argument('--source-version-id', help='Restrict corpus source scope')
 
 
+def _add_ai_arguments(parser):
+    _add_query_scope(parser)
+    parser.add_argument('--session-max-nodes', type=int, default=100)
+    parser.add_argument('--session-max-depth', type=int, default=4)
+    parser.add_argument('--session-max-chars', type=int, default=64000)
+    parser.add_argument('--session-max-results', type=int, default=50)
+
+
+def _ai_session(args):
+    from .ai_tools import ReadOnlySession
+    return ReadOnlySession(store=args.store, corpus=args.corpus, snapshot_id=args.snapshot,
+                           registry_revision=args.registry_revision, source_version_id=args.source_version_id,
+                           max_nodes=args.session_max_nodes, max_depth=args.session_max_depth,
+                           max_chars=args.session_max_chars, max_results=args.session_max_results)
+
+
 def _add_source_arguments(parser):
     parser.add_argument("entry")
     parser.add_argument("--project-id", required=True)
@@ -34,6 +50,10 @@ def _add_source_arguments(parser):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graph; no mathematical proof verification")
     sub = parser.add_subparsers(dest="command", required=True)
+    cmd = sub.add_parser('query-tool', help='Call the fixed-scope read-only AI contract from JSON')
+    cmd.add_argument('tool')
+    cmd.add_argument('--arguments', required=True, help='JSON file of tool arguments')
+    _add_ai_arguments(cmd)
     cmd = sub.add_parser('watch', help='Debounced content polling; rebuild through the shared ingestion pipeline')
     _add_source_arguments(cmd)
     cmd.add_argument('--annotations')
@@ -141,7 +161,9 @@ def main(argv=None):
                 if getattr(args, 'registry_revision', None) or getattr(args, 'source_version_id', None):
                     raise ValueError('Corpus scope arguments require --corpus')
                 args.store = pin_snapshot(args.store, args.snapshot)
-        if args.command == 'watch':
+        if args.command == 'query-tool':
+            result = _ai_session(args).invoke(args.tool, read_json(args.arguments))
+        elif args.command == 'watch':
             from .watch import Watcher, run
             watcher = Watcher(args.entry, args.project_id, args.out, args.project_root, args.config, args.annotations, args.catalog,
                               strict=args.strict, debounce=0 if args.once else args.debounce)
@@ -233,6 +255,8 @@ def main(argv=None):
             result = dependencies(args.store, args.id_or_label, args.depth, args.include_candidates,
                                   args.command == "impact", args.max_nodes)
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        if 'ok' in result:
+            return 1 if not result['ok'] else 2 if result['data'].get('extraction_status') == 'partial' else 0
         return result.get('suggested_exit_code', 2 if result.get("extraction_status") == "partial" else 0)
     except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
         print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)

@@ -49,10 +49,10 @@ def search(store, query, kind=None, limit=20):
             sql += " AND n.kind=?"
             params.append(kind)
         sql += " ORDER BY score,n.id LIMIT ?"
-        params.append(limit)
+        params.append(limit + 1)
         rows = [dict(row) for row in con.execute(sql, params)]
         # Deterministic substring fallback also helps unsegmented Chinese and symbols.
-        if len(rows) < limit:
+        if len(rows) < limit + 1:
             pattern = "%" + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
             sql = "SELECT id,kind,title,source_path,line_start,NULL AS score FROM nodes WHERE (title LIKE ? ESCAPE '\\' OR payload LIKE ? ESCAPE '\\')"
             params = [pattern, pattern]
@@ -60,18 +60,18 @@ def search(store, query, kind=None, limit=20):
                 sql += " AND kind=?"
                 params.append(kind)
             sql += " ORDER BY id LIMIT ?"
-            params.append(limit)
+            params.append(limit + 1)
             seen = {r["id"] for r in rows}
             for row in con.execute(sql, params):
                 if row["id"] not in seen:
                     rows.append(dict(row))
                     seen.add(row["id"])
-                if len(rows) >= limit:
+                if len(rows) >= limit + 1:
                     break
     finally:
         con.close()
     return {"snapshot_id": graph["snapshot_id"], "extraction_status": graph["extraction_status"],
-            "query": query, "results": rows,
+            "query": query, "results": rows[:limit], 'truncated': len(rows) > limit,
             "method": "FTS5 literal phrase followed by substring fallback; no semantic embedding"}
 
 
@@ -91,6 +91,10 @@ def traverse(graph, root, depth, include_candidates=False, reverse=False, max_no
     while queue:
         current, level = queue.popleft()
         if level >= depth:
+            for edge in permitted:
+                source, target = (edge['target'], edge['source']) if reverse else (edge['source'], edge['target'])
+                if source == current and target not in visited:
+                    omitted.add(target)
             continue
         for edge in permitted:
             source, target = (edge["target"], edge["source"]) if reverse else (edge["source"], edge["target"])
@@ -104,7 +108,7 @@ def traverse(graph, root, depth, include_candidates=False, reverse=False, max_no
                 queue.append((target, level + 1))
             if edge not in selected:
                 selected.append(edge)
-    return visited, selected, omitted
+    return visited, selected, omitted - visited
 
 
 def dependencies(store, identifier, depth=3, include_candidates=False, reverse=False, max_nodes=100):

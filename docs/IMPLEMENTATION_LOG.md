@@ -25,7 +25,7 @@
 | 14 | P3 | 输入依赖指纹及安全解析缓存 | 完成 |
 | 15 | P3 | watch 调度、变更和全量一致性 | 完成 |
 | 16 | P3 | 恢复演练和真实增量测量 | 完成 |
-| 17 | P4 | 只读工具契约、固定作用域和预算 | 待执行 |
+| 17 | P4 | 只读工具契约、固定作用域和预算 | 完成 |
 | 18 | P4 | MCP stdio 传输及协议测试 | 待执行 |
 | 19 | P4 | CLI/Python/MCP 一致性和客户端说明 | 待执行 |
 | 20 | P5 | 固定 Lean 工程和边界清晰的实际结果 | 待执行 |
@@ -99,3 +99,7 @@ store/split 共享目录保护和跨进程锁；增加 strict partial staging（
 ## 16 · P3 恢复与测量验收
 
 新增 tools/reproduce_incremental.py，实际生成 13 份源文件/96 个 lemma，交替全量/增量运行，保存 cold、unchanged、leaf_edit、asset_edit 的本机测量。每轮快照、三视图和查询一致；备份搬迁、原路径消失、输入重放、遗留清理、strict partial/恢复及故意损坏检测全部通过。完整 reproduce-p3 和 71 项回归通过；实际 watch --once 与 split 快照相同。报告见 validation/p3。P3 完成，测量仅限生成工作负载，不承诺普遍加速。
+
+## 17 · 只读工具契约
+
+新增 ai_tools.py、query-tool、ADR 0002 和 12_AI_MCP.md。固定 snapshot/corpus scope，复用 query 层，逐次核对固定产物；输入 Schema 限制路径、节点、深度和 JSON 字符预算。保留完整根陈述，无法容纳时拒绝而非切断假设；来源/证据/partial/空结果可观察。修复核心搜索 limit 和深度边界截断提示，以及明确 unresolved_reference 的类型兼容。全量 unittest 76 项通过，工具定向复验 5 项通过；CLI/Python envelope 一致、只读文件哈希不变。MCP 传输尚未实现。
