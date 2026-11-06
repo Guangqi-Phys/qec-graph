@@ -20,6 +20,10 @@ or a paper-to-Lean semantic correspondence. The legacy HGP distance example
 remains Python computational evidence with formalization `not_started`.
 
 Build success, declaration export, axiom audit and semantic review are separate
-states. The initial build script records build success only; subsequent stages
-add actual environment export and trust checks. Do not infer verification from
-declaration names or from source text containing no `sorry`.
+states. `ExportMain.lean` exports actual full types, expression structure,
+module imports, source ranges, direct/transitive constants and transitive axioms
+using the fixed Lean environment. The policy explicitly permits `propext`,
+which the actual export reports, and rejects every other axiom including
+`sorryAx`. No claim of "no axioms" is made. `--build-only` skips export/audit
+and therefore cannot serve as validated export evidence. Semantic mappings
+remain `not_reviewed`, even when the exact formal declarations pass the policy.

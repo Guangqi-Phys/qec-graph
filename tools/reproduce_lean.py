@@ -11,8 +11,9 @@ def main(argv=None):
     parser.add_argument('--project', default=str(Path(__file__).resolve().parents[1] / 'lean'))
     parser.add_argument('--out', default='build/reproduce-lean')
     parser.add_argument('--lake')
+    parser.add_argument('--build-only', action='store_true', help='Do not export declarations or audit axioms')
     args = parser.parse_args(argv)
-    result = build_project(args.project, args.out, lake=args.lake)
+    result = build_project(args.project, args.out, lake=args.lake, export_declarations=not args.build_only)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return result['suggested_exit_code']
 

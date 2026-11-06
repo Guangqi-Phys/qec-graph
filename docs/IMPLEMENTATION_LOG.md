@@ -29,7 +29,7 @@
 | 18 | P4 | MCP stdio 传输及协议测试 | 完成 |
 | 19 | P4 | CLI/Python/MCP 一致性和客户端说明 | 完成 |
 | 20 | P5 | 固定 Lean 工程和边界清晰的实际结果 | 完成 |
-| 21 | P5 | 实际声明类型、依赖和公理导出 | 待执行 |
+| 21 | P5 | 实际声明类型、依赖和公理导出 | 完成 |
 | 22 | P5 | 构建证据绑定、失效和语义映射 | 待执行 |
 | 23 | P5 | Lean 重放与信任失败案例 | 待执行 |
 | 24 | 全部 | 端到端验收、能力表与恢复说明 | 待执行 |
@@ -115,3 +115,7 @@ store/split 共享目录保护和跨进程锁；增加 strict partial staging（
 ## 20 · 实际 Lean 工程
 
 官方 Lean 4.19.0 已在忽略的 .tools 中安装；固定 commit 6caaee842e9495688c1567e78c0e68dbb96942aa，实际下载 hash 与许可证核对见 ADR 0003。静态检查固定 mathlib/QECert/QECLean 定义，不采用或声称构建候选库。新增 core-only lean 工程、固定 n 的 Bool 向量/dot 对称性与具体二元行对易实例；lake clean/build 实际通过，81 项 Python 回归通过。新增显式构建报告工具，保存源码/依赖/工具/日志与 dirty patch 绑定。step20 初次证据准确标为未提交工作树，提交后将复验固定提交并执行第二次 push；声明导出与公理审计仍未执行，旧 HGP 距离不提升。
+
+## 21 · 实际环境导出与公理策略
+
+第 20 步 8e7b739 已成功第二次推送；其干净固定提交的真实构建证据归档 fixed-step20。新增 Lean 环境导出器，导出六个声明的完整类型/Expr、真实模块 imports/范围、类型/证明直接及未过滤传递常量、collectAxioms 公理。实际发现 propext；零公理政策正确拒绝，保留失败证据，随后明确采用 propext-only 政策并重建/导出/审计通过。未假称无公理，未推断语义匹配。完整源码/producer/manifest/toolchain/日志/导出哈希绑定，84 项 Python 回归通过。证据见 validation/p5/step21 和 zero-axiom-policy。

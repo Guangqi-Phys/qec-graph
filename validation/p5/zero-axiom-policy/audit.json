@@ -1,0 +1,87 @@
+{
+  "status": "rejected",
+  "policy": {
+    "schema_version": "qecgraph.axiom-policy.v1",
+    "policy_id": "core-boolean-no-axioms-v1",
+    "allowed_axioms": [],
+    "allow_native_evaluation_axioms": false,
+    "note": "Policy choice, not an audit result. Actual dependencies must be exported from Lean."
+  },
+  "issues": [
+    {
+      "code": "axiom_policy_rejected",
+      "declaration": "QEC.Binary.dot",
+      "axioms": [
+        "propext"
+      ]
+    },
+    {
+      "code": "axiom_policy_rejected",
+      "declaration": "QEC.Binary.dot_commutes",
+      "axioms": [
+        "propext"
+      ]
+    },
+    {
+      "code": "axiom_policy_rejected",
+      "declaration": "QEC.Binary.css_example_commutes",
+      "axioms": [
+        "propext"
+      ]
+    }
+  ],
+  "axioms_observed": [
+    "propext"
+  ],
+  "declaration_bindings": {
+    "QEC.Binary.Vector": {
+      "module": "QEC.Binary",
+      "kind": "definition",
+      "type_expr_sha256": "d7f1a0869c438afa8761edd7be42792d14c3afaa658c50522ddf93ed0d271817",
+      "type_hash_protocol": "sha256:json-sort-utf8-v1:exported-Lean.Expr-structure-v1",
+      "axioms_transitive": []
+    },
+    "QEC.Binary.dot": {
+      "module": "QEC.Binary",
+      "kind": "definition",
+      "type_expr_sha256": "8ced0c47d12f170eea3673f6283e3918fa638112c56e6704b91cac50bc04d212",
+      "type_hash_protocol": "sha256:json-sort-utf8-v1:exported-Lean.Expr-structure-v1",
+      "axioms_transitive": [
+        "propext"
+      ]
+    },
+    "QEC.Binary.exampleHX": {
+      "module": "QEC.Binary",
+      "kind": "definition",
+      "type_expr_sha256": "0436b27e93f7d52c6fe17ed9575f07d0777ed879fb68a1fd9bccd605e50df874",
+      "type_hash_protocol": "sha256:json-sort-utf8-v1:exported-Lean.Expr-structure-v1",
+      "axioms_transitive": []
+    },
+    "QEC.Binary.exampleHZ": {
+      "module": "QEC.Binary",
+      "kind": "definition",
+      "type_expr_sha256": "209b73be5c97aa8f06f2182b639a234d7b575552a1945a8372c833556c4571a7",
+      "type_hash_protocol": "sha256:json-sort-utf8-v1:exported-Lean.Expr-structure-v1",
+      "axioms_transitive": []
+    },
+    "QEC.Binary.dot_commutes": {
+      "module": "QEC.Binary",
+      "kind": "theorem",
+      "type_expr_sha256": "7ad75fbcb3020e3bf1c476db754724ba0b606f7b0390ad44ec479cfb8d96992a",
+      "type_hash_protocol": "sha256:json-sort-utf8-v1:exported-Lean.Expr-structure-v1",
+      "axioms_transitive": [
+        "propext"
+      ]
+    },
+    "QEC.Binary.css_example_commutes": {
+      "module": "QEC.Binary",
+      "kind": "theorem",
+      "type_expr_sha256": "cd4adf74b651c2e6402d63f1f8e8b9983684d0fa154c9a09569027aa10940a52",
+      "type_hash_protocol": "sha256:json-sort-utf8-v1:exported-Lean.Expr-structure-v1",
+      "axioms_transitive": [
+        "propext"
+      ]
+    }
+  },
+  "semantic_review": "not_reviewed"
+}

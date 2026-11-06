@@ -1,6 +1,7 @@
 # 05 · Lean 接入、证明状态与可查询映射
 
-状态：**本文是后续实现规范。当前 Python 工具只读取作者的 Lean 标注；本包没有执行 Lean 构建、声明导出或公理审计。** `knowledge_starter/records/formalization_rep3_hgp_distance.json` 的状态仍为 `not_started`，真实声明、提交和构建证据为 null。
+状态：本文保留原接入规范。当前实现及真实构建、声明/依赖、公理报告见 [13_LEAN_EXECUTION.md](13_LEAN_EXECUTION.md)。
+已运行的 core-only Bool 向量边界与旧 HGP 距离示例分开；`knowledge_starter/records/formalization_rep3_hgp_distance.json` 的状态仍为 `not_started`，真实距离声明与构建证据为 null。
 
 ## 1. 最先确定的数学接口
 
