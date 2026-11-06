@@ -28,7 +28,7 @@
 | 17 | P4 | 只读工具契约、固定作用域和预算 | 完成 |
 | 18 | P4 | MCP stdio 传输及协议测试 | 完成 |
 | 19 | P4 | CLI/Python/MCP 一致性和客户端说明 | 完成 |
-| 20 | P5 | 固定 Lean 工程和边界清晰的实际结果 | 待执行 |
+| 20 | P5 | 固定 Lean 工程和边界清晰的实际结果 | 完成 |
 | 21 | P5 | 实际声明类型、依赖和公理导出 | 待执行 |
 | 22 | P5 | 构建证据绑定、失效和语义映射 | 待执行 |
 | 23 | P5 | Lean 重放与信任失败案例 | 待执行 |
@@ -111,3 +111,7 @@ store/split 共享目录保护和跨进程锁；增加 strict partial staging（
 ## 19 · P4 实际客户端验收
 
 新增 tools/reproduce_mcp.py、mcp-config 和客户端样例。真实交互 subprocess 客户端完成 22 项断言：全部工具跨入口同 envelope、固定旧 store/corpus、空结果、重复 label、scope 拒绝、节点/根文本预算、候选过滤及 partial。固定 corpus 的原件损坏也逐次拒绝，未更改外部客户端配置。完整 reproduce-p4-final 和 81 项回归通过；报告、协议 transcript 与本机可审阅配置保存在 validation/p4。P4 完成。
+
+## 20 · 实际 Lean 工程
+
+官方 Lean 4.19.0 已在忽略的 .tools 中安装；固定 commit 6caaee842e9495688c1567e78c0e68dbb96942aa，实际下载 hash 与许可证核对见 ADR 0003。静态检查固定 mathlib/QECert/QECLean 定义，不采用或声称构建候选库。新增 core-only lean 工程、固定 n 的 Bool 向量/dot 对称性与具体二元行对易实例；lake clean/build 实际通过，81 项 Python 回归通过。新增显式构建报告工具，保存源码/依赖/工具/日志与 dirty patch 绑定。step20 初次证据准确标为未提交工作树，提交后将复验固定提交并执行第二次 push；声明导出与公理审计仍未执行，旧 HGP 距离不提升。
