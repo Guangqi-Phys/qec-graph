@@ -13,6 +13,7 @@ dependencies = ["pylatexenc==2.10", "jsonschema==4.26.0"]
 qecgraph = "qecgraph.cli:main"
 qec-graph = "qecgraph.cli:main"
 qec-latex-split = "qecgraph.splitter:main"
+qecgraph-mcp = "qecgraph.mcp_server:main"
 
 [tool.setuptools.packages.find]
 include = ["qecgraph*"]

@@ -30,4 +30,22 @@ show 作为 audit view 返回历史、候选和失效边，保留准确状态；
 CLI 可用 --snapshot、--registry-revision、--source-version-id 固定读取范围；
 session-max-* 参数设置操作者允许的最大预算。工具参数不能传路径或更改作用域。
 
-MCP stdio 服务与客户端接入在后续步骤补入本页。
+## MCP stdio
+
+```bash
+python -m qecgraph serve-mcp --store build/demo
+# Corpus 服务：
+python -m qecgraph serve-mcp --corpus build/corpus --registry-revision <固定revision>
+```
+
+服务按官方固定协议 2025-06-18 实现本地 stdio；初始化后提供以上五个工具。
+仅声明 tools capability，工具列表固定；无 HTTP、写入、资源订阅、采样或自动 watch。
+stdout 只发送逐行 UTF-8 JSON-RPC，兼容 text content 和 structuredContent；日志只能写 stderr。
+未知工具/非法参数返回协议错误，业务查询失败返回 isError=true 的相同 envelope。
+单请求最多 1 MiB，工具调用每秒最多 60 次；支持 ping、EOF 退出和客户端终止。
+请求按顺序处理，未声明长任务、异步取消或进度能力；客户端超时可以终止进程，不影响权威记录。
+
+输入 JSON 拒绝重复 key、非有限数、错误 UTF-8、批量请求及未完成行。
+协议协商只提供本服务支持的 2025-06-18；其他协议客户端应接受该版本或断开，不能假设实现了未来版本。
+安装后的 qecgraph-mcp 别名等价于 `python -m qecgraph.mcp_server`。
+具体客户端配置和三种入口一致性演示在下一步骤补入本页。

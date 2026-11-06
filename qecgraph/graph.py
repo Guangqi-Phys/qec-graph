@@ -32,20 +32,20 @@ def hash_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def read_json(path):
+def strict_json_loads(text, source='<json>'):
     def pairs(items):
         result = {}
         for key, value in items:
             if key in result:
-                raise ValueError(f"Duplicate key {key!r} in {path}")
+                raise ValueError(f"Duplicate key {key!r} in {source}")
             result[key] = value
         return result
     def constant(value):
-        raise ValueError(f'Non-finite JSON number {value!r} in {path}')
+        raise ValueError(f'Non-finite JSON number {value!r} in {source}')
 
     def finite(value):
         if isinstance(value, float) and not math.isfinite(value):
-            raise ValueError(f'Non-finite JSON number in {path}')
+            raise ValueError(f'Non-finite JSON number in {source}')
         if isinstance(value, dict):
             for item in value.values():
                 finite(item)
@@ -53,9 +53,13 @@ def read_json(path):
             for item in value:
                 finite(item)
 
-    value = json.loads(Path(path).read_text(encoding="utf-8"), object_pairs_hook=pairs, parse_constant=constant)
+    value = json.loads(text, object_pairs_hook=pairs, parse_constant=constant)
     finite(value)
     return value
+
+
+def read_json(path):
+    return strict_json_loads(Path(path).read_text(encoding='utf-8'), source=str(path))
 
 
 def node_filename(node_id: str) -> str:

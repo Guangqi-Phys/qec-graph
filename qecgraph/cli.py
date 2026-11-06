@@ -50,6 +50,8 @@ def _add_source_arguments(parser):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graph; no mathematical proof verification")
     sub = parser.add_subparsers(dest="command", required=True)
+    cmd = sub.add_parser('serve-mcp', help='Serve only fixed-scope read tools over local MCP stdio')
+    _add_ai_arguments(cmd)
     cmd = sub.add_parser('query-tool', help='Call the fixed-scope read-only AI contract from JSON')
     cmd.add_argument('tool')
     cmd.add_argument('--arguments', required=True, help='JSON file of tool arguments')
@@ -161,7 +163,10 @@ def main(argv=None):
                 if getattr(args, 'registry_revision', None) or getattr(args, 'source_version_id', None):
                     raise ValueError('Corpus scope arguments require --corpus')
                 args.store = pin_snapshot(args.store, args.snapshot)
-        if args.command == 'query-tool':
+        if args.command == 'serve-mcp':
+            from .mcp_server import serve_stdio
+            return serve_stdio(_ai_session(args))
+        elif args.command == 'query-tool':
             result = _ai_session(args).invoke(args.tool, read_json(args.arguments))
         elif args.command == 'watch':
             from .watch import Watcher, run

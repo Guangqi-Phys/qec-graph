@@ -26,7 +26,7 @@
 | 15 | P3 | watch 调度、变更和全量一致性 | 完成 |
 | 16 | P3 | 恢复演练和真实增量测量 | 完成 |
 | 17 | P4 | 只读工具契约、固定作用域和预算 | 完成 |
-| 18 | P4 | MCP stdio 传输及协议测试 | 待执行 |
+| 18 | P4 | MCP stdio 传输及协议测试 | 完成 |
 | 19 | P4 | CLI/Python/MCP 一致性和客户端说明 | 待执行 |
 | 20 | P5 | 固定 Lean 工程和边界清晰的实际结果 | 待执行 |
 | 21 | P5 | 实际声明类型、依赖和公理导出 | 待执行 |
@@ -103,3 +103,7 @@ store/split 共享目录保护和跨进程锁；增加 strict partial staging（
 ## 17 · 只读工具契约
 
 新增 ai_tools.py、query-tool、ADR 0002 和 12_AI_MCP.md。固定 snapshot/corpus scope，复用 query 层，逐次核对固定产物；输入 Schema 限制路径、节点、深度和 JSON 字符预算。保留完整根陈述，无法容纳时拒绝而非切断假设；来源/证据/partial/空结果可观察。修复核心搜索 limit 和深度边界截断提示，以及明确 unresolved_reference 的类型兼容。全量 unittest 76 项通过，工具定向复验 5 项通过；CLI/Python envelope 一致、只读文件哈希不变。MCP 传输尚未实现。
+
+## 18 · MCP stdio
+
+新增 mcp_server.py、serve-mcp 和安装别名，固定官方协议 2025-06-18。握手/版本协商、五个只读工具、JSON-RPC/业务错误区分、structuredContent/text 双输出、请求字节限制与调用频率限制均实现。stdout 仅协议消息；无写工具、HTTP 或自动构建。实际 subprocess 连接及畸形 JSON/UTF-8/帧大小/错误范围/只读与 TeX 命令不执行测试通过。全量 unittest 80 项通过。
