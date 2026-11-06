@@ -10,7 +10,7 @@
 | 步骤 | 阶段 | 工作项 | 状态 |
 |---|---|---|---|
 | 01 | P0 | 将原型、规范、样例和历史证据迁入工作根目录 | 完成 |
-| 02 | P0 | 安装、复现原型并保存本次证据 | 待执行 |
+| 02 | P0 | 安装、复现原型并保存本次证据 | 完成 |
 | 03 | P0 | 核对固定版本 CodeGraph、许可证和架构映射 | 待执行 |
 | 04 | P1 | 多文档 work/version 注册、不可变来源绑定 | 待执行 |
 | 05 | P1 | 规范 claim、实体修订和多对多来源关系 | 待执行 |
@@ -39,3 +39,7 @@
 复制工作源码、Schema、样例和操作规范；历史验证报告放入独立子目录。
 忽略虚拟环境、缓存和可重建的 build 产物。交接包保持原样。
 检查：根目录存在 pyproject.toml、qecgraph、tests、examples、knowledge_starter 和编号规范。
+
+## 02 · 原型复现
+
+在 .venv 安装固定依赖。运行 `.venv/bin/python tools/reproduce.py --out build/reproduce`，退出 0。24 项回归通过，3 个来源文件、26 个片段；注释图 36 节点、97 边；旧 catalog 44 节点、110 边。JSON Schema 和有限 HGP 检查实际执行。Python 3.15.2；详见 validation/p0/results.json。Docker 和 Lean 尚未执行。

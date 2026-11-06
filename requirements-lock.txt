@@ -1,0 +1,7 @@
+attrs==26.1.0
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+pylatexenc==2.10
+-e git+https://github.com/Guangqi-Phys/qec-graph.git@09031d06367767fa3dbb5cade0888d89b4d32479#egg=qec_graph
+referencing==0.37.0
+rpds-py==2026.9.1
