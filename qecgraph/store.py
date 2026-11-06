@@ -10,6 +10,7 @@ import tempfile
 from collections import Counter
 from importlib.metadata import version
 from pathlib import Path
+from dataclasses import dataclass
 
 from . import __version__
 from .graph import build_graph, canonical, hash_text, node_filename, read_json, views
@@ -31,7 +32,34 @@ def safe_relative(root, relative):
     return path
 
 
+@dataclass(frozen=True)
+class SnapshotReference:
+    path: Path
+    snapshot_id: str
+
+
+@dataclass(frozen=True)
+class GraphInput:
+    """An already fixed, read-only corpus projection for the shared query layer."""
+    graph: dict
+
+
+def pin_snapshot(store, snapshot_id=None):
+    if snapshot_id is None:
+        snapshot = current_snapshot(store)
+    else:
+        if len(snapshot_id) != 64 or any(c not in '0123456789abcdef' for c in snapshot_id):
+            raise ValueError('Invalid snapshot ID')
+        snapshot = Path(store).resolve() / 'snapshots' / snapshot_id
+    graph = read_json(snapshot / 'graph.json')
+    if graph['snapshot_id'] != snapshot.name:
+        raise ValueError('Snapshot identity mismatch')
+    return SnapshotReference(snapshot, graph['snapshot_id'])
+
+
 def current_snapshot(store):
+    if isinstance(store, SnapshotReference):
+        return store.path
     store = Path(store).resolve()
     pointer = read_json(store / "CURRENT.json")
     if pointer.get("format") != "qecgraph.current.v1":
@@ -43,10 +71,14 @@ def current_snapshot(store):
 
 
 def load_graph(store):
+    if isinstance(store, GraphInput):
+        return store.graph, None
     snapshot = current_snapshot(store)
     graph = read_json(snapshot / "graph.json")
     if graph["snapshot_id"] != snapshot.name:
         raise ValueError("Graph and snapshot identity disagree")
+    if isinstance(store, SnapshotReference) and graph['snapshot_id'] != store.snapshot_id:
+        raise ValueError('Pinned snapshot identity mismatch')
     return graph, snapshot
 
 

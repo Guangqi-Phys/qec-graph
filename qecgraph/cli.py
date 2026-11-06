@@ -7,9 +7,18 @@ import sys
 
 from .query import context, dependencies, search, show
 from .splitter import split_project
-from .store import current_snapshot, ingest, validate_snapshot
+from .store import current_snapshot, ingest, pin_snapshot, validate_snapshot
 from .registry import Registry
 from .graph import read_json
+
+
+def _add_query_scope(parser):
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--store')
+    group.add_argument('--corpus')
+    parser.add_argument('--snapshot', help='Fixed store snapshot ID')
+    parser.add_argument('--registry-revision', help='Fixed corpus state revision')
+    parser.add_argument('--source-version-id', help='Restrict corpus source scope')
 
 
 def _add_source_arguments(parser):
@@ -42,23 +51,32 @@ def main(argv=None):
     _add_source_arguments(cmd)
     cmd = sub.add_parser("search", help="Search titles, labels and text")
     cmd.add_argument("query")
-    cmd.add_argument("--store", required=True)
+    _add_query_scope(cmd)
     cmd.add_argument("--kind")
     cmd.add_argument("--limit", type=int, default=20)
     cmd = sub.add_parser("show", help="Read one node with its incoming/outgoing edges")
     cmd.add_argument("id_or_label")
-    cmd.add_argument("--store", required=True)
+    _add_query_scope(cmd)
     for name in ("deps", "impact", "context"):
         cmd = sub.add_parser(name)
         cmd.add_argument("id_or_label")
-        cmd.add_argument("--store", required=True)
+        _add_query_scope(cmd)
         cmd.add_argument("--depth", type=int, default=2)
         cmd.add_argument("--include-candidates", action="store_true")
         cmd.add_argument("--max-nodes", type=int, default=60)
     cmd = sub.add_parser("validate", help="Validate hashes, source spans, endpoints and SQLite")
     cmd.add_argument("--store", required=True)
+    cmd.add_argument('--snapshot')
     args = parser.parse_args(argv)
     try:
+        if args.command in {'search', 'show', 'deps', 'impact', 'context', 'validate'}:
+            if getattr(args, 'corpus', None):
+                if args.snapshot:
+                    raise ValueError('--snapshot belongs to store queries; use --registry-revision for a corpus')
+            else:
+                if getattr(args, 'registry_revision', None) or getattr(args, 'source_version_id', None):
+                    raise ValueError('Corpus scope arguments require --corpus')
+                args.store = pin_snapshot(args.store, args.snapshot)
         if args.command == 'record-add':
             result = Registry(args.corpus).add_record(read_json(args.input))
         elif args.command == 'claim-link':
@@ -70,6 +88,14 @@ def main(argv=None):
             result = ingest(args.entry, args.project_id, args.out, args.project_root, args.config, args.annotations, args.catalog)
         elif args.command == "split":
             result = split_project(args.entry, args.project_id, args.out, args.project_root, args.config)
+        elif getattr(args, 'corpus', None):
+            from .corpus import execute
+            result = execute(args.corpus, args.command, getattr(args, 'id_or_label', None),
+                             registry_revision=args.registry_revision, source_version_id=args.source_version_id,
+                             text=getattr(args, 'query', None), kind=getattr(args, 'kind', None),
+                             limit=getattr(args, 'limit', 20), depth=getattr(args, 'depth', 2),
+                             include_candidates=getattr(args, 'include_candidates', False),
+                             max_nodes=getattr(args, 'max_nodes', 60))
         elif args.command == "search":
             result = search(args.store, args.query, args.kind, args.limit)
         elif args.command == "show":

@@ -38,3 +38,25 @@ qecgraph claim-link examples/claim-link.example.json --corpus build/corpus
 每个映射绑定 source version、snapshot、准确节点和双方哈希、claim revision、假设和记号作用域。
 可多对多映射；它不把来源 lemma 改为 claim，也不宣称两种陈述等价。原 graph.v1 关系含义不变。
 未知 Schema 被拒绝，必须先走显式迁移；新记录不重解释旧格式。
+
+## 固定版本查询
+
+```bash
+qecgraph search HGP --corpus build/corpus --limit 10
+qecgraph show 'version:demo:1::thm:hgp-length' --corpus build/corpus
+qecgraph context claim:demo:hgp-length --corpus build/corpus --include-candidates
+qecgraph show thm:hgp-length --corpus build/corpus --source-version-id version:demo:1
+```
+
+跨文档 label/原始节点 ID 使用 `source_version_id::selector`；返回的 occurrence ID
+包含来源版本命名空间，可直接复用。不同版本即使原节点 ID 相同，也保留独立来源出现。
+实体 ID 不加来源命名空间。未请求候选时不将 proposed 的来源映射作为确认关系加入上下文。
+claim 修订后，旧映射保留且为 stale，候选开关不能使其复活。
+
+每个 corpus 查询先固定一次 registry revision，再构建只读投影并调用共享 query 层。
+返回 scope 列出来源版本、精确 snapshot 和实体修订。用 `--registry-revision <返回值>` 重放历史查询；
+原 store 查询增加 `--snapshot <snapshot_id>`，不跟随后续 CURRENT。
+Python 使用 `corpus.execute(...)`、`Registry.read(revision)` 或 `store.pin_snapshot(...)`。
+
+Corpus 搜索当前采用确定性的大小写无关子串匹配，并报告 limit 截断；原单 store 保留 SQLite/FTS5。
+空结果只表示固定作用域内未命中。查询不会写记录、运行来源代码或提升数学证据。

@@ -24,12 +24,22 @@ def resolve(graph, identifier):
 
 def search(store, query, kind=None, limit=20):
     graph, snapshot = load_graph(store)
-    con = sqlite3.connect((snapshot / "graph.sqlite").resolve().as_uri() + "?mode=ro", uri=True)
-    con.row_factory = sqlite3.Row
     if not query.strip():
         raise ValueError("Search query must not be empty")
     if not 1 <= limit <= 200:
         raise ValueError("limit must be between 1 and 200")
+    if snapshot is None:
+        matches = [n for n in graph['nodes'] if (not kind or n['kind'] == kind)
+                   and query.casefold() in (n['title'] + '\n' + n['latex'] + '\n' + json.dumps(n['data'], ensure_ascii=False)
+                                           + '\n' + ' '.join(n['labels'])).casefold()]
+        matches.sort(key=lambda n: n['id'])
+        return {'snapshot_id': graph['snapshot_id'], 'extraction_status': graph['extraction_status'],
+                'query': query, 'results': [{'id': n['id'], 'kind': n['kind'], 'title': n['title'],
+                                           'source': n.get('source'), 'provenance': n.get('provenance'),
+                                           'review_status': n['review_status']} for n in matches[:limit]],
+                'truncated': len(matches) > limit, 'method': 'deterministic corpus substring; no embedding'}
+    con = sqlite3.connect((snapshot / "graph.sqlite").resolve().as_uri() + "?mode=ro", uri=True)
+    con.row_factory = sqlite3.Row
     try:
         literal = '"' + query.replace('"', '""') + '"'
         sql = "SELECT n.id,n.kind,n.title,n.source_path,n.line_start,bm25(node_fts) AS score FROM node_fts JOIN nodes n ON n.id=node_fts.id WHERE node_fts MATCH ?"
@@ -135,7 +145,7 @@ def context(store, identifier, depth=2, include_candidates=False, max_nodes=60):
                 omitted |= extra_omitted
     contextual = {"references", "cites", "uses_resource", "describes", "about", "supports", "formalizes",
                   "has_matrix", "has_presentation", "generated_by", "uses_circuit", "uses_noise",
-                  "uses_decoder", "instance_of", "reports"}
+                  "uses_decoder", "instance_of", "reports", "normalizes_to"}
     frontier = set(chosen)
     for _ in range(depth):
         next_frontier = set()

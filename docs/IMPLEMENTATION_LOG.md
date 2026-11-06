@@ -14,7 +14,7 @@
 | 03 | P0 | 核对固定版本 CodeGraph、许可证和架构映射 | 完成 |
 | 04 | P1 | 多文档 work/version 注册、不可变来源绑定 | 完成 |
 | 05 | P1 | 规范 claim、实体修订和多对多来源关系 | 完成 |
-| 06 | P1 | 固定 corpus/snapshot 的跨文档查询 | 待执行 |
+| 06 | P1 | 固定 corpus/snapshot 的跨文档查询 | 完成 |
 | 07 | P1 | 旧图、sidecar、知识样例的显式迁移 | 待执行 |
 | 08 | P2 | 严格 JSON、领域信封及端点类型验证 | 待执行 |
 | 09 | P2 | 距离、矩阵和实验条件验证与筛选 | 待执行 |
@@ -55,3 +55,7 @@
 ## 05 · 独立领域身份
 
 新增 record.v2、records.py、record-add/claim-link。实体修订与原文块分离，显式 normalizes_to 保留双方版本/哈希、假设和记号域；新映射默认 proposed。相同参数不合并，新修订不覆盖旧内容。registry 回归 5 项通过；覆盖两处来源到一个 claim 和一处来源到多个 claim。
+
+## 06 · 固定作用域查询
+
+新增 corpus.py 的版本命名空间投影，复用 query 层；CLI search/show/deps/impact/context 支持 --corpus、--registry-revision 和 --source-version-id，原 store 支持 --snapshot。来源出现带准确版本与快照，空结果及截断可观察。全量 unittest 32 项通过；实际执行 register → record-add → claim-link → search CLI 演示。
