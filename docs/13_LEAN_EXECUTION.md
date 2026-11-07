@@ -56,3 +56,22 @@ manifest；第三方包内容的绑定未实现。命令日志从第 22 步报�
 
 `formalizes` 和来源对应仍为候选，编译器不替代独立人工语义审核。未审核的 Lean build 不会满足
 距离下界等硬查询。实测映射回放见 `validation/p5/step22/`。
+
+## 信任与失效反例
+
+```bash
+python tools/reproduce_lean_checks.py --out build/lean-checks
+```
+
+使用新的输出目录。脚本重建当前提交中干净的 `lean/`，并在独立副本里执行反例。
+`validation/p5/step23/results.json` 记录了 10 个实测场景，含每次构建的输入、日志与导出：
+
+- 传递依赖的 `sorryAx`、自定义公理和固定 Lean 4.19.0 中 `native_decide` 实际引入的
+  `Lean.ofReduceBool` 均被拒绝。该名称来自实际导出；策略拒绝所有未列入的公理。
+- 定理把结论加入假设后仍能编译，完整类型哈希变化使原映射被拒绝，corpus 保持原状态。
+  只导出另一个目标的构建也无法满足目标审计。
+- 改变类型、import、toolchain 或作为附加输入记录的矩阵 JSON，都会使旧导出变 stale，
+  查询仍能查看历史构建。矩阵文件指纹只绑定字节，不是已证明的矩阵编码桥接。
+
+项目可以显式记录独立语义核对；当前演示未做人类语义审核，也未建立完整 CSS 矩阵、
+秩、距离或 Python HGP 证书到 Lean 的桥接。

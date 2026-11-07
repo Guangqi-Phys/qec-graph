@@ -73,7 +73,7 @@ def git_binding(project, manifest):
     diff = git('diff', '--binary', 'HEAD', '--', '.')
     status = git('status', '--porcelain', '--', '.').decode()
     payload = {'tracked_binary_diff': diff.decode('utf-8'), 'untracked_input_sha256': untracked}
-    return {'project_commit': commit, 'repository_project_path': relative, 'project_worktree_dirty': bool(status),
+    return {'project_commit': commit, 'repository_project_path': relative, 'project_worktree_dirty': bool(status or untracked),
             'worktree_status': status, 'patch_sha256': hash_text(canonical(payload)),
             'patch_protocol': 'sha256:canonical-json-of-git-binary-diff-and-untracked-input-hashes-v1',
             'untracked_inputs': untracked}
@@ -174,7 +174,10 @@ def build_project(project, out, *, lake=None, clean=True, export_declarations=Tr
             for relative in before:
                 target = run / 'inputs' / relative
                 target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes((project / relative).read_bytes())
+                raw = (project / relative).read_bytes()
+                if hashlib.sha256(raw).hexdigest() != before[relative]:
+                    raise ValueError('Lean input changed while archiving: ' + relative)
+                target.write_bytes(raw)
             manifest = read_json(project / 'lake-manifest.json')
             report['lake_manifest'] = manifest
             mathlib = next((item for item in manifest.get('packages', []) if item.get('name') == 'mathlib'), None)
