@@ -1,14 +1,14 @@
-# QEC Graph · Codex 实现包
+# QEC Graph
 
-Python 实现的 LaTeX 文件切割工具和 QEC 知识图原型，并附上继续开发所需的架构、数据格式、维护规范、Lean 接入设计和阶段验收。
+从 LaTeX 提取可定位的原文片段，查询 QEC 陈述、实例和证据。项目提供多文档版本注册、审核事务、增量更新、只读 MCP，以及固定工具链的 Lean 构建和声明导出。
 
-**交给 Codex：先读 `START_HERE.md` 与 `CODEX_TASK.md`。** 日常操作从本页开始。
+首次使用从本页开始；阶段验收和提交记录见 [实施记录](docs/IMPLEMENTATION_LOG.md) 与 [验证报告](validation/REPORT.md)。
 
-项目名 `qec-graph`，Python 包名 `qecgraph`，交付版本 `0.2.0`。`qecgraph` 与 `qec-graph` 是同义 CLI；独立切割入口为 `qec-latex-split`。
+项目名 `qec-graph`，Python 包名 `qecgraph`，当前版本 `0.3.0`。`qecgraph` 与 `qec-graph` 是同义 CLI；独立切割入口为 `qec-latex-split`，只读 MCP 入口为 `qecgraph-mcp`。
 
 ## 安装
 
-需要 Python 3.11+，Python 自带 SQLite 支持 FTS5。
+需要 macOS/Linux 的本地 POSIX 文件系统、Python 3.11+ 和支持 FTS5 的 SQLite。
 
 ```bash
 python3 -m venv .venv
@@ -23,7 +23,7 @@ python -m pip install -e .
 python -m pip install -r requirements-dev.txt
 ```
 
-Windows PowerShell 使用 `.venv\Scripts\Activate.ps1` 激活虚拟环境。命令中的 `qecgraph` 均可替换成 `python -m qecgraph`；`qec-latex-split` 可替换成 `python -m qecgraph.splitter`。
+命令中的 `qecgraph` 均可替换成 `python -m qecgraph`；`qec-latex-split` 可替换成 `python -m qecgraph.splitter`。
 
 ## 1. 切割一份 LaTeX 工程
 
@@ -37,7 +37,7 @@ qec-latex-split examples/paper/main.tex --project-id qec-demo --out build/split
 qecgraph split /path/to/paper/main.tex --project-id my-paper-v1 --project-root /path/to/paper --out /path/to/output/my-paper-v1
 ```
 
-`--out` 选择空目录或本工具已经管理的输出目录。`project-id` 使用稳定、唯一的工程标识。当前原型没有跨版本注册表；如果希望两个论文版本同时独立查询，给它们不同 project-id/store，并在后续 registry 中记录它们属于同一 work。
+`--out` 选择空目录或本工具已经管理的输出目录。`project-id` 使用稳定、唯一的工程标识。多论文和多版本查询使用下文的 corpus 注册表；同一论文的新版本须使用独立 source version ID。
 
 返回 JSON 列出 `snapshot`、`fragment_count`、`fragments_by_kind` 和每个 `.tex`/`.json` 的准确路径。每份快照包含：
 
@@ -97,23 +97,24 @@ qecgraph ingest examples/paper/main.tex --project-id qec-demo --out build/catalo
 qecgraph context code:rep3-hgp:13 --store build/catalog
 ```
 
-catalog 导入保留原记录内容，不重新执行数学验证，也不把外部矩阵资产复制到快照。请保留整个 `knowledge_starter/`，不要只拷走 `records/`。后续资产注册与来源解析见路线图。
+catalog 导入保留原记录内容和历史证据。需在 corpus 内携带原始矩阵资产时，请用 [显式迁移](docs/09_CORPUS.md#显式迁移和资产)。
 
-## 4. 实际验证
-
-```bash
-python -m unittest discover -s tests -v
-python tools/reproduce.py --out build/reproduce
-```
-
-本交付包完整运行了 **24 项测试**，并验证了切割、sidecar 导入、catalog 连接、查询、Schema 和有限 QEC 示例。演示工程有 3 个源文件、26 个语义片段；加入 sidecar 后为 36 个节点、97 条边。完整证据与运行边界见 `validation/REPORT.md`、`validation/results.json`。
-
-`example_output/` 保存一份实际生成的 sidecar 演示快照，可直接运行：
+## 4. 注册版本与接入查询工具
 
 ```bash
-qecgraph validate --store example_output
-qecgraph context thm:hgp-length --store example_output
+qecgraph register --store build/graph --corpus build/corpus --work-id work:demo --source-version-id version:demo:1
+qecgraph context 'version:demo:1::thm:hgp-length' --corpus build/corpus
+qecgraph mcp-config --corpus build/corpus
 ```
+
+`mcp-config` 打印绑定当前 corpus revision 的本地只读客户端配置。常用工作流：
+[注册、迁移和固定版本](docs/09_CORPUS.md) · [类型检查和 review/apply](docs/10_VALIDATION_REVIEW.md) ·
+[strict 发布、watch 和恢复](docs/11_INCREMENTAL.md) · [MCP 客户端](docs/12_AI_MCP.md) ·
+[Lean 构建、审计和导入](docs/13_LEAN_EXECUTION.md)。
+
+运行 `python tools/reproduce.py --out build/reproduce` 可复现 Python 回归和示例。
+生成的 sidecar 演示快照位于 `build/reproduce/graph`。增量、MCP、Lean 和干净安装的
+独立验收命令见 [发布复现](docs/14_RELEASE.md)。
 
 ## 5. 可选容器入口
 
@@ -139,10 +140,13 @@ QEC_UID=$(id -u) QEC_GID=$(id -g) docker compose run --rm research
 | 逐文件 AST 复用、polling watch、单写者锁和 strict 发布 | P3 已实现；语义图/投影仍全量重建，见 docs/11_INCREMENTAL.md |
 | 固定版本只读 AI 工具与 MCP stdio | P4 已实现；官方 2025-06-18 协议，CLI/Python/MCP 一致，见 docs/12_AI_MCP.md |
 | 语义向量检索、PDF/OCR、通用代码仓库解析 | 可选扩展；当前未实现 |
-| Lean 实际构建、声明/依赖导出、公理审计 | 后续 P5；当前未执行 |
+| Lean 实际构建、声明/依赖导出、公理审计 | P5 已实现；固定 Lean 4.19.0，完成有限 Bool 向量点积对称性与具体校验行对易，见 docs/13_LEAN_EXECUTION.md |
 
-本工具不执行 TeX、不展开任意用户宏、不计算 PDF 页码，也不自动判定定理真伪。`\leanok` 只保留作者标注。一次成功的 `validate` 表示结构、哈希和来源检查通过，不表示数学或 Lean 验证通过。
+本工具解析受支持的 TeX 结构，不运行 TeX 引擎或推断 PDF 页码。`\leanok` 只记录作者标注。
+`validate` 检查结构和来源；数学计算、Lean 内核构建和语义审核分开报告。
+普通 HGP `[[13,1,3]]` 的距离为有限 Python 计算结果，当前未形式化。
 
 ## 参考与归属
 
-CodeGraph 的提取、存储、解析关系和上下文设计是架构参考，未在本包中复制或封装它的实现。外部参考的固定 commit 和许可证检查是 Codex 后续任务，见 `docs/07_CODEGRAPH_MAPPING.md`。运行依赖 pylatexenc 使用其自身许可；本包没有内嵌第三方依赖源码。
+CodeGraph 的提取、存储、解析关系和上下文设计是架构参考；固定提交、许可证和查阅路径见 [ADR 0001](docs/adr/0001-codegraph-reference.md)。
+Lean 与候选库的使用范围见 [ADR 0003](docs/adr/0003-lean-boundary.md)。本包没有内嵌第三方依赖源码。

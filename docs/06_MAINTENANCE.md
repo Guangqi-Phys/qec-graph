@@ -1,12 +1,12 @@
 # 06｜日常运行、失效传播、迁移与恢复
 
-本文件把维护动作分为当前可执行流程与后续工程目标。未实现的命令不会作为现成 CLI 展示。
+本文件给出日常维护流程；各功能的具体命令和边界见 [README](../README.md)。
 运行时先读本包 `AGENTS.md`、[架构](01_ARCHITECTURE.md) 和 [数据契约](04_DATA_FORMATS.md)。
 以下命令以本包根目录为工作目录；各步骤成功后再执行下一步。
 
 ## 1. 首次安装与基线
 
-当前原型需要 Python 3.11 或以上以及可用的 SQLite FTS5；准确 Python 依赖以本包配置为准。
+当前需要本地 POSIX 文件系统、Python 3.11 或以上以及可用的 SQLite FTS5。
 
 ```bash
 python3 -m venv .venv
@@ -16,14 +16,14 @@ python -m unittest discover -s tests -v
 ```
 
 安装步骤需要相应包源可用。记录实际 Python、SQLite、操作系统和安装依赖，不能把示例环境假设为已安装。
-原型锁定 `pylatexenc==2.10`；升级解析器应单独提交并检查语义输出差异。
+运行依赖固定 `pylatexenc==2.10` 和 `jsonschema==4.26.0`；升级解析器应单独提交并检查语义输出差异。
 旧领域样例可以独立验证；以下调用也重新计算有限 HGP 实例，不调用 Lean：
 
 ```bash
 python knowledge_starter/tools/qec_kb.py verify
 ```
 
-若额外安装并锁定 JSON Schema 检查器，可使用 `verify --json-schema`。
+使用 `verify --json-schema` 可显式开启旧样例的 Schema 检查。
 普通 verify 的引用、资产和计算检查不应被报告为“已执行完整 JSON Schema 验证”。
 
 ## 2. 日常 ingest 与查询
@@ -46,7 +46,7 @@ qecgraph context thm:hgp-length --store build/demo
 `validate` 检查哈希、定位、边端点与 SQLite 一致性，不检验定理、矩阵语义或 Lean 证明。
 查询默认排除候选、stale、unbound 等依赖；查看候选时显式加 `--include-candidates`。
 同一 AI 工作任务固定 snapshot ID；若 CURRENT 改变，先决定继续旧任务或重新取上下文。
-当前 CLI 每次通过 CURRENT 定位，尚无 `--snapshot` 参数；一致读取可使用固定归档 store，并核对返回的 ID。
+一致读取使用 `--snapshot <id>` 或 corpus 的 `--registry-revision <revision>`，并核对返回作用域。
 
 ## 3. 每次改动的操作顺序
 
@@ -58,8 +58,8 @@ qecgraph context thm:hgp-length --store build/demo
 6. 审核语义、更新必要绑定，再在正式 store 生成相同输入的快照并发布。
 7. 提交人工记录和代码，归档重要报告；将发布提交、输入清单与 snapshot ID 关联。
 
-原型 ingest 会验证产物后切换 CURRENT，但 partial 抽取也可能成为当前快照。
-因此将 staging 与正式 store 分开，是当前需要操作方承担的发布门槛。
+默认 ingest 会在完整性验证后发布 partial 快照；正式发布可用 `--strict`，partial 保存在 staging 且 CURRENT 不变。
+详见 [增量和恢复](11_INCREMENTAL.md)。
 同一输入、配置、工具源码和依赖指纹再次 ingest 应复用相同 snapshot ID。
 已发布快照只读；发现损坏应保留现场并从输入重建到新的 store，不能修改清单掩盖损坏。
 
@@ -74,9 +74,9 @@ qecgraph context thm:hgp-length --store build/demo
 | Lean 类型或 imports | 构建、实际依赖、axiom 信息和语义对应 |
 | 分块器或 embedding 模型 | 对应查询投影；永久来源身份不改变 |
 
-原型采用整个项目的 source hash 绑定审核，包含读取的来源、资源和解析配置。
-即使只改了无关段落，也可能使审核 stale；这比未来目标更保守，但当前不能放松校验。
-原型尚未实现文件级增量、自动 watch 或完整领域产物失效图。
+旧 sidecar 按项目 source hash 绑定审核；corpus 按记录修订、来源版本和资产绑定。
+即使只改无关段落，旧 sidecar 审核也可能保守标为 stale。
+逐文件 AST 复用和 watch 已实现，语义投影每次重建；当前没有通用领域产物的增量依赖闭包。
 目标任务清单应记录输入 ID＋revision＋hash、处理器版本、配置、输出及依赖边。
 建立完整依赖闭包后再按变化传播；未解析依赖应显式阻止“全部仍有效”的结论。
 依赖方向和反向影响查询按 [02](02_QEC_GRAPH_SPEC.md) 执行，不把普通引用一律当证明依赖。
@@ -86,12 +86,12 @@ qecgraph context thm:hgp-length --store build/demo
 ## 5. 索引重建与原子发布
 
 SQLite、FTS 和向量索引由权威记录生成。新索引在临时目录完整构建、校验，然后切换入口。
-当前原型会先生成快照，再原子替换 `CURRENT.json`；单个 store 只允许一个写者。
-原型没有跨进程 writer lock，应由串行任务队列或操作流程保证，后续再实现锁和崩溃恢复。
+当前会先生成完整快照，再原子替换 `CURRENT.json`；本地 POSIX writer lock 拒绝跨进程并发写入。
+用 `recover-store` 检查发布状态，详见 [11](11_INCREMENTAL.md)。
 不要混用一个快照的关系表和另一个快照的全文或向量数据。
 新增索引记录 source snapshot、Schema、模型版本、维度、归一化、配置及输入文本哈希。
 中文召回、定理完整性、参数硬条件和来源定位都进入查询回归；向量相似度不决定证据等级。
-原型没有单独 reindex 命令；使用保存的完整输入重新 ingest 到另一 store 可以重建投影。
+使用保存的完整输入重新 ingest 到另一 store 可以重建投影。
 SQLite 若以后保存不可重建的独有数据，应采用一致性快照或官方 Backup API 保存运行中数据库。[1]
 
 ## 6. Schema 迁移与回滚
@@ -105,7 +105,8 @@ SQLite 若以后保存不可重建的独有数据，应采用一致性快照或�
 新旧 canonicalization 并存期间保存协议标识；不得批量重算哈希后宣称旧审核仍然有效。
 在新输出位置完成验证后再切换读取端；写入端同时更新，避免旧写入器继续产生旧格式。
 
-当前没有专用 `migrate/rollback` 命令。可执行的回退方式是恢复已验证的整套 store 和对应输入／工具版本。
+使用 [migrate / migration-import](09_CORPUS.md#显式迁移和资产) 将旧格式适配到新目录。
+回退优先固定到已验证的历史快照或 registry revision，必要时恢复整套 store 和对应输入／工具版本。
 若由维护者手工回退 CURRENT，先停止写者并验证目标快照，再按现有 pointer 格式原子替换。
 pointer 包含 `format: qecgraph.current.v1`、目标 `snapshot_id` 和 `path: snapshots/<snapshot_id>`。
 不要删除新快照来完成回退；保留故障证据与回退原因。数据库迁移不可逆时恢复备份副本。
@@ -134,7 +135,7 @@ pointer 包含 `format: qecgraph.current.v1`、目标 `snapshot_id` 和 `path: s
 3. 运行 `qecgraph validate --store <恢复的store路径>`，检查诊断和完整性。
 4. 使用归档输入与对应工具版本在另一目录重新 ingest，核对节点、来源定位和预期快照。
 5. 重跑关键结构化查询及有界上下文；对本包旧例运行 `python knowledge_starter/tools/qec_kb.py verify`。
-6. 已存在 Lean 项目时按 [05](05_LEAN.md) 构建并检查证据；未实现的映射保持未实现。
+6. Lean 项目按 [13](13_LEAN_EXECUTION.md) 用固定工具链重建并检查证据；不可复建的记录只作为历史读取。
 7. 记录恢复耗时、缺失资产、差异与修复动作，通过后再切换正式读取入口。
 
 恢复测试失败时先补齐备份或修复流程，不能仅因为备份任务退出成功就标记“可恢复”。
@@ -146,8 +147,7 @@ pointer 包含 `format: qecgraph.current.v1`、目标 `snapshot_id` 和 `path: s
 模板把 `./examples/paper` 只读挂到 `/input`，把 `./build/container` 挂到 `/output`，默认执行 split。
 运行进程的 UID/GID 由 `QEC_UID/QEC_GID` 指定，默认均为 1000；输出目录须先存在且允许该用户写入。
 运行期为只读根文件系统、禁用网络，`/tmp` 使用 tmpfs；镜像构建仍需获取依赖或使用已有缓存。
-后续 research 镜像应补齐系统依赖锁；Lean 工具链尚未选定，因此未提供 Lean 镜像或构建通过声明。
-选定后记录实际 toolchain、Lake manifest 和 mathlib 提交，以按需 `lean` 服务运行。
+后续 research 镜像应补齐系统依赖锁。Lean 本机复现固定 4.19.0，工程未配置 Lean 镜像。
 需要 PDF 解析时再增加 parser 服务，保持输入资源限制和独立输出目录。
 
 | 路径角色 | 挂载和生命周期 |

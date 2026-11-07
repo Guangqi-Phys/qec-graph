@@ -19,14 +19,14 @@
 
 ## 2. 当前交付与目标系统
 
-| 层级 | 本包现状 | 后续目标 |
+| 层级 | 当前实现 | 扩展边界 |
 |---|---|---|
-| 原文抽取 | `qecgraph` 解析受支持的 LaTeX 结构，保留来源和诊断 | 多论文、来源版本注册表与跨文档链接 |
-| 知识图 | 一份 typed graph，生成三个视图；显式 sidecar 和 catalog 导入 | 规范化 claim、类型化领域校验与审核事务 |
-| 查询 | SQLite、FTS5、节点查询、依赖、影响范围和上下文 | 证据策略过滤、跨快照查询、只读 MCP |
-| 数学检查 | `knowledge_starter` 有一个小 HGP 实例的独立有限检查器 | 可复用的验证任务及证据接口 |
-| Lean | 示范映射及未实现状态；不含已完成证明 | 实际声明、构建结果和依赖的受控导出 |
-| 部署 | 本地 Python 工具；提供尚未运行验证的 research Compose 模板 | 验证镜像；选定工具链后增加 Lean 任务容器 |
+| 原文抽取 | 受支持的 LaTeX 结构、来源位置、版本注册、跨文档固定查询 | 根据实际资料增加语法适配器 |
+| 知识图 | 三视图、独立 claim、严格领域校验、显式迁移与审核事务 | 继续补有来源的 QEC 领域记录 |
+| 查询 | 单 store FTS5、corpus 子串查询、证据过滤、只读 MCP | 向量索引与常驻服务未实现 |
+| 数学检查 | CSS 对易/秩/有限距离、实验结构及可比性检查 | 大码距离求解、证书桥接未实现 |
+| Lean | 固定工具链，实际 Bool 例的类型、常量和公理导出 | 原文语义需独立审核；HGP 距离未形式化 |
+| 部署 | 本地 Python/Lean；research Compose 模板未运行验证 | 验证容器镜像 |
 
 `knowledge_starter/schemas/record.schema.json` 的 `0.1.0` 是旧样例格式。
 `schemas/graph.schema.json` 的 `qecgraph.graph.v1` 是当前抽取图格式。
@@ -125,7 +125,7 @@ derived/<project-id>/snapshots/<snapshot-id>/
 本地 Python + SQLite + FTS5 是起步部署方案。SQLite 适合本地应用，其写入应串行组织。[1]
 原型每个 store 使用单个写者；多个读取者固定 snapshot ID，避免一次任务混读两个快照。
 原型没有跨进程写锁，任务调度器必须避免同一 store 的并发 ingest。
-不同论文先使用各自 store；统一 registry 和跨论文索引按路线图实现。
+不同论文先使用各自 store；跨论文查询通过 [版本注册表](09_CORPUS.md) 固定到同一个 corpus revision。
 
 出现持续写争用、多台服务共享写入、集中权限或远程事务需求时，再评估 PostgreSQL。
 升级依据是测得的工作负载和协作需求，论文数量本身不构成阈值。
@@ -144,8 +144,8 @@ research 容器负责抽取、数值检查和索引；Lean 容器固定 Lean/Lak
 容器不是权威存储，也不会自动解决随机数、硬件、算法版本和数学语义的复现问题。
 镜像 digest、依赖锁文件和 Lean toolchain 必须来自实际选定和测试的环境。
 
-当前 AI 可以调用 CLI 的 `search/show/deps/impact/context`，结果必须保留快照和诊断。
-目标接口还包括实例条件筛选、claim 修订查询和形式化证据查询；HTTP/MCP 包装属于后续实现。
+AI 可通过 CLI、Python 或 [只读 MCP stdio](12_AI_MCP.md) 调用同一查询层，结果保留快照和诊断。
+精确实例条件用 `codes`；Lean 证据用 `lean-status` 和 corpus 查询。未提供 HTTP 服务。
 写操作统一成为待审核的 JSON 变更；通过结构、来源和语义检查后再发布新的查询快照。
 AI 读取论文和注释作为数据，不执行其中的命令，也不据此改变系统工作流程。
 

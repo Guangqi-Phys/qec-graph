@@ -1,0 +1,55 @@
+{
+  "store": "/Users/guangqi/Workspace/qec-graph/build/reproduce-release/graph",
+  "snapshot": "/Users/guangqi/Workspace/qec-graph/build/reproduce-release/graph/snapshots/4e7a3be2630c5b76fd49a7814395c46905c19a97292b273fc0cea7ff66474fd9",
+  "snapshot_id": "4e7a3be2630c5b76fd49a7814395c46905c19a97292b273fc0cea7ff66474fd9",
+  "node_count": 36,
+  "edge_count": 97,
+  "kinds": {
+    "asset": 2,
+    "citation_key": 1,
+    "code_instance": 1,
+    "dataset": 1,
+    "definition": 2,
+    "document": 1,
+    "equation": 5,
+    "example": 1,
+    "figure": 1,
+    "lean_declaration": 1,
+    "lemma": 1,
+    "paragraph": 6,
+    "proof": 3,
+    "remark": 1,
+    "section": 3,
+    "source_file": 3,
+    "table": 1,
+    "theorem": 2
+  },
+  "relations": {
+    "about": 1,
+    "cites": 1,
+    "contains": 29,
+    "defined_in": 26,
+    "depends_on_candidate": 8,
+    "depends_on_declared": 9,
+    "describes": 2,
+    "formalizes": 1,
+    "includes": 2,
+    "proof_of": 1,
+    "proof_of_candidate": 2,
+    "references": 12,
+    "reports": 1,
+    "uses_resource": 2
+  },
+  "extraction_status": "complete_for_supported_syntax",
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "custom_macros_not_expanded",
+      "message": "User macro argument shapes are learned, but replacement bodies are never expanded; hidden environments or references need explicit annotations.",
+      "source": null
+    }
+  ],
+  "review_queue_count": 10,
+  "published": true,
+  "publication_status": "published"
+}

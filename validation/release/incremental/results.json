@@ -1,0 +1,349 @@
+{
+  "format": "qecgraph.incremental-reproduction.v1",
+  "status": "passed",
+  "command": [
+    "/Users/guangqi/Workspace/qec-graph/.venv/bin/python",
+    "/Users/guangqi/Workspace/qec-graph/tools/reproduce_incremental.py",
+    "--out",
+    "build/reproduce-incremental-release"
+  ],
+  "script_sha256": "b5c62a593dfa5987ce430ef925b6dab0088249a85e25ead35850be4120874bfd",
+  "runtime": {
+    "python": "3.15.2",
+    "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "sqlite": "3.54.1",
+    "pylatexenc": "2.10",
+    "jsonschema": "4.26.0"
+  },
+  "workload": {
+    "generated_source_files": 13,
+    "lemmas_per_file": 8,
+    "lemma_count": 96,
+    "runs_per_scenario": 3,
+    "scope": "generated fixtures, not user papers or mathematical validation"
+  },
+  "measurements": [
+    {
+      "scenario": "cold",
+      "iteration": 0,
+      "snapshot_id": "ea6e8a08af1c6ec3d78af100ad635ad63237b9aee3d07edabe422996e0b3c9ab",
+      "execution_order": [
+        "full",
+        "incremental"
+      ],
+      "full_seconds": 0.16601558309048414,
+      "incremental_seconds": 0.1857405831106007,
+      "ast": {
+        "ast_hits": 13,
+        "ast_misses": 13,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [
+          "initial_full_parse"
+        ],
+        "changed_inputs": [
+          "figure.svg",
+          "main.tex",
+          "part-000.tex",
+          "part-001.tex",
+          "part-002.tex",
+          "part-003.tex",
+          "part-004.tex",
+          "part-005.tex",
+          "part-006.tex",
+          "part-007.tex",
+          "part-008.tex",
+          "part-009.tex",
+          "part-010.tex",
+          "part-011.tex"
+        ],
+        "elapsed_seconds": 0.18493729177862406,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    },
+    {
+      "scenario": "unchanged",
+      "iteration": 0,
+      "snapshot_id": "ea6e8a08af1c6ec3d78af100ad635ad63237b9aee3d07edabe422996e0b3c9ab",
+      "execution_order": [
+        "incremental",
+        "full"
+      ],
+      "full_seconds": 0.08950149966403842,
+      "incremental_seconds": 0.08160966727882624,
+      "ast": {
+        "ast_hits": 26,
+        "ast_misses": 0,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [],
+        "changed_inputs": [],
+        "elapsed_seconds": 0.08083725022152066,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    },
+    {
+      "scenario": "unchanged",
+      "iteration": 1,
+      "snapshot_id": "ea6e8a08af1c6ec3d78af100ad635ad63237b9aee3d07edabe422996e0b3c9ab",
+      "execution_order": [
+        "full",
+        "incremental"
+      ],
+      "full_seconds": 0.0702672079205513,
+      "incremental_seconds": 0.07302920799702406,
+      "ast": {
+        "ast_hits": 26,
+        "ast_misses": 0,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [],
+        "changed_inputs": [],
+        "elapsed_seconds": 0.07242449978366494,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    },
+    {
+      "scenario": "unchanged",
+      "iteration": 2,
+      "snapshot_id": "ea6e8a08af1c6ec3d78af100ad635ad63237b9aee3d07edabe422996e0b3c9ab",
+      "execution_order": [
+        "incremental",
+        "full"
+      ],
+      "full_seconds": 0.07772012520581484,
+      "incremental_seconds": 0.06369375018402934,
+      "ast": {
+        "ast_hits": 26,
+        "ast_misses": 0,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [],
+        "changed_inputs": [],
+        "elapsed_seconds": 0.06294187530875206,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    },
+    {
+      "scenario": "leaf_edit",
+      "iteration": 0,
+      "snapshot_id": "20aad0f5a919472a164cbf713f1fd6f43ad16767cb9d399d743e8c47e711ec46",
+      "execution_order": [
+        "full",
+        "incremental"
+      ],
+      "full_seconds": 0.12196187535300851,
+      "incremental_seconds": 0.12188766710460186,
+      "ast": {
+        "ast_hits": 25,
+        "ast_misses": 1,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [],
+        "changed_inputs": [
+          "part-000.tex"
+        ],
+        "elapsed_seconds": 0.12112841615453362,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    },
+    {
+      "scenario": "leaf_edit",
+      "iteration": 1,
+      "snapshot_id": "9b14b53082d90956e413319aeba194b32f630b38d94e08f48b43cdc565a70f3c",
+      "execution_order": [
+        "incremental",
+        "full"
+      ],
+      "full_seconds": 0.1373539585620165,
+      "incremental_seconds": 0.12715737521648407,
+      "ast": {
+        "ast_hits": 25,
+        "ast_misses": 1,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [],
+        "changed_inputs": [
+          "part-000.tex"
+        ],
+        "elapsed_seconds": 0.12637587497010827,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    },
+    {
+      "scenario": "leaf_edit",
+      "iteration": 2,
+      "snapshot_id": "c72f4cc0a11c625f7d87be89a2c8faa145d7b9c0963d2836b5db2dabd3935a2f",
+      "execution_order": [
+        "full",
+        "incremental"
+      ],
+      "full_seconds": 0.12219645781442523,
+      "incremental_seconds": 0.13801370933651924,
+      "ast": {
+        "ast_hits": 25,
+        "ast_misses": 1,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [],
+        "changed_inputs": [
+          "part-000.tex"
+        ],
+        "elapsed_seconds": 0.13737229211255908,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    },
+    {
+      "scenario": "asset_edit",
+      "iteration": 0,
+      "snapshot_id": "eb97cf40beed345dc260de014aba38eaca6539314701a89a7eff49e6a9efbdf3",
+      "execution_order": [
+        "incremental",
+        "full"
+      ],
+      "full_seconds": 0.11977454088628292,
+      "incremental_seconds": 0.11706437496468425,
+      "ast": {
+        "ast_hits": 26,
+        "ast_misses": 0,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [],
+        "changed_inputs": [
+          "figure.svg"
+        ],
+        "elapsed_seconds": 0.11635095812380314,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    },
+    {
+      "scenario": "asset_edit",
+      "iteration": 1,
+      "snapshot_id": "a402d63cf9bda71717af976327930be4286a0f4e840b31280b16948c5b12c163",
+      "execution_order": [
+        "full",
+        "incremental"
+      ],
+      "full_seconds": 0.11798662506043911,
+      "incremental_seconds": 0.11248499993234873,
+      "ast": {
+        "ast_hits": 26,
+        "ast_misses": 0,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [],
+        "changed_inputs": [
+          "figure.svg"
+        ],
+        "elapsed_seconds": 0.1112537500448525,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    },
+    {
+      "scenario": "asset_edit",
+      "iteration": 2,
+      "snapshot_id": "c989f9f917f5e11a37a82f8a81f211cb0c9ccf75a86a00c8db2331549f5042ad",
+      "execution_order": [
+        "incremental",
+        "full"
+      ],
+      "full_seconds": 0.12911270884796977,
+      "incremental_seconds": 0.10207000002264977,
+      "ast": {
+        "ast_hits": 26,
+        "ast_misses": 0,
+        "invalid_cache_entries": 0,
+        "fallback_reasons": [],
+        "changed_inputs": [
+          "figure.svg"
+        ],
+        "elapsed_seconds": 0.10144966701045632,
+        "semantic_rebuild": "full discovery, resolution, graph, reviews and projections"
+      },
+      "semantic_equality": true
+    }
+  ],
+  "recovery": {
+    "archive_without_original_paths": {
+      "passed": true,
+      "snapshot_id": "c989f9f917f5e11a37a82f8a81f211cb0c9ccf75a86a00c8db2331549f5042ad",
+      "nodes": 112,
+      "edges": 220,
+      "source_slices_checked": 97,
+      "scope": "integrity, structure and provenance; no mathematical or Lean proof verification"
+    },
+    "rebuild_snapshot_id": "c989f9f917f5e11a37a82f8a81f211cb0c9ccf75a86a00c8db2331549f5042ad",
+    "abandoned_cleanup": {
+      "store": "/Users/guangqi/Workspace/qec-graph/build/reproduce-incremental-release/run-8737320e-5d6a-420a-8dfa-88415bcaab69/restored-store",
+      "abandoned": [
+        "/Users/guangqi/Workspace/qec-graph/build/reproduce-incremental-release/run-8737320e-5d6a-420a-8dfa-88415bcaab69/restored-store/snapshots/.building-recovery-demo"
+      ],
+      "removed": [
+        "/Users/guangqi/Workspace/qec-graph/build/reproduce-incremental-release/run-8737320e-5d6a-420a-8dfa-88415bcaab69/restored-store/snapshots/.building-recovery-demo"
+      ],
+      "unrecognized": [],
+      "current": {
+        "passed": true,
+        "snapshot_id": "c989f9f917f5e11a37a82f8a81f211cb0c9ccf75a86a00c8db2331549f5042ad",
+        "nodes": 112,
+        "edges": 220,
+        "source_slices_checked": 97,
+        "scope": "integrity, structure and provenance; no mathematical or Lean proof verification"
+      }
+    },
+    "strict_partial_snapshot_id": "786a9e933daae80410d5b8e41e11c8523ccbc243446938fce67e80155af0e5e8",
+    "restored_include_snapshot_id": "c989f9f917f5e11a37a82f8a81f211cb0c9ccf75a86a00c8db2331549f5042ad",
+    "tamper_detection": {
+      "passed": true,
+      "observed_error": "Snapshot file changed: nodes/lemma/incremental-reproduction-label-lemma-0-0--d6b6ba5ee9d1171c.tex"
+    },
+    "elapsed_seconds": 1.2578167500905693
+  },
+  "not_executed": [
+    "Docker",
+    "Lean"
+  ],
+  "performance": {
+    "cold": {
+      "median_full_seconds": 0.16601558309048414,
+      "median_incremental_seconds": 0.1857405831106007,
+      "full_over_incremental_ratio": 0.8938034989996173,
+      "sample_count": 1
+    },
+    "unchanged": {
+      "median_full_seconds": 0.07772012520581484,
+      "median_incremental_seconds": 0.07302920799702406,
+      "full_over_incremental_ratio": 1.064233439434013,
+      "sample_count": 3
+    },
+    "leaf_edit": {
+      "median_full_seconds": 0.12219645781442523,
+      "median_incremental_seconds": 0.12715737521648407,
+      "full_over_incremental_ratio": 0.9609860034181035,
+      "sample_count": 3
+    },
+    "asset_edit": {
+      "median_full_seconds": 0.11977454088628292,
+      "median_incremental_seconds": 0.11248499993234873,
+      "full_over_incremental_ratio": 1.0648045602375278,
+      "sample_count": 3
+    }
+  },
+  "performance_note": "Actual local samples only; full semantic/SQLite rebuilding and cache I/O may dominate. No guaranteed speedup.",
+  "input_manifest": {
+    "backup-input/figure.svg": "9d03115b4e026b76c171a48e3ab9e1eee55c51594ceb4092786ea5239313749f",
+    "backup-input/main.tex": "1c11ea0b6f27f98af9f200158b2a05150e57567b4f5ab1d75ea18e7771546164",
+    "backup-input/part-000.tex": "2f971cf8d3b7378ae7bbfac8de79252fe9753fe41624a19fbcd3179c789c70b3",
+    "backup-input/part-001.tex": "eecbb78d017a5e1ec96bdf0394abba099694088755fa2d89b8def07c4275e3d2",
+    "backup-input/part-002.tex": "c83262c74e764a922317fa31c1fe63284d9b68581b6a7d1530a0c1c113062fcb",
+    "backup-input/part-003.tex": "acc460e2e1f6a7d2f76d8c6758fb48b760e3372b4647ed23d5b1b2969c56f9bf",
+    "backup-input/part-004.tex": "70a5c7957a650819acd4c26b077ea4bc11ecd16ca6ba37dc2ccd591c13b26636",
+    "backup-input/part-005.tex": "7880e27b23d88f75e17f9484301e6b872d1cdeaacba031968129fa1cb65c8267",
+    "backup-input/part-006.tex": "faa384648a25b6f54ff0719b29f5a16df94aa97eb094f70c740c573ac2fb188b",
+    "backup-input/part-007.tex": "ffe65cbc649fa1eb6e507dfd924b17406893ed0dea2111f1bbe49facdd0e5e60",
+    "backup-input/part-008.tex": "224e815480a7e1bd5ba888a9934994356257420386125ac5f5451ba602e83551",
+    "backup-input/part-009.tex": "075cc09622dbc3d717b54a4265d86664256f69e1167ddea5d5136a9102da1e51",
+    "backup-input/part-010.tex": "e98c9cb65289be74e8c45fd1fb5ac2351eac0e85921df41495f99d9b6a6b1d3f",
+    "backup-input/part-011.tex": "1d45aacf59cdcac68aa4f8032b97231c6073f99f00580cc84a57cb63ece7e4fa"
+  }
+}

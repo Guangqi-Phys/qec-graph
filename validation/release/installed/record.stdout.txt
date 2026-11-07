@@ -1,0 +1,31 @@
+{
+  "registry_revision": "5d29b132922f5b700b145de89c3f068fbcd8ee4baa443c420c6544f8325403de",
+  "record": {
+    "schema_version": "qecgraph.record.v3",
+    "id": "claim:demo:hgp-length",
+    "kind": "claim",
+    "revision": "1",
+    "title": "Ordinary HGP length",
+    "data": {
+      "statement": "The ordinary HGP construction has n = n1*n2 + r1*r2 physical qubits.",
+      "hypotheses": [
+        "Binary seed matrices H1 and H2 with shapes r1×n1 and r2×n2",
+        "Ordinary hypergraph product construction and its stated column order"
+      ],
+      "quantifiers": [
+        "For all finite binary seed matrices H1 and H2"
+      ]
+    },
+    "aliases": [],
+    "refs": [],
+    "assets": [],
+    "evidence_ids": [],
+    "provenance": {},
+    "review": {
+      "status": "proposed"
+    },
+    "extensions": {},
+    "hash_protocol": "sha256:json-sort-utf8-v1:record-excluding-content_sha256",
+    "content_sha256": "310b673d501b9b39ebdc00a25d714bdb4dcc4e3c172821f189a6a999d241c163"
+  }
+}

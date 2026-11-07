@@ -2,7 +2,8 @@
 
 ## 1. 执行原则与统一阶段编号
 
-`CODEX_TASK.md` 应引用本表，不另建一套阶段名称。P0 固定现有交付；P1–P5 是后续实现任务，不能仅凭本文标记为已完成。
+`CODEX_TASK.md` 引用本表。P0 固定原型，P1–P5 规定各阶段验收范围；完成状态与证据见
+[实施记录](IMPLEMENTATION_LOG.md) 和 [验证报告](../validation/REPORT.md)。
 具体命令、环境、断言和本次结果以 `validation/REPORT.md`、`validation/results.json` 以及运行生成的报告为准。
 
 | 阶段 | 优先顺序 | 交付目标 | 依赖 |

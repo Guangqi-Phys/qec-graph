@@ -1,0 +1,6 @@
+{
+  "status": "passed",
+  "report": "/Users/guangqi/Workspace/qec-graph/build/reproduce-mcp-release/run-740a7722-d284-47b5-a2cd-f062fb1d7037/results.json",
+  "checks": 22,
+  "error": null
+}

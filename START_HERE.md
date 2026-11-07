@@ -1,6 +1,6 @@
-# 从这里开始：QEC Graph 的 Codex 实现包
+# 从这里开始：QEC Graph
 
-这份包同时包含**已经实现的 LaTeX 切割工具、可运行的三视图图谱原型，以及继续开发的工程规范**。可以把整个目录放进 Git 仓库，交给 Codex 读取 `CODEX_TASK.md` 开始工作。
+这里包含 LaTeX 切割工具、三视图图谱、版本注册、审核、增量更新、只读 MCP 和 Lean 构建适配器。原任务书和验收规范保留供后续维护。
 
 ## 先读哪几个文件
 
@@ -17,11 +17,11 @@
 | 9 | `docs/07_CODEGRAPH_MAPPING.md` | 参考哪一个 CodeGraph、哪些设计可借鉴、如何落到本项目 |
 | 10 | `docs/08_ROADMAP_ACCEPTANCE.md` | 后续开发顺序、验收条件和失败案例 |
 
-`README.md` 是日常命令入口。`validation/REPORT.md` 和 `validation/results.json` 记录本交付包实际运行过的检查；它们不表示未来路线图已经完成。
+`README.md` 是日常命令入口。[实施记录](docs/IMPLEMENTATION_LOG.md) 与 [验证报告](validation/REPORT.md) 说明已交付范围和实际检查。
 
 ## 现在就能运行
 
-以下命令从解压后的项目根目录执行。需要 Python 3.11+，Python 自带的 SQLite 要包含 FTS5。
+以下命令从项目根目录执行。需要本地 POSIX 文件系统、Python 3.11+ 和支持 FTS5 的 SQLite。
 
 ```bash
 python3 -m venv .venv
@@ -39,7 +39,7 @@ qecgraph validate --store build/graph
 qecgraph context thm:hgp-length --store build/graph
 ```
 
-Windows PowerShell 的虚拟环境激活命令为 `.venv\Scripts\Activate.ps1`。若不激活，也可以直接调用虚拟环境里的 Python；用 `python -m qecgraph split ...` 等价执行切割。
+也可以直接调用虚拟环境里的 Python；用 `python -m qecgraph split ...` 等价执行切割。
 
 完整复现入口：
 
@@ -53,7 +53,8 @@ python tools/reproduce.py --out build/reproduce
 
 - **已实现**：LaTeX 工程递归读取、结构块切割、来源坐标与哈希、标签和引用、三图视图、SQLite/FTS5 查询、依赖及影响查询、上下文导出、sidecar/catalog 导入、不可变快照、审核失效和诊断。
 - **带在包里的独立样例**：`knowledge_starter/` 中有结构化 QEC 记录、GF(2) 矩阵、一个普通 HGP `[[13,1,3]]` 示例及有限穷举检查器。图谱导入这些记录不会替代运行这个检查器。
-- **Codex 后续实现**：多论文统一注册表、严格领域 Schema 和迁移、审核工作流、真正的增量更新、可选 MCP 服务、可选语义检索、Lean 构建与实际声明导出。详见路线图。
+- **进一步使用**：[多论文注册与迁移](docs/09_CORPUS.md)、[审核](docs/10_VALIDATION_REVIEW.md)、[增量与恢复](docs/11_INCREMENTAL.md)、[只读 MCP](docs/12_AI_MCP.md)、[Lean 构建与证据](docs/13_LEAN_EXECUTION.md)。
+- **当前边界**：AST 逐文件复用后仍重建语义投影；Lean 只覆盖 core-only Bool 示例。向量检索、PDF/OCR、HGP 距离形式化未实现。
 
 切割结果是完整语义环境及其子块，可能嵌套和重叠；原文件保存在 `sources/`。本工具不把所有片段重新拼成原文，也不保证每个片段能单独编译成 PDF。
 

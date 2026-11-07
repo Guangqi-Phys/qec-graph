@@ -1,0 +1,186 @@
+{
+  "id": "proposal:ca076c9398fbec8fa28829e669f4ca8c3bf1c2183cb489207e7e27298fa89783",
+  "schema_version": "qecgraph.proposal.v1",
+  "corpus_id": "corpus:0db99fe3-a0fa-4b41-95aa-5b497cd70c0c",
+  "base_registry_revision": "c7a0ce73eb8b9a71ab8ff7dcae320fd00c98dc5b83bd20e192eb8aa81fab8356",
+  "actor": {
+    "id": "release-smoke",
+    "kind": "program"
+  },
+  "rationale": "Explicit normalized claim proposal for inspection; not human-reviewed or formally proved",
+  "created_at": "2026-11-07T07:10:46.421299+00:00",
+  "status": "proposed",
+  "changes": [
+    {
+      "before": null,
+      "after": {
+        "schema_version": "qecgraph.record.v3",
+        "id": "claim:demo:proposal-example",
+        "revision": "1",
+        "kind": "claim",
+        "title": "Proposed ordinary HGP length statement",
+        "data": {
+          "statement": "The ordinary HGP construction has n = n1*n2 + r1*r2 physical qubits.",
+          "hypotheses": [
+            "Finite binary seed matrices with the stated ordinary HGP construction and column order"
+          ],
+          "quantifiers": [
+            "For all such seed matrices H1 and H2"
+          ]
+        },
+        "aliases": [],
+        "refs": [],
+        "assets": [],
+        "evidence_ids": [],
+        "provenance": {},
+        "review": {
+          "status": "proposed"
+        },
+        "extensions": {},
+        "hash_protocol": "sha256:json-sort-utf8-v1:record-excluding-content_sha256",
+        "content_sha256": "785fb30c17ad9de296dde1f3d9f59a192e244f7f337369765ddec8c989df7a7d"
+      },
+      "diff": [
+        {
+          "path": "",
+          "operation": "replace",
+          "before": null,
+          "after": {
+            "schema_version": "qecgraph.record.v3",
+            "id": "claim:demo:proposal-example",
+            "revision": "1",
+            "kind": "claim",
+            "title": "Proposed ordinary HGP length statement",
+            "data": {
+              "statement": "The ordinary HGP construction has n = n1*n2 + r1*r2 physical qubits.",
+              "hypotheses": [
+                "Finite binary seed matrices with the stated ordinary HGP construction and column order"
+              ],
+              "quantifiers": [
+                "For all such seed matrices H1 and H2"
+              ]
+            },
+            "aliases": [],
+            "refs": [],
+            "assets": [],
+            "evidence_ids": [],
+            "provenance": {},
+            "review": {
+              "status": "proposed"
+            },
+            "extensions": {},
+            "hash_protocol": "sha256:json-sort-utf8-v1:record-excluding-content_sha256",
+            "content_sha256": "785fb30c17ad9de296dde1f3d9f59a192e244f7f337369765ddec8c989df7a7d"
+          }
+        }
+      ]
+    }
+  ],
+  "input_bindings": {
+    "records": [
+      {
+        "id": "claim:demo:hgp-length",
+        "revision": "1",
+        "content_sha256": "310b673d501b9b39ebdc00a25d714bdb4dcc4e3c172821f189a6a999d241c163"
+      },
+      {
+        "id": "claim:rep3-hgp:distance",
+        "revision": "legacy-0.1.0-d23b2d2e9ca66f28b299b2bd0ab6150b5b350530c739bc5e76f3b977e569b827",
+        "content_sha256": "ef64e6868a57559140fdee9e32046719b3a1b486bccba41e12c4993836b41f61"
+      },
+      {
+        "id": "code:rep3-hgp:13",
+        "revision": "legacy-0.1.0-01e32b8973d9ffee7fa202d5112285c8e3ac201fd765d5b925478fa47e7a28a8",
+        "content_sha256": "06a7f03a1f299cad124ddb61f8658519409b0fd4babbb69c99c989707353c428"
+      },
+      {
+        "id": "construction:rep3-hgp",
+        "revision": "legacy-0.1.0-08604fa557a417ea3628a76509a85f2a14d7a869ef6511ac18b3a8fac5f43536",
+        "content_sha256": "5f6b9ed67af476a221bc3f7a975dd8b5b13d75fb7bcd6eac9f06a25517a82521"
+      },
+      {
+        "id": "definition:binary-css",
+        "revision": "legacy-0.1.0-014a1dcc670f3e84ffba0cd7af2ea2bddc9f3b8e50f770b47831b338796267ff",
+        "content_sha256": "e4bdef63381f9d4362cebdb84b15c93e205dd531629707d57e111a72ff6157a4"
+      },
+      {
+        "id": "definition:css-distance",
+        "revision": "legacy-0.1.0-eff3625365c81f4eb0f7ade58449fe06e321fc8a1caa35aff7e41e01124e4a51",
+        "content_sha256": "dfce2561b3dcaf616b038d9926ff40d30b129312c285c765d21dba2d006bb157"
+      },
+      {
+        "id": "evidence:rep3-hgp:enumeration",
+        "revision": "legacy-0.1.0-396f2df5a3f7af99b3cab113c17cf0cd13ab6792847de1f4fd3fd8c76255a1e4",
+        "content_sha256": "a56910fc0e8dbbc55e6feb771fd06329916efa481b543827f44961790b3949ed"
+      },
+      {
+        "id": "family:ordinary-hgp",
+        "revision": "legacy-0.1.0-a46044e8f6d6c118810e79aa760670a75c21ae367568fa3894c6c48888d68ca0",
+        "content_sha256": "744f01407e4c2f6d407b9a0e46e0253c5291e83707f9c735253dc04661842b2a"
+      },
+      {
+        "id": "formalization:rep3-hgp:distance",
+        "revision": "legacy-0.1.0-a9f7bc19197c7cd7852e2486f0184ae8563b5c37a3d94bce42b3f821ce536dea",
+        "content_sha256": "426bc11fc7d6201504953f9f6b2b82a0866ad1fbfa808927ce12903aef069602"
+      },
+      {
+        "id": "presentation:rep3-hgp:standard",
+        "revision": "legacy-0.1.0-b846e3ca5c1a4a13ba7e4fb3b84ad5f9fc7d4795875b862ce5dafadfe76c81ec",
+        "content_sha256": "75d5ca366f99d26a3764a0814067745991ce8c2461c6bf81f2779406c032e056"
+      },
+      {
+        "id": "source:tillich-zemor-hgp",
+        "revision": "legacy-0.1.0-729c357dbee7e836af3327818ec7f8b46146724c6891562ebaf402b1d084ea1e",
+        "content_sha256": "16634a146d2fbce3a994870d4d58e54d0a3ecb30c3ec3a0a41d9e2976d2a83e8"
+      }
+    ],
+    "source_versions": {
+      "version:demo:1": {
+        "id": "version:demo:1",
+        "work_id": "work:demo",
+        "project_id": "demo",
+        "snapshot_id": "855de9a758e88d84a2bdd979e3e7106e8b6f25e508678b00fea7583d9946a6a8",
+        "project_source_hash": "66f00aa7044b5592ababa9b442147fd36d94cb2df26fe437dc876371937d734f",
+        "snapshot_path": "source_snapshots/855de9a758e88d84a2bdd979e3e7106e8b6f25e508678b00fea7583d9946a6a8",
+        "upstream_version": null
+      }
+    },
+    "assets": [
+      {
+        "uri": "qecasset:sha256:04a79c515c91f698e1c769b2acafc3a46fb592186f8a81cd0ba27a4db15d8b2e",
+        "sha256": "04a79c515c91f698e1c769b2acafc3a46fb592186f8a81cd0ba27a4db15d8b2e",
+        "size_bytes": 214
+      },
+      {
+        "uri": "qecasset:sha256:24dd242ce3acafe0aebc086d66672389244f9256cb0080b79649bf8be46e6046",
+        "sha256": "24dd242ce3acafe0aebc086d66672389244f9256cb0080b79649bf8be46e6046",
+        "size_bytes": 15729
+      },
+      {
+        "uri": "qecasset:sha256:5f50721febeacdcfcf7090e29a38161c122b4f314c9e963e0ee2c4cf937bce7b",
+        "sha256": "5f50721febeacdcfcf7090e29a38161c122b4f314c9e963e0ee2c4cf937bce7b",
+        "size_bytes": 730
+      },
+      {
+        "uri": "qecasset:sha256:6e40d8eb17b818cb18bf5cfeab37ccb1ba928a6956e1f1a6cb85d1b8eb568a9e",
+        "sha256": "6e40d8eb17b818cb18bf5cfeab37ccb1ba928a6956e1f1a6cb85d1b8eb568a9e",
+        "size_bytes": 243
+      },
+      {
+        "uri": "qecasset:sha256:8c78266be4fca7e40fc836bcaf2b84ae7b6a50ed73c9129f674db0124b483259",
+        "sha256": "8c78266be4fca7e40fc836bcaf2b84ae7b6a50ed73c9129f674db0124b483259",
+        "size_bytes": 214
+      },
+      {
+        "uri": "qecasset:sha256:91bfe9df2be86c3b6c5f8250bd8bed3f32bffc30f4f8887b18ca20ff7a96fc90",
+        "sha256": "91bfe9df2be86c3b6c5f8250bd8bed3f32bffc30f4f8887b18ca20ff7a96fc90",
+        "size_bytes": 730
+      },
+      {
+        "uri": "qecasset:sha256:d808d285dfaa06ea6196556eea96697acc4798db3a2c3f7558c02013cb7c983d",
+        "sha256": "d808d285dfaa06ea6196556eea96697acc4798db3a2c3f7558c02013cb7c983d",
+        "size_bytes": 2779
+      }
+    ]
+  }
+}

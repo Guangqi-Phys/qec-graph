@@ -48,7 +48,7 @@ def _add_source_arguments(parser):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graph; no mathematical proof verification")
+    parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graphs with explicit evidence checks")
     sub = parser.add_subparsers(dest="command", required=True)
     cmd = sub.add_parser('lean-build', help='Explicitly build/export/audit a pinned Lean project; never invoked by read tools')
     cmd.add_argument('--project', required=True)

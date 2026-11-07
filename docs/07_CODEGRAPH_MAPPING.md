@@ -9,12 +9,12 @@
 CodeGraph 从源代码提取符号与关系；qec-graph 从论文源码提取来源结构，再结合显式领域记录形成研究知识图。
 函数调用与证明依赖的证据标准不同。借用软件架构不能让普通引用、相邻段落或相似名字自动成为数学证明。
 
-本交付包使用自己的 Python 实现；本文没有声称已经审计、固定或复制 CodeGraph 的某个提交。
-后续要采用上游具体代码时，先完成第 5 节的提交和许可证记录。
+本包使用自己的 Python 实现。已查阅的固定 CodeGraph 提交、模块和许可证记录见
+[ADR 0001](adr/0001-codegraph-reference.md)；本项目只参考架构。
 
 ## 2. 从上游流水线到本项目职责
 
-| CodeGraph 的职责 | qec-graph 对应职责 | 当前落点 | 后续目标 |
+| CodeGraph 的职责 | qec-graph 对应职责 | 原型落点 | 验收目标 |
 |---|---|---|---|
 | AST extraction | 提取 LaTeX 结构和准确位置，不执行 TeX | `parser.py` | 按资料语法增加受测适配器 |
 | Symbol storage | 保存节点、边、来源与全文索引 | `store.py`、SQLite/FTS5 | 多文档 registry 与版本化实体 |
@@ -58,13 +58,12 @@ SourceGraph 是来源视图；LemmaGraph 是数学陈述、证明和依赖视图
 | `qecgraph/query.py` | 已有：search/show/deps/impact/context | 所有传输层复用同一状态策略 |
 | `qecgraph/splitter.py` | 已有：source-only 入口与片段清单 | 调用 ingest；不复制解析或存储逻辑 |
 | `qecgraph/cli.py` | 已有：CLI 参数、JSON、退出码 | `qec-graph` 为同一 CLI 的别名 |
-| `qecgraph/registry.py` | 建议新增：work/version/entity 注册 | P1；不得用显示标题做唯一键 |
-| `qecgraph/review.py`、`validators/` | 建议新增：审核事务、类型及领域验证 | P2；验证结果不能冒充人工决定 |
-| `qecgraph/incremental.py`、`watch.py` | 建议新增：变化计划与调度 | P3；允许保守回退全量重建 |
-| `qecgraph/mcp_server.py` | 建议新增：只读工具传输 | P4；不另写检索和可信度逻辑 |
-| `lean/` 与声明导出适配器 | 建议新增：固定工具链的实际证据 | P5；字段和信任边界按 05 |
+| `qecgraph/registry.py` | work/version/entity 注册 | P1；不得用显示标题做唯一键 |
+| `qecgraph/review.py`、`validators/` | 审核事务、类型及领域验证 | P2；验证结果不能冒充人工决定 |
+| `qecgraph/incremental.py`、`watch.py` | AST 复用与内容变化调度 | P3；允许保守回退全量重建 |
+| `qecgraph/mcp_server.py` | 只读工具传输 | P4；复用检索和可信度逻辑 |
+| `lean/` 与声明导出适配器 | 固定工具链的实际证据 | P5；字段和信任边界按 05 |
 
-这些新增文件名是实现建议，不是当前可导入的 API 承诺。
 保持模块小而明确；只有当真实职责需要拆分时才引入额外层，不为模仿上游目录重写已验证的原型。
 SQLite、JSON 与以后可能增加的索引通过同一快照身份关联，MCP 不成为新的权威数据库。
 
@@ -91,4 +90,4 @@ SQLite、JSON 与以后可能增加的索引通过同一快照身份关联，MCP
 若考虑 embedding、图数据库或代码图导入，先针对这些失败样例比较收益及维护成本。
 不把 CodeGraph 的性能或 token 节省宣传数值移植成本项目的实测结果。
 
-阶段安排和验收条件见 [08_ROADMAP_ACCEPTANCE.md](08_ROADMAP_ACCEPTANCE.md)；本包当前没有 MCP 服务、watch 或真实 Lean 构建导出。
+阶段验收条件见 [08](08_ROADMAP_ACCEPTANCE.md)；实际运行证据见 [验证报告](../validation/REPORT.md)。

@@ -1,0 +1,31 @@
+{
+  "status": "passed",
+  "report": "/Users/guangqi/Workspace/qec-graph/build/reproduce-incremental-release/run-8737320e-5d6a-420a-8dfa-88415bcaab69/results.json",
+  "performance": {
+    "cold": {
+      "median_full_seconds": 0.16601558309048414,
+      "median_incremental_seconds": 0.1857405831106007,
+      "full_over_incremental_ratio": 0.8938034989996173,
+      "sample_count": 1
+    },
+    "unchanged": {
+      "median_full_seconds": 0.07772012520581484,
+      "median_incremental_seconds": 0.07302920799702406,
+      "full_over_incremental_ratio": 1.064233439434013,
+      "sample_count": 3
+    },
+    "leaf_edit": {
+      "median_full_seconds": 0.12219645781442523,
+      "median_incremental_seconds": 0.12715737521648407,
+      "full_over_incremental_ratio": 0.9609860034181035,
+      "sample_count": 3
+    },
+    "asset_edit": {
+      "median_full_seconds": 0.11977454088628292,
+      "median_incremental_seconds": 0.11248499993234873,
+      "full_over_incremental_ratio": 1.0648045602375278,
+      "sample_count": 3
+    }
+  },
+  "error": null
+}

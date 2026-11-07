@@ -1,5 +1,8 @@
 # Codex 任务书：完善 LaTeX 切割工具与 QEC Graph
 
+本文件保留原交接任务和验收约束。当前能力、依赖与命令以 [README](README.md)、
+[实施记录](docs/IMPLEMENTATION_LOG.md) 和 [验证报告](validation/REPORT.md) 为准。
+
 你负责在这个目录的**已运行原型**上继续开发一个长期可维护、便于 AI 查询和 Lean 构建的 QEC 知识工具。请实际读代码、修改代码、运行验证和更新文档，不要只输出设计建议。
 
 ## A. 用户目标
