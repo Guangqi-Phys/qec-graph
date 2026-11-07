@@ -13,7 +13,9 @@ from . import __version__
 
 STATEMENTS = {"lemma", "theorem", "proposition", "corollary", "conjecture"}
 MATHEMATICS = STATEMENTS | {"definition", "proof", "equation"}
-DEPENDENCIES = {"depends_on_declared", "depends_on_reviewed"}
+LEAN_DEPENDENCIES = {'lean_type_depends_on', 'lean_proof_depends_on',
+                     'lean_type_depends_on_transitive', 'lean_proof_depends_on_transitive'}
+DEPENDENCIES = {"depends_on_declared", "depends_on_reviewed"} | LEAN_DEPENDENCIES
 CANDIDATES = {"depends_on_candidate"}
 KNOWN_RELATIONS = {
     "contains", "defined_in", "includes", "references", "cites", "uses_resource",

@@ -1,0 +1,7 @@
+{
+  "schema_version": "qecgraph.axiom-policy.v1",
+  "policy_id": "core-boolean-no-axioms-v1",
+  "allowed_axioms": [],
+  "allow_native_evaluation_axioms": false,
+  "note": "Policy choice, not an audit result. Actual dependencies must be exported from Lean."
+}

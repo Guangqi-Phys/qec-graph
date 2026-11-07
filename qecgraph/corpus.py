@@ -49,13 +49,23 @@ def project(corpus, registry_revision=None, source_version_id=None):
             edges.append(edge)
     records = {identifier: registry.record(identifier, registry_revision=fixed) for identifier in sorted(state['records'])}
     reviews = review_states(registry, state, records, fixed)
+    from .lean_integration import lean_record_states
+    builds = lean_record_states(registry, state, records)
     for identifier, record in records.items():
-        nodes.append({'id': identifier, 'kind': record['kind'], 'title': record['title'],
+        node = {'id': identifier, 'kind': record['kind'], 'title': record['title'],
                       'labels': record['aliases'], 'latex': '', 'data': record['data'], 'record': record,
                       'review_status': reviews[identifier]['effective_status'], 'review_binding': reviews[identifier],
                       'verification_status': 'not_verified',
                       'content_sha256': record['content_sha256'], 'origin': 'registry', 'source': None,
-                      'provenance': record['provenance']})
+                      'provenance': record['provenance']}
+        if identifier in builds:
+            node['build_binding'] = builds[identifier]
+            if record['kind'] == 'lean_declaration':
+                node['source'] = record['data'].get('source_locator')
+                node['verification_status'] = ('actual_formal_statement_build_and_axiom_policy_passed'
+                    if builds[identifier]['effective_status'] == 'current' and record['data']['proof_progress'] == 'build_passed'
+                    else 'historical_or_name_only_Lean_export')
+        nodes.append(node)
     lookup = {n['id']: n for n in nodes}
     if len(lookup) != len(nodes):
         raise ValueError('Domain ID collides with source occurrence namespace')
@@ -73,6 +83,16 @@ def project(corpus, registry_revision=None, source_version_id=None):
         record = node.get('record')
         if not record:
             continue
+        if record['kind'] == 'formalization' and node['id'] in builds:
+            for source in record['data'].get('source_refs', []):
+                if not all(key in source for key in ('source_version_id', 'node_id')):
+                    continue
+                target_id = occurrence_id(source['source_version_id'], source['node_id'])
+                if target_id in lookup:
+                    edges.append({'id': 'mapping-source:' + hash_text(canonical([node['id'], source])),
+                                  'source': node['id'], 'target': target_id, 'relation': 'maps_source_occurrence',
+                                  'status': 'candidate' if builds[node['id']]['effective_status'] == 'current' else 'stale',
+                                  'evidence': source})
         for ref in record['refs']:
             target = lookup.get(ref.get('target'))
             if not target:
@@ -86,6 +106,13 @@ def project(corpus, registry_revision=None, source_version_id=None):
                     status = 'stale'
                 elif fresh and review_status != 'reviewed':
                     status = 'unbound_review'
+            if any(endpoint in builds and builds[endpoint]['effective_status'] != 'current'
+                   for endpoint in (node['id'], ref['target'])):
+                status = 'stale'
+            if ref['relation'] == 'formalizes' and record['provenance'].get('method') == 'actual_lean_environment_export':
+                matched = record['data'].get('semantic_review') == 'matched' and reviews[node['id']]['effective_status'] == 'reviewed'
+                if not matched and status not in {'stale', 'unbound_review', 'unresolved'}:
+                    status = 'candidate'
             edges.append({'id': 'ref:' + hash_text(canonical([node['id'], ref])), 'source': node['id'],
                           'target': ref['target'], 'relation': ref['relation'],
                           'status': status, 'evidence': ref})

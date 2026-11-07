@@ -10,6 +10,23 @@ from .store import load_graph
 from .status import annotation_eligible, eligible
 
 
+def answer_node(original, include_candidates=False):
+    """Whole statement/data with effective relations, rather than raw audit duplicates."""
+    node = dict(original)
+    excluded = 0
+    if 'annotations' in node:
+        usable = [a for a in node['annotations'] if annotation_eligible(a, include_candidates)]
+        excluded = len(node['annotations']) - len(usable)
+        node['annotations'] = usable
+    if 'record' in node:
+        record = node['record']
+        keys = ('schema_version', 'id', 'kind', 'revision', 'content_sha256', 'hash_protocol',
+                'provenance', 'assets', 'evidence_ids')
+        node['record'] = {key: record[key] for key in keys}
+        node['record_projection'] = 'Identity/provenance metadata; full data is in node.data; eligible relations are in edges; raw extensions/refs/review are available via audit show'
+    return node, excluded
+
+
 def resolve(graph, identifier):
     nodes = {n["id"]: n for n in graph["nodes"]}
     if identifier in nodes:
@@ -37,7 +54,9 @@ def search(store, query, kind=None, limit=20):
         return {'snapshot_id': graph['snapshot_id'], 'extraction_status': graph['extraction_status'],
                 'query': query, 'results': [{'id': n['id'], 'kind': n['kind'], 'title': n['title'],
                                            'source': n.get('source'), 'provenance': n.get('provenance'),
-                                           'review_status': n['review_status']} for n in matches[:limit]],
+                                           'review_status': n['review_status'], 'verification_status': n['verification_status'],
+                                           **({'build_binding': n['build_binding']} if 'build_binding' in n else {})}
+                                          for n in matches[:limit]],
                 'truncated': len(matches) > limit, 'method': 'deterministic corpus substring; no embedding'}
     con = sqlite3.connect((snapshot / "graph.sqlite").resolve().as_uri() + "?mode=ro", uri=True)
     con.row_factory = sqlite3.Row
@@ -117,11 +136,13 @@ def dependencies(store, identifier, depth=3, include_candidates=False, reverse=F
     graph, _ = load_graph(store)
     root = resolve(graph, identifier)
     ids, edges, omitted = traverse(graph, root, depth, include_candidates, reverse, max_nodes)
+    projected = [answer_node(n, include_candidates) for n in graph['nodes'] if n['id'] in ids]
     return {"snapshot_id": graph["snapshot_id"], "root_id": root,
             "direction": "potential_impact" if reverse else "dependencies", "include_candidates": include_candidates,
-            "nodes": [n for n in graph["nodes"] if n["id"] in ids], "edges": edges,
+            "nodes": [item[0] for item in projected], "edges": edges,
+            'excluded_ineligible_annotations': sum(item[1] for item in projected),
             "truncated": bool(omitted), "omitted_frontier_count": len(omitted),
-            "note": "Declared/reviewed document dependencies, not a complete or Lean-verified proof graph."}
+            "note": "Document declared/reviewed edges and separately named actual Lean constant edges; bounded scope, not semantic equivalence of a paper and Lean type."}
 
 
 def context(store, identifier, depth=2, include_candidates=False, max_nodes=60):
@@ -143,7 +164,8 @@ def context(store, identifier, depth=2, include_candidates=False, max_nodes=60):
                 omitted |= extra_omitted
     contextual = {"references", "cites", "uses_resource", "describes", "about", "supports", "formalizes",
                   "has_matrix", "has_presentation", "generated_by", "uses_circuit", "uses_noise",
-                  "uses_decoder", "instance_of", "reports", "normalizes_to"}
+                  "uses_decoder", "instance_of", "reports", "normalizes_to", 'maps_declaration', 'has_build_evidence',
+                  'maps_source_occurrence'}
     frontier = set(chosen)
     for _ in range(depth):
         next_frontier = set()
@@ -171,11 +193,8 @@ def context(store, identifier, depth=2, include_candidates=False, max_nodes=60):
     selected_nodes = []
     excluded_annotations = 0
     for identifier in chosen[:max_nodes]:
-        node = dict(lookup[identifier])
-        if "annotations" in node:
-            usable = [a for a in node["annotations"] if annotation_eligible(a, include_candidates)]
-            excluded_annotations += len(node["annotations"]) - len(usable)
-            node["annotations"] = usable
+        node, excluded = answer_node(lookup[identifier], include_candidates)
+        excluded_annotations += excluded
         selected_nodes.append(node)
     return {"snapshot_id": graph["snapshot_id"], "project_source_hash": graph["project_source_hash"],
             "root_id": root, "include_candidates": include_candidates,

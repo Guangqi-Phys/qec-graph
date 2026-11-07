@@ -27,6 +27,13 @@ ENDPOINTS = {
     'uses_noise': ({'experiment', 'circuit'}, {'noise'}),
     'uses_decoder': ({'experiment'}, {'decoder'}),
     'normalizes_to': (MATHEMATICS | {'paragraph', 'table', 'remark'}, {'claim'}),
+    'maps_declaration': ({'formalization'}, {'lean_declaration'}),
+    'maps_source_occurrence': ({'formalization'}, MATHEMATICS | {'paragraph', 'remark'}),
+    'has_build_evidence': ({'formalization', 'lean_declaration'}, {'evidence'}),
+    'lean_type_depends_on': ({'lean_declaration'}, {'lean_declaration'}),
+    'lean_proof_depends_on': ({'lean_declaration'}, {'lean_declaration'}),
+    'lean_type_depends_on_transitive': ({'lean_declaration'}, {'lean_declaration'}),
+    'lean_proof_depends_on_transitive': ({'lean_declaration'}, {'lean_declaration'}),
 }
 
 
@@ -73,7 +80,7 @@ def validate_endpoint(source_kind, target_kind, relation):
     from ..graph import KNOWN_RELATIONS
     if relation.startswith('catalog:'):
         return  # Legacy semantics are retained, never upgraded to typed proof edges.
-    if relation not in KNOWN_RELATIONS | {'normalizes_to'}:
+    if relation not in KNOWN_RELATIONS | set(ENDPOINTS):
         raise ValueError(f'Unknown typed relation: {relation}')
     if relation in ENDPOINTS:
         sources, targets = ENDPOINTS[relation]

@@ -1,0 +1,28 @@
+{
+  "schema_version": "qecgraph.lean-mapping.v1",
+  "id": "formalization:lean-demo:boolean-row-pair",
+  "claim_id": "claim:lean-demo:boolean-row-pair",
+  "claim_revision": "1",
+  "expected_claim_content_sha256": "f952c72c1332ba2dfe9dc4da5bba7fc00480dddb0b77ed747268a66aea0f513e",
+  "declaration": "QEC.Binary.css_example_commutes",
+  "expected_type_expr_sha256": "cd4adf74b651c2e6402d63f1f8e8b9983684d0fa154c9a09569027aa10940a52",
+  "semantic_review": "not_reviewed",
+  "statement_relation": "not_established",
+  "extra_assumptions": [],
+  "notation_map": {
+    "false": "0",
+    "true": "1",
+    "xor": "Boolean addition",
+    "and": "Boolean multiplication"
+  },
+  "planned_dependencies": [
+    "def:boolean-dot"
+  ],
+  "source_refs": [
+    {
+      "source_version_id": "version:lean-demo:1",
+      "selector": "lem:boolean-row-pair",
+      "expected_content_sha256": "cadfd033d7799be01bc41b0e3da05978c224660262656b6bff0f7122bd6a5534"
+    }
+  ]
+}

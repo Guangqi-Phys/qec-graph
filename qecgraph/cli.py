@@ -50,6 +50,21 @@ def _add_source_arguments(parser):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graph; no mathematical proof verification")
     sub = parser.add_subparsers(dest="command", required=True)
+    cmd = sub.add_parser('lean-build', help='Explicitly build/export/audit a pinned Lean project; never invoked by read tools')
+    cmd.add_argument('--project', required=True)
+    cmd.add_argument('--out', required=True)
+    cmd.add_argument('--lake')
+    cmd.add_argument('--build-only', action='store_true')
+    cmd = sub.add_parser('lean-import', help='Import an actual Lean export with current input or explicit historical bindings')
+    cmd.add_argument('report')
+    cmd.add_argument('--corpus', required=True)
+    cmd.add_argument('--project-id', required=True)
+    cmd.add_argument('--project')
+    cmd.add_argument('--mapping')
+    cmd.add_argument('--historical', action='store_true')
+    cmd = sub.add_parser('lean-status', help='Read Lean build freshness without executing Lean')
+    cmd.add_argument('--corpus', required=True)
+    cmd.add_argument('--registry-revision')
     cmd = sub.add_parser('mcp-config', help='Print a reviewable fixed-scope client config without editing user settings')
     _add_ai_arguments(cmd)
     cmd = sub.add_parser('serve-mcp', help='Serve only fixed-scope read tools over local MCP stdio')
@@ -165,7 +180,24 @@ def main(argv=None):
                 if getattr(args, 'registry_revision', None) or getattr(args, 'source_version_id', None):
                     raise ValueError('Corpus scope arguments require --corpus')
                 args.store = pin_snapshot(args.store, args.snapshot)
-        if args.command == 'mcp-config':
+        if args.command == 'lean-build':
+            from .lean import build_project
+            result = build_project(args.project, args.out, lake=args.lake, export_declarations=not args.build_only)
+        elif args.command == 'lean-import':
+            from .lean_integration import import_build
+            mappings = read_json(args.mapping) if args.mapping else None
+            if mappings is not None and isinstance(mappings, dict):
+                mappings = [mappings]
+            result = import_build(args.corpus, args.report, project_id=args.project_id, project=args.project,
+                                  mappings=mappings, historical=args.historical)
+        elif args.command == 'lean-status':
+            from .lean_integration import lean_record_states
+            registry = Registry(args.corpus)
+            state, fixed = registry.read(args.registry_revision)
+            records = {identifier: registry.record_from_state(state, identifier) for identifier in state['records']}
+            result = {'registry_revision': fixed, 'records': lean_record_states(registry, state, records),
+                      'scope': 'read-only freshness; no Lean process or semantic approval'}
+        elif args.command == 'mcp-config':
             from pathlib import Path
             session = _ai_session(args)
             arguments = ['-m', 'qecgraph', 'serve-mcp']

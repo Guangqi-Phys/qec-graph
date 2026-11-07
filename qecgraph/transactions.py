@@ -55,3 +55,18 @@ def immutable_json(path, value):
             raise ValueError(f'Immutable object conflict: {path}')
         return
     atomic_json(path, value)
+
+
+def atomic_bytes(path, raw):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary = tempfile.mkstemp(prefix='.' + path.name, dir=path.parent)
+    try:
+        with os.fdopen(descriptor, 'wb') as handle:
+            handle.write(raw)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)

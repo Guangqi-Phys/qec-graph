@@ -10,7 +10,7 @@ from pathlib import Path
 
 from .graph import canonical, hash_text, read_json
 from .store import current_snapshot, safe_relative, validate_snapshot
-from .transactions import atomic_json, immutable_json, writer_lock
+from .transactions import atomic_bytes, atomic_json, immutable_json, writer_lock
 from .records import prepare_record
 from .query import resolve
 
@@ -216,10 +216,25 @@ class Registry:
         digest = uri.removeprefix(prefix)
         if not uri.startswith(prefix) or len(digest) != 64 or any(c not in '0123456789abcdef' for c in digest):
             raise ValueError('Unknown managed asset URI')
-        raw = (self.root / 'assets' / digest).read_bytes()
+        raw = safe_relative(self.root, 'assets/' + digest).read_bytes()
         if hashlib.sha256(raw).hexdigest() != digest:
             raise ValueError('Managed asset content changed')
         return raw
+
+    def _put_asset(self, raw, media_type, original_path=None):
+        digest = hashlib.sha256(raw).hexdigest()
+        target = safe_relative(self.root, 'assets/' + digest)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists():
+            if target.read_bytes() != raw:
+                raise ValueError('Managed asset content changed')
+        else:
+            atomic_bytes(target, raw)
+        asset = {'asset_id': 'asset:sha256:' + digest, 'uri': 'qecasset:sha256:' + digest,
+                 'path': 'assets/' + digest, 'sha256': digest, 'size_bytes': len(raw), 'media_type': media_type}
+        if original_path is not None:
+            asset['original_path'] = original_path
+        return asset
 
     def validate(self, registry_revision=None):
         from .validators import registry_issues
@@ -237,6 +252,9 @@ class Registry:
         issues.extend({'code': 'review_stale', 'severity': 'warning', 'record_id': node['id'],
                        'reasons': node['review_binding']['reasons']}
                       for node in graph.graph['nodes'] if node.get('review_binding', {}).get('effective_status') == 'stale')
+        issues.extend({'code': 'lean_build_stale', 'severity': 'warning', 'record_id': node['id'],
+                       'reasons': node['build_binding']['reasons']}
+                      for node in graph.graph['nodes'] if node.get('build_binding', {}).get('effective_status') == 'stale')
         passed = not any(issue.get('severity', 'error') == 'error' for issue in issues)
         return {'registry_revision': fixed, 'passed': passed, 'issues': issues,
                 'scope': 'structure, types, references, assets and source integrity; not mathematical verification',

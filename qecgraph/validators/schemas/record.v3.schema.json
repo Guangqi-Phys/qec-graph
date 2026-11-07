@@ -48,7 +48,8 @@
         "decoder",
         "experiment",
         "metric",
-        "asset"
+        "asset",
+        "lean_declaration"
       ]
     },
     "revision": {
@@ -1281,6 +1282,85 @@
                   "null"
                 ],
                 "minimum": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "lean_declaration"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "required": [
+              "declaration_name",
+              "module",
+              "type",
+              "type_expr_sha256",
+              "build_evidence_id",
+              "build_id",
+              "proof_progress",
+              "axiom_audit",
+              "semantic_review"
+            ],
+            "properties": {
+              "declaration_name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "module": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "type": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "type_expr_sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "build_evidence_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "build_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "proof_progress": {
+                "enum": [
+                  "build_passed",
+                  "referenced_name_only"
+                ]
+              },
+              "axiom_audit": {
+                "enum": [
+                  "allowed",
+                  "not_exported"
+                ]
+              },
+              "semantic_review": {
+                "const": "not_reviewed"
               }
             }
           }

@@ -6,8 +6,13 @@ from .validators.qec import distance_issues
 from .status import review_states
 
 
-def evidence_current(registry, evidence, records, required_ids, reviews=None):
+def evidence_current(registry, evidence, records, required_ids, reviews=None, builds=None):
     data = evidence['data']
+    if data.get('evidence_kind') == 'lean_build':
+        if not builds or builds.get(evidence['id'], {}).get('effective_status') != 'current' or data.get('semantic_review') != 'matched':
+            return False
+        if not reviews or reviews[evidence['id']]['effective_status'] != 'reviewed' or data.get('axiom_policy_status') != 'allowed':
+            return False
     if reviews and reviews[evidence['id']]['effective_status'] in {'stale', 'disputed'}:
         return False
     if evidence['review']['status'] in {'stale', 'disputed'} or not all(data.get(k) is not None for k in ('method', 'checker', 'outputs', 'scope', 'limitations')):
@@ -59,6 +64,8 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
     state, fixed = registry.read(registry_revision)
     records = {identifier: registry.record(identifier, registry_revision=fixed) for identifier in state['records']}
     reviews = review_states(registry, state, records, fixed)
+    from .lean_integration import lean_record_states
+    builds = lean_record_states(registry, state, records)
     results = []
     for identifier, code in sorted(records.items()):
         if code['kind'] != 'code_instance':
@@ -91,7 +98,7 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
                     continue
                 required = [identifier, measurement['presentation_id'], metric_definition_id]
                 evidence = [records[e] for e in claim['evidence_ids'] if e in records and records[e]['kind'] == 'evidence'
-                            and evidence_current(registry, records[e], records, required, reviews)]
+                            and evidence_current(registry, records[e], records, required, reviews, builds)]
                 if evidence:
                     matching.append({'claim_id': claim_id, 'claim_revision': claim['revision'],
                                      'relation': measurement['relation'], 'lower_bound': measurement['lower_bound'],

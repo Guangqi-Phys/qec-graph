@@ -1,0 +1,14 @@
+\documentclass{article}
+\newtheorem{definition}{Definition}
+\newtheorem{lemma}{Lemma}
+\begin{document}
+This is a locally generated interface example, not a quotation from a paper.
+\begin{definition}\label{def:boolean-dot}
+For fixed-length Boolean vectors, multiply entries using AND and accumulate
+using XOR. False encodes zero and true encodes one. Column order is fixed.
+\end{definition}
+\begin{lemma}\label{lem:boolean-row-pair}
+Under this Boolean convention, the rows $(1,1,0)$ and $(1,1,1)$ of length three
+have dot product zero. This statement does not assert a rank or a distance.
+\end{lemma}
+\end{document}

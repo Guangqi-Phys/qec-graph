@@ -47,6 +47,13 @@ def resolve_lake(project, explicit=None):
     candidates = sorted((Path(project).parent / '.tools').glob('lean-' + version + '-*/bin/lake'))
     if candidates:
         return candidates[0].resolve()
+    elan = shutil.which('elan')
+    if elan:
+        selected_lake = subprocess.run([elan, 'which', 'lake'], cwd=project, capture_output=True,
+                                       text=True, timeout=15, check=False)
+        if selected_lake.returncode == 0 and Path(selected_lake.stdout.strip()).is_file():
+            return Path(selected_lake.stdout.strip()).resolve()
+        raise ValueError('The pinned Elan toolchain is unavailable; install it explicitly or pass --lake')
     installed = shutil.which('lake')
     if installed:
         return Path(installed).resolve()
@@ -134,7 +141,9 @@ def build_project(project, out, *, lake=None, clean=True, export_declarations=Tr
         (run / (name + '.stdout.txt')).write_text(proc.stdout, encoding='utf-8')
         (run / (name + '.stderr.txt')).write_text(proc.stderr, encoding='utf-8')
         report['commands'].append({'name': name, 'command': command, 'exit_code': proc.returncode,
-                                   'stdout': name + '.stdout.txt', 'stderr': name + '.stderr.txt'})
+                                   'stdout': name + '.stdout.txt', 'stderr': name + '.stderr.txt',
+                                   'stdout_sha256': hashlib.sha256(proc.stdout.encode('utf-8')).hexdigest(),
+                                   'stderr_sha256': hashlib.sha256(proc.stderr.encode('utf-8')).hexdigest()})
         if proc.returncode:
             raise ValueError(f'Lean command {name} failed with exit {proc.returncode}; see saved logs')
         return proc.stdout.strip()
@@ -152,8 +161,13 @@ def build_project(project, out, *, lake=None, clean=True, export_declarations=Tr
             if 'version ' + lock['lean_version'] + ',' not in lean_version or lock['lean_commit'][:12] not in lean_version:
                 raise ValueError('Selected Lean binary differs from the pinned version/commit')
             report['lean_version'] = lean_version
-            report['lake_binary_sha256'] = hashlib.sha256(executable.read_bytes()).hexdigest()
-            report['lean_binary_sha256'] = hashlib.sha256((executable.parent / 'lean').read_bytes()).hexdigest()
+            prefix = Path(execute('lean_prefix', [executable, 'env', 'lean', '--print-prefix'])).resolve()
+            if executable != (prefix / 'bin/lake').resolve():
+                raise ValueError('Pass the real Lake binary from the selected Lean toolchain, not a launcher')
+            binaries = {name: (prefix / 'bin' / name).resolve() for name in ('lake', 'lean')}
+            report['tool_binaries'] = {name: str(path) for name, path in binaries.items()}
+            for name, path in binaries.items():
+                report[name + '_binary_sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
             before = source_manifest(project)
             report['input_manifest'] = before
             report['git'] = git_binding(project, before)
@@ -168,6 +182,8 @@ def build_project(project, out, *, lake=None, clean=True, export_declarations=Tr
             report['mathlib_status'] = 'locked_dependency' if mathlib else 'not_a_dependency'
             if report['mathlib_commit'] != lock['mathlib_commit']:
                 raise ValueError('Lake mathlib dependency differs from the explicit toolchain lock')
+            if manifest.get('packages') != []:
+                raise ValueError('This adapter requires core-only Lake inputs; external package contents are not yet bound')
             if clean:
                 execute('clean', [executable, 'clean'])
             execute('build', [executable, 'build'])
@@ -197,6 +213,9 @@ def build_project(project, out, *, lake=None, clean=True, export_declarations=Tr
                 raise ValueError('Lean inputs changed during build; evidence is not current')
             if producer_manifest() != report['producer_inputs']:
                 raise ValueError('Lean evidence producer changed during build; retry with a fixed revision')
+            if any(hashlib.sha256(path.read_bytes()).hexdigest() != report[name + '_binary_sha256']
+                   for name, path in binaries.items()):
+                raise ValueError('Lean executable changed during build')
             report['compiled_olean_sha256'] = {str(path.relative_to(project)): hashlib.sha256(path.read_bytes()).hexdigest()
                                                for path in sorted((project / '.lake/build').rglob('*.olean'))}
             report['status'] = ('validated_build' if report['axiom_audit'] == 'allowed' else 'trust_rejected') if export_declarations else 'build_passed'
