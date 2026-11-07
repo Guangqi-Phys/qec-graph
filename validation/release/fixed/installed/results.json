@@ -1,0 +1,337 @@
+{
+  "status": "passed",
+  "steps": [
+    {
+      "name": "installed_package",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/python",
+        "-I",
+        "-c",
+        "\nimport importlib.metadata as m\nimport importlib.resources as r\nimport json\nimport qecgraph\nfrom jsonschema import Draft202012Validator\nschemas = r.files(\"qecgraph.validators\").joinpath(\"schemas\")\nnames = sorted(p.name for p in schemas.iterdir() if p.name.endswith(\".json\"))\nfor name in names:\n    Draft202012Validator.check_schema(json.loads(schemas.joinpath(name).read_text(encoding=\"utf-8\")))\nprint(json.dumps({\"metadata_version\": m.version(\"qec-graph\"), \"module_version\": qecgraph.__version__,\n                  \"module_path\": qecgraph.__file__, \"schemas\": names}))\n"
+      ],
+      "exit_code": 0,
+      "stdout": "installed_package.stdout.txt",
+      "stderr": "installed_package.stderr.txt"
+    },
+    {
+      "name": "split",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/qec-latex-split",
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/examples/paper/main.tex",
+        "--project-id",
+        "demo",
+        "--out",
+        "split"
+      ],
+      "exit_code": 0,
+      "stdout": "split.stdout.txt",
+      "stderr": "split.stderr.txt"
+    },
+    {
+      "name": "split_validate",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/qec-graph",
+        "validate",
+        "--store",
+        "split"
+      ],
+      "exit_code": 0,
+      "stdout": "split_validate.stdout.txt",
+      "stderr": "split_validate.stderr.txt"
+    },
+    {
+      "name": "mcp_entrypoint",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/qecgraph-mcp",
+        "--help"
+      ],
+      "exit_code": 0,
+      "stdout": "mcp_entrypoint.stdout.txt",
+      "stderr": "mcp_entrypoint.stderr.txt"
+    },
+    {
+      "name": "ingest",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/qecgraph",
+        "ingest",
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/examples/paper/main.tex",
+        "--project-id",
+        "demo",
+        "--out",
+        "store",
+        "--strict",
+        "--annotations",
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/examples/annotations.example.json"
+      ],
+      "exit_code": 0,
+      "stdout": "ingest.stdout.txt",
+      "stderr": "ingest.stderr.txt"
+    },
+    {
+      "name": "register",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/qecgraph",
+        "register",
+        "--corpus",
+        "corpus",
+        "--store",
+        "store",
+        "--work-id",
+        "work:demo",
+        "--source-version-id",
+        "version:demo:1"
+      ],
+      "exit_code": 0,
+      "stdout": "register.stdout.txt",
+      "stderr": "register.stderr.txt"
+    },
+    {
+      "name": "record",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/qecgraph",
+        "record-add",
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/examples/claim.example.json",
+        "--corpus",
+        "corpus"
+      ],
+      "exit_code": 0,
+      "stdout": "record.stdout.txt",
+      "stderr": "record.stderr.txt"
+    },
+    {
+      "name": "link",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/qecgraph",
+        "claim-link",
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/examples/claim-link.example.json",
+        "--corpus",
+        "corpus"
+      ],
+      "exit_code": 0,
+      "stdout": "link.stdout.txt",
+      "stderr": "link.stderr.txt"
+    },
+    {
+      "name": "context",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/qecgraph",
+        "context",
+        "version:demo:1::thm:hgp-length",
+        "--corpus",
+        "corpus",
+        "--include-candidates"
+      ],
+      "exit_code": 0,
+      "stdout": "context.stdout.txt",
+      "stderr": "context.stderr.txt"
+    },
+    {
+      "name": "migrate",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/qecgraph",
+        "migrate",
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/knowledge_starter/records",
+        "--source-root",
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/knowledge_starter",
+        "--out",
+        "migration"
+      ],
+      "exit_code": 0,
+      "stdout": "migrate.stdout.txt",
+      "stderr": "migrate.stderr.txt"
+    },
+    {
+      "name": "migration_import",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/qecgraph",
+        "migration-import",
+        "migration",
+        "--corpus",
+        "corpus"
+      ],
+      "exit_code": 0,
+      "stdout": "migration_import.stdout.txt",
+      "stderr": "migration_import.stderr.txt"
+    },
+    {
+      "name": "proposal",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/qecgraph",
+        "review",
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/examples/proposal.example.json",
+        "--corpus",
+        "corpus",
+        "--actor-id",
+        "release-smoke",
+        "--actor-kind",
+        "program"
+      ],
+      "exit_code": 0,
+      "stdout": "proposal.stdout.txt",
+      "stderr": "proposal.stderr.txt"
+    },
+    {
+      "name": "decision",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/qecgraph",
+        "review-decide",
+        "proposal:7edf07694b89a36468c595459ad81f3d25d310794848d52b7afb2af53ed29ed5",
+        "--corpus",
+        "corpus",
+        "--actor-id",
+        "release-smoke",
+        "--actor-kind",
+        "program",
+        "--decision",
+        "approve",
+        "--rationale",
+        "Fixture transaction only; no human review"
+      ],
+      "exit_code": 0,
+      "stdout": "decision.stdout.txt",
+      "stderr": "decision.stderr.txt"
+    },
+    {
+      "name": "apply",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/qecgraph",
+        "apply",
+        "proposal:7edf07694b89a36468c595459ad81f3d25d310794848d52b7afb2af53ed29ed5",
+        "--review-id",
+        "review:52bb3466-2588-4f88-ba7c-d23cfb78a559",
+        "--corpus",
+        "corpus"
+      ],
+      "exit_code": 0,
+      "stdout": "apply.stdout.txt",
+      "stderr": "apply.stderr.txt"
+    },
+    {
+      "name": "apply_repeat",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/qecgraph",
+        "apply",
+        "proposal:7edf07694b89a36468c595459ad81f3d25d310794848d52b7afb2af53ed29ed5",
+        "--review-id",
+        "review:52bb3466-2588-4f88-ba7c-d23cfb78a559",
+        "--corpus",
+        "corpus"
+      ],
+      "exit_code": 0,
+      "stdout": "apply_repeat.stdout.txt",
+      "stderr": "apply_repeat.stderr.txt"
+    },
+    {
+      "name": "audit_applied",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/qecgraph",
+        "show",
+        "claim:demo:proposal-example",
+        "--corpus",
+        "corpus"
+      ],
+      "exit_code": 0,
+      "stdout": "audit_applied.stdout.txt",
+      "stderr": "audit_applied.stderr.txt"
+    },
+    {
+      "name": "validate_corpus",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/qecgraph",
+        "validate-corpus",
+        "--corpus",
+        "corpus"
+      ],
+      "exit_code": 0,
+      "stdout": "validate_corpus.stdout.txt",
+      "stderr": "validate_corpus.stderr.txt"
+    },
+    {
+      "name": "mcp_config",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/qecgraph",
+        "mcp-config",
+        "--corpus",
+        "corpus"
+      ],
+      "exit_code": 0,
+      "stdout": "mcp_config.stdout.txt",
+      "stderr": "mcp_config.stderr.txt"
+    },
+    {
+      "name": "finite_css",
+      "command": [
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/bin/qecgraph",
+        "check-css",
+        "--hx",
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/knowledge_starter/assets/matrices/HX.gf2.json",
+        "--hz",
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/knowledge_starter/assets/matrices/HZ.gf2.json",
+        "--lx",
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/knowledge_starter/assets/matrices/LX.gf2.json",
+        "--lz",
+        "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/knowledge_starter/assets/matrices/LZ.gf2.json",
+        "--enumerate-distance"
+      ],
+      "exit_code": 0,
+      "stdout": "finite_css.stdout.txt",
+      "stderr": "finite_css.stderr.txt"
+    }
+  ],
+  "installed": {
+    "metadata_version": "0.3.0",
+    "module_version": "0.3.0",
+    "module_path": "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/lib/python3.15/site-packages/qecgraph/__init__.py",
+    "schemas": [
+      "lean-export.v1.schema.json",
+      "proposal.v1.schema.json",
+      "record.v2.schema.json",
+      "record.v3.schema.json",
+      "review.v1.schema.json"
+    ]
+  },
+  "migrated": {
+    "registry_revision": "c2af79875d71258d75d7adb120914c21ae9d187896549f413ea693fab0310b05",
+    "imported_records": 10,
+    "mathematical_recheck": "not_performed"
+  },
+  "application_receipt": {
+    "schema_version": "qecgraph.application.v1",
+    "proposal_id": "proposal:7edf07694b89a36468c595459ad81f3d25d310794848d52b7afb2af53ed29ed5",
+    "base_registry_revision": "c2af79875d71258d75d7adb120914c21ae9d187896549f413ea693fab0310b05",
+    "registry_revision": "925347a1c9271260a3b54858688639bab4c6ddd39f1d4be7cc3efc2ce7866d2b",
+    "review_id": "review:52bb3466-2588-4f88-ba7c-d23cfb78a559",
+    "review_sha256": "ef1df8d74eaae038375fdd04fbfcf8a33d4b2ac42f6b9d5abe397e4e0cf5aa31",
+    "records": [
+      {
+        "id": "claim:demo:proposal-example",
+        "revision": "1",
+        "content_sha256": "785fb30c17ad9de296dde1f3d9f59a192e244f7f337369765ddec8c989df7a7d"
+      }
+    ]
+  },
+  "proposed_after_machine_acceptance": true,
+  "finite_css": {
+    "checker": "qecgraph.binary-css.v1",
+    "n": 13,
+    "rank_HX_gf2": 6,
+    "rank_HZ_gf2": 6,
+    "commutes": true,
+    "passed": true,
+    "k": 1,
+    "distance": {
+      "dX": 3,
+      "dZ": 3,
+      "d": 3,
+      "relation": "exact",
+      "evidence_kind": "computed_exact",
+      "vectors": 8192,
+      "method": "complete_binary_vector_enumeration"
+    },
+    "phase_convention": "+1 binary CSS stabilizers",
+    "lean_status": "not_performed",
+    "human_review": "not_performed",
+    "logical_pairing_valid": true,
+    "suggested_exit_code": 0
+  }
+}

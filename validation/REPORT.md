@@ -2,6 +2,8 @@
 
 0.3.0 的复现步骤见 [发布复现](../docs/14_RELEASE.md)，实施范围见 [实施记录](../docs/IMPLEMENTATION_LOG.md)。
 
+在独立 checkout 中复验了固定提交 `34ce4f24d7dc0f95fdd2e40188c37e862f0c5b44`。Python 回归、独立安装、Lean 构建、信任检查和图谱映射均通过。复验记录包含命令、产物哈希以及安装依赖的许可证核对。[固定提交复验](release/fixed/replay.json)
+
 | 验收 | 实际结果与证据 |
 |---|---|
 | Python、TeX 和 QEC 示例 | [87 项回归及全流程报告](release/python/results.json)：3 源文件、26 原文片段；sidecar 图 36 节点、97 边；Schema 和 HGP 有限穷举通过 |

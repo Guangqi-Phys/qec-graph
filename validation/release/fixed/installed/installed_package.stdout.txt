@@ -1,0 +1,1 @@
+{"metadata_version": "0.3.0", "module_version": "0.3.0", "module_path": "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/.venv/lib/python3.15/site-packages/qecgraph/__init__.py", "schemas": ["lean-export.v1.schema.json", "proposal.v1.schema.json", "record.v2.schema.json", "record.v3.schema.json", "review.v1.schema.json"]}

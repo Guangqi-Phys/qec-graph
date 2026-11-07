@@ -1,0 +1,6 @@
+⚠ [2/6] Built QEC.BadDependency
+warning: ././././QEC/BadDependency.lean:5:8: declaration uses 'sorry'
+✔ [3/6] Built QEC.BadTargets
+✔ [4/6] Built QEC.Export
+✔ [5/6] Built QEC
+Build completed successfully.

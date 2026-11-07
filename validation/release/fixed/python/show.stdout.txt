@@ -1,0 +1,240 @@
+{
+  "snapshot_id": "4e7a3be2630c5b76fd49a7814395c46905c19a97292b273fc0cea7ff66474fd9",
+  "node": {
+    "id": "qec-demo:label:thm:hgp-css",
+    "kind": "theorem",
+    "origin": "parser",
+    "title": "Commutation of the block construction",
+    "labels": [
+      "thm:hgp-css"
+    ],
+    "source": {
+      "path": "sections/hgp.tex",
+      "char_start": 289,
+      "char_end": 667,
+      "line_start": 9,
+      "line_end": 20,
+      "file_sha256": "d095f5da29c1d7bf41ba9023f0b8fbced21ab5937b4fd11fbc746db297a45866",
+      "coordinate_system": "unicode_codepoints_half_open; lines_1based_inclusive"
+    },
+    "latex": "\\begin{thm}[Commutation of the block construction]\n\\label{thm:hgp-css}\n\\uses{def:css}\nLet $H_1\\in\\mathbb{F}_2^{m_1\\times n_1}$ and\n$H_2\\in\\mathbb{F}_2^{m_2\\times n_2}$. Define\n\\begin{align}\n\\label{eq:hgp-checks}\nH_X&=[H_1\\otimes I_{n_2}\\mid I_{m_1}\\otimes H_2^T],\\\\\nH_Z&=[I_{n_1}\\otimes H_2\\mid H_1^T\\otimes I_{m_2}].\n\\end{align}\nThen $H_XH_Z^T=0$ over $\\mathbb{F}_2$.\n\\end{thm}",
+    "content_sha256": "699f8cfe699b029229cb179dadad5799237a026c40a6d642fb3e755697caed97",
+    "data": {
+      "environment": "thm",
+      "order": 11,
+      "author_claims_formalized": false,
+      "identity_basis": "label",
+      "semantic_context_sha256": "66f00aa7044b5592ababa9b442147fd36d94cb2df26fe437dc876371937d734f"
+    },
+    "review_status": "extracted",
+    "verification_status": "not_verified",
+    "annotations": [
+      {
+        "target": "label:thm:hgp-css",
+        "review_status": "draft",
+        "data": {
+          "normalized_summary_zh": "标准二元普通 HGP 构造满足 CSS 对易条件。",
+          "hypotheses_to_check": [
+            "两个种子矩阵均在 GF(2) 上",
+            "使用原文所写的 Kronecker 拼接约定"
+          ],
+          "formalization_status": "not_started"
+        },
+        "effective_status": "draft"
+      }
+    ],
+    "revision": "6b10f7ab9dc333f357671792e82a56864eb4e13660c636194682772f8d5a8897",
+    "record_path": "nodes/theorem/qec-demo-label-thm-hgp-css--c037c4f8b72adf82.json",
+    "fragment_path": "nodes/theorem/qec-demo-label-thm-hgp-css--c037c4f8b72adf82.tex"
+  },
+  "outgoing": [
+    {
+      "source": "qec-demo:label:thm:hgp-css",
+      "target": "qec-demo:label:def:gf2",
+      "relation": "depends_on_candidate",
+      "status": "candidate",
+      "evidence": {
+        "method": "via_proof",
+        "proof_id": "qec-demo:label:proof:hgp-css",
+        "proof_link_id": "edge:e7632c9f0fade186eeb6c7a5",
+        "reference_id": "edge:1352f3d5da4b95b76133c546"
+      },
+      "id": "edge:050065b1db81cf22fc014f39"
+    },
+    {
+      "source": "qec-demo:label:thm:hgp-css",
+      "target": "source:qec-demo:sections/hgp.tex",
+      "relation": "defined_in",
+      "status": "observed",
+      "evidence": {
+        "source": {
+          "path": "sections/hgp.tex",
+          "char_start": 289,
+          "char_end": 667,
+          "line_start": 9,
+          "line_end": 20
+        }
+      },
+      "id": "edge:19a65a27447006b46e3d5037"
+    },
+    {
+      "source": "qec-demo:label:thm:hgp-css",
+      "target": "qec-demo:label:lem:css-commutation",
+      "relation": "depends_on_candidate",
+      "status": "candidate",
+      "evidence": {
+        "method": "via_proof",
+        "proof_id": "qec-demo:label:proof:hgp-css",
+        "proof_link_id": "edge:e7632c9f0fade186eeb6c7a5",
+        "reference_id": "edge:ce07484a49607cf97864b660"
+      },
+      "id": "edge:1e2e032a2131139b8ad3ea57"
+    },
+    {
+      "source": "qec-demo:label:thm:hgp-css",
+      "target": "qec-demo:label:def:gf2",
+      "relation": "depends_on_candidate",
+      "status": "candidate",
+      "evidence": {
+        "method": "via_proof",
+        "proof_id": "qec-demo:label:proof:hgp-css",
+        "proof_link_id": "edge:e7632c9f0fade186eeb6c7a5",
+        "reference_id": "edge:eedbc859c84b2b611a73a02b"
+      },
+      "id": "edge:2ebd88ae4623ed38d82d19bd"
+    },
+    {
+      "source": "qec-demo:label:thm:hgp-css",
+      "target": "qec-demo:label:eq:hgp-checks",
+      "relation": "contains",
+      "status": "observed",
+      "evidence": {},
+      "id": "edge:5880838c4bf0fbbcccbbc3ad"
+    },
+    {
+      "source": "qec-demo:label:thm:hgp-css",
+      "target": "qec-demo:label:lem:css-commutation",
+      "relation": "depends_on_candidate",
+      "status": "candidate",
+      "evidence": {
+        "method": "via_proof",
+        "proof_id": "qec-demo:label:proof:hgp-css",
+        "proof_link_id": "edge:e7632c9f0fade186eeb6c7a5",
+        "reference_id": "edge:a39ef1f4fa6430af4432d419"
+      },
+      "id": "edge:73a395c70cca9132b71d0c0f"
+    },
+    {
+      "source": "qec-demo:label:thm:hgp-css",
+      "target": "qec-demo:label:def:css",
+      "relation": "depends_on_declared",
+      "status": "declared",
+      "evidence": {
+        "method": "latex_uses",
+        "source": {
+          "path": "sections/hgp.tex",
+          "char_start": 360,
+          "char_end": 374,
+          "line_start": 11,
+          "line_end": 11
+        },
+        "label": "def:css"
+      },
+      "id": "edge:c4d7b6f5142b238fb2744832"
+    }
+  ],
+  "incoming": [
+    {
+      "source": "qec-demo:label:proof:hgp-length",
+      "target": "qec-demo:label:thm:hgp-css",
+      "relation": "depends_on_declared",
+      "status": "declared",
+      "evidence": {
+        "method": "latex_uses",
+        "source": {
+          "path": "sections/hgp.tex",
+          "char_start": 2293,
+          "char_end": 2311,
+          "line_start": 76,
+          "line_end": 76
+        },
+        "label": "thm:hgp-css"
+      },
+      "id": "edge:4a9e5f17485c840e7be76810"
+    },
+    {
+      "source": "qec-demo:label:sec:hgp",
+      "target": "qec-demo:label:thm:hgp-css",
+      "relation": "contains",
+      "status": "observed",
+      "evidence": {},
+      "id": "edge:68df5e2b00c8fd62ed046684"
+    },
+    {
+      "source": "qec-demo:paragraph:anon:24d8674777689c9e",
+      "target": "qec-demo:label:thm:hgp-css",
+      "relation": "references",
+      "status": "observed",
+      "evidence": {
+        "method": "latex_ref",
+        "source": {
+          "path": "sections/hgp.tex",
+          "char_start": 1420,
+          "char_end": 1437,
+          "line_start": 49,
+          "line_end": 49
+        },
+        "label": "thm:hgp-css"
+      },
+      "id": "edge:8141a58093ecc69eb563b540"
+    },
+    {
+      "source": "qec-demo:label:thm:hgp-length",
+      "target": "qec-demo:label:thm:hgp-css",
+      "relation": "depends_on_declared",
+      "status": "declared",
+      "evidence": {
+        "method": "via_proof",
+        "proof_id": "qec-demo:label:proof:hgp-length",
+        "proof_link_id": "edge:a990e0af71bee7cb16140d2c",
+        "reference_id": "edge:4a9e5f17485c840e7be76810"
+      },
+      "id": "edge:a566c2a70c9864b9c4ee9933"
+    },
+    {
+      "source": "qec-demo:label:thm:hgp-length",
+      "target": "qec-demo:label:thm:hgp-css",
+      "relation": "references",
+      "status": "observed",
+      "evidence": {
+        "method": "latex_ref",
+        "source": {
+          "path": "sections/hgp.tex",
+          "char_start": 1173,
+          "char_end": 1190,
+          "line_start": 37,
+          "line_end": 37
+        },
+        "label": "thm:hgp-css"
+      },
+      "id": "edge:c62886d5e6e391a0a0baff90"
+    },
+    {
+      "source": "qec-demo:label:proof:hgp-css",
+      "target": "qec-demo:label:thm:hgp-css",
+      "relation": "proof_of_candidate",
+      "status": "candidate",
+      "evidence": {
+        "method": "adjacent_statement",
+        "source": {
+          "path": "sections/hgp.tex",
+          "char_start": 669,
+          "char_end": 1064,
+          "line_start": 22,
+          "line_end": 33
+        }
+      },
+      "id": "edge:e7632c9f0fade186eeb6c7a5"
+    }
+  ]
+}

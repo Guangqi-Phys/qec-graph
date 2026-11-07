@@ -1,0 +1,157 @@
+{
+  "schema_version": "qecgraph.migration.v1",
+  "adapter_version": "1",
+  "source": "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/knowledge_starter/records",
+  "accepted": [
+    {
+      "input": "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/knowledge_starter/records/claim_rep3_hgp_distance.json",
+      "input_bytes_sha256": "d23b2d2e9ca66f28b299b2bd0ab6150b5b350530c739bc5e76f3b977e569b827",
+      "original_path": "originals/d23b2d2e9ca66f28b299b2bd0ab6150b5b350530c739bc5e76f3b977e569b827.json",
+      "input_schema": "0.1.0",
+      "output_path": "records/749ea8e7a6ee41cdc17427ebdb4c8838bdeaf3ad742f7ac89deb3d95e480abf7.json",
+      "output_schema": "qecgraph.record.v3",
+      "id": "claim:rep3-hgp:distance"
+    },
+    {
+      "input": "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/knowledge_starter/records/code_rep3_hgp.json",
+      "input_bytes_sha256": "01e32b8973d9ffee7fa202d5112285c8e3ac201fd765d5b925478fa47e7a28a8",
+      "original_path": "originals/01e32b8973d9ffee7fa202d5112285c8e3ac201fd765d5b925478fa47e7a28a8.json",
+      "input_schema": "0.1.0",
+      "output_path": "records/9f0306f100af1d51b4a6498c276b908578db80906973f314c9c620b0d94f8aea.json",
+      "output_schema": "qecgraph.record.v3",
+      "id": "code:rep3-hgp:13"
+    },
+    {
+      "input": "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/knowledge_starter/records/construction_rep3_hgp.json",
+      "input_bytes_sha256": "08604fa557a417ea3628a76509a85f2a14d7a869ef6511ac18b3a8fac5f43536",
+      "original_path": "originals/08604fa557a417ea3628a76509a85f2a14d7a869ef6511ac18b3a8fac5f43536.json",
+      "input_schema": "0.1.0",
+      "output_path": "records/d9de4ff2c89e690f95192498ac16e6b004dc1c114fd3ec8376fb368612fbc5cf.json",
+      "output_schema": "qecgraph.record.v3",
+      "id": "construction:rep3-hgp"
+    },
+    {
+      "input": "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/knowledge_starter/records/definition_css.json",
+      "input_bytes_sha256": "014a1dcc670f3e84ffba0cd7af2ea2bddc9f3b8e50f770b47831b338796267ff",
+      "original_path": "originals/014a1dcc670f3e84ffba0cd7af2ea2bddc9f3b8e50f770b47831b338796267ff.json",
+      "input_schema": "0.1.0",
+      "output_path": "records/cb5667a956138d009d2bdf9af58f484487ae370891ba1eda9c9a02a3bcf90385.json",
+      "output_schema": "qecgraph.record.v3",
+      "id": "definition:binary-css"
+    },
+    {
+      "input": "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/knowledge_starter/records/definition_distance.json",
+      "input_bytes_sha256": "eff3625365c81f4eb0f7ade58449fe06e321fc8a1caa35aff7e41e01124e4a51",
+      "original_path": "originals/eff3625365c81f4eb0f7ade58449fe06e321fc8a1caa35aff7e41e01124e4a51.json",
+      "input_schema": "0.1.0",
+      "output_path": "records/9888d0cb491a3488e2eb945532fa613e4a2fc3d4b2775035b19a924800453a45.json",
+      "output_schema": "qecgraph.record.v3",
+      "id": "definition:css-distance"
+    },
+    {
+      "input": "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/knowledge_starter/records/evidence_rep3_hgp.json",
+      "input_bytes_sha256": "396f2df5a3f7af99b3cab113c17cf0cd13ab6792847de1f4fd3fd8c76255a1e4",
+      "original_path": "originals/396f2df5a3f7af99b3cab113c17cf0cd13ab6792847de1f4fd3fd8c76255a1e4.json",
+      "input_schema": "0.1.0",
+      "output_path": "records/9fd39301ca32ed2fd9d1d37a2840ed7eae64be902843593bbe27eff673242f74.json",
+      "output_schema": "qecgraph.record.v3",
+      "id": "evidence:rep3-hgp:enumeration"
+    },
+    {
+      "input": "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/knowledge_starter/records/family_hgp.json",
+      "input_bytes_sha256": "a46044e8f6d6c118810e79aa760670a75c21ae367568fa3894c6c48888d68ca0",
+      "original_path": "originals/a46044e8f6d6c118810e79aa760670a75c21ae367568fa3894c6c48888d68ca0.json",
+      "input_schema": "0.1.0",
+      "output_path": "records/99fb7309b90a189730821c1d2a767e29dfa2d9b5909397646109168e14badd15.json",
+      "output_schema": "qecgraph.record.v3",
+      "id": "family:ordinary-hgp"
+    },
+    {
+      "input": "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/knowledge_starter/records/formalization_rep3_hgp_distance.json",
+      "input_bytes_sha256": "a9f7bc19197c7cd7852e2486f0184ae8563b5c37a3d94bce42b3f821ce536dea",
+      "original_path": "originals/a9f7bc19197c7cd7852e2486f0184ae8563b5c37a3d94bce42b3f821ce536dea.json",
+      "input_schema": "0.1.0",
+      "output_path": "records/64037b499067026760e9e51b5324692c65ce9f3030a1fc0e715fd00c04f038a4.json",
+      "output_schema": "qecgraph.record.v3",
+      "id": "formalization:rep3-hgp:distance"
+    },
+    {
+      "input": "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/knowledge_starter/records/presentation_rep3_hgp.json",
+      "input_bytes_sha256": "b846e3ca5c1a4a13ba7e4fb3b84ad5f9fc7d4795875b862ce5dafadfe76c81ec",
+      "original_path": "originals/b846e3ca5c1a4a13ba7e4fb3b84ad5f9fc7d4795875b862ce5dafadfe76c81ec.json",
+      "input_schema": "0.1.0",
+      "output_path": "records/a793f49d258c1cabdf0966212dbd8c19df07e7d8ea9a41eb3b0263c402cdb221.json",
+      "output_schema": "qecgraph.record.v3",
+      "id": "presentation:rep3-hgp:standard"
+    },
+    {
+      "input": "/Users/guangqi/Workspace/qec-graph/build/final-clean-checkout/knowledge_starter/records/source_hgp.json",
+      "input_bytes_sha256": "729c357dbee7e836af3327818ec7f8b46146724c6891562ebaf402b1d084ea1e",
+      "original_path": "originals/729c357dbee7e836af3327818ec7f8b46146724c6891562ebaf402b1d084ea1e.json",
+      "input_schema": "0.1.0",
+      "output_path": "records/9b95ffedf55eccfbc1c281cc1832ae3dbb4f69d307eb5c5e5cc26b1a50702667.json",
+      "output_schema": "qecgraph.record.v3",
+      "id": "source:tillich-zemor-hgp"
+    }
+  ],
+  "rejected": [],
+  "id_map": {
+    "claim:rep3-hgp:distance": {
+      "id": "claim:rep3-hgp:distance",
+      "revision": "legacy-0.1.0-d23b2d2e9ca66f28b299b2bd0ab6150b5b350530c739bc5e76f3b977e569b827",
+      "content_sha256": "ef64e6868a57559140fdee9e32046719b3a1b486bccba41e12c4993836b41f61"
+    },
+    "code:rep3-hgp:13": {
+      "id": "code:rep3-hgp:13",
+      "revision": "legacy-0.1.0-01e32b8973d9ffee7fa202d5112285c8e3ac201fd765d5b925478fa47e7a28a8",
+      "content_sha256": "06a7f03a1f299cad124ddb61f8658519409b0fd4babbb69c99c989707353c428"
+    },
+    "construction:rep3-hgp": {
+      "id": "construction:rep3-hgp",
+      "revision": "legacy-0.1.0-08604fa557a417ea3628a76509a85f2a14d7a869ef6511ac18b3a8fac5f43536",
+      "content_sha256": "5f6b9ed67af476a221bc3f7a975dd8b5b13d75fb7bcd6eac9f06a25517a82521"
+    },
+    "definition:binary-css": {
+      "id": "definition:binary-css",
+      "revision": "legacy-0.1.0-014a1dcc670f3e84ffba0cd7af2ea2bddc9f3b8e50f770b47831b338796267ff",
+      "content_sha256": "e4bdef63381f9d4362cebdb84b15c93e205dd531629707d57e111a72ff6157a4"
+    },
+    "definition:css-distance": {
+      "id": "definition:css-distance",
+      "revision": "legacy-0.1.0-eff3625365c81f4eb0f7ade58449fe06e321fc8a1caa35aff7e41e01124e4a51",
+      "content_sha256": "dfce2561b3dcaf616b038d9926ff40d30b129312c285c765d21dba2d006bb157"
+    },
+    "evidence:rep3-hgp:enumeration": {
+      "id": "evidence:rep3-hgp:enumeration",
+      "revision": "legacy-0.1.0-396f2df5a3f7af99b3cab113c17cf0cd13ab6792847de1f4fd3fd8c76255a1e4",
+      "content_sha256": "a56910fc0e8dbbc55e6feb771fd06329916efa481b543827f44961790b3949ed"
+    },
+    "family:ordinary-hgp": {
+      "id": "family:ordinary-hgp",
+      "revision": "legacy-0.1.0-a46044e8f6d6c118810e79aa760670a75c21ae367568fa3894c6c48888d68ca0",
+      "content_sha256": "744f01407e4c2f6d407b9a0e46e0253c5291e83707f9c735253dc04661842b2a"
+    },
+    "formalization:rep3-hgp:distance": {
+      "id": "formalization:rep3-hgp:distance",
+      "revision": "legacy-0.1.0-a9f7bc19197c7cd7852e2486f0184ae8563b5c37a3d94bce42b3f821ce536dea",
+      "content_sha256": "426bc11fc7d6201504953f9f6b2b82a0866ad1fbfa808927ce12903aef069602"
+    },
+    "presentation:rep3-hgp:standard": {
+      "id": "presentation:rep3-hgp:standard",
+      "revision": "legacy-0.1.0-b846e3ca5c1a4a13ba7e4fb3b84ad5f9fc7d4795875b862ce5dafadfe76c81ec",
+      "content_sha256": "75d5ca366f99d26a3764a0814067745991ce8c2461c6bf81f2779406c032e056"
+    },
+    "source:tillich-zemor-hgp": {
+      "id": "source:tillich-zemor-hgp",
+      "revision": "legacy-0.1.0-729c357dbee7e836af3327818ec7f8b46146724c6891562ebaf402b1d084ea1e",
+      "content_sha256": "16634a146d2fbce3a994870d4d58e54d0a3ecb30c3ec3a0a41d9e2976d2a83e8"
+    }
+  },
+  "semantic_changes": [
+    "Explicit v3 envelope; legacy relations retain catalog: prefix",
+    "External paths become managed content-addressed asset URIs",
+    "No human review, numerical recheck or Lean status promotion"
+  ],
+  "status": "passed",
+  "suggested_exit_code": 0
+}

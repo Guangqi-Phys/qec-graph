@@ -1,0 +1,18 @@
+{
+  "status": "applied",
+  "receipt": {
+    "schema_version": "qecgraph.application.v1",
+    "proposal_id": "proposal:7edf07694b89a36468c595459ad81f3d25d310794848d52b7afb2af53ed29ed5",
+    "base_registry_revision": "c2af79875d71258d75d7adb120914c21ae9d187896549f413ea693fab0310b05",
+    "registry_revision": "925347a1c9271260a3b54858688639bab4c6ddd39f1d4be7cc3efc2ce7866d2b",
+    "review_id": "review:52bb3466-2588-4f88-ba7c-d23cfb78a559",
+    "review_sha256": "ef1df8d74eaae038375fdd04fbfcf8a33d4b2ac42f6b9d5abe397e4e0cf5aa31",
+    "records": [
+      {
+        "id": "claim:demo:proposal-example",
+        "revision": "1",
+        "content_sha256": "785fb30c17ad9de296dde1f3d9f59a192e244f7f337369765ddec8c989df7a7d"
+      }
+    ]
+  }
+}
