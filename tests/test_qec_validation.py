@@ -69,28 +69,46 @@ class QECValidationTests(unittest.TestCase):
             target.parent.mkdir(parents=True)
             target.write_bytes(raw)
             registry.add_record(record('metric:distance', 'definition', {'statement': 'Binary CSS code distance', 'scope': 'k>0'}))
-            bindings = [{key: registry.record(identifier)[key] for key in ('id', 'revision', 'content_sha256')}
-                        for identifier in ('code:test', 'presentation:test', 'metric:distance')]
-            evidence = record('evidence:test', 'evidence', {'evidence_kind': 'computed_exact', 'method': 'synthetic_fixture',
-                              'inputs': bindings, 'checker': 'synthetic_fixture_only', 'outputs': ['fixture result'],
-                              'scope': 'contract test', 'limitations': ['Not real mathematical evidence'], 'status': 'passed'})
-            registry.add_record(evidence)
             distance = record('claim:distance', 'claim', {'statement': 'Synthetic distance bound', 'hypotheses': [], 'quantifiers': [],
                               'subject_id': 'code:test', 'presentation_id': 'presentation:test', 'metric_definition_id': 'metric:distance',
                               'sector': 'joint', 'relation': 'upper_bound', 'lower_bound': None, 'upper_bound': 12,
                               'assumptions': [], 'method': 'synthetic_fixture'})
             distance['evidence_ids'] = ['evidence:test']
             registry.add_record(distance)
+            bindings = [{key: registry.record(identifier)[key] for key in ('id', 'revision', 'content_sha256')}
+                        for identifier in ('code:test', 'presentation:test', 'metric:distance')]
+            claim = registry.record(distance['id'])
+            upper_binding = {key: claim[key] for key in ('id', 'revision', 'content_sha256')}
+            evidence = record('evidence:test', 'evidence', {'evidence_kind': 'computed_exact', 'method': 'synthetic_fixture',
+                              'inputs': bindings + [upper_binding], 'checker': 'synthetic_fixture_only', 'outputs': ['fixture result'],
+                              'scope': 'contract test', 'limitations': ['Not real mathematical evidence'], 'status': 'passed'})
+            registry.add_record(evidence)
             self.assertEqual(codes(registry.root, distance_at_least=12, metric_definition_id='metric:distance')['results'], [])
             distance['revision'] = '2'
             distance['data'].update(relation='lower_bound', lower_bound=3, upper_bound=None)
             registry.add_record(distance)
+            self.assertEqual(codes(registry.root, distance_at_least=3, metric_definition_id='metric:distance')['results'], [])
+            evidence['revision'] = '2'
+            evidence['data']['inputs'] = bindings
+            registry.add_record(evidence)
+            self.assertEqual(codes(registry.root, distance_at_least=3, metric_definition_id='metric:distance')['results'], [])
+            claim = registry.record(distance['id'])
+            evidence['revision'] = '3'
+            evidence['data']['inputs'] = bindings + [{key: claim[key] for key in ('id', 'revision', 'content_sha256')}]
+            bound_revision = registry.add_record(evidence)['registry_revision']
             result = codes(registry.root, distance_at_least=3, metric_definition_id='metric:distance')
             self.assertEqual(len(result['results']), 1)
             self.assertEqual(result['results'][0]['distance_claims'][0]['evidence'][0]['kind'], 'computed_exact')
             self.assertEqual(codes(registry.root, distance_at_least=3, metric_definition_id='another:metric')['results'], [])
+            distance['revision'] = '3'
+            distance['data']['lower_bound'] = 12
+            registry.add_record(distance)
+            self.assertEqual(codes(registry.root, distance_at_least=12, metric_definition_id='metric:distance')['results'], [])
+            self.assertEqual(len(codes(registry.root, registry_revision=bound_revision, distance_at_least=3,
+                                       metric_definition_id='metric:distance')['results']), 1)
             target.write_bytes(b'changed')
-            self.assertEqual(codes(registry.root, distance_at_least=3, metric_definition_id='metric:distance')['results'], [])
+            self.assertEqual(codes(registry.root, registry_revision=bound_revision, distance_at_least=3,
+                                   metric_definition_id='metric:distance')['results'], [])
             with self.assertRaisesRegex(ValueError, 'metric_definition_id'):
                 codes(registry.root, distance_at_least=3)
         self.assertTrue(distance_issues({'relation': 'exact', 'lower_bound': 3, 'upper_bound': 12}))
@@ -112,6 +130,13 @@ class QECValidationTests(unittest.TestCase):
         result = check_experiment(experiment, metric)
         self.assertEqual(result['estimate'], .05)
         self.assertEqual(result['acceptance_rate'], .8)
+        self.assertTrue(comparable_experiments(experiment, experiment, metric, metric)['comparable'])
+        for config in (None, {}, {'schedule': {'rounds': None}}):
+            unknown = copy.deepcopy(experiment)
+            unknown['data']['configuration'] = config
+            comparison = comparable_experiments(unknown, unknown, metric, metric)
+            self.assertFalse(comparison['comparable'])
+            self.assertIn('configuration_unknown', comparison['differences'])
         changed = copy.deepcopy(experiment)
         changed['data']['input_revisions']['noise']['revision'] = '2'
         self.assertFalse(comparable_experiments(experiment, changed, metric, metric)['comparable'])

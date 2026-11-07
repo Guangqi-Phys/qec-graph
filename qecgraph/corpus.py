@@ -50,7 +50,7 @@ def project(corpus, registry_revision=None, source_version_id=None):
     records = {identifier: registry.record(identifier, registry_revision=fixed) for identifier in sorted(state['records'])}
     reviews = review_states(registry, state, records, fixed)
     from .lean_integration import lean_record_states
-    builds = lean_record_states(registry, state, records)
+    builds = lean_record_states(registry, state, records, reviews)
     for identifier, record in records.items():
         node = {'id': identifier, 'kind': record['kind'], 'title': record['title'],
                       'labels': record['aliases'], 'latex': '', 'data': record['data'], 'record': record,
@@ -110,7 +110,7 @@ def project(corpus, registry_revision=None, source_version_id=None):
                    for endpoint in (node['id'], ref['target'])):
                 status = 'stale'
             if ref['relation'] == 'formalizes' and record['provenance'].get('method') == 'actual_lean_environment_export':
-                matched = record['data'].get('semantic_review') == 'matched' and reviews[node['id']]['effective_status'] == 'reviewed'
+                matched = builds[node['id']]['semantic_review'] == 'matched'
                 if not matched and status not in {'stale', 'unbound_review', 'unresolved'}:
                     status = 'candidate'
             edges.append({'id': 'ref:' + hash_text(canonical([node['id'], ref])), 'source': node['id'],

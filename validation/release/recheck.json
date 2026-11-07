@@ -1,0 +1,125 @@
+{
+  "status": "passed",
+  "handoff_acceptance": "qec_graph_codex_handoff/docs/08_ROADMAP_ACCEPTANCE.md",
+  "reviewed_baseline_commit": "f727466aa7441d2082bdc0c9ad4d8f50e57450bc",
+  "runtime": {
+    "python": "3.15.2",
+    "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "sqlite": "3.54.1",
+    "pylatexenc": "2.10",
+    "fts5_available": true,
+    "jsonschema": "4.26.0"
+  },
+  "tested_changes_sha256": {
+    "qecgraph/cli.py": "8b9d9aa93310491db2e65616de1b6e275669831eb5cca0228aae93c9b40b6810",
+    "qecgraph/corpus.py": "aa5f141289dc9b21a38520577c2194938933183cea58d03bb60f4488e9425f63",
+    "qecgraph/domain_query.py": "db46b4b374cf19b32ee674630c98c5ec5eb05aedf0c453cdcfe0a009e647a5c6",
+    "qecgraph/lean_integration.py": "082d9283dbe5e0fd3eca888fd77f66022b6ea68defa1b509f9ee5d56e39f215f",
+    "qecgraph/validators/qec.py": "6142d6eccdf97d361cab49b840f8896ff4f334c227b17c343aa91a7599dde5b0",
+    "tests/test_lean_integration.py": "8334e721e9ee9c65e290e9927f7509e7e2c6df5c178ec901bb5da3b757f51c1a",
+    "tests/test_qec_validation.py": "92ec748f4fe00bb04749f7f2c81c2bf2f905b05abf747f2f721378dffcc9947b"
+  },
+  "corrected_findings": [
+    {
+      "phase": "P2",
+      "before": "An evidence record with no claim binding could satisfy a changed distance claim.",
+      "regression": "test_upper_bound_never_satisfies_lower_bound_and_current_inputs_required"
+    },
+    {
+      "phase": "P2",
+      "before": "Two experiments with unknown configurations could be marked comparable.",
+      "regression": "test_experiment_postselection_and_sampling_are_not_interchangeable"
+    },
+    {
+      "phase": "P5",
+      "before": "lean-status exposed a machine-proposed matched value as the effective semantic review.",
+      "regression": "test_mapping_requires_bound_claim_and_complete_actual_type",
+      "live_check": {
+        "status": "passed",
+        "record_review": "proposed",
+        "build_binding": {
+          "effective_status": "current",
+          "reasons": [],
+          "build_id": "lean-build:e81c90948bde6bb3ddb8bf1086f842c7e5dfaf57a8d74d5f6d0e709483f906e2",
+          "semantic_review": "not_reviewed",
+          "declared_semantic_review": "matched"
+        },
+        "formalizes_status": "candidate"
+      }
+    }
+  ],
+  "commands": [
+    {
+      "name": "python",
+      "argv": [
+        ".venv/bin/python",
+        "tools/reproduce.py",
+        "--out",
+        "build/handoff-recheck/final/python"
+      ],
+      "exit_code": 0,
+      "generated_report": "build/handoff-recheck/final/python/results.json",
+      "report_sha256": "bdb458cf14c547c92f251b8ed101c57dbbcac0ea3f5630a7d9da755635cadf07"
+    },
+    {
+      "name": "incremental",
+      "argv": [
+        ".venv/bin/python",
+        "tools/reproduce_incremental.py",
+        "--out",
+        "build/handoff-recheck/final/incremental"
+      ],
+      "exit_code": 0,
+      "generated_report": "build/handoff-recheck/final/incremental/run-1b4cbe2e-b093-404f-bb99-a12bf0fdbc80/results.json",
+      "report_sha256": "99fa5f12d3482fd107ddff0cd51742f14e5560fda03b445050208be7b4c5fb87"
+    },
+    {
+      "name": "mcp",
+      "argv": [
+        ".venv/bin/python",
+        "tools/reproduce_mcp.py",
+        "--out",
+        "build/handoff-recheck/final/mcp"
+      ],
+      "exit_code": 0,
+      "generated_report": "build/handoff-recheck/final/mcp/run-ab9e4c69-af36-4ab0-a2a5-b0678d9b28d0/results.json",
+      "report_sha256": "4cfa921662b72a3dc9f2709e10ad4b584dd8d139a4049c419af854b46e31205f"
+    },
+    {
+      "name": "lean",
+      "argv": [
+        ".venv/bin/python",
+        "tools/reproduce_lean_checks.py",
+        "--out",
+        "build/handoff-recheck/final/lean"
+      ],
+      "exit_code": 0,
+      "generated_report": "build/handoff-recheck/final/lean/results.json",
+      "report_sha256": "293b70f6010fee18ad5754a3fe0658dd1c73bb46c10ff84742f92246a79da539"
+    },
+    {
+      "name": "lean_mapping",
+      "argv": [
+        ".venv/bin/python",
+        "tools/reproduce_lean_mapping.py",
+        "--report",
+        "build/handoff-recheck/final/lean/runs/fixed/run-b7519867-f483-41a0-8fa9-30e65619e2d4/report.json",
+        "--out",
+        "build/handoff-recheck/final/mapping"
+      ],
+      "exit_code": 0,
+      "generated_report": "build/handoff-recheck/final/mapping/mapping-replay.json",
+      "report_sha256": "12c780da9cdc59c9899f19b5b255de9954b32cb439ea6f42603d6f4ae0a3abca"
+    }
+  ],
+  "results": {
+    "python_tests": 87,
+    "incremental_recovery": "passed",
+    "mcp_checks": 22,
+    "lean_cases": 10,
+    "lean_mapping": "passed"
+  },
+  "optional_unrun": [
+    "Docker daemon unavailable"
+  ]
+}

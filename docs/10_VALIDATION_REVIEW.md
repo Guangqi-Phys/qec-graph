@@ -47,8 +47,10 @@ CSS 插件只支持 +1 相位的二元 CSS 约定；校验显式形状、坐标�
 非对易矩阵不会获得 CSS 有效结果。此接口不运行 Lean，不写审核记录。
 
 硬筛选先匹配明确 metric_definition_id 和 sector（joint/X/Z），再检查 exact/lower_bound/interval 的已知下界；
-upper_bound、未知下界、缺失表示或无当前证据都不匹配。Evidence 必须绑定当前实例、表示和度量的
-ID/revision/hash，且相关资产可读、哈希一致。输出保留来源报告/计算/证书/Lean 等类别，不统一提升为 verified。
+upper_bound、未知下界、缺失表示或无当前证据都不匹配。Evidence 的 `data.inputs` 必须绑定距离论断、
+实例、表示和度量各自的当前 ID、revision 与内容哈希。相关资产也必须可读且哈希一致。
+已有证据缺少论断绑定时仍可查阅。要在硬筛选中使用，需检查确切论断后登记新证据修订。
+输出保留来源报告、计算、证书或 Lean 的证据类别。
 旧迁移样例的部分输入绑定和 sector 未说明，故默认不满足此严格筛选；应重新执行并登记准确证据，不能只刷新哈希。
 `evidence_ids` 在 v3 中唯一保存在记录信封；旧 data 中同名字段显式迁移，原值仍在历史对象中。
 
@@ -56,7 +58,7 @@ ID/revision/hash，且相关资产可读、哈希一致。输出保留来源报�
 验证错误事件、分母、sector、轮数、边界、后选择、超时和输入绑定结构。
 IID 仅对明确的 accepted_shots 度量计算 failures/accepted，并独立返回接受率；
 importance/MCMC 必须提供估计器和采样信息，不套用 errors/shots。零次失败不能带零概率上界。
-`comparable_experiments` 保守比较精确输入/配置/度量/采样；不做每轮、每逻辑比特换算。
+`comparable_experiments` 保守比较精确输入、配置、度量和采样。空配置、未知配置和含 null 的配置均不能通过可比性检查。
 该插件的输入版本检查是结构检查，调用方需另外解析并核对引用的实际记录；返回明确标示此范围。
 
 ## 提案和决定

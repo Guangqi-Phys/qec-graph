@@ -9,9 +9,8 @@ from .status import review_states
 def evidence_current(registry, evidence, records, required_ids, reviews=None, builds=None):
     data = evidence['data']
     if data.get('evidence_kind') == 'lean_build':
-        if not builds or builds.get(evidence['id'], {}).get('effective_status') != 'current' or data.get('semantic_review') != 'matched':
-            return False
-        if not reviews or reviews[evidence['id']]['effective_status'] != 'reviewed' or data.get('axiom_policy_status') != 'allowed':
+        binding = (builds or {}).get(evidence['id'], {})
+        if binding.get('semantic_review') != 'matched' or data.get('axiom_policy_status') != 'allowed':
             return False
     if reviews and reviews[evidence['id']]['effective_status'] in {'stale', 'disputed'}:
         return False
@@ -65,7 +64,7 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
     records = {identifier: registry.record(identifier, registry_revision=fixed) for identifier in state['records']}
     reviews = review_states(registry, state, records, fixed)
     from .lean_integration import lean_record_states
-    builds = lean_record_states(registry, state, records)
+    builds = lean_record_states(registry, state, records, reviews)
     results = []
     for identifier, code in sorted(records.items()):
         if code['kind'] != 'code_instance':
@@ -96,7 +95,7 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
                     continue
                 if measurement['presentation_id'] not in (data.get('presentation_ids') or []):
                     continue
-                required = [identifier, measurement['presentation_id'], metric_definition_id]
+                required = [identifier, measurement['presentation_id'], metric_definition_id, claim_id]
                 evidence = [records[e] for e in claim['evidence_ids'] if e in records and records[e]['kind'] == 'evidence'
                             and evidence_current(registry, records[e], records, required, reviews, builds)]
                 if evidence:
@@ -111,5 +110,5 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
                         'review_status': code['review']['status'], 'distance_claims': matching})
     return {'scope': {'registry_revision': fixed, 'metric_definition_id': metric_definition_id, 'sector': sector},
             'results': results[:limit], 'truncated': len(results) > limit,
-            'evidence_policy': 'Known lower bound with current explicit input bindings; evidence categories are not promoted',
+            'evidence_policy': 'Known lower bound with evidence bound to the current claim, instance, presentation and metric revisions',
             'absence_note': 'No qualifying record in this fixed scope; not a nonexistence result'}

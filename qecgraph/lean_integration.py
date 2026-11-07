@@ -240,7 +240,7 @@ def import_build(corpus, report_path, *, project_id, project=None, mappings=None
             'formalization_ids': mapping_records, 'freshness': 'historical' if historical else 'current', 'semantic_review': 'not_reviewed'}
 
 
-def lean_record_states(registry, state, records):
+def lean_record_states(registry, state, records, reviews):
     """Recompute freshness by reading pinned artifacts/explicit project inputs; never execute Lean."""
     projects = {}
     for project_id, entry in state.get('lean_projects', {}).items():
@@ -329,6 +329,9 @@ def lean_record_states(registry, state, records):
                             raise ValueError('Original statement no longer matches')
                     except (OSError, ValueError, KeyError) as exc:
                         reasons.append({'code': 'lean_mapping_source_changed', 'message': str(exc)})
+        declared_review = data.get('semantic_review', 'not_reviewed')
+        semantic_review = declared_review if not reasons and reviews[identifier]['effective_status'] == 'reviewed' else 'not_reviewed'
         result[identifier] = {'effective_status': 'stale' if reasons else 'current', 'reasons': reasons,
-                              'build_id': data.get('build_id'), 'semantic_review': data.get('semantic_review', 'not_reviewed')}
+                              'build_id': data.get('build_id'), 'semantic_review': semantic_review,
+                              'declared_semantic_review': declared_review}
     return result

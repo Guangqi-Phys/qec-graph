@@ -54,8 +54,9 @@ manifest；第三方包内容的绑定未实现。命令日志从第 22 步报�
 只能作为历史读取。上下文保留完整陈述/领域数据，关系从经状态筛选的 edges 读取；原始 refs 和 review
 保留于审计 show。受预算限制时查询报告截断或不能容纳完整根节点。
 
-`formalizes` 和来源对应仍为候选，编译器不替代独立人工语义审核。未审核的 Lean build 不会满足
-距离下界等硬查询。实测映射回放见 `validation/p5/step22/`。
+`lean-status` 和查询结果的 `build_binding.semantic_review` 报告当前构建及有效人工审核所支持的结论。
+`declared_semantic_review` 保留记录里的提议或历史值。演示的 `formalizes` 和来源对应仍为候选。
+距离硬筛选要求有效的语义审核、构建绑定和明确的距离论断证据。实测映射回放见 `validation/p5/step22/`。
 
 ## 信任与失效反例
 

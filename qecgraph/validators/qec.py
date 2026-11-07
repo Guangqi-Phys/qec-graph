@@ -180,11 +180,22 @@ def check_experiment(record, metric):
     return result
 
 
+def _has_unknown(value):
+    if isinstance(value, dict):
+        return any(_has_unknown(item) for item in value.values())
+    if isinstance(value, list):
+        return any(_has_unknown(item) for item in value)
+    return value is None
+
+
 def comparable_experiments(first, second, first_metric, second_metric):
     check_experiment(first, first_metric)
     check_experiment(second, second_metric)
     keys = ('input_revisions', 'configuration', 'metric')
     differences = [key for key in keys if canonical(first['data'][key]) != canonical(second['data'][key])]
+    configurations = (first['data']['configuration'], second['data']['configuration'])
+    if any(not isinstance(config, dict) or not config or _has_unknown(config) for config in configurations):
+        differences.append('configuration_unknown')
     if canonical(first_metric) != canonical(second_metric):
         differences.append('metric_definition')
     if canonical(first['data']['sampling']) != canonical(second['data']['sampling']):

@@ -8,6 +8,7 @@ from qecgraph.corpus import project
 from qecgraph.graph import read_json
 from qecgraph.lean_integration import import_build, inspect_build
 from qecgraph.registry import Registry
+from qecgraph.review import apply, create_proposal, decide
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = ROOT / 'validation/p5/step21'
@@ -60,6 +61,19 @@ class LeanIntegrationTests(unittest.TestCase):
         self.assertEqual(record['data']['planned_dependencies'], ['def:boolean-dot'])
         self.assertEqual(self.registry.record(mapping['claim_id']), claim['record'])
         self.assertEqual(next(ref for ref in record['refs'] if ref['relation'] == 'formalizes')['status'], 'candidate')
+
+        proposed = {key: value for key, value in record.items() if key != 'content_sha256'}
+        proposed.update(revision='proposed-match', data={**record['data'], 'semantic_review': 'matched'})
+        actor = {'id': 'ai-fixture', 'kind': 'ai'}
+        proposal = create_proposal(self.registry.root, [{'record': proposed, 'expected_revision': record['revision'],
+                                   'expected_content_sha256': record['content_sha256']}],
+                                   actor=actor, rationale='Fixture for an unreviewed semantic claim')
+        review = decide(self.registry.root, proposal['id'], actor=actor, decision='approve', rationale='Machine decision fixture')
+        apply(self.registry.root, proposal['id'], review['id'])
+        graph, _ = project(self.registry.root)
+        binding = query.show(graph, mapping['id'])['node']['build_binding']
+        self.assertEqual(binding['declared_semantic_review'], 'matched')
+        self.assertEqual(binding['semantic_review'], 'not_reviewed')
 
     def test_build_only_and_altered_inputs_cannot_be_imported(self):
         with self.assertRaisesRegex(ValueError, 'actual validated build'):
