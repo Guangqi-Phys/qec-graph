@@ -100,6 +100,14 @@ class ResearchTests(unittest.TestCase):
             make_record('circuit_protocol', 'circuit:bad', 'r1',
                         {'depth_metrics': [{'kind': 'tick_count', 'unit': 'ns', 'value': 4, 'definition': 'TICK'}]},
                         source=source, method='fixture')
+        depth = {'kind': 'tick_count', 'unit': 'ticks', 'value': 4.0, 'definition': 'TICK'}
+        with self.assertRaisesRegex(ValueError, 'Counted depth must use an integer'):
+            make_record('circuit_protocol', 'circuit:bad', 'r1', {'depth_metrics': [depth]},
+                        source=source, method='fixture')
+        duration = {'kind': 'physical_duration', 'unit': 'ns', 'value': 4.5, 'definition': 'Elapsed duration'}
+        accepted = make_record('circuit_protocol', 'circuit:duration', 'r1', {'depth_metrics': [duration]},
+                               source=source, method='fixture')
+        self.assertEqual(accepted['data']['depth_metrics'], [duration])
 
     def test_formula_with_unknown_seed_does_not_prove_reconstruction(self):
         source = ref(self.rows[0])
@@ -118,6 +126,33 @@ class ResearchTests(unittest.TestCase):
                              {'reconstruction_status': 'complete', 'matrix_recipe': recipe},
                              source=source, method='fixture')
         self.assertEqual(record['data']['matrix_recipe'], recipe)
+        with self.assertRaisesRegex(ValueError, 'Matrix dimensions must be integers'):
+            make_record('construction', 'construction:bad', 'r1',
+                        {'reconstruction_status': 'complete', 'matrix_recipe': {**recipe, 'shape': [2.0, 2]}},
+                        source=source, method='fixture')
+
+    def test_check_weight_metrics_require_ordered_statistics_and_exact_counts(self):
+        source = ref(self.rows[0])
+        weights = {'check_set_id': 'checks:demo', 'sector': 'X', 'scope': 'stabilizer',
+                   'min': 1, 'max': 3, 'mean': 2.5, 'histogram': {'1': 1, '3': 3}}
+        data = {'code_ref': None, 'check_weight_metrics': [weights]}
+        record = make_record('code_presentation', 'presentation:weights', 'r1', data, source=source, method='fixture')
+        self.assertEqual(record['data']['check_weight_metrics'], [weights])
+        for changed, message in (({'min': 1.0}, 'min/max must be nonnegative integers'),
+                                 ({'min': 4}, 'statistics disagree'),
+                                 ({'mean': 4.5}, 'statistics disagree'),
+                                 ({'histogram': {'1': 3.0}}, 'histogram requires nonnegative')):
+            with self.subTest(changed=changed), self.assertRaisesRegex(ValueError, message):
+                make_record('code_presentation', 'presentation:weights', 'r1',
+                            {**data, 'check_weight_metrics': [{**weights, **changed}]}, source=source, method='fixture')
+
+    def test_confidence_interval_requires_ordered_endpoints(self):
+        point = next(row for row in self.rows if row['kind'] == 'performance_point')
+        source = ref(self.rows[0])
+        interval = {'method': 'fixture', 'lower': .8, 'upper': .2, 'level': .95}
+        with self.assertRaisesRegex(ValueError, 'Confidence interval endpoints are out of order'):
+            make_record('performance_point', 'point:interval', 'r1', {**point['data'], 'confidence_interval': interval},
+                        source=source, method='fixture', synthetic=True)
 
     def test_domain_shapes_do_not_replace_numeric_consistency_checks(self):
         source = ref(self.rows[0])
