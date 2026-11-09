@@ -67,3 +67,23 @@ class SourcePackageTests(unittest.TestCase):
             with self.subTest(expected=expected), self.assertRaises(PackageError) as error:
                 unpack(raw)
             self.assertEqual(error.exception.status, expected)
+
+    def test_gzip_accepts_split_members_and_checks_crc_and_expanded_limit(self):
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, 'w', compression=zipfile.ZIP_DEFLATED) as output:
+            output.writestr('main.tex', TEX)
+        zip_raw = buf.getvalue()
+        wrapped_zip = unpack(gzip.compress(zip_raw[:10]) + gzip.compress(zip_raw[10:]))
+        self.assertEqual((wrapped_zip.format, wrapped_zip.files), ('gzip_zip', {'main.tex': TEX}))
+
+        tar = tar_bytes({'main.tex': TEX}).ljust((4 << 20) + len(TEX), b'\0')
+        limits = Limits(expanded_bytes=len(TEX))
+        package = gzip.compress(tar)
+        self.assertEqual(unpack(package, limits).files, {'main.tex': TEX})
+        broken_crc = package[:-8] + bytes([package[-8] ^ 1]) + package[-7:]
+        for raw, status in ((broken_crc, 'damaged_archive'),
+                            (gzip.compress(tar[:-1] + b'x'), 'damaged_archive'),
+                            (gzip.compress(tar + b'\0'), 'limit_exceeded')):
+            with self.subTest(status=status), self.assertRaises(PackageError) as error:
+                unpack(raw, limits)
+            self.assertEqual(error.exception.status, status)

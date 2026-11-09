@@ -9,6 +9,7 @@ from pathlib import Path, PurePosixPath
 import re
 import stat
 import tarfile
+import tempfile
 import unicodedata
 import zipfile
 import zlib
@@ -144,51 +145,75 @@ class _TreeBuilder:
         self.size += len(raw)
 
 
+_CHUNK_BYTES = 256 << 10
+
+
+def _unpack(stream, size, compressed, limits):
+    prefix = stream.read(262)
+    stream.seek(0)
+    tree = _TreeBuilder(limits)
+    if prefix.startswith((b'PK\x03\x04', b'PK\x05\x06', b'PK\x07\x08')):
+        with zipfile.ZipFile(stream) as archive:
+            for item in archive.infolist():
+                mode = stat.S_IFMT(item.external_attr >> 16)
+                if item.flag_bits & 1 or mode not in (0, stat.S_IFREG, stat.S_IFDIR):
+                    raise PackageError('unsafe_archive', 'Encrypted or special ZIP member')
+                if item.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED):
+                    raise PackageError('unsupported_format', 'ZIP member must be stored or DEFLATE')
+                tree.add(item.orig_filename, item.is_dir(), item.file_size, lambda: archive.open(item))
+        return SourceTree('gzip_zip' if compressed else 'zip', tree.files)
+    try:
+        archive = tarfile.open(fileobj=stream, mode='r:')
+    except tarfile.ReadError as exc:
+        if prefix[257:262] == b'ustar':
+            raise PackageError('damaged_archive', 'Invalid tar header') from exc
+    else:
+        with archive:
+            for item in archive:
+                if item.type not in (tarfile.REGTYPE, tarfile.AREGTYPE, tarfile.DIRTYPE) or item.issparse():
+                    raise PackageError('unsafe_archive', 'Linked or special tar member')
+                tree.add(item.name, item.isdir(), item.size, lambda: archive.extractfile(item))
+            trailer_size = size - archive.offset
+            if trailer_size < 1024:
+                raise PackageError('damaged_archive', 'Tar missing a valid zero-block trailer')
+            stream.seek(archive.offset)
+            while chunk := stream.read(_CHUNK_BYTES):
+                if chunk.count(0) != len(chunk):
+                    raise PackageError('damaged_archive', 'Tar missing a valid zero-block trailer')
+        return SourceTree('tar.gz' if compressed else 'tar', tree.files)
+    stream.seek(0)
+    raw = stream.read()
+    if _NON_TEX_PREFIX.match(raw) or b'\x00' in raw:
+        raise PackageError('unsupported_format', 'Expected TeX source, not PDF, HTML or binary data')
+    try:
+        text = _tex_body(raw)
+    except UnicodeDecodeError as exc:
+        raise PackageError('unsupported_format', 'Standalone source is not UTF-8 TeX') from exc
+    if not _TEX.search(text):
+        raise PackageError('unsupported_format', 'No recognizable standalone TeX syntax')
+    if len(raw) > min(limits.member_bytes, limits.expanded_bytes):
+        raise PackageError('limit_exceeded', 'Standalone source exceeds expanded byte limit')
+    return SourceTree('gzip_tex' if compressed else 'tex', {'main.tex': raw})
+
+
 def unpack(raw, limits=Limits()):
     if len(raw) > limits.input_bytes:
         raise PackageError('limit_exceeded', 'Input package exceeds byte limit')
-    compressed = raw.startswith(b'\x1f\x8b')
     try:
-        if compressed:
-            with gzip.GzipFile(fileobj=io.BytesIO(raw)) as stream:
-                # Bound the entire tar stream, including headers and padding.
-                raw = read_bounded(stream, limits.expanded_bytes + 4 * 1024 * 1024)
-        tree = _TreeBuilder(limits)
-        if raw.startswith((b'PK\x03\x04', b'PK\x05\x06', b'PK\x07\x08')):
-            with zipfile.ZipFile(io.BytesIO(raw)) as archive:
-                for item in archive.infolist():
-                    mode = stat.S_IFMT(item.external_attr >> 16)
-                    if item.flag_bits & 1 or mode not in (0, stat.S_IFREG, stat.S_IFDIR):
-                        raise PackageError('unsafe_archive', 'Encrypted or special ZIP member')
-                    if item.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED):
-                        raise PackageError('unsupported_format', 'ZIP member must be stored or DEFLATE')
-                    tree.add(item.orig_filename, item.is_dir(), item.file_size, lambda: archive.open(item))
-            return SourceTree('gzip_zip' if compressed else 'zip', tree.files)
-        try:
-            archive = tarfile.open(fileobj=io.BytesIO(raw), mode='r:')
-        except tarfile.ReadError as exc:
-            if raw[257:262] == b'ustar':
-                raise PackageError('damaged_archive', 'Invalid tar header') from exc
-        else:
-            with archive:
-                for item in archive:
-                    if item.type not in (tarfile.REGTYPE, tarfile.AREGTYPE, tarfile.DIRTYPE) or item.issparse():
-                        raise PackageError('unsafe_archive', 'Linked or special tar member')
-                    tree.add(item.name, item.isdir(), item.size, lambda: archive.extractfile(item))
-                trailer_size = len(raw) - archive.offset
-                if trailer_size < 1024 or raw.count(0, archive.offset) != trailer_size:
-                    raise PackageError('damaged_archive', 'Tar missing a valid zero-block trailer')
-            return SourceTree('tar.gz' if compressed else 'tar', tree.files)
-        if _NON_TEX_PREFIX.match(raw) or b'\x00' in raw:
-            raise PackageError('unsupported_format', 'Expected TeX source, not PDF, HTML or binary data')
-        try:
-            text = _tex_body(raw)
-        except UnicodeDecodeError as exc:
-            raise PackageError('unsupported_format', 'Standalone source is not UTF-8 TeX') from exc
-        if not _TEX.search(text):
-            raise PackageError('unsupported_format', 'No recognizable standalone TeX syntax')
-        if len(raw) > min(limits.member_bytes, limits.expanded_bytes):
-            raise PackageError('limit_exceeded', 'Standalone source exceeds expanded byte limit')
-        return SourceTree('gzip_tex' if compressed else 'tex', {'main.tex': raw})
+        with io.BytesIO(raw) as source:
+            if not raw.startswith(b'\x1f\x8b'):
+                return _unpack(source, len(raw), False, limits)
+            # Bound headers and padding too. Spill large expanded streams to a
+            # temporary file, then reuse that stream for format detection.
+            maximum = limits.expanded_bytes + (4 << 20)
+            with gzip.GzipFile(fileobj=source) as compressed, tempfile.SpooledTemporaryFile(max_size=4 << 20) as expanded:
+                size = 0
+                while chunk := compressed.read(min(_CHUNK_BYTES, maximum - size + 1)):
+                    size += len(chunk)
+                    if size > maximum:
+                        raise PackageError('limit_exceeded', 'Source byte limit exceeded')
+                    expanded.write(chunk)
+                expanded.seek(0)
+                return _unpack(expanded, size, True, limits)
     except (tarfile.TarError, zipfile.BadZipFile, EOFError, OSError, zlib.error, NotImplementedError) as exc:
         raise PackageError('damaged_archive', f'Could not read archive: {exc}') from exc
