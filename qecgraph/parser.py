@@ -853,6 +853,28 @@ class _ProjectParser:
             self.metadata(child, path, block["key"], sections)
         return block["key"]
 
+    def emit_section(self, node, path, owner, sections, text):
+        level = _SECTIONS[node.macroname]
+        while sections and sections[-1][0] >= level:
+            sections.pop()
+        block = self.make_block("section", path, node.pos, node.pos + node.len, self.parent(owner, sections),
+                                None, _last_arg(node, text))
+        block["section_level"] = level
+        sections.append((level, block["key"]))
+        for arg in _args(node):
+            if arg is not None:
+                self.metadata(arg, path, block["key"], sections)
+        return block["key"]
+
+    def extend_section_span(self, target, path, stop, text):
+        block = self.by_key[target]
+        source = block["source"]
+        # A label following a heading belongs to that heading. Include its
+        # exact source in the heading's span for reliable citation.
+        if block["kind"] == "section" and source["path"] == path and source["char_end"] <= stop:
+            block["source"] = self.span(path, source["char_start"], stop)
+            block["latex"] = text[source["char_start"]:stop]
+
     def process(self, nodes, path, owner, sections, *, body=True):
         text = self.files[path]["text"]
         buffer = []
@@ -883,12 +905,7 @@ class _ProjectParser:
                 target = block["key"]
                 last_anchor = target
             elif target is not None and buffer:
-                block = self.by_key[target]
-                # A label following a heading belongs to that heading. Include
-                # its exact source in the heading's span for reliable citation.
-                if block["kind"] == "section" and block["source"]["path"] == path and block["source"]["char_end"] <= end:
-                    block["source"] = self.span(path, block["source"]["char_start"], end)
-                    block["latex"] = text[block["source"]["char_start"]:end]
+                self.extend_section_span(target, path, end, text)
             for buffered in buffer:
                 self.metadata(buffered, path, target, sections)
             buffer, begin, end, meaningful = [], None, None, False
@@ -919,27 +936,11 @@ class _ProjectParser:
                     and last_anchor is not None):
                 flush()
                 self.metadata(node, path, last_anchor, sections)
-                anchor = self.by_key[last_anchor]
-                if anchor["kind"] == "section" and anchor["source"]["path"] == path:
-                    stop = node.pos + node.len
-                    if anchor["source"]["char_end"] <= stop:
-                        anchor["source"] = self.span(path, anchor["source"]["char_start"], stop)
-                        anchor["latex"] = text[anchor["source"]["char_start"]:stop]
+                self.extend_section_span(last_anchor, path, node.pos + node.len, text)
                 continue
             if isinstance(node, LatexMacroNode) and node.macroname in _SECTIONS:
                 flush()
-                level = _SECTIONS[node.macroname]
-                while sections and sections[-1][0] >= level:
-                    sections.pop()
-                parent = self.parent(owner, sections)
-                block = self.make_block("section", path, node.pos, node.pos + node.len, parent,
-                                        None, _last_arg(node, text))
-                block["section_level"] = level
-                sections.append((level, block["key"]))
-                last_anchor = block["key"]
-                for arg in _args(node):
-                    if arg is not None:
-                        self.metadata(arg, path, last_anchor, sections)
+                last_anchor = self.emit_section(node, path, owner, sections, text)
                 continue
             if isinstance(node, LatexEnvironmentNode) and self.kind_of_environment(node.environmentname):
                 flush()
