@@ -308,8 +308,7 @@ class Workspace:
         with writer_lock(self.registry.root):
             from .workspace_query import check_machine_tree
             check_machine_tree(self.registry.root)
-            old = self.registry.read()[1] if self.path('machine/CURRENT.json').exists() else None
-            state = self.registry._state_or_empty()
+            state, old = self.registry._state_and_revision()
             previous = copy.deepcopy(state.get('materials', {}))
             materials = state.setdefault('materials', {})
             state['workspace_id'] = cfg['workspace_id']

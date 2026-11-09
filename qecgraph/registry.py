@@ -38,8 +38,15 @@ class Registry:
         return state, revision
 
     def _state_or_empty(self):
-        existing = (self.root / 'CURRENT.json').exists()
-        state = self.read()[0] if existing else empty_state()
+        state, _ = self._state_and_revision()
+        return state
+
+    def _state_and_revision(self):
+        pointer = self.root / 'CURRENT.json'
+        if pointer.is_symlink():
+            raise ValueError('The registry pointer cannot be a symlink')
+        existing = pointer.exists()
+        state, fixed = self.read() if existing else (empty_state(), None)
         marker = self.root / '.qecgraph-registry.json'
         if marker.exists():
             identity = read_json(marker)
@@ -55,7 +62,7 @@ class Registry:
         if state.get('corpus_id', identity['corpus_id']) != identity['corpus_id']:
             raise ValueError('Corpus identity differs from its marker')
         state['corpus_id'] = identity['corpus_id']
-        return state
+        return state, fixed
 
     def prepare_publication(self, state):
         revision = hash_text(canonical(state))
