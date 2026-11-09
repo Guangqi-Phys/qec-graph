@@ -500,7 +500,7 @@ def _hash_snapshot_output(root, relative, directory_fd, copy_to):
         return hashlib.sha256(output.read()).hexdigest()
 
 
-def _validate_output_hashes(root, outputs, captured, resources, copy_to):
+def _validate_output_hashes(root, outputs, captured, required, copy_to):
     seen = set()
     for folder, group in groupby(outputs, key=lambda row: row["path"].rpartition("/")[0]):
         directory_fd = None
@@ -520,12 +520,13 @@ def _validate_output_hashes(root, outputs, captured, resources, copy_to):
                     digest = _hash_snapshot_output(root, relative, directory_fd, copy_to)
                 if digest != output["sha256"]:
                     raise ValueError(f"Snapshot file changed: {relative}")
-                if digest != resources.get(relative, digest):
-                    raise ValueError(f"Resource hash mismatch: {relative}")
+                expected_digest = required.get(relative)
+                if expected_digest is not None and digest != expected_digest:
+                    raise ValueError(f"Snapshot output does not match the archived source: {relative}")
         finally:
             if directory_fd is not None:
                 os.close(directory_fd)
-    missing = {"graph.sqlite", *captured, *resources} - seen
+    missing = {*captured, *required} - seen
     if missing:
         raise ValueError(f"Required snapshot outputs missing: {', '.join(sorted(missing))}")
 
@@ -573,8 +574,8 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_has
             raise ValueError("Source hash mismatch")
         sources[path] = raw.decode("utf-8")
         captured[relative] = digest
-    resources = {"assets/" + row["path"]: row["sha256"] for row in manifest["resources"]}
-    _validate_output_hashes(output_root, manifest["outputs"], captured, resources, copy_to)
+    required = {"assets/" + row["path"]: row["sha256"] for row in manifest["resources"]}
+    required["graph.sqlite"] = None
     source_lines = {}
     nodes = {n["id"]: n for n in graph["nodes"]}
     if len(nodes) != len(graph["nodes"]):
@@ -599,6 +600,13 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_has
                 raise ValueError("Fragment hash mismatch")
         if node["verification_status"] == "verified":
             raise ValueError("This extractor must not claim mathematical verification")
+        if record_path := node.get("record_path"):
+            required.setdefault(record_path, None)
+        if fragment_path := node.get("fragment_path"):
+            fragment_hash = node["content_sha256"] if span else hash_text(node["latex"])
+            if required.setdefault(fragment_path, fragment_hash) != fragment_hash:
+                raise ValueError(f"Conflicting snapshot output bindings: {fragment_path}")
+    _validate_output_hashes(output_root, manifest["outputs"], captured, required, copy_to)
     for label, ids in graph["labels"].items():
         if any(label not in nodes[i]["labels"] for i in ids):
             raise ValueError("Label ownership mismatch")
