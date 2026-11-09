@@ -98,6 +98,22 @@ class PipelineSemanticsTests(unittest.TestCase):
         )
         return path
 
+    def test_rehashed_resource_cannot_keep_the_original_snapshot_identity(self):
+        _, _, snapshot = self._write_project(
+            r"\includegraphics{figure.svg}", {"figure.svg": "<svg>original</svg>"}
+        )
+        replacement = b"<svg>modified</svg>"
+        (snapshot / "assets/figure.svg").write_bytes(replacement)
+        manifest_path = snapshot / "manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        digest = hashlib.sha256(replacement).hexdigest()
+        resource, = manifest["resources"]
+        resource["sha256"] = digest
+        next(output for output in manifest["outputs"] if output["path"] == "assets/figure.svg")["sha256"] = digest
+        manifest_path.write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(ValueError, "Project source fingerprint mismatch"):
+            validate_snapshot(snapshot)
+
     def test_demo_has_exact_real_labels_and_ignores_comment_and_verbatim_ghosts(self):
         _, graph, _ = self._demo()
         self.assertEqual(set(graph["labels"]), set(EXPECTED_LABEL_KINDS))

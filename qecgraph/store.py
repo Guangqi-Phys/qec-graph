@@ -23,6 +23,11 @@ def write_json(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _project_source_hash(entry, sources, resources, config):
+    return hash_text(canonical({"entry": entry, "sources": sources, "resources": resources,
+                                "parser_config": config}))
+
+
 def safe_relative(root, relative):
     return _safe_relative_to_resolved(root.resolve(), relative)
 
@@ -211,8 +216,7 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
         resource["size_bytes"] = len(resource_bytes[path])
     source_manifest = [{"path": path, "sha256": hashlib.sha256(raw).hexdigest()} for path, raw in sorted(source_bytes.items())]
     resource_manifest = [{"path": path, "sha256": digest} for path, digest in sorted(resource_digests.items())]
-    project_source_hash = hash_text(canonical({"entry": parsed["entry"], "sources": source_manifest,
-                                              "resources": resource_manifest, "parser_config": config}))
+    project_source_hash = _project_source_hash(parsed["entry"], source_manifest, resource_manifest, config)
     package_root = Path(__file__).parent
     tool_sources = {str(path.relative_to(package_root)): hashlib.sha256(path.read_bytes()).hexdigest()
                     for path in sorted(package_root.rglob('*')) if path.suffix in {'.py', '.json'}}
@@ -392,13 +396,29 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None):
     expected = expected_snapshot_id or snapshot.name
     if graph["snapshot_id"] != expected or manifest["snapshot_id"] != expected:
         raise ValueError("Snapshot identity mismatch")
-    if hash_text(canonical(manifest["fingerprint_inputs"])) != expected:
+    fingerprint = manifest["fingerprint_inputs"]
+    if hash_text(canonical(fingerprint)) != expected:
         raise ValueError("Snapshot fingerprint mismatch")
+    config_relative = "inputs/parser_config.json"
+    config_path = _safe_relative_to_resolved(output_root, config_relative)
+    config_bytes = config_path.read_bytes()
+    config = strict_json_loads(config_bytes.decode("utf-8"), source=str(config_path))
+    source_hash = _project_source_hash(graph["entry"], manifest["source_files"], manifest["resources"], config)
+    if (source_hash != fingerprint["project_source_hash"] or source_hash != graph["project_source_hash"]
+            or graph["project_id"] != fingerprint["project_id"]):
+        raise ValueError("Project source fingerprint mismatch")
+    captured = {"graph.json": graph_bytes, config_relative: config_bytes}
+    resources = {"assets/" + row["path"]: row["sha256"] for row in manifest["resources"]}
     for output in manifest["outputs"]:
         relative = output["path"]
-        raw = graph_bytes if relative == "graph.json" else _safe_relative_to_resolved(output_root, relative).read_bytes()
-        if hashlib.sha256(raw).hexdigest() != output["sha256"]:
+        raw = captured[relative] if relative in captured else _safe_relative_to_resolved(output_root, relative).read_bytes()
+        digest = hashlib.sha256(raw).hexdigest()
+        if digest != output["sha256"]:
             raise ValueError(f"Snapshot file changed: {output['path']}")
+        if digest != resources.pop(relative, digest):
+            raise ValueError(f"Resource hash mismatch: {relative}")
+    if resources:
+        raise ValueError(f"Resources missing from snapshot outputs: {', '.join(sorted(resources))}")
     sources = {}
     source_root = (snapshot / "sources").resolve()
     for source in manifest["source_files"]:
