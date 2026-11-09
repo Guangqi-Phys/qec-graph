@@ -247,6 +247,17 @@ class CLIContractTests(unittest.TestCase):
             self.assertEqual(set(rows['stored_states']), {current, candidate})
             self.assertTrue(rows['includes_unpublished_candidates'])
             self.assertEqual(pointer.read_bytes(), original)
+
+            status = root / 'machine/operational/status.json'
+            for invalid in ('{', '[]', '{"human":null}'):
+                status.write_text(invalid, encoding='utf-8')
+                diagnosis = report('doctor', '--workspace', str(root), '--json', expected=1)
+                self.assertEqual(diagnosis['release_id'], current)
+                check = diagnosis['checks']['renderer']
+                self.assertEqual(check['status'], 'error')
+                self.assertIn(str(status), check['message'])
+                self.assertEqual(status.read_text(), invalid)
+
             pointer.write_text('{', encoding='utf-8')
             diagnosis = report('doctor', '--workspace', str(root), '--json', expected=1)
             self.assertEqual(diagnosis['checks']['machine/CURRENT.json']['status'], 'error')

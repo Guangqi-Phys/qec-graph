@@ -9,6 +9,7 @@ from . import __version__
 from .graph import read_json
 from .registry import Registry
 from .store import current_snapshot
+from .transactions import ManagedDataError
 from .workspace import HEX, JOB, Workspace
 from .workspace_query import check_machine_tree
 
@@ -61,7 +62,13 @@ def doctor(workspace):
         operational = ws.path('machine/operational/status.json')
         if operational.is_file():
             def renderer():
-                data = read_json(operational).get('human', {})
+                try:
+                    status = read_json(operational)
+                except ValueError as exc:
+                    raise ManagedDataError(operational, 'Invalid renderer status JSON') from exc
+                if not isinstance(status, dict) or not isinstance(status.get('human', {}), dict):
+                    raise ManagedDataError(operational, 'Invalid renderer status record')
+                data = status.get('human', {})
                 return {'renderer_status': ('current' if data.get('status') == 'current'
                                              and data.get('rendered_release_id') == release else 'human_stale')}
 
