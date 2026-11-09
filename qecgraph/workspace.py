@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from datetime import datetime, timezone
+import errno
 import hashlib
 import os
 from pathlib import Path
@@ -156,6 +157,12 @@ class WorkspaceConfigError(ManagedDataError):
         super().__init__(path, message)
 
 
+class InputDestinationExists(ValueError):
+    def __init__(self, source, destination):
+        self.source, self.destination = source, destination
+        super().__init__(f'Input already exists at the destination: {destination}')
+
+
 def _toml_location(exc, text):
     line, column = getattr(exc, 'lineno', None), getattr(exc, 'colno', None)
     if line is not None and column is not None:
@@ -307,17 +314,19 @@ class Workspace:
 
     def move_quarantine(self, name, *, restore=False):
         name = _inbox_name(name)
+        self.config()
         with writer_lock(self.path('.qecgraph')):
-            self.config()
             directory = self.path('inputs/.quarantine')
             inbox = self.path('inputs/' + name)
             held = self.path('inputs/.quarantine/' + name)
             source, destination = (held, inbox) if restore else (inbox, held)
+            if not source.exists():
+                raise FileNotFoundError(errno.ENOENT, 'Input file is missing', source)
             if not source.is_file():
-                raise ValueError(f'Input file is missing: {name}')
+                raise ValueError(f'Expected an input file at {source}')
             directory.mkdir(exist_ok=True)
             if not _move_input(source, destination):
-                raise ValueError(f'Input already exists at the destination: {name}')
+                raise InputDestinationExists(source, destination)
         return {'status': 'restored' if restore else 'quarantined', 'name': name}
 
     def _archive(self, job, meta, limit):

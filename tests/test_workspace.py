@@ -123,10 +123,20 @@ class WorkspaceTests(unittest.TestCase):
                 self.assertEqual(main(['inputs', *arguments, '--workspace', str(self.root)]), 0)
             return json.loads(output.getvalue())
 
+        def failed_input(arguments, expected):
+            output, diagnostics = io.StringIO(), io.StringIO()
+            with redirect_stdout(output), redirect_stderr(diagnostics):
+                self.assertEqual(main(['inputs', *arguments, '--workspace', str(self.root), '--json']), expected)
+            self.assertEqual(diagnostics.getvalue(), '')
+            return json.loads(output.getvalue())['error']
+
         self.assertEqual(inputs('quarantine', name)['status'], 'quarantined')
         held = self.inbox / '.quarantine' / name
         self.assertFalse(package.exists())
         self.assertEqual(held.read_bytes(), raw)
+        missing = failed_input(('quarantine', name), 4)
+        self.assertEqual(missing['code'], 'NOT_FOUND')
+        self.assertEqual(missing['details']['path'], str(package.parent.resolve() / name))
         self.assertEqual(inputs('list')['quarantined_inputs'], [{'name': name, 'archive_sha256': digest}])
         self.assertEqual(self.ws.status()['status'], 'ok')
         self.assertTrue(self.ws.status()['materials'][0]['quarantined'])
@@ -136,8 +146,10 @@ class WorkspaceTests(unittest.TestCase):
         self.assertTrue(self.ws.validate()['valid'])
 
         package.write_bytes(TEX)
-        with self.assertRaisesRegex(ValueError, 'already exists'):
-            self.ws.move_quarantine(name, restore=True)
+        conflict = failed_input(('restore', name), 5)
+        self.assertEqual(conflict['code'], 'CONFLICT')
+        self.assertIn('existing file', conflict['hint'])
+        self.assertEqual(conflict['details']['source'], str(held.parent.resolve() / name))
         self.assertEqual(package.read_bytes(), TEX)
         self.assertEqual(held.read_bytes(), raw)
         package.unlink()

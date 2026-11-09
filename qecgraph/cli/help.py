@@ -67,7 +67,7 @@ TOPICS = {
   1    input, storage, or internal failure
   2    partial operation or validation failures
   4    required file or exact query target missing
-  5    another writer holds the lock
+  5    writer lock or input destination conflict
   64   invalid command syntax
   130  interrupted
 

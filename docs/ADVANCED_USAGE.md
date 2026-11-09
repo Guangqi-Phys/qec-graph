@@ -131,7 +131,7 @@ View freshness is reported separately from the package status and exit code.
 | `1` | Input, storage, validation, or internal error |
 | `2` | A partial operation or a validation report with failures |
 | `4` | A required file or an exact query target could not be found |
-| `5` | Another process holds the writer lock; retry after it finishes |
+| `5` | A writer holds the lock or an inbox move would overwrite a file |
 | `64` | Invalid command syntax |
 | `130` | Interrupted |
 

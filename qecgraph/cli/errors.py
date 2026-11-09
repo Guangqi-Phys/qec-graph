@@ -9,7 +9,7 @@ from typing import Any
 
 from ..query import SelectionError
 from ..transactions import ManagedDataError, WriterBusy
-from ..workspace import WorkspaceConfigError
+from ..workspace import InputDestinationExists, WorkspaceConfigError
 
 
 class QecError(ValueError):
@@ -49,6 +49,10 @@ class Conflict(QecError):
     code = 'CONFLICT'
     exit_code = 5
     hint = 'Wait for the other writer to finish, then retry the command.'
+
+
+class InputConflict(Conflict):
+    hint = 'Move the existing file to a different name, then retry the command.'
 
 
 class InvalidConfig(QecError):
@@ -92,6 +96,8 @@ def classify(exc: Exception) -> QecError:
         return QueryError({'code': exc.code, 'message': str(exc), 'details': exc.details})
     if isinstance(exc, WriterBusy):
         return Conflict(str(exc), details={'path': str(exc.root)})
+    if isinstance(exc, InputDestinationExists):
+        return InputConflict(str(exc), details={'path': str(exc.destination), 'source': str(exc.source)})
     if isinstance(exc, WorkspaceConfigError):
         return InvalidConfig(str(exc), details={'path': str(exc.path), **exc.location})
     if isinstance(exc, ManagedDataError):
