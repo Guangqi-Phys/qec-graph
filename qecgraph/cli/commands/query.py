@@ -77,12 +77,12 @@ def graph_query(args):
     else:
         result = dependencies(args.store, args.id_or_label, args.depth, args.include_candidates,
                               args.command == "impact", args.max_nodes)
-    return emit_report(result)
+    return emit_report(result, quiet=args.quiet)
 
 
 def validate_store(args):
     _select_store_snapshot(args)
-    return emit_report(validate_snapshot(current_snapshot(args.store)))
+    return emit_report(validate_snapshot(current_snapshot(args.store)), quiet=args.quiet)
 
 
 def audit_dependencies(args):
@@ -97,7 +97,7 @@ def audit_dependencies(args):
         graph, _ = load_graph(args.store)
         scope = {'snapshot_id': graph['snapshot_id']}
     result = {'scope': scope, 'issues': reviewed_cycles(graph), 'policy': 'Active reviewed logic only; citation cycles are retained'}
-    return emit_report(result)
+    return emit_report(result, quiet=args.quiet)
 
 
 def mcp_config(args):
@@ -115,7 +115,7 @@ def mcp_config(args):
     for name in ('nodes', 'depth', 'chars', 'results'):
         arguments += ['--session-max-' + name, str(getattr(args, 'session_max_' + name))]
     result = {'mcpServers': {'qecgraph': {'command': executable, 'args': arguments}}}
-    return emit_report(result)
+    return emit_report(result, quiet=args.quiet)
 
 
 def mcp_serve(args):
@@ -130,7 +130,7 @@ def query_tool(args):
 
 def _emit_tool_result(args, result):
     if result['ok']:
-        return emit_report(result)
+        return emit_report(result, quiet=args.quiet)
     error = QueryError(result['error'])
     if args.json:
         return report_error(error, args.command, json_mode=True)

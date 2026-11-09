@@ -28,6 +28,10 @@ class _ArgumentParser(argparse.ArgumentParser):
                           help='Print detailed reports and structured errors')
         self.add_argument('--debug', action='store_true', default=argparse.SUPPRESS,
                           help='Show a traceback for unexpected failures')
+        self.add_argument('--quiet', action='store_true', default=argparse.SUPPRESS,
+                          help='Suppress progress and successful reports; keep errors and explicit JSON')
+        self.add_argument('--color', choices=('auto', 'always', 'never'), default=argparse.SUPPRESS,
+                          help='Control color in terminal summaries (default: auto)')
 
     def error(self, message):
         raise UsageError(message)
@@ -405,12 +409,20 @@ def _build_parser(entrypoint=None):
                                               description=description, epilog=command_epilog(command, prog))
             nested.set_defaults(command=command)
             topics[name, action] = nested
-    parser.set_defaults(json=False, debug=False)
+    parser.set_defaults(json=False, debug=False, quiet=False, color='auto')
     return parser, topics
 
 
 def _command_index(argv: list[str], start=0) -> int:
-    return next((i for i in range(start, len(argv)) if argv[i] not in {'--json', '--debug'}), len(argv))
+    while start < len(argv):
+        flag = argv[start]
+        if flag in {'--json', '--debug', '--quiet'} or flag.startswith('--color='):
+            start += 1
+        elif flag == '--color':
+            start += 2
+        else:
+            return start
+    return len(argv)
 
 
 def parse_command(argv: list[str], *, entrypoint: tuple[str, str] | None = None) -> argparse.Namespace | None:
@@ -460,4 +472,5 @@ def parse_command(argv: list[str], *, entrypoint: tuple[str, str] | None = None)
     if entrypoint is None and not hasattr(args, 'action') and flat_name in _LEGACY_PATHS:
         display = 'review FILE' if flat_name == 'review' else flat_name
         args.alias = (display, _LEGACY_PATHS[flat_name])
+    args.quiet = args.quiet and not args.json
     return args

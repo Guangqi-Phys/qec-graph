@@ -21,5 +21,7 @@
 - Related commands have grouped names and examples. `qec-graph help aliases`
   lists supported older spellings and their replacements. Daily shortcuts
   remain supported without a notice.
+- `--quiet` hides successful reports and progress; `--color` controls the
+  color in workspace summaries.
 - Workspace queries support fixed releases. Splitting a store with annotations
   or a catalog requires explicit `--force` to replace CURRENT.

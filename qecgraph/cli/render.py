@@ -12,11 +12,15 @@ from .errors import QecError, UsageError
 
 
 class WorkspaceProgress:
-    def __init__(self, action):
+    def __init__(self, action, *, quiet=False, color='auto'):
         self.action = action
+        self.quiet = quiet
         self.stderr = sys.stderr
-        self.live = sys.stdout.isatty() and self.stderr.isatty() and os.environ.get('TERM') != 'dumb'
-        self.color = self.live and not os.environ.get('NO_COLOR')
+        terminal = sys.stdout.isatty() and self.stderr.isatty() and os.environ.get('TERM') != 'dumb'
+        self.live = terminal and not quiet
+        forced = os.environ.get('FORCE_COLOR')
+        self.color = (color == 'always' or color == 'auto' and not os.environ.get('NO_COLOR')
+                      and (forced != '0' if forced is not None else terminal))
         self.state = (0, 1, 'Opening workspace')
         self.started = None
         self.stopped = Event()
@@ -78,6 +82,8 @@ class WorkspaceProgress:
 
     def finish(self, message, code):
         self.close()
+        if self.quiet and not code:
+            return 0
         message = ' '.join(''.join(char if char.isprintable() else ' ' for char in message).split())
         if len(message) > 180:
             message = message[:177] + '...'
@@ -86,7 +92,7 @@ class WorkspaceProgress:
         else:
             done, total, _ = self.state
             filled = 16 * done // total if code else 16
-            marker = f"[{'#' * filled}{'.' * (16 - filled)}]"
+            marker = self._paint(f"[{'#' * filled}{'.' * (16 - filled)}]", '31' if code else '32')
         outcome = 'ERROR: ' + message if code else 'OK' + (f' ({message})' if message else '')
         print(f'{marker} {self.action}: {outcome}', file=self.stderr if code else sys.stdout)
         return code
@@ -152,12 +158,16 @@ def print_doctor(result):
         print(f"Release: {result['release_id']}")
 
 
-def emit_report(result):
+def emit_report(result, *, quiet=False, exit_code=None, compact=False):
     """Write the report and use its declared or legacy extraction exit code."""
-    print_json(result)
-    if 'ok' in result:
-        return 1 if not result['ok'] else 2 if result['data'].get('extraction_status') == 'partial' else 0
-    return result.get('suggested_exit_code', 2 if result.get("extraction_status") == "partial" else 0)
+    if exit_code is None:
+        if 'ok' in result:
+            exit_code = 1 if not result['ok'] else 2 if result['data'].get('extraction_status') == 'partial' else 0
+        else:
+            exit_code = result.get('suggested_exit_code', 2 if result.get('extraction_status') == 'partial' else 0)
+    if exit_code or not quiet:
+        print_json(result, compact=compact, flush=compact)
+    return exit_code
 
 
 def report_error(error: QecError, command: str | None, *, json_mode: bool,

@@ -9,7 +9,7 @@ from ..render import emit_report
 def build(args):
     from ...lean import build_project
     result = build_project(args.project, args.out, lake=args.lake, export_declarations=not args.build_only)
-    return emit_report(result)
+    return emit_report(result, quiet=args.quiet)
 
 
 def import_report(args):
@@ -19,7 +19,7 @@ def import_report(args):
         mappings = [mappings]
     result = import_build(args.corpus, args.report, project_id=args.project_id, project=args.project,
                           mappings=mappings, historical=args.historical)
-    return emit_report(result)
+    return emit_report(result, quiet=args.quiet)
 
 
 def status(args):
@@ -31,4 +31,4 @@ def status(args):
     reviews = review_states(registry, state, records)
     result = {'registry_revision': fixed, 'records': lean_record_states(registry, state, records, reviews),
               'scope': 'read-only freshness; no Lean process or semantic approval'}
-    return emit_report(result)
+    return emit_report(result, quiet=args.quiet)

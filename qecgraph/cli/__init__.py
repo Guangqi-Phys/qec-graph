@@ -22,11 +22,12 @@ def main(argv: Sequence[str] | None = None, *, entrypoint: tuple[str, str] | Non
         options = argv[:argv.index('--')] if '--' in argv else argv
         return report_error(exc, exc.command, json_mode='--json' in options)
     if args.command == 'version':
-        print(f'qec-graph {__version__}')
+        if not args.quiet:
+            print(f'qec-graph {__version__}')
         return 0
     report_alias(args.alias)
     workspace_command = uses_workspace(args)
-    progress = WorkspaceProgress(args.command) if workspace_command and not args.json else None
+    progress = WorkspaceProgress(args.command, quiet=args.quiet, color=args.color) if workspace_command and not args.json else None
     try:
         if workspace_command:
             return workspace_action(args, progress)

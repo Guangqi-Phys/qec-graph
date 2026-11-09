@@ -6,7 +6,7 @@ import os
 
 from ...graph import read_json
 from ..process import cli_command
-from ..render import print_doctor, print_json, workspace_summary
+from ..render import emit_report, print_doctor, workspace_summary
 
 
 _DAILY_WORKSPACE_COMMANDS = {'sync', 'status', 'validate'}
@@ -22,11 +22,12 @@ def doctor(args):
     from ...maintenance import doctor
     from ...workspace import locate
     result = doctor(locate(args.workspace, default=os.environ.get('QECGRAPH_WORKSPACE')))
+    code = result['suggested_exit_code']
     if args.json:
-        print_json(result)
-    else:
+        return emit_report(result, exit_code=code)
+    if code or not args.quiet:
         print_doctor(result)
-    return result['suggested_exit_code']
+    return code
 
 
 def snapshots(args):
@@ -34,8 +35,7 @@ def snapshots(args):
     from ...workspace import locate
     workspace = None if args.store or args.corpus else locate(args.workspace, default=os.environ.get('QECGRAPH_WORKSPACE'))
     result = list_snapshots(store=args.store, corpus=args.corpus, workspace=workspace)
-    print_json(result)
-    return 0
+    return emit_report(result, quiet=args.quiet, exit_code=0)
 
 
 def inputs(args):
@@ -43,8 +43,7 @@ def inputs(args):
     ws = Workspace(locate(args.workspace, default=os.environ.get('QECGRAPH_WORKSPACE')))
     result = (ws.list_inputs() if args.input_action == 'list'
               else ws.move_quarantine(args.name, restore=args.input_action == 'restore'))
-    print_json(result)
-    return 0
+    return emit_report(result, quiet=args.quiet, exit_code=0)
 
 
 def workspace_action(args, progress):
@@ -77,22 +76,19 @@ def workspace_action(args, progress):
                  or result.get('human', {}).get('status') == 'human_stale') else 0
     if progress:
         return progress.finish(*workspace_summary(args.command, result, code))
-    print_json(result)
-    return code
+    return emit_report(result, exit_code=code)
 
 
 def human_build(args):
     from ...human import build_human
     result = build_human(args.workspace, args.release)
-    print_json(result)
-    return 0 if result['status'] == 'current' else 2
+    return emit_report(result, quiet=args.quiet, exit_code=0 if result['status'] == 'current' else 2)
 
 
 def asset_add(args):
     from ...workspace_assets import add_asset
     result = add_asset(args.workspace, args.input, media_type=args.media_type)
-    print_json(result)
-    return 0
+    return emit_report(result, quiet=args.quiet, exit_code=0)
 
 
 def extract(args):
@@ -105,12 +101,10 @@ def extract(args):
     else:
         result = semantic.review_extraction(args.workspace, args.proposal_id, reviewer=args.reviewer,
                                             decision=args.decision, rationale=args.rationale)
-    print_json(result)
-    return 0
+    return emit_report(result, quiet=args.quiet, exit_code=0)
 
 
 def migrate(args):
     from ...workspace_migration import migrate_corpus
     result = migrate_corpus(args.corpus, args.workspace, args.registry_revision)
-    print_json(result)
-    return 0
+    return emit_report(result, quiet=args.quiet, exit_code=0)

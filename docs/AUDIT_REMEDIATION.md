@@ -24,7 +24,7 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 16 | Package all current schemas and expand research contracts | In progress. Moved graph and annotations into the packaged schema directory and documented migration from checkout-only paths. Distribution checks compare all packaged schema bytes. Per-kind research contracts remain. |
 | 17 | Single packaged software seed and explicit test fixtures | Complete. The deleted seed matched the packaged resource byte for byte. The synthetic fixture kept its historical SHA-256. Research and workspace query tests load the canonical inputs. |
 | 18 | Organize documentation by purpose | Open. Preserve referenced entry points while migrating links. |
-| 19 | CLI, renderer, schema, and docs tests with coverage | In progress. The full suite recorded 78% branch-aware coverage and passes the 70% gate. Added CLI and documentation link tests. Distribution verification covers schema contents. Renderer and expanded research-schema cases remain. |
+| 19 | CLI, renderer, schema, and docs tests with coverage | In progress. The full suite recorded 78% branch-aware coverage and passes the 70% gate. Added CLI, output controls, and documentation link tests. Distribution verification covers schema contents. Obsidian and expanded research-schema cases remain. |
 | 20 | Lint, type, coverage, and pre-commit configuration | Complete. The configured Ruff rules, mypy, pre-commit hooks, and 70% coverage gate passed locally. mypy checks annotated code across all 37 modules. Enabling checks inside every unannotated function exposed 107 existing issues and remains incremental type work. |
 | 21 | Consolidate validation evidence and index current runs | Open. Retain verifiable historical provenance. |
 | 22 | Share storage and publication primitives | Open. |
@@ -57,3 +57,6 @@ these alongside items 1, 8, 10, 12, and 13.
 - The proposed deprecation of every flat name conflicts with the requested
   daily commands (`sync`, `status`, and `validate`). Keep those shortcuts
   and the direct evidence queries, and deprecate only redundant spellings.
+- The proposed multi-line default workspace output conflicts with the requested
+  one-line progress and outcome. Keep the compact default, add quiet and color
+  controls, and expose detailed inspection through `--json` and `doctor`.

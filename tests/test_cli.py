@@ -15,6 +15,38 @@ from qecgraph.workspace import Workspace
 
 
 class CLIContractTests(unittest.TestCase):
+    def test_quiet_and_color_control_reports_without_hiding_failures(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            Workspace(root).init(no_ingest=True)
+
+            def run(*args):
+                return subprocess.run([sys.executable, '-m', 'qecgraph', *args, '--workspace', str(root)],
+                                      capture_output=True, text=True, timeout=5)
+
+            with patch.dict('os.environ', {'FORCE_COLOR': '1', 'NO_COLOR': '1'}):
+                normal = run('status')
+                forced = run('--color', 'always', 'workspace', 'status')
+                never = run('workspace', 'status', '--color=never')
+            self.assertEqual((normal.returncode, forced.returncode, never.returncode), (0, 0, 0))
+            self.assertNotIn('\x1b', normal.stdout)
+            self.assertIn('\x1b[32m', forced.stdout)
+            self.assertNotIn('\x1b', never.stdout)
+
+            quiet = run('status', '--quiet')
+            self.assertEqual((quiet.returncode, quiet.stdout, quiet.stderr), (0, '', ''))
+            requested = run('workspace', '--quiet', 'status', '--json')
+            self.assertEqual(requested.returncode, 0, requested.stderr)
+            self.assertEqual(json.loads(requested.stdout)['status'], 'ok')
+
+            broken = root / 'inputs/broken.zip'
+            broken.write_bytes(b'PK\x03\x04broken')
+            failed = run('sync', '--no-human', '--quiet')
+            self.assertEqual(failed.returncode, 2, failed.stderr)
+            self.assertEqual(failed.stdout, '')
+            self.assertIn('ERROR', failed.stderr)
+            self.assertTrue(broken.is_file())
+
     def test_grouped_commands_share_handlers_and_show_the_invoked_path(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()

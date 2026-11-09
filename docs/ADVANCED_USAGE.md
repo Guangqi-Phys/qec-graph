@@ -143,6 +143,12 @@ names remain supported and emit a notice on an interactive stderr, or when
 Common shortcuts such as `sync`, `status`, `validate`, and `search` do not
 emit notices.
 
+`--quiet` hides progress and successful reports while keeping failures and
+explicit `--json` reports. Use `--color never` to disable color in the summary
+or `--color always` to force it. In the default `auto` mode, a nonempty
+`NO_COLOR` disables color, and `FORCE_COLOR=1` enables it even in redirected
+output. Animation requires an interactive terminal.
+
 ## Manage the Obsidian vault and research records
 
 Open the workspace's `human/` directory as an Obsidian vault. Start at
