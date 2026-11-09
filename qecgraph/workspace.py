@@ -20,7 +20,7 @@ from .extraction import RULE_VERSION, proposals
 from .research_store import load_records, stage_records, validate_sources
 from .graph import canonical, hash_text, read_json
 from .registry import Registry
-from .source_package import Limits, PackageError, read_bounded, unpack
+from .source_package import Limits, PackageError, unpack
 from .store import extraction_tool_identity, ingest
 from .transactions import atomic_bytes, atomic_json, immutable_json, writer_lock
 
@@ -68,7 +68,7 @@ def _check_input_read(stream, before, size):
 
 def _read_regular(path, limit):
     with _regular_input(path, limit) as (stream, before):
-        raw = read_bounded(stream, limit)
+        raw = stream.read(before.st_size + 1)
         _check_input_read(stream, before, len(raw))
     return raw
 
