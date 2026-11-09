@@ -9,7 +9,8 @@ from functools import cached_property
 from jsonschema import Draft202012Validator
 
 from . import query
-from .corpus import project
+from .corpus import _project_state
+from .registry import Registry
 from .store import GraphInput, load_validated_snapshot, snapshot_reference
 
 TOOL_NAMES = ('qecgraph_search', 'qecgraph_show', 'qecgraph_context', 'qecgraph_deps', 'qecgraph_impact')
@@ -31,7 +32,8 @@ def tool_validators(descriptors):
 
 class ReadOnlySession:
     def __init__(self, *, store=None, corpus=None, snapshot_id=None, registry_revision=None,
-                 source_version_id=None, max_nodes=100, max_depth=4, max_chars=64000, max_results=50, check_live_lean=True):
+                 source_version_id=None, max_nodes=100, max_depth=4, max_chars=64000, max_results=50, check_live_lean=True,
+                 _fixed_registry=None):
         if bool(store) == bool(corpus):
             raise ValueError('Choose exactly one fixed store or corpus')
         if not 1 <= max_nodes <= 1000 or not 0 <= max_depth <= 20 or not 256 <= max_chars <= 1000000 or not 1 <= max_results <= 200:
@@ -44,10 +46,13 @@ class ReadOnlySession:
         if corpus:
             if snapshot_id:
                 raise ValueError('snapshot_id belongs to a store, not a corpus')
-            self.source, full_scope = project(corpus, registry_revision, source_version_id,
-                                              check_live_lean=check_live_lean, verify_sources=True,
-                                              manifest_hashes=self._manifest_hashes)
-            self.scope = {'kind': 'corpus', 'registry_revision': full_scope['registry_revision'],
+            if _fixed_registry is None:
+                self._registry = Registry(corpus)
+                state, revision = self._registry.read(registry_revision)
+            else:
+                self._registry, state, revision = _fixed_registry
+            self.source = self._project_corpus(state, revision, source_version_id)
+            self.scope = {'kind': 'corpus', 'registry_revision': revision,
                           'source_version_id': source_version_id,
                           'sources': 'selected_version' if source_version_id else 'all_registered_versions',
                           'entities': 'all_registered_current_revisions'}
@@ -61,11 +66,16 @@ class ReadOnlySession:
             self.scope = {'kind': 'store', 'snapshot_id': graph['snapshot_id'], 'project_id': graph['project_id'],
                           'project_source_hash': graph['project_source_hash']}
 
+    def _project_corpus(self, state, revision, source_version_id):
+        graph, _ = _project_state(self._registry, state, revision, source_version_id,
+                                  check_live_lean=self.check_live_lean, verify_sources=True,
+                                  manifest_hashes=self._manifest_hashes)
+        return graph
+
     def _refresh(self):
         if self.corpus:
-            self.source, _ = project(self.corpus, self.scope['registry_revision'], self.scope['source_version_id'],
-                                     check_live_lean=self.check_live_lean, verify_sources=True,
-                                     manifest_hashes=self._manifest_hashes)
+            state, revision = self._registry.read(self.scope['registry_revision'])
+            self.source = self._project_corpus(state, revision, self.scope['source_version_id'])
         else:
             graph, _ = load_validated_snapshot(self.reference.path, self.reference.snapshot_id,
                                                manifest_hashes=self._manifest_hashes)

@@ -57,8 +57,8 @@ class WorkspaceSession:
         self.state, self.release = self.registry.read(release_id)
         if not isinstance(self.state.get('workspace_id'), str):
             raise ValueError('A QEC workspace machine release is required')
-        self.graph = ReadOnlySession(corpus=self.machine, registry_revision=self.release,
-                                     check_live_lean=False, **budgets)
+        self.graph = ReadOnlySession(corpus=self.machine, check_live_lean=False,
+                                     _fixed_registry=(self.registry, self.state, self.release), **budgets)
         self.records = validate_bundle(load_records(self.registry, self.state))
         generated = {r['id']: r['revision'] for v in self.state.get('generated_research', {}).values()
                      for r in v['bindings']}
