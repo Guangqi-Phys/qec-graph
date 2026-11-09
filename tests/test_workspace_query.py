@@ -88,6 +88,24 @@ class WorkspaceQueryTests(unittest.TestCase):
         status = self.session.invoke('qec_workspace_status', {})
         self.assertEqual(status['data']['operational_status']['release_id'], newer)
 
+    def test_damaged_operational_status_preserves_the_fixed_release_and_coverage(self):
+        path = self.ws.registry.root / 'operational/status.json'
+        observed = read_json(path)
+        expected = self.session.invoke('qec_workspace_status', {})['data']
+        self.assertEqual(expected['coverage']['registered'], 2)
+        for raw in ('{', '[]', json.dumps({**observed, 'counts': []})):
+            with self.subTest(raw=raw):
+                path.write_text(raw)
+                response = self.session.invoke('qec_workspace_status', {})
+                self.assertTrue(response['ok'], response)
+                self.assertEqual(response['data'], {**expected, 'operational_status': None})
+        path.write_text(json.dumps({**observed, 'human': {'status': []}}))
+        response = self.session.invoke('qec_workspace_status', {})
+        self.assertTrue(response['ok'], response)
+        operational = response['data']['operational_status']
+        self.assertEqual(operational['counts'], expected['operational_status']['counts'])
+        self.assertNotIn('human', operational)
+
     def test_direct_cli_queries_share_the_fixed_workspace_mcp_scope(self):
         state, _ = self.ws.registry.read()
         version, = state['versions']

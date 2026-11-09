@@ -225,9 +225,12 @@ class WorkspaceSession:
 
     def _operational(self):
         path = _managed(self.machine, 'operational/status.json')
-        if not path.is_file():
+        try:
+            data = read_json(path)
+        except (FileNotFoundError, IsADirectoryError, ValueError):
             return None
-        data = read_json(path)
+        if not isinstance(data, dict) or not isinstance(counts := data.get('counts', {}), dict):
+            return None
         release = data.get('release_id')
         observed = data.get('observed_at')
         if not isinstance(release, str) or not HEX.fullmatch(release) or not isinstance(observed, str):
@@ -238,9 +241,9 @@ class WorkspaceSession:
             return None
         human = data.get('human', {})
         result = {'observed_at': observed, 'release_id': release,
-                  'counts': {k: v for k, v in data.get('counts', {}).items()
+                  'counts': {k: v for k, v in counts.items()
                              if k in {'registered', 'processed', 'conflicting', 'code_mention_proposals'} and type(v) is int}}
-        if isinstance(human, dict) and human.get('status') in {'human_stale', 'current'}:
+        if isinstance(human, dict) and human.get('status') in ('human_stale', 'current'):
             for key_ in ('target_release_id', 'rendered_release_id'):
                 value = human.get(key_)
                 if value is not None and (not isinstance(value, str) or not HEX.fullmatch(value)):
