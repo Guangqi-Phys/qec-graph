@@ -47,6 +47,7 @@ class WorkspaceTests(unittest.TestCase):
             archived = self.root / 'archive/blobs/sha256' / sha256(TEX).hexdigest()
             self.assertFalse(package.exists())
             self.assertEqual(archived.read_bytes(), TEX)
+            self.assertEqual(self.ws.sync(dry_run=True)['pending_claims'], 0)
 
             package.write_bytes(TEX)
             code, stdout, stderr = invoke('sync', '--json')

@@ -119,7 +119,7 @@ class Workspace:
         if dry_run:
             self.config()
             return {'status': 'planned', 'inputs': [p.name for p in self._inbox()],
-                    'pending_claims': sum(1 for _ in self._jobs())}
+                    'pending_claims': sum(1 for _ in self._pending_jobs())}
         with writer_lock(self.path('.qecgraph')):
             return self._run(self.config(), scan_inputs=True, rebuild=False, keep_inputs=keep_inputs,
                              progress=progress)
@@ -144,11 +144,15 @@ class Workspace:
                     and (path.is_symlink() or not path.is_dir())):
                 yield path
 
-    def _jobs(self):
+    def _pending_jobs(self):
         parent = self.path('inputs/.processing')
         for job in sorted(parent.iterdir()):
             if JOB.fullmatch(job.name):
                 job = self.path('inputs/.processing/' + job.name)
+                try:
+                    (job / 'payload').lstat()
+                except (FileNotFoundError, NotADirectoryError):
+                    continue
                 meta = job / 'job.json'
                 if meta.exists() and not meta.is_symlink():
                     yield job, read_json(meta)
@@ -274,10 +278,8 @@ class Workspace:
                     rows.append({'input': path.name, 'status': 'unsafe_input', 'input_consumed': False})
                     continue
                 self._claim(path, keep_inputs)
-            for job, meta in self._jobs():
+            for job, meta in self._pending_jobs():
                 payload = job / 'payload'
-                if not payload.exists() and not payload.is_symlink():
-                    continue
                 try:
                     digest = self._archive(job, meta, Limits(**cfg.get('limits', {})).input_bytes)
                 except (OSError, ValueError) as exc:
@@ -415,8 +417,8 @@ class Workspace:
         state, release = self.registry.read()
         return {'status': 'ok', 'workspace_id': cfg['workspace_id'], 'release_id': release,
                 'materials': list(state.get('materials', {}).values()),
-                'pending_inputs': len(list(self._inbox())), 'pending_claims': sum(
-                    (job / 'payload').exists() for job, _ in self._jobs())}
+                'pending_inputs': sum(1 for _ in self._inbox()),
+                'pending_claims': sum(1 for _ in self._pending_jobs())}
 
     def validate(self, *, progress=None):
         cfg = self.config()
