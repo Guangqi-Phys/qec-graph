@@ -25,7 +25,11 @@ from .transactions import atomic_json, writer_lock
 
 def write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.write_bytes(_json_bytes(value))
+
+
+def _json_bytes(value):
+    return (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 
 
 def _project_source_hash(entry, sources, resources, config):
@@ -272,16 +276,24 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
     target.parent.mkdir(parents=True, exist_ok=True)
     if not target.exists():
         temporary = Path(tempfile.mkdtemp(prefix=".building-", dir=target.parent))
+        output_hashes = {}
+
+        def write_output(relative, raw):
+            path = temporary / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("xb") as output:
+                output.write(raw)
+            output_hashes[relative] = hashlib.sha256(raw).hexdigest()
+
+        def write_output_json(relative, value):
+            write_output(relative, _json_bytes(value))
+
         try:
             write_json(temporary / '.qecgraph-building.json', {'format': 'qecgraph.building.v1', 'snapshot_id': snapshot_id})
-            for rel, raw in source_bytes.items():
-                path = safe_relative(temporary / "sources", rel)
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_bytes(raw)
-            for rel, raw in resource_bytes.items():
-                path = safe_relative(temporary / "assets", rel)
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_bytes(raw)
+            for directory, files in (("sources", source_bytes), ("assets", resource_bytes)):
+                for rel, raw in files.items():
+                    path = safe_relative(temporary / directory, rel)
+                    write_output(path.relative_to(temporary).as_posix(), raw)
             for node in graph["nodes"]:
                 kind = node["kind"]
                 if not kind or not all(c.isalnum() or c == "_" for c in kind):
@@ -291,17 +303,17 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
                 node["record_path"] = relative + ".json"
                 if node["latex"]:
                     node["fragment_path"] = relative + ".tex"
-                    path = temporary / node["fragment_path"]
-                    path.parent.mkdir(parents=True, exist_ok=True)
-                    path.write_bytes(node["latex"].encode("utf-8"))
-                write_json(temporary / node["record_path"], node)
-            write_json(temporary / "graph.json", graph)
+                    write_output(node["fragment_path"], node["latex"].encode("utf-8"))
+                write_output_json(node["record_path"], node)
+            write_output_json("graph.json", graph)
             for name, view in views(graph).items():
-                write_json(temporary / (name + ".json"), view)
-            write_json(temporary / "inputs" / "annotations.json", annotations)
-            write_json(temporary / "inputs" / "parser_config.json", config)
-            write_json(temporary / "inputs" / "catalog.json", catalog)
+                write_output_json(name + ".json", view)
+            write_output_json("inputs/annotations.json", annotations)
+            write_output_json("inputs/parser_config.json", config)
+            write_output_json("inputs/catalog.json", catalog)
             build_sqlite(temporary / "graph.sqlite", graph)
+            with _open_regular_snapshot_file(temporary / "graph.sqlite") as database:
+                output_hashes["graph.sqlite"] = hashlib.file_digest(database, "sha256").hexdigest()
             current_nodes = {n["id"]: n["content_sha256"] for n in graph["nodes"]}
             previous_nodes = {n["id"]: n["content_sha256"] for n in previous_graph["nodes"]} if previous_graph else {}
             report = {"snapshot_id": snapshot_id, "project_id": project_id, "extraction_status": graph["extraction_status"],
@@ -317,10 +329,10 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
                                   "content_changed": sorted(k for k in current_nodes.keys() & previous_nodes.keys()
                                                             if current_nodes[k] != previous_nodes[k])},
                       "mathematical_verification": "not_performed", "lean_build": "not_performed"}
-            write_json(temporary / "report.json", report)
+            write_output_json("report.json", report)
             (temporary / '.qecgraph-building.json').unlink()
-            outputs = [{"path": str(p.relative_to(temporary)), "sha256": hashlib.sha256(p.read_bytes()).hexdigest()}
-                       for p in sorted(temporary.rglob("*")) if p.is_file()]
+            outputs = [{"path": relative, "sha256": output_hashes[relative]}
+                       for relative in sorted(output_hashes, key=lambda relative: Path(relative).parts)]
             write_json(temporary / "manifest.json", {"format": "qecgraph.manifest.v1", "snapshot_id": snapshot_id,
                         "fingerprint_inputs": fingerprint, "source_files": source_manifest,
                         "resources": resource_manifest, "outputs": outputs,
