@@ -41,7 +41,7 @@ class ReadOnlySession:
                 raise ValueError('snapshot_id belongs to a store, not a corpus')
             source, full_scope = project(corpus, registry_revision, source_version_id, check_live_lean=check_live_lean)
             self._check_corpus_sources(corpus, full_scope)
-            self.source = GraphInput(copy.deepcopy(source.graph))
+            self.source = source
             self.scope = {'kind': 'corpus', 'registry_revision': full_scope['registry_revision'],
                           'source_version_id': source_version_id,
                           'sources': 'selected_version' if source_version_id else 'all_registered_versions',
@@ -53,7 +53,7 @@ class ReadOnlySession:
             self.reference = reference
             validate_snapshot(reference.path)
             graph, snapshot = load_graph(reference)
-            self.source = GraphInput(copy.deepcopy(graph), snapshot)
+            self.source = GraphInput(graph, snapshot)
             self.scope = {'kind': 'store', 'snapshot_id': graph['snapshot_id'], 'project_id': graph['project_id'],
                           'project_source_hash': graph['project_source_hash']}
 
@@ -62,11 +62,11 @@ class ReadOnlySession:
             source, full_scope = project(self.corpus, self.scope['registry_revision'], self.scope['source_version_id'],
                                          check_live_lean=self.check_live_lean)
             self._check_corpus_sources(self.corpus, full_scope)
-            self.source = GraphInput(copy.deepcopy(source.graph))
+            self.source = source
         else:
             validate_snapshot(self.reference.path)
             graph, snapshot = load_graph(self.reference)
-            self.source = GraphInput(copy.deepcopy(graph), snapshot)
+            self.source = GraphInput(graph, snapshot)
 
     @staticmethod
     def _check_corpus_sources(corpus, scope):
