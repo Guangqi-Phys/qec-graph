@@ -15,22 +15,24 @@ def occurrence_id(version_id, node_id):
     return 'occurrence:' + hash_text(version_id) + ':' + node_id
 
 
-def project(corpus, registry_revision=None, source_version_id=None, *, check_live_lean=True, verify_sources=False):
+def project(corpus, registry_revision=None, source_version_id=None, *,
+            check_live_lean=True, verify_sources=False, manifest_hashes=None):
     registry = Registry(corpus)
     state, fixed = registry.read(registry_revision)
     return _project_state(registry, state, fixed, source_version_id,
-                          check_live_lean=check_live_lean, verify_sources=verify_sources)
+                          check_live_lean=check_live_lean, verify_sources=verify_sources, manifest_hashes=manifest_hashes)
 
 
 def _project_state(registry, state, fixed, source_version_id=None, *,
-                   check_live_lean=True, verify_sources=False, records=None, verified_spans=None):
+                   check_live_lean=True, verify_sources=False, records=None, verified_spans=None, manifest_hashes=None):
     if source_version_id and source_version_id not in state['versions']:
         raise ValueError(f'Unknown source version in scope: {source_version_id}')
     selected = [source_version_id] if source_version_id else sorted(state['versions'])
     nodes, edges, labels, versions = [], [], {}, {}
     partial = False
     for version_id in selected:
-        graph, snapshot, version = registry.source_graph_from_state(state, version_id, fixed, verify=verify_sources)
+        graph, snapshot, version = registry.source_graph_from_state(
+            state, version_id, fixed, verify=verify_sources, manifest_hashes=manifest_hashes)
         if verify_sources and verified_spans is not None:
             verified_spans[snapshot, version['snapshot_id']] = source_span_index(graph)
         versions[version_id] = version

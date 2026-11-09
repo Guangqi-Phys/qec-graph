@@ -114,12 +114,12 @@ class Registry:
         state, fixed = self.read(revision)
         return self.source_graph_from_state(state, source_version_id, fixed)
 
-    def source_graph_from_state(self, state, source_version_id, registry_revision, *, verify=False):
+    def source_graph_from_state(self, state, source_version_id, registry_revision, *, verify=False, manifest_hashes=None):
         if source_version_id not in state['versions']:
             raise ValueError(f'Unknown source version in registry {registry_revision}: {source_version_id}')
         version = state['versions'][source_version_id]
         if verify:
-            graph, snapshot, _ = self._load_verified_source(version)
+            graph, snapshot, _ = self._load_verified_source(version, manifest_hashes=manifest_hashes)
             return graph, snapshot, version
         snapshot = safe_relative(self.root, version['snapshot_path'])
         graph = read_json(snapshot / 'graph.json')
@@ -132,11 +132,11 @@ class Registry:
         _, _, report = self._load_verified_source(version)
         return report
 
-    def _load_verified_source(self, version):
+    def _load_verified_source(self, version, *, manifest_hashes=None):
         snapshot = safe_relative(self.root, version['snapshot_path'])
         if snapshot.name != version['snapshot_id']:
             raise ValueError('Registered snapshot identity mismatch')
-        graph, report = load_validated_snapshot(snapshot)
+        graph, report = load_validated_snapshot(snapshot, manifest_hashes=manifest_hashes)
         return graph, snapshot, report
 
     def _put_record(self, state, record, *, checked_reviews=None):

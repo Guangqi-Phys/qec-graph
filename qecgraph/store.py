@@ -394,17 +394,23 @@ def source_span_index(graph):
     }
 
 
-def load_validated_snapshot(snapshot, expected_snapshot_id=None):
+def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_hashes=None):
     """Return the graph decoded from the bytes checked during validation."""
     from .validators import validate_graph_types
     snapshot = Path(snapshot)
-    manifest = read_json(snapshot / "manifest.json")
+    expected = expected_snapshot_id or snapshot.name
     output_root = snapshot.resolve()
+    manifest_path = _safe_relative_to_resolved(output_root, "manifest.json")
+    manifest_bytes = manifest_path.read_bytes()
+    if manifest_hashes is not None:
+        manifest_hash = hashlib.sha256(manifest_bytes).hexdigest()
+        if expected in manifest_hashes and manifest_hashes[expected] != manifest_hash:
+            raise ValueError("Snapshot manifest changed within the pinned session")
+    manifest = strict_json_loads(manifest_bytes.decode("utf-8"), source=str(manifest_path))
     graph_path = _safe_relative_to_resolved(output_root, "graph.json")
     graph_bytes = graph_path.read_bytes()
     graph = strict_json_loads(graph_bytes.decode("utf-8"), source=str(graph_path))
     validate_graph_types(graph)
-    expected = expected_snapshot_id or snapshot.name
     if graph["snapshot_id"] != expected or manifest["snapshot_id"] != expected:
         raise ValueError("Snapshot identity mismatch")
     fingerprint = manifest["fingerprint_inputs"]
@@ -492,4 +498,6 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None):
     report = {"passed": True, "snapshot_id": expected, "nodes": len(nodes), "edges": len(graph["edges"]),
               "source_slices_checked": sum(bool(n.get("source")) for n in nodes.values()),
               "scope": "integrity, structure and provenance; no mathematical or Lean proof verification"}
+    if manifest_hashes is not None:
+        manifest_hashes[expected] = manifest_hash
     return graph, report

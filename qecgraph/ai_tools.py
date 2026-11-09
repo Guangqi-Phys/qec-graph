@@ -35,11 +35,13 @@ class ReadOnlySession:
         self.corpus = corpus
         self.check_live_lean = check_live_lean
         self.reference = None
+        self._manifest_hashes = {}
         if corpus:
             if snapshot_id:
                 raise ValueError('snapshot_id belongs to a store, not a corpus')
             self.source, full_scope = project(corpus, registry_revision, source_version_id,
-                                              check_live_lean=check_live_lean, verify_sources=True)
+                                              check_live_lean=check_live_lean, verify_sources=True,
+                                              manifest_hashes=self._manifest_hashes)
             self.scope = {'kind': 'corpus', 'registry_revision': full_scope['registry_revision'],
                           'source_version_id': source_version_id,
                           'sources': 'selected_version' if source_version_id else 'all_registered_versions',
@@ -49,7 +51,7 @@ class ReadOnlySession:
                 raise ValueError('Corpus scope arguments require a corpus')
             reference = pin_snapshot(store, snapshot_id)
             self.reference = reference
-            graph, _ = load_validated_snapshot(reference.path, reference.snapshot_id)
+            graph, _ = load_validated_snapshot(reference.path, reference.snapshot_id, manifest_hashes=self._manifest_hashes)
             self.source = GraphInput(graph, reference.path)
             self.scope = {'kind': 'store', 'snapshot_id': graph['snapshot_id'], 'project_id': graph['project_id'],
                           'project_source_hash': graph['project_source_hash']}
@@ -57,9 +59,11 @@ class ReadOnlySession:
     def _refresh(self):
         if self.corpus:
             self.source, _ = project(self.corpus, self.scope['registry_revision'], self.scope['source_version_id'],
-                                     check_live_lean=self.check_live_lean, verify_sources=True)
+                                     check_live_lean=self.check_live_lean, verify_sources=True,
+                                     manifest_hashes=self._manifest_hashes)
         else:
-            graph, _ = load_validated_snapshot(self.reference.path, self.reference.snapshot_id)
+            graph, _ = load_validated_snapshot(self.reference.path, self.reference.snapshot_id,
+                                               manifest_hashes=self._manifest_hashes)
             self.source = GraphInput(graph, self.reference.path)
 
     def tools(self):

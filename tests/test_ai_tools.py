@@ -61,6 +61,32 @@ class AIToolTests(unittest.TestCase):
         source.write_text('tampered')
         self.assertFalse(session.invoke('qecgraph_show', {'identifier': 'a'})['ok'])
 
+    def test_pinned_sessions_refuse_a_replaced_graph_with_rewritten_checksums(self):
+        registry = Registry(self.root / 'corpus')
+        registry.register_source('work:ai', 'version:ai:1', self.store)
+        _, archive, _ = registry.source_graph('version:ai:1')
+        for session, snapshot, selector in (
+            (ReadOnlySession(store=self.store), Path(self.result['snapshot']), 'a'),
+            (ReadOnlySession(corpus=registry.root), archive, 'version:ai:1::a'),
+        ):
+            with self.subTest(selector=selector):
+                args = {'identifier': selector}
+                self.assertTrue(session.invoke('qecgraph_show', args)['ok'])
+                graph_path = snapshot / 'graph.json'
+                graph = json.loads(graph_path.read_text())
+                node = next(n for n in graph['nodes'] if 'a' in n['labels'])
+                node['title'] = 'A rewritten title'
+                raw = json.dumps(graph).encode()
+                graph_path.write_bytes(raw)
+                manifest_path = snapshot / 'manifest.json'
+                manifest = json.loads(manifest_path.read_text())
+                checksum = next(o for o in manifest['outputs'] if o['path'] == 'graph.json')
+                checksum['sha256'] = hashlib.sha256(raw).hexdigest()
+                manifest_path.write_text(json.dumps(manifest))
+                result = session.invoke('qecgraph_show', args)
+                self.assertFalse(result['ok'])
+                self.assertIn('Snapshot manifest changed', result['error']['message'])
+
     def test_budget_refuses_partial_root_and_marks_missing_dependencies(self):
         huge = 'Assumption H. ' * 1000
         self.entry.write_text(r'\newtheorem{lemma}{Lemma}\begin{lemma}\label{huge}' + huge + r'\end{lemma}'
