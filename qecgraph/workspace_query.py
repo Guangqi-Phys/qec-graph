@@ -101,11 +101,15 @@ class WorkspaceSession:
             raise ToolError('INVALID_ARGUMENT', 'Invalid source cursor')
         bindings = self._resource_bindings
         rows = []
+        # Reserve the cursor field even on the final page, as in the response check.
+        size = len(canonical({'resources': [], 'nextCursor': ''}))
         for uri, identifier in bindings[offset:offset + self.graph.max_results]:
-            rows.append({'uri': uri, 'name': identifier, 'mimeType': 'text/plain'})
-            if len(canonical({'resources': rows, 'nextCursor': str(offset+len(rows))})) > self.graph.max_chars:
-                rows.pop()
+            row = {'uri': uri, 'name': identifier, 'mimeType': 'text/plain'}
+            size += len(canonical(row)) + (1 if rows else 0)
+            cursor_size = len(str(offset + len(rows) + 1))
+            if size + cursor_size > self.graph.max_chars:
                 break
+            rows.append(row)
         if not rows and offset < len(bindings):
             raise ToolError('BUDGET_TOO_SMALL', 'Resource descriptor exceeds the response budget')
         result = {'resources': rows}
