@@ -1,0 +1,25 @@
+(version 1)
+(deny default)
+(import "system.sb")
+;; Local stdio only. No network, no child programs, no workspace root or vault mount.
+(deny network*)
+;; Python needs metadata on the ancestors of the executable, virtualenv and mount.
+(allow file-read-metadata file-test-existence)
+(allow process-exec
+    (literal (param "QEC_PYTHON"))
+    (literal (param "QEC_PYTHON_REAL"))
+    (literal (param "QEC_FRAMEWORK_EXE")))
+(allow file-read* file-test-existence
+    (subpath (param "QEC_VENV"))
+    (subpath (param "QEC_PYTHON_BASE"))
+    (subpath (param "QEC_MACHINE"))
+    (subpath "/opt/homebrew/Cellar")
+    (subpath "/opt/homebrew/opt"))
+(allow file-map-executable
+    (subpath (param "QEC_VENV"))
+    (subpath (param "QEC_PYTHON_BASE"))
+    (subpath "/opt/homebrew/Cellar")
+    (subpath "/opt/homebrew/opt"))
+;; Do not let an accidentally permissive runtime root grant access to the vault.
+(deny file-read* file-test-existence (subpath (param "QEC_HUMAN")))
+(deny file-write* (subpath (param "QEC_WORKSPACE")))

@@ -74,3 +74,8 @@ U6 迁移：`qec-graph workspace-migrate --corpus OLD --workspace NEW` 验证旧
 只登记草稿。`extract-review` 用显式人员决定发布特定草稿，来源投影变化后自动排除失效审核，
 历史快照仍可审计。无自动网络请求，也不要求论文经过批准。已通过合成 provider 合同回放；
 未连接外部模型或验证通用 LLM 抽取质量。
+
+macOS 严格运行配置：`tools/mcp_isolated_macos.py --python VENV/bin/python --machine WORKSPACE/machine`
+用 deny-by-default profile 启动 wheel 中的 MCP。实际进程验证可读机器库，无法读取或列出
+测试 notes、列出 inputs、写机器库或绑定网络端口。Docker Compose profile 已解析，
+本机 Docker daemon 不可用，未执行 Docker/Linux 容器验收。

@@ -8,3 +8,8 @@ example_output
 validation
 knowledge_starter
 .git
+.tools
+.agents
+.codex
+.aws
+qec_graph_codex_handoff
