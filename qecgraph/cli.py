@@ -382,6 +382,7 @@ def main(argv=None):
     cmd.add_argument("--catalog", help="Directory of existing JSON records, such as the earlier starter records/")
     cmd = sub.add_parser("split", help="Write source-only semantic fragments and return their exact file paths")
     _add_source_arguments(cmd)
+    cmd.add_argument("--force", action="store_true", help="Allow replacing CURRENT when it includes annotations or a catalog")
     cmd = sub.add_parser("search", help="Search titles, labels and text")
     cmd.add_argument("query")
     _add_query_scope(cmd, workspace=True)
@@ -626,7 +627,7 @@ def main(argv=None):
                             strict=args.strict, incremental=args.incremental)
         elif args.command == "split":
             result = split_project(args.entry, args.project_id, args.out, args.project_root, args.config,
-                                   strict=args.strict, incremental=args.incremental)
+                                   strict=args.strict, incremental=args.incremental, force=args.force)
         elif getattr(args, 'corpus', None):
             from .corpus import execute
             result = execute(args.corpus, args.command, getattr(args, 'id_or_label', None),

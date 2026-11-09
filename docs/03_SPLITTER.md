@@ -57,6 +57,7 @@ python3 -m qecgraph.splitter examples/paper/main.tex \
 | `--project-root DIR` | 限定工程文件的根目录；默认使用入口文件所在目录 |
 | `--config FILE` | JSON 格式的解析器配置，例如自定义环境映射 |
 | `--strict` | 部分抽取放入 staging，不更新 CURRENT；退出码仍为 2 |
+| `--force` | 允许在当前快照含注释或目录记录时发布 source-only 快照 |
 
 `split` 是 source-only 操作，不接收 `--annotations` 或 `--catalog`。需要合并人工注释和既有数据记录时，使用完整的 `ingest` 命令。
 
@@ -204,7 +205,9 @@ qecgraph validate --store work/qec-demo
 
 相同项目 ID、源文件、配置、依赖版本及工具源码，在同一存储中重复运行，会复用同一个快照。原文件和已有快照片段保持不变；输入或工具版本变化会形成新快照。
 
-`CURRENT.json` 指向当前快照。`split` 会把它指向 source-only 结果。如果已经开始维护 annotations/catalog，后续日常更新应使用 `ingest` 并继续传入这些输入；历史快照仍然保留。
+`CURRENT.json` 指向当前快照。当前快照含注释或目录记录时，`split` 会报错。
+可用独立的 `--out` 保存切割结果，也可显式传入 `--force` 发布 source-only 快照。
+显式替换时，报告包含旧的 `previous_snapshot_id` 和新的 `snapshot_id`，旧快照仍可按 ID 查询。
 
 | 退出码 | 含义 |
 |---|---|

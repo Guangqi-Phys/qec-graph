@@ -11,7 +11,7 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 3 | Consistent status and explicit JSON output | Complete for workspace maintenance. Explicit and implicit workspace selection produce the same text. The CLI contract tests check exit code 2 in text and JSON, and release verification requests JSON explicitly. |
 | 4 | Version, help, and usage exit code | In progress. `4067e6e` exposed dependency, impact, and context commands in help. |
 | 5 | Validate review, claim-link, and experiment inputs | Open. |
-| 6 | Protect annotated stores from source-only split | Open. |
+| 6 | Protect annotated stores from source-only split | Complete. The store checks the bound CURRENT manifest while holding the writer lock. The regression covers refusal, explicit replacement, and validation of the previous snapshot. |
 | 7 | List, quarantine, and restore inbox packages | Open. |
 | 8 | Build and check fresh release artifacts | Open. |
 | 9 | Ignore generated state and development caches | Complete. Git ignore checks cover local graph state, macOS metadata, and coverage, lint, and test caches. |

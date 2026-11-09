@@ -190,14 +190,30 @@ def check_output_directory(out, *, allow_lock=False):
 
 
 def ingest(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None,
-           *, strict=False, incremental=False, _tool_identity=None):
+           *, strict=False, incremental=False, _tool_identity=None, _split_policy=None):
     out = check_output_directory(out)
     with writer_lock(out):
         check_output_directory(out, allow_lock=True)
+        previous_enriched = None
+        if _split_policy is not None and (out / "CURRENT.json").exists():
+            snapshot = current_snapshot(out)
+            manifest_path = safe_relative(snapshot, "manifest.json")
+            raw = _read_snapshot_file(manifest_path, None, "manifest.json")
+            manifest = strict_json_loads(raw.decode("utf-8"), source=str(manifest_path))
+            fingerprint = manifest["fingerprint_inputs"]
+            if manifest["snapshot_id"] != snapshot.name or hash_text(canonical(fingerprint)) != snapshot.name:
+                raise ValueError("CURRENT snapshot fingerprint mismatch")
+            if fingerprint["annotations"] or fingerprint["catalog_inputs"]:
+                if _split_policy == "protect":
+                    raise ValueError("CURRENT includes annotations or a catalog. Choose a separate --out or pass --force.")
+                previous_enriched = snapshot.name
         if not (out / '.qecgraph-store.json').exists():
             atomic_json(out / '.qecgraph-store.json', {'format': 'qecgraph.store.v1'})
-        return _ingest_locked(entry, project_id, out, project_root, config_path, annotations_path, catalog_dir,
-                              strict=strict, incremental=incremental, tool_identity=_tool_identity)
+        result = _ingest_locked(entry, project_id, out, project_root, config_path, annotations_path, catalog_dir,
+                                strict=strict, incremental=incremental, tool_identity=_tool_identity)
+        if previous_enriched is not None:
+            result["previous_snapshot_id"] = previous_enriched
+        return result
 
 
 def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None,

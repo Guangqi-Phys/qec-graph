@@ -12,8 +12,10 @@ def split_project(
     out: str | Path,
     project_root: str | Path | None = None,
     config_path: str | Path | None = None,
+    *,
+    force: bool = False,
 ) -> dict:
     """Public source-only splitter API; see :mod:`qecgraph.splitter` for details."""
     from .splitter import split_project as implementation
 
-    return implementation(entry, project_id, out, project_root, config_path)
+    return implementation(entry, project_id, out, project_root, config_path, force=force)

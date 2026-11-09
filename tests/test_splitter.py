@@ -17,7 +17,7 @@ from qecgraph import split_project
 from qecgraph.cli import main as graph_main
 from qecgraph.query import context, dependencies, show
 from qecgraph.splitter import main as standalone_main
-from qecgraph.store import load_graph, validate_snapshot
+from qecgraph.store import ingest, load_graph, validate_snapshot
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
@@ -192,6 +192,20 @@ class SplitterIntegrationTests(unittest.TestCase):
         self.assertEqual(len(list((self.store / "snapshots").iterdir())), 1)
         self.assertEqual(directory_hashes(snapshot), archived)
         self.assertEqual(directory_hashes(self.paper), original)
+
+    def test_source_only_split_requires_force_for_an_enriched_current(self):
+        self.demo()
+        sidecar = PACKAGE_ROOT / "examples" / "annotations.example.json"
+        enriched = ingest(self.entry, "split-fixture", self.store, self.paper, annotations_path=sidecar)
+        current = self.store / "CURRENT.json"
+        previous = current.read_bytes()
+        with self.assertRaisesRegex(ValueError, "CURRENT includes annotations or a catalog"):
+            self.split()
+        self.assertEqual(current.read_bytes(), previous)
+        result = self.split(force=True)
+        self.assertEqual(result["previous_snapshot_id"], enriched["snapshot_id"])
+        self.assertEqual(load_graph(self.store)[0]["snapshot_id"], result["snapshot_id"])
+        self.assertTrue(validate_snapshot(Path(enriched["snapshot"]))["passed"])
 
     def test_foreign_output_directory_is_rejected_without_changing_its_contents(self):
         self.demo()

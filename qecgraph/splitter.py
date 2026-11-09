@@ -19,7 +19,7 @@ def split_project(
     out: str | Path,
     project_root: str | Path | None = None,
     config_path: str | Path | None = None,
-    *, strict: bool = False, incremental: bool = False,
+    *, strict: bool = False, incremental: bool = False, force: bool = False,
 ) -> dict:
     """Split a LaTeX project into source-provenanced semantic fragments.
 
@@ -31,6 +31,8 @@ def split_project(
     The shared pipeline creates immutable snapshots and the queryable graph.
     This source-only operation deliberately accepts no annotations or catalog.
     Tables remain extracted source tables, with no mathematical verification.
+    Use `force` to explicitly replace CURRENT when it includes annotations or
+    a catalog. The previous immutable snapshot remains addressable.
 
     Parsing can produce a valid *partial* snapshot.  In that case the API
     returns ``extraction_status='partial'`` and ``suggested_exit_code=2``.  The
@@ -51,6 +53,7 @@ def split_project(
         catalog_dir=None,
         strict=strict,
         incremental=incremental,
+        _split_policy="force" if force else "protect",
     )
     # Read the exact returned immutable snapshot, not CURRENT: another writer
     # may advance CURRENT after ingestion without changing this result.
