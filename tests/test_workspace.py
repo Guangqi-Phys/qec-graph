@@ -240,6 +240,25 @@ class WorkspaceTests(unittest.TestCase):
         self.assertTrue(self.ws.validate()['valid'])
         self.assertEqual(self.ws.init()['status'], 'already_initialized')
 
+    def test_missing_pointer_does_not_reset_a_published_workspace(self):
+        (self.inbox / 'original.tex').write_bytes(TEX)
+        release = self.ws.init()['release_id']
+        pointer = self.root / 'machine/CURRENT.json'
+        previous = pointer.read_bytes()
+        pointer.unlink()
+        new_input = self.inbox / 'new.tex'
+        new_input.write_bytes(TEX)
+
+        for action in (self.ws.init, self.ws.sync, self.ws.rebuild):
+            with self.subTest(action=action.__name__):
+                with self.assertRaisesRegex(ValueError, 'Published workspace is missing its release pointer'):
+                    action()
+                self.assertFalse(pointer.exists())
+                self.assertEqual(new_input.read_bytes(), TEX)
+        pointer.write_bytes(previous)
+        self.assertEqual(self.ws.status()['release_id'], release)
+        self.assertTrue(self.ws.validate()['valid'])
+
     def test_writer_lock_prevents_second_ingest(self):
         self.ws.init(no_ingest=True)
         (self.inbox / 'good').write_bytes(TEX)

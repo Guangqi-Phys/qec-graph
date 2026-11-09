@@ -335,6 +335,10 @@ class Workspace:
         return None
 
     def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None):
+        if not self.path('machine/CURRENT.json').is_file() and (
+                self.path('machine/operational/status.json').exists()
+                or self.path('.qecgraph/migration.json').exists()):
+            raise ValueError('Published workspace is missing its release pointer')
         run_id = uuid.uuid4().hex
         limits = Limits(**cfg.get('limits', {}))
         digests, rows, claims = set(), [], []
