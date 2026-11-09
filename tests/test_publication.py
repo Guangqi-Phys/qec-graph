@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from qecgraph.registry import Registry
 from qecgraph.store import current_snapshot, ingest, recover_store, validate_snapshot
-from qecgraph.transactions import writer_lock
+from qecgraph.transactions import ManagedDataError, writer_lock
 from qecgraph.workspace import Workspace
 
 
@@ -104,6 +104,22 @@ class PublicationTests(unittest.TestCase):
         retry = ingest(self.entry, 'publish', self.store)
         self.assertTrue(retry['published'])
         self.assertTrue(validate_snapshot(current_snapshot(self.store))['passed'])
+
+    def test_current_cannot_point_at_a_snapshot_outside_the_published_inventory(self):
+        ingest(self.entry, 'publish', self.store)
+        current = current_snapshot(self.store)
+        path = self.store / 'CURRENT.json'
+        original = json.loads(path.read_text(encoding='utf-8'))
+        path.write_text(json.dumps({**original, 'path': f'staging/{current.name}'}), encoding='utf-8')
+        with self.assertRaisesRegex(ManagedDataError, 'CURRENT does not identify a stored snapshot'):
+            current_snapshot(self.store)
+        path.write_text(json.dumps(original), encoding='utf-8')
+        outside = self.root / 'another' / current.name
+        outside.parent.mkdir()
+        current.rename(outside)
+        current.symlink_to(outside, target_is_directory=True)
+        with self.assertRaisesRegex(ManagedDataError, 'Snapshot paths must be local directories'):
+            current_snapshot(self.store)
 
     def test_recovery_only_removes_marked_tool_builds(self):
         ingest(self.entry, 'publish', self.store)

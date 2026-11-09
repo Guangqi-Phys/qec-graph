@@ -89,6 +89,14 @@ class GraphInput:
     snapshot: Path | None = None
 
 
+def _stored_snapshot_path(store, snapshot_id):
+    snapshots = Path(store).expanduser().resolve() / 'snapshots'
+    snapshot = snapshots / snapshot_id
+    if snapshots.is_symlink() or snapshot.is_symlink():
+        raise ManagedDataError(snapshot, 'Snapshot paths must be local directories')
+    return snapshot
+
+
 def snapshot_reference(store, snapshot_id=None):
     """Resolve the snapshot location before a caller validates or loads its graph."""
     if snapshot_id is None:
@@ -96,9 +104,7 @@ def snapshot_reference(store, snapshot_id=None):
     else:
         if not _is_snapshot_id(snapshot_id):
             raise ValueError('Invalid snapshot ID')
-        snapshot = safe_relative(Path(store), 'snapshots/' + snapshot_id)
-        if snapshot.name != snapshot_id:
-            raise ValueError('Snapshot pointer mismatch')
+        snapshot = _stored_snapshot_path(store, snapshot_id)
     return SnapshotReference(snapshot, snapshot.name)
 
 
@@ -115,17 +121,15 @@ def current_snapshot(store):
         return store.path
     store = Path(store).resolve()
     path = store / 'CURRENT.json'
+    if path.is_symlink():
+        raise ManagedDataError(path, 'CURRENT must be a local file')
     pointer = read_pointer(path, CURRENT_FORMAT)
     relative, identity = pointer.get('path'), pointer.get('snapshot_id')
     if not isinstance(relative, str) or not isinstance(identity, str):
         raise ManagedDataError(path, 'CURRENT is missing a snapshot path or identity')
-    try:
-        snapshot = safe_relative(store, relative)
-    except ValueError as exc:
-        raise ManagedDataError(path, 'CURRENT contains an unsafe snapshot path') from exc
-    if snapshot.name != identity:
-        raise ManagedDataError(path, 'Snapshot pointer mismatch')
-    return snapshot
+    if not _is_snapshot_id(identity) or relative != 'snapshots/' + identity:
+        raise ManagedDataError(path, 'CURRENT does not identify a stored snapshot')
+    return _stored_snapshot_path(store, identity)
 
 
 def load_graph(store):
