@@ -171,7 +171,14 @@ class Registry:
         state, _ = self.read(registry_revision)
         return self.record_from_state(state, identifier, record_revision)
 
-    def record_from_state(self, state, identifier, record_revision=None):
+    def records_from_state(self, state, identifiers=None):
+        if identifiers is None:
+            identifiers = state['records']
+        checked_reviews = {}
+        return {identifier: self.record_from_state(state, identifier, _checked_reviews=checked_reviews)
+                for identifier in identifiers}
+
+    def record_from_state(self, state, identifier, record_revision=None, *, _checked_reviews=None):
         if identifier not in state['records']:
             raise ValueError(f'Unknown entity: {identifier}')
         identity = state['records'][identifier]
@@ -182,7 +189,7 @@ class Registry:
         record = prepare_record(read_json(safe_relative(self.root, binding['path'])), allow_legacy=True)
         if record['schema_version'] == 'qecgraph.record.v3':
             from .review import verify_record_review
-            verify_record_review(self, record)
+            verify_record_review(self, record, checked_reviews=_checked_reviews)
         if record['id'] != identifier or record['revision'] != revision or record['content_sha256'] != binding['content_sha256']:
             raise ValueError('Registered record identity/hash mismatch')
         return record
@@ -274,7 +281,7 @@ class Registry:
     def _validate_state(self, state, fixed, *, check_live_lean=True, verified_spans=None):
         from .validators import registry_issues, validate_graph_types
         from .corpus import _project_state
-        records = {identifier: self.record_from_state(state, identifier) for identifier in state['records']}
+        records = self.records_from_state(state)
         issues = registry_issues(self, records)
         graph, _ = _project_state(self, state, fixed, check_live_lean=check_live_lean,
                                   verify_sources=True, records=records, verified_spans=verified_spans)

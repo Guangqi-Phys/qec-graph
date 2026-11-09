@@ -18,8 +18,7 @@ FILES = {'.qecgraph-registry.json'}
 
 def _unresolved(registry, state):
     rows = []
-    for identifier in sorted(state['records']):
-        record = registry.record_from_state(state, identifier)
+    for identifier, record in registry.records_from_state(state, sorted(state['records'])).items():
         data = record['data']
         candidates = {
             'untyped_distance': ('d' in data and not data.get('relation')) or (

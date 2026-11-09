@@ -58,7 +58,7 @@ def _project_state(registry, state, fixed, source_version_id=None, *,
             edge['target'] = occurrence_prefix + edge['target']
             edges.append(edge)
     if records is None:
-        records = {identifier: registry.record_from_state(state, identifier) for identifier in sorted(state['records'])}
+        records = registry.records_from_state(state, sorted(state['records']))
     reviews = review_states(registry, state, records, verified_versions=versions if verify_sources else ())
     from .lean_integration import lean_record_states
     builds = lean_record_states(registry, state, records, reviews, check_live_inputs=check_live_lean)

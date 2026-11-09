@@ -54,7 +54,7 @@ def _validate(value, schema_name):
 
 
 def input_bindings(registry, state, after_records=()):
-    records = [registry.record_from_state(state, identifier) for identifier in sorted(state['records'])]
+    records = list(registry.records_from_state(state, sorted(state['records'])).values())
     assets = {}
     for record in records + list(after_records):
         for asset in record['assets']:
@@ -168,17 +168,29 @@ def final_records(proposal, review):
     return records
 
 
-def verify_record_review(registry, record):
+def verify_record_review(registry, record, *, checked_reviews=None):
     if record['review']['status'] != 'reviewed':
         return
     review_id = record['review'].get('review_id')
-    review = read_json(_path(registry, 'reviews', review_id))
-    _validate(review, 'review.v1')
-    if review['id'] != review_id or record['review'].get('review_sha256') != hash_text(canonical(review)):
-        raise ValueError('Record human review hash/identity mismatch')
-    proposal = read_proposal(registry, review['proposal_id'])
-    expected = next((r for r in final_records(proposal, review) if r['id'] == record['id']), None)
-    if expected != record:
+    review_hash = record['review'].get('review_sha256')
+    checked = checked_reviews.get(review_id) if checked_reviews is not None else None
+    if checked is None:
+        review = read_json(_path(registry, 'reviews', review_id))
+        _validate(review, 'review.v1')
+        digest = hash_text(canonical(review))
+        if review['id'] != review_id or review_hash != digest:
+            raise ValueError('Record human review hash/identity mismatch')
+        proposal = read_proposal(registry, review['proposal_id'])
+        expected = {}
+        for item in final_records(proposal, review):
+            expected.setdefault(item['id'], item)
+        if checked_reviews is not None:
+            checked_reviews[review_id] = (digest, expected)
+    else:
+        digest, expected = checked
+        if review_hash != digest:
+            raise ValueError('Record human review hash/identity mismatch')
+    if expected.get(record['id']) != record:
         raise ValueError('Review does not bind this statement, hypotheses, dependencies and exact revision')
 
 
@@ -224,7 +236,7 @@ def apply(corpus, proposal_id, review_id):
                 raise ValueError('Apply input revision/hash no longer matches the reviewed diff')
         for record in records:
             registry._put_record(state, record)
-        after_records = {identifier: registry.record_from_state(state, identifier) for identifier in state['records']}
+        after_records = registry.records_from_state(state)
         errors = [issue for issue in registry_issues(registry, after_records)
                   if issue.get('severity', 'error') == 'error']
         if errors:

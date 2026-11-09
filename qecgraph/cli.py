@@ -506,7 +506,7 @@ def main(argv=None):
             from .status import review_states
             registry = Registry(args.corpus)
             state, fixed = registry.read(args.registry_revision)
-            records = {identifier: registry.record_from_state(state, identifier) for identifier in state['records']}
+            records = registry.records_from_state(state)
             reviews = review_states(registry, state, records)
             result = {'registry_revision': fixed, 'records': lean_record_states(registry, state, records, reviews),
                       'scope': 'read-only freshness; no Lean process or semantic approval'}

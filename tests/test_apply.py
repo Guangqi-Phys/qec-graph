@@ -4,6 +4,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from qecgraph.graph import canonical
+from qecgraph.records import prepare_record
 from qecgraph.registry import Registry
 from qecgraph.review import apply, create_proposal, decide
 from qecgraph.transactions import writer_lock
@@ -97,6 +99,25 @@ class ApplyTests(unittest.TestCase):
         record['revision'] = '3'
         with self.assertRaisesRegex(ValueError, 'does not bind'):
             self.registry.add_record(record)
+
+    def test_batch_validation_rechecks_each_record_against_its_review(self):
+        proposal, _ = self.proposal_and_review()
+        review = decide(self.registry.root, proposal['id'], actor={'id': 'fixture:human', 'kind': 'human'},
+                        decision='approve', rationale='Batch binding fixture',
+                        checked_scopes=['statement', 'hypotheses', 'dependencies'])
+        apply(self.registry.root, proposal['id'], review['id'])
+        self.assertTrue(self.registry.validate()['passed'])
+        state, _ = self.registry.read()
+        record = self.registry.record('claim:b')
+        record['data']['statement'] = 'A different statement.'
+        record.pop('content_sha256')
+        record = prepare_record(record)
+        binding = state['records']['claim:b']['revisions']['2']
+        (self.registry.root / binding['path']).write_text(canonical(record), encoding='utf-8')
+        binding['content_sha256'] = record['content_sha256']
+        fixed = self.registry._publish(state)
+        with self.assertRaisesRegex(ValueError, 'does not bind'):
+            self.registry.validate(fixed)
 
 
 if __name__ == '__main__':
