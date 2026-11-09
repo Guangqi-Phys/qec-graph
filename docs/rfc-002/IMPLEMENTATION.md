@@ -18,3 +18,10 @@ U2 解包：按内容识别 TeX、gzip、tar 和 ZIP；限制原包与展开资�
 拒绝链接、特殊成员和会覆盖的路径；来源树哈希包含每个文件的原始字节。
 只有唯一有 `documentclass` 和 `begin{document}` 的 UTF-8 文件才自动选作入口，
 多个候选留待配置。解包测试通过；工作区提交与回收由下一步接入。
+
+U2 工作区：`qec-graph init/sync/rebuild/status/validate --workspace PATH`。
+机器发布复用 Registry 的不可变状态与单写锁；原包以 SHA-256 归档，
+每次投递留独立收据。失败材料留在收件箱并登记；默认 rebuild 遍历全部
+归档收据和内容库存。成功结构处理标记 `semantic_pending`，随后才清理认领文件。
+入口和来源身份可在 `qecgraph.toml` 中用来源树哈希显式配置。
+工作区测试已覆盖部分批次、重投、空箱重建、版本冲突、写锁及指针切换后故障。

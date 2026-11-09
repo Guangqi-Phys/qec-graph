@@ -50,6 +50,17 @@ def _add_source_arguments(parser):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graphs with explicit evidence checks")
     sub = parser.add_subparsers(dest="command", required=True)
+    for action in ('init', 'sync', 'rebuild', 'status'):
+        workspace = sub.add_parser(action, help=f'{action.capitalize()} a managed QEC workspace')
+        workspace.add_argument('--workspace')
+        if action != 'status':
+            workspace.add_argument('--keep-inputs', action='store_true')
+        if action == 'init':
+            workspace.add_argument('--no-ingest', action='store_true')
+        if action == 'sync':
+            workspace.add_argument('--dry-run', action='store_true')
+        if action == 'rebuild':
+            workspace.add_argument('--include-inputs', action='store_true')
     cmd = sub.add_parser('lean-build', help='Explicitly build/export/audit a pinned Lean project; never invoked by read tools')
     cmd.add_argument('--project', required=True)
     cmd.add_argument('--out', required=True)
@@ -168,10 +179,21 @@ def main(argv=None):
         cmd.add_argument("--include-candidates", action="store_true")
         cmd.add_argument("--max-nodes", type=int, default=60)
     cmd = sub.add_parser("validate", help="Validate hashes, source spans, endpoints and SQLite")
-    cmd.add_argument("--store", required=True)
+    group = cmd.add_mutually_exclusive_group()
+    group.add_argument("--store")
+    group.add_argument("--workspace")
     cmd.add_argument('--snapshot')
     args = parser.parse_args(argv)
     try:
+        if args.command in {'init', 'sync', 'rebuild', 'status'} or (args.command == 'validate' and not args.store):
+            from .workspace import Workspace
+            if getattr(args, 'snapshot', None):
+                raise ValueError('--snapshot requires --store')
+            options = {key: getattr(args, key) for key in ('no_ingest', 'dry_run', 'include_inputs', 'keep_inputs')
+                       if hasattr(args, key)}
+            result = getattr(Workspace(args.workspace), args.command)(**options)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 2 if result['status'] in {'partial_batch', 'invalid'} else 0
         if args.command in {'search', 'show', 'deps', 'impact', 'context', 'validate', 'audit-dependencies'}:
             if getattr(args, 'corpus', None):
                 if args.snapshot:
