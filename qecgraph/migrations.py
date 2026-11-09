@@ -5,7 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from .graph import canonical, hash_text, read_json
+from .graph import hash_text, read_json
 from .records import RECORD_SCHEMA, prepare_record
 from .store import safe_relative
 from .transactions import atomic_json, immutable_json
