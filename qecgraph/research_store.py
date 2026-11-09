@@ -66,21 +66,27 @@ def validate_sources(registry, state, records, *, require_source=True):
 def stage_records(registry, state, records):
     previous = load_records(registry, state)
     indexed = {key(ref(row)): row for row in previous}
+    incoming = {}
+    input_count = 0
     for record in records:
         identity = key(ref(record))
-        if identity in indexed and indexed[identity] != record:
+        existing = incoming.get(identity, indexed.get(identity))
+        if existing is not None and existing != record:
             raise ValueError('Research revision already binds different content')
-        indexed[identity] = record
+        incoming[identity] = record
+        input_count += 1
+    indexed.update(incoming)
     validated = validate_bundle(indexed.values())
-    validate_sources(registry, state, (validated[key(ref(record))] for record in records))
+    validate_sources(registry, state, (validated[identity] for identity in incoming))
     index = state.setdefault('research_records', {})
-    for identity, record in validated.items():
-        identifier, revision = identity
-        digest = hash_text(canonical(record))
+    for identifier, revision in incoming:
         if revision in index.get(identifier, {}):
             continue
+        record = validated[identifier, revision]
+        digest = hash_text(canonical(record))
         immutable_json(safe_relative(registry.root, _record_path(record)), record)
         index.setdefault(identifier, {})[revision] = digest
+    return input_count
 
 
 def publish_records(registry, records):
@@ -88,7 +94,7 @@ def publish_records(registry, records):
         state, previous = registry.read()
         if not state.get('workspace_id'):
             raise ValueError('Research import requires an initialized workspace')
-        stage_records(registry, state, records)
+        input_count = stage_records(registry, state, records)
         release = registry._publish(state)
     return {'status': 'imported' if previous != release else 'unchanged', 'release_id': release,
-            'input_records': len(records)}
+            'input_records': input_count}

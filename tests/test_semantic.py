@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from qecgraph.graph import canonical, read_json
 from qecgraph.research import make_record
-from qecgraph.research_store import validate_sources
+from qecgraph.research_store import publish_records, validate_sources
 from qecgraph.semantic import request_extraction, review_extraction, submit_extraction
 from qecgraph.source_package import unpack
 from qecgraph.workspace import Workspace
@@ -14,6 +14,38 @@ from test_source_package import TEX, tar_bytes
 
 
 class SemanticTests(unittest.TestCase):
+    def test_iterator_records_are_verified_before_publication(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'inputs').mkdir()
+            (root / 'inputs/source.tex').write_bytes(TEX)
+            ws = Workspace(root)
+            previous = ws.init()['release_id']
+            state, _ = ws.registry.read(previous)
+            identifier, = state['versions']
+            graph, _, version = ws.registry.source_graph(identifier, previous)
+            node = next(n for n in graph['nodes'] if n['latex'] == 'Hello')
+            origin = {'id': identifier, 'revision': version['snapshot_id']}
+            locator = {**node['source'], 'node_id': node['id'], 'node_content_sha256': 'b' * 64,
+                       'source_version_id': identifier, 'snapshot_id': version['snapshot_id']}
+            field = '/data/source_label'
+            record = make_record('noise_model', 'noise:iterator', 'one',
+                                 {'idle': None, 'loss': None, 'erasure': None, 'leakage': None,
+                                  'source_label': 'Hello', 'review_status': 'proposed'}, source=origin,
+                                 method='fixture', evidence={field: {'status': 'known', 'source_ref': origin,
+                                                                   'source_locator': locator, 'method': 'fixture'}})
+            with self.assertRaisesRegex(ValueError, 'does not resolve to a verbatim registered span'):
+                publish_records(ws.registry, iter([record]))
+            self.assertEqual(ws.registry.read()[1], previous)
+
+            record['field_evidence'][field]['source_locator']['node_content_sha256'] = node['content_sha256']
+            result = publish_records(ws.registry, iter([record, record]))
+            self.assertEqual(result['status'], 'imported')
+            self.assertEqual(result['input_records'], 2)
+            state, fixed = ws.registry.read()
+            self.assertEqual(fixed, result['release_id'])
+            self.assertEqual(set(state['research_records'][record['id']]), {'one'})
+
     def test_source_evidence_uses_the_graph_bytes_that_passed_validation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
