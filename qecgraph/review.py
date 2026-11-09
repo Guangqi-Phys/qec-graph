@@ -74,6 +74,11 @@ def create_proposal(corpus, changes, *, actor, rationale, expected_registry_revi
         raise ValueError('Proposal requires rationale')
     if not isinstance(changes, list) or not changes:
         raise ValueError('Proposal requires a nonempty change list')
+    for change in changes:
+        if (not isinstance(change, dict)
+                or set(change) != {'record', 'expected_revision', 'expected_content_sha256'}
+                or not isinstance(change['record'], dict)):
+            raise ValueError('Each change needs a record object, expected_revision and expected_content_sha256 (null for a new ID)')
     registry = Registry(corpus)
     with writer_lock(registry.root):
         state = registry._state_or_empty()
@@ -82,8 +87,6 @@ def create_proposal(corpus, changes, *, actor, rationale, expected_registry_revi
             raise ValueError('Proposal base registry revision is stale')
         prepared, seen = [], set()
         for change in changes:
-            if set(change) != {'record', 'expected_revision', 'expected_content_sha256'}:
-                raise ValueError('Each change needs record, expected_revision and expected_content_sha256 (null for a new ID)')
             after = prepare_record(change['record'])
             identifier = after['id']
             if identifier in seen:

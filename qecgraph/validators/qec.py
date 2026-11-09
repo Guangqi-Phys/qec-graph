@@ -132,14 +132,19 @@ def distance_issues(data):
 
 
 def check_experiment(record, metric):
+    if not isinstance(record, dict) or not isinstance(record.get('data'), dict):
+        raise ValueError('Experiment record needs a data object')
+    if (not isinstance(metric, dict) or not isinstance(metric.get('id'), str) or not metric['id'].strip()
+            or not isinstance(metric.get('data'), dict)):
+        raise ValueError('Metric needs a nonempty ID and a data object')
     data, definition = record['data'], metric['data']
-    sampling, stats = data['sampling'], data['statistics']
+    sampling, stats = data.get('sampling'), data.get('statistics')
     if not isinstance(sampling, dict) or not isinstance(stats, dict):
         raise ValueError('Experiment needs explicit sampling and statistics objects')
     for field in ('event', 'denominator', 'sector', 'rounds', 'boundaries', 'postselection', 'timeout_policy'):
         if definition.get(field) is None:
             raise ValueError('Metric missing ' + field)
-    bindings = data['input_revisions']
+    bindings = data.get('input_revisions')
     if not isinstance(bindings, dict) or not {'code', 'presentation', 'circuit', 'noise', 'decoder', 'metric'} <= bindings.keys():
         raise ValueError('Experiment must bind code/presentation/circuit/noise/decoder/metric revisions')
     for binding in bindings.values():
@@ -149,7 +154,7 @@ def check_experiment(record, metric):
     result = {'checker': 'qecgraph.experiment.v1', 'sampling_method': method,
               'metric_definition_id': metric['id'], 'estimate': None, 'lean_status': 'not_performed',
               'input_binding_validation': 'structure_only; resolve referenced inputs separately'}
-    if data['metric'] != metric['id'] or bindings['metric']['id'] != metric['id']:
+    if data.get('metric') != metric['id'] or bindings['metric']['id'] != metric['id']:
         raise ValueError('Experiment and metric input IDs disagree')
     if method == 'iid':
         shots, discards, accepted, failures = [_integer(stats.get(k), k) for k in ('shots', 'discarded', 'accepted', 'failures')]
@@ -158,7 +163,9 @@ def check_experiment(record, metric):
         if not all(sampling.get(k) for k in ('stopping_rule', 'random_stream', 'interval_method')):
             raise ValueError('IID sampling needs stopping rule, random stream and interval method')
         interval = stats.get('confidence_interval', {})
-        if not (0 < interval.get('level', 0) < 1 and 0 <= interval.get('lower', -1) <= interval.get('upper', -1) <= 1):
+        if not isinstance(interval, dict) or any(type(interval.get(field)) not in (int, float)
+                                                 for field in ('level', 'lower', 'upper')) or not (
+                0 < interval['level'] < 1 and 0 <= interval['lower'] <= interval['upper'] <= 1):
             raise ValueError('Explicit valid confidence interval and level required')
         if failures == 0 and accepted and interval['upper'] == 0:
             raise ValueError('Zero observed failures do not prove zero probability')

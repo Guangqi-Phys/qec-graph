@@ -215,6 +215,16 @@ class Registry:
                    assumptions=None, notation_scope=None):
         if not isinstance(link_id, str) or not link_id.strip():
             raise ValueError('Link requires explicit identity')
+        for field, value in (('source_version_id', source_version_id), ('source_selector', source_selector),
+                             ('claim_id', claim_id), ('claim_revision', claim_revision)):
+            if field == 'claim_revision' and value is None:
+                continue
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f'Claim link {field} must be a nonempty string')
+        if assumptions is not None and not isinstance(assumptions, list):
+            raise ValueError('Claim link assumptions must be an array')
+        if notation_scope is not None and not isinstance(notation_scope, dict):
+            raise ValueError('Claim link notation_scope must be an object')
         with writer_lock(self.root):
             state, fixed = self.read()
             graph, _, version = self.source_graph_from_state(state, source_version_id, fixed, verify=True)

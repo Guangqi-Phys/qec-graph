@@ -205,6 +205,17 @@ def _workspace_query(args):
                                  'include_candidates': args.include_candidates})
 
 
+def _command_object(path, required, optional=()):
+    value = read_json(path)
+    if not isinstance(value, dict):
+        raise ValueError("Input must be a JSON object")
+    if missing := set(required) - value.keys():
+        raise ValueError("Input is missing fields: " + ", ".join(sorted(missing)))
+    if extra := value.keys() - (set(required) | set(optional)):
+        raise ValueError("Unknown input fields: " + ", ".join(sorted(extra)))
+    return value
+
+
 def _add_source_arguments(parser):
     parser.add_argument("entry")
     parser.add_argument("--project-id", required=True)
@@ -589,7 +600,8 @@ def main(argv=None):
             result = apply(args.corpus, args.proposal_id, args.review_id)
         elif args.command == 'review':
             from .review import create_proposal
-            result = create_proposal(args.corpus, actor={'id': args.actor_id, 'kind': args.actor_kind}, **read_json(args.input))
+            payload = _command_object(args.input, ('changes', 'rationale'), ('expected_registry_revision',))
+            result = create_proposal(args.corpus, actor={'id': args.actor_id, 'kind': args.actor_kind}, **payload)
         elif args.command == 'review-decide':
             from .review import decide
             result = decide(args.corpus, args.proposal_id, actor={'id': args.actor_id, 'kind': args.actor_kind},
@@ -601,7 +613,7 @@ def main(argv=None):
             result['suggested_exit_code'] = 0 if result['passed'] else 2
         elif args.command == 'check-experiment':
             from .validators.qec import check_experiment
-            payload = read_json(args.input)
+            payload = _command_object(args.input, ('record', 'metric'))
             result = check_experiment(payload['record'], payload['metric'])
         elif args.command == 'codes':
             from .domain_query import codes
@@ -618,7 +630,9 @@ def main(argv=None):
         elif args.command == 'record-add':
             result = Registry(args.corpus).add_record(read_json(args.input))
         elif args.command == 'claim-link':
-            result = Registry(args.corpus).link_claim(**read_json(args.input))
+            payload = _command_object(args.input, ('link_id', 'source_version_id', 'source_selector', 'claim_id'),
+                                      ('claim_revision', 'assumptions', 'notation_scope'))
+            result = Registry(args.corpus).link_claim(**payload)
         elif args.command == "register":
             result = Registry(args.corpus).register_source(args.work_id, args.source_version_id, args.store,
                                                          title=args.title, upstream_version=args.upstream_version)
