@@ -50,10 +50,26 @@ workspace="$(mktemp -d "$PWD/build/qec-workspace.XXXXXX")"
 mkdir -p "$workspace/inputs"
 COPYFILE_DISABLE=1 tar -czf "$workspace/inputs/qec-demo.tar.gz" -C examples/paper .
 
-qec-graph init --workspace "$workspace"
+qec-graph init --no-ingest --workspace "$workspace"
+qec-graph sync --workspace "$workspace"
 qec-graph status --workspace "$workspace"
 qec-graph validate --workspace "$workspace"
+qec-graph query search HGP --workspace "$workspace" --limit 2
 ```
+
+The bundled paper produced these outcome lines in a redirected terminal.
+
+```text
+[################] init: OK (0/0 packages indexed)
+[################] sync: OK (1/1 packages indexed)
+[################] status: OK (1/1 packages indexed)
+[################] validate: OK
+```
+
+The first two search results were the equations `eq:hgp-checks` and
+`eq:hgp-commutation`. Their `source` spans locate them in the LaTeX. The
+response also identifies the fixed release and reports that more matches
+are available. [How to read and reproduce a query](DATA_AND_SEARCH.md#read-and-reproduce-a-query-result)
 
 ## Maintain a workspace
 
