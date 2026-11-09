@@ -26,25 +26,28 @@ def project(corpus, registry_revision=None, source_version_id=None, *, check_liv
         graph, _, version = registry.source_graph_from_state(state, version_id, fixed, verify=verify_sources)
         versions[version_id] = version
         partial |= graph['extraction_status'] == 'partial'
+        occurrence_prefix = occurrence_id(version_id, '')
+        label_prefix = version_id + '::'
+        archive_prefix = 'qecgraph://source/' + quote(version_id, safe='') + '/'
         # The loader gives this projection its own freshly decoded graph.
         for node in graph['nodes']:
             original_id = node['id']
-            node['id'] = occurrence_id(version_id, original_id)
+            node['id'] = occurrence_prefix + original_id
             node['original_node_id'] = original_id
             node['provenance'] = {'source_version_id': version_id, 'work_id': version['work_id'],
                                   'snapshot_id': version['snapshot_id']}
             if node.get('source'):
                 node['source'].update(node['provenance'])
-                node['source']['archive_uri'] = 'qecgraph://source/' + quote(version_id, safe='') + '/' + quote(node['source']['path'])
-            node['labels'] = [version_id + '::' + label for label in node['labels']]
+                node['source']['archive_uri'] = archive_prefix + quote(node['source']['path'])
+            node['labels'] = [label_prefix + label for label in node['labels']]
             # Full original IDs are also version-qualified to disambiguate revisions.
-            for label in node['labels'] + [version_id + '::' + original_id]:
+            for label in node['labels'] + [label_prefix + original_id]:
                 labels.setdefault(label, []).append(node['id'])
             nodes.append(node)
         for edge in graph['edges']:
-            edge['id'] = occurrence_id(version_id, edge['id'])
-            edge['source'] = occurrence_id(version_id, edge['source'])
-            edge['target'] = occurrence_id(version_id, edge['target'])
+            edge['id'] = occurrence_prefix + edge['id']
+            edge['source'] = occurrence_prefix + edge['source']
+            edge['target'] = occurrence_prefix + edge['target']
             edges.append(edge)
     records = {identifier: registry.record_from_state(state, identifier) for identifier in sorted(state['records'])}
     reviews = review_states(registry, state, records)
