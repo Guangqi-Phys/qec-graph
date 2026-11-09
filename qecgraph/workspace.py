@@ -29,6 +29,7 @@ FORMAT = 'qecgraph.workspace.v1'
 PROCESSOR = f'qecgraph-{__version__}:archive-structure-v1:parser-{PARSER_VERSION}:{RULE_VERSION}'
 HEX = re.compile(r'[0-9a-f]{64}')
 JOB = re.compile(r'[0-9a-f]{32}')
+_CHUNK_BYTES = 256 << 10
 
 
 def now():
@@ -77,13 +78,27 @@ def _hash_regular(path, limit):
     digest = hashlib.sha256()
     size = 0
     with _regular_input(path, limit) as (stream, before):
-        while chunk := stream.read(min(256 << 10, limit - size + 1)):
+        while chunk := stream.read(min(_CHUNK_BYTES, limit - size + 1)):
             size += len(chunk)
             if size > limit:
                 raise PackageError('limit_exceeded', 'Source byte limit exceeded')
             digest.update(chunk)
         _check_input_read(stream, before, size)
     return digest.hexdigest()
+
+
+def _matches_regular(path, limit, expected):
+    with _regular_input(path, limit) as (stream, before):
+        if before.st_size != len(expected):
+            return False
+        size = 0
+        while chunk := stream.read(min(_CHUNK_BYTES, before.st_size - size + 1)):
+            end = size + len(chunk)
+            if chunk != expected[size:end]:
+                return False
+            size = end
+        _check_input_read(stream, before, size)
+    return True
 
 
 def locate(path=None, *, default=None):
@@ -217,7 +232,7 @@ class Workspace:
         digest = hashlib.sha256(raw).hexdigest()
         blob = self.path('archive/blobs/sha256/' + digest)
         if blob.exists():
-            if _read_regular(blob, max(limit, len(raw))) != raw:
+            if not _matches_regular(blob, limit, raw):
                 raise ValueError('Archived blob does not match claimed input')
         else:
             atomic_bytes(blob, raw)
@@ -235,6 +250,7 @@ class Workspace:
             if hashlib.sha256(raw).hexdigest() != digest:
                 raise ValueError('Archived source hash mismatch')
             tree = unpack(raw, limits)
+            del raw
             tree_hash = tree.digest
             result.update(format=tree.format, source_tree_hash=tree_hash)
             metadata = cfg.get('sources', {}).get(tree_hash, {})
@@ -257,8 +273,7 @@ class Workspace:
             preserve = not saved.exists()
             if not preserve:
                 for path, original in sorted(tree.files.items()):
-                    raw_member = _read_regular(self.path('sources/' + tree_hash + '/' + path), limits.member_bytes)
-                    if raw_member != original:
+                    if not _matches_regular(self.path('sources/' + tree_hash + '/' + path), limits.member_bytes, original):
                         raise ValueError('Preserved source tree does not match archive')
             if preserve or version is None:
                 with tempfile.TemporaryDirectory(prefix='ingest-', dir=self.path('.qecgraph')) as temporary:
