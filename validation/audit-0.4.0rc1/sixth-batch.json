@@ -1,0 +1,57 @@
+{
+  "source_commit": "94a84d471a07e99bab161047903155c1ff9ed66b",
+  "test_file_updated_in_evidence_commit": {
+    "path": "tests/test_ai_tools.py",
+    "sha256": "5acb70d7fbff4145e211ef0e484556845264a622934bad5758f2cceb376d3958",
+    "change": "Assert the typed error and exact blocked path for a linked snapshot"
+  },
+  "coverage_commands": [
+    "python -m coverage run -m unittest discover -s tests -v",
+    "python -m coverage report --fail-under=80"
+  ],
+  "macos": {
+    "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "python": "3.13.18",
+    "unit_tests_passed": 219,
+    "branch_aware_coverage_percent": 80.50
+  },
+  "linux": {
+    "platform": "Ubuntu 22.04.5 LTS arm64",
+    "python": "3.11.18",
+    "unit_tests_passed": 219,
+    "branch_aware_coverage_percent": 80.50,
+    "container_image_id": "sha256:cba31f8e8e5055ee1420017e7c4d1cfb9b23e167893739ff41ab49ef0f7cb3e5",
+    "test_scope": "Read-only Git export with the test update, on PYTHONPATH with networking disabled"
+  },
+  "checks": [
+    {"command": "ruff check qecgraph tests tools", "passed": true},
+    {"command": "mypy", "passed": true, "source_files_checked": 50},
+    {"command": "pre-commit run --all-files", "passed": true},
+    {"command": "python tools/reproduce.py --out build/reproduce", "steps_passed": 14},
+    {"command": "python tools/reproduce_mcp.py --out build/reproduce-mcp", "checks_passed": 22},
+    {"check": "Help output and its example", "command_paths_passed": 98},
+    {"check": "Compare parsed JSON with 0648cf4", "bundled_tex_inputs_unchanged": 4},
+    {
+      "command": "python tools/reproduce_golden.py --archive-dir ARCHIVES --out build/golden-arxiv.json",
+      "source_versions_passed": 6,
+      "release_id": "66f9e41bec82305d9c64459a17fe885c9682b2aee418115ba0b74e03d99def1a"
+    }
+  ],
+  "verified_python_distributions": {
+    "commands": [
+      "python -m build --no-isolation --outdir DIST SOURCE_EXPORT",
+      "python -m twine check --strict DIST/*.whl DIST/*.tar.gz",
+      "python tools/check_distribution.py DIST --source SOURCE_EXPORT",
+      "python -m pip install --no-index --find-links WHEELHOUSE .",
+      "python tools/reproduce_workspace.py --bin-dir VENV/bin --out build/installed-workspace.json"
+    ],
+    "source_install_in_fresh_venv_steps_passed": 16,
+    "wheel_install_steps_passed": 16,
+    "repacked_wheel_and_sdist_with_changed_seed_rejected": true,
+    "sha256": {
+      "qec_graph-0.4.0rc1-py3-none-any.whl": "557c1fc17b7bb8084bf7ff7ebf1f5b8977afa0a5ba7b0bc75bdf31b792e691cf",
+      "qec_graph-0.4.0rc1.tar.gz": "a87675efb615d2c9b2198baca0c94afe8668e3c72a0a0f356778ef25834389e5"
+    }
+  },
+  "not_run": ["GitHub hosted checks and publication (account billing lock)", "new standalone or Lean builds"]
+}

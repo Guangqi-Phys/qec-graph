@@ -13,6 +13,7 @@ from qecgraph.ai_tools import ReadOnlySession, TOOL_NAMES
 from qecgraph.query import context, search
 from qecgraph.registry import Registry
 from qecgraph.store import ingest
+from qecgraph.transactions import ManagedDataError
 
 
 class AIToolTests(unittest.TestCase):
@@ -119,8 +120,9 @@ class AIToolTests(unittest.TestCase):
         outside.parent.mkdir()
         snapshot.rename(outside)
         snapshot.symlink_to(outside, target_is_directory=True)
-        with self.assertRaisesRegex(ValueError, 'Path escapes root'):
+        with self.assertRaises(ManagedDataError) as blocked:
             ReadOnlySession(store=self.store, snapshot_id=self.result['snapshot_id'])
+        self.assertEqual(blocked.exception.path, snapshot)
 
     def test_budget_refuses_partial_root_and_marks_missing_dependencies(self):
         huge = 'Assumption H. ' * 1000

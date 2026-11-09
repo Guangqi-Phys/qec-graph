@@ -18,18 +18,18 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 10 | Documentation index and factual corrections | Complete. The README links to a current index. Corrected runtime requirements, locking, command entry points, MCP scope, and validation links, and marked historical reports. Checked Markdown link targets. Physical reorganization remains in item 18. |
 | 11 | Separate CLI parsing, rendering, and dispatch | Complete. `main()` delegates parsing, rendering, and command workflows. All 50 registered names are covered by the dispatch paths, and both module entry points and console scripts are preserved. The extraction matched 114 help and usage transcripts and passed the full test suite. |
 | 12 | Stable error taxonomy and JSON error contract | Complete. The CLI uses versioned JSON errors on request, including fixed-scope query errors; MCP keeps its protocol. Tests cover missing paths and selectors, ambiguity, held writer locks, corrupt configuration and pointers, usage, stream isolation, and unexpected failures with `--debug`. Partial operations keep their actionable command reports. |
-| 13 | Grouped help, examples, and alias migration | Complete. Grouped names share options, examples, and handlers with flat names. Legacy names get a controlled stderr notice, and everyday shortcuts stay visible and silent. Direct code, performance, and software queries share the fixed-release MCP contract. `review show` verifies exact proposal identity. `review import` queues a source-bound draft through the existing validator. Importing pre-approved decisions would bypass the existing reviewer and source bindings, so that interpretation was excluded. Subprocess tests cover both review paths and query parity. |
+| 13 | Grouped help, examples, and alias migration | Complete. The help path and `--help` produce identical output with a parseable example for every registered command path, including inbox and snapshot actions. Grouped names share handlers with flat names. Legacy names get a controlled stderr notice, and everyday shortcuts stay visible and silent. `review show` verifies exact proposal identity; `review import` queues a source-bound draft without inheriting approval. |
 | 14 | Query workspaces directly through the MCP query layer | Complete in `4067e6e`. Five CLI queries matched their tool results at a pinned release after CURRENT advanced. The workspace query suite passed. |
 | 15 | Doctor, version command, and snapshot listing | Complete. CLI tests cover version, healthy and corrupt CURRENT diagnosis, an unchanged pointer, and listing both immutable store snapshots and unpublished registry candidates. |
 | 16 | Package all current schemas and expand research contracts | Complete. Graph and annotation schemas have one packaged copy. Research schema covers supported kinds, required fields, revision references, evidence metadata, domain values, matrix recipes, and managed assets. Runtime checks exact numeric representation, cross-field consistency, and provenance. The synthetic and software fixtures and 87 records from a fixed real release passed. |
 | 17 | Single packaged software seed and explicit test fixtures | Complete. The deleted seed matched the packaged resource byte for byte. The synthetic fixture kept its historical SHA-256. Research and workspace query tests load the canonical inputs. |
 | 18 | Organize documentation by purpose | Complete. The index separates user, design, operations, and archive pages, with a language and status guide. Design, maintenance, and prototype pages moved with forwarding links. The user guides retain their URLs and the hash-bound RFC inputs keep their original bytes and paths. |
-| 19 | CLI, renderer, schema, and docs tests with coverage | Complete. The 211-test suite passed on macOS and Linux at 80.32% branch-aware coverage. Checks include both CLI streams, inline docs commands and links, archive rejection, all 26 research schema kinds, numeric evidence validation, and renderer migration and recovery. [Fifth batch evidence](../validation/audit-0.4.0rc1/fifth-batch.json) |
+| 19 | CLI, renderer, schema, and docs tests with coverage | Complete. The 219-test suite passed on macOS and Linux at 80.50% branch-aware coverage. Checks include both CLI streams, all registered command help paths, inline docs commands and links, archive rejection, all 26 research schema kinds, numeric evidence validation, and renderer migration and recovery. [Sixth batch evidence](../validation/audit-0.4.0rc1/sixth-batch.json) |
 | 20 | Lint, type, coverage, and pre-commit configuration | Complete. Ruff, mypy, and pre-commit passed locally. Raised the coverage gate to 80% after testing it on both CI runtime versions. Enabling checks inside every unannotated function exposed 107 existing issues, so mypy remains gradual. |
 | 21 | Consolidate validation evidence and index current runs | Complete. The migration reduced the tracked evidence tree to 57 files at `3f4f13a`, including current runs, stage summaries, and fixtures with byte-bound tests. All 574 historical paths restored from the documented Git commit matched the SHA-256 inventory, including duplicates and empty logs. |
 | 22 | Share storage and publication primitives | Complete. Store, corpus, and workspace share the writer lock, pointer codec, and atomic replacement. Tests verify unchanged CURRENT after failed replacement in all three engines, lock contention between two ingest processes, and exact claim recovery after a real SIGKILL following publication. |
 | 23 | Share query logic across store, corpus, and workspace | Complete. Store and corpus CLI and MCP calls use the same graph query session. Workspace context composes that session and applies the budget after adding fixed-release metadata. SQLite FTS ranking and the research overlay retain their own policies. Fixed-release parity, 22 stdio replay checks, and malformed Unicode recovery passed. |
-| 24 | Stage graph construction and test parser boundaries | Complete. The graph builder names its identity, relations, resources, catalogue, annotations, proof, and projection stages. Four graphs and views matched the previous implementation byte for byte. Workspace ingestion separates inbox archiving, validated publication under its writer lock, and claim finalization. The parser tests increased branch-aware coverage from 79.60% to 83.85%, and six real source packages replayed successfully. |
+| 24 | Stage graph construction and test parser boundaries | Complete. The graph builder names its identity, relations, resources, catalogue, annotations, proof, and projection stages. Workspace ingestion separates inbox archiving, validated publication, and claim finalization. The parser separates static conditionals and section emission. All functions in the three files are under 100 lines. Four bundled TeX inputs produced identical parsed JSON and six real source packages replayed successfully. |
 | 25 | Improve generated Obsidian pages and migration | Complete. Pages include aliases, tags, source and evidence tables, eligible relations, grouped indexes, and status and change pages. Tests cover deterministic rendering, path migration, archived and restored links, collisions, unrelated files, and note isolation. The disposable Obsidian vault passed eight reading-view and link checks. [Verification and screenshot](../validation/README.md) |
 | 26 | Verify release artifacts before publication | Implemented and verified locally. Tag builds gate GitHub Release on installer, installed CLI, wheel, and source archive checks and retain their reports. The manual PyPI workflow verifies already published distribution hashes and requires repository environment and Trusted Publisher setup. GitHub billing blocks hosted verification. |
 | 27 | Verify Linux and MCP isolation | Complete locally. The production Compose profile passed 12 checks on Linux arm64 with Python 3.13.18. The macOS arm64 wheel passed all six OS permission checks and a pinned stdio query. Both profiles verified machine reads, denied writes and network access, and isolated private notes. The default Docker Hub base lookup timed out, so Linux used an alternate local Ubuntu base. CI includes both replays. |
@@ -61,6 +61,28 @@ The fifth batch checked the remaining local failure cases and recorded the
 - Items 14 and 23: Honor exact record and metric revisions, keep integer
   coordinates exact, page results within the response limit, and preserve the
   fixed MCP release and its coverage if the operational status is damaged.
+
+The sixth comparison found local gaps in the detailed acceptance criteria.
+The [verification record](../validation/audit-0.4.0rc1/sixth-batch.json) covers
+these changes:
+
+- Items 3–5, 7, and 12–15: Complete the nested help paths, add JSON version and
+  workspace status fields, preserve the machine release when the vault renderer
+  fails, and distinguish missing inbox files, restore conflicts, corrupt
+  review records, and malformed experiment evidence bindings.
+- Items 8, 16–17, and 26: Validate the bundled software catalogue against the
+  checkout, check installer payload versions, and exercise the daily commands
+  and query parity from an installed package.
+- Items 10 and 18: Separate the implementation baseline from the current
+  documentation and Linux validation evidence.
+- Items 22 and 24–25: Refuse unsafe recovery markers and snapshot pointers,
+  allow retry after an interrupted first store publication, separate the last
+  long parser functions, and rebuild malformed generated status reports.
+
+The remaining hosted acceptance is the pull-request gate and publication
+workflow execution (items 2, 20, 26, and 27). Local macOS and Linux checks do
+not establish those results. The optional source layout and shell completion
+remain outside the acceptance gates.
 
 ## Decisions requiring a different treatment
 
