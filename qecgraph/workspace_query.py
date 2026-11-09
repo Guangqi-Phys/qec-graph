@@ -1,6 +1,7 @@
 """Fixed workspace release reads for Python, CLI and MCP, with no human mount."""
 from __future__ import annotations
 
+import base64
 import copy
 from datetime import datetime
 import os
@@ -16,6 +17,7 @@ from .registry import Registry
 from .research import RELATIONS, key, validate_bundle
 from .research_store import load_records
 from .workspace import HEX, _managed
+from .workspace_assets import asset_bytes, references
 
 
 def check_machine_tree(machine):
@@ -76,6 +78,7 @@ class WorkspaceSession:
                         and self.review_states.get(identity, {}).get('status') != 'stale'}
         self.scope = {'kind': 'workspace', 'workspace_id': self.state['workspace_id'], 'release_id': self.release}
         self.scope['registry_revision'] = self.release
+        self.assets = {uri for r in self.visible.values() for uri in references(r)}
         self.resources = {self._resource_uri(n['id']): n['id'] for n in self.graph.source.graph['nodes']
                           if n['origin'] == 'parser' and n.get('source')}
 
@@ -125,6 +128,8 @@ class WorkspaceSession:
             'qec_get_entity': ({'identifier': _string(4096), 'revision': _string()}, ['identifier']),
             'qec_get_context': ({'identifier': _string(4096), 'revision': _string(),
                                  'depth': _integer(0, self.graph.max_depth)}, ['identifier']),
+            'qec_get_asset': ({'identifier': _string(80), 'offset': _integer(),
+                               'length': _integer(1, 32768)}, ['identifier']),
             'qec_get_source': ({'identifier': _string(4096), 'char_start': _integer(), 'char_end': _integer()}, ['identifier']),
             'qec_find_codes': ({'n_min': _integer(), 'n_max': _integer(), 'distance_at_least': _integer(),
                                 'metric_definition_id': _string(), 'metric_revision': _string(),
@@ -390,6 +395,19 @@ class WorkspaceSession:
                 data = self._search(args)
             elif name == 'qec_workspace_status':
                 data = {'operational_status': self._operational()}
+            elif name == 'qec_get_asset':
+                uri = args['identifier']
+                if uri not in self.assets:
+                    raise ToolError('NOT_FOUND', 'Expected an asset ID bound to an eligible record in this release')
+                raw = asset_bytes(self.registry, uri)
+                offset, length = args.get('offset', 0), args.get('length', 8192)
+                if offset > len(raw):
+                    raise ToolError('INVALID_ARGUMENT', 'Asset offset exceeds its byte length')
+                end = min(offset + length, len(raw))
+                data = {'asset_id': uri, 'sha256': uri.rsplit(':', 1)[1], 'size_bytes': len(raw),
+                        'byte_start': offset, 'byte_end': end,
+                        'encoding': 'base64', 'content': base64.b64encode(raw[offset:end]).decode('ascii'),
+                        'truncated': end < len(raw), 'continuation': end if end < len(raw) else None}
             elif name == 'qec_get_source':
                 data = self._source(args['identifier'], args.get('char_start'), args.get('char_end'))
             elif name == 'qec_get_context':

@@ -92,3 +92,7 @@ macOS 严格运行配置：`tools/mcp_isolated_macos.py --python VENV/bin/python
 只追加绑定项目修订的观察记录。不跟随重定向，不安装软件，也不修改项目、发行版本或论文使用记录。
 已用 [Stim 官方仓库](https://github.com/quantumlib/Stim) 实测成功。其他目录项未批量刷新；
 非 GitHub 来源保留待核对。
+
+`asset-add` 将显式选择的矩阵/线路/数据文件按哈希保存，拒绝 human 路径和链接。
+研究记录的资产字段只接受受管理的 ID；只读工具 `qec_get_asset` 仅返回当前快照中
+有效记录实际绑定的资产，可按字节分页。未被记录引用的文件即使知道哈希也不可通过 MCP 读取。

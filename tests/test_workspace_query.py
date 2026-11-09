@@ -164,3 +164,27 @@ class WorkspaceQueryTests(unittest.TestCase):
             failure = server.handle(request(4, 'resources/read', {'uri': uri}))
             self.assertEqual(failure['error']['code'], -32002)
             self.assertNotIn(uri, str(failure))
+
+    def test_assets_need_an_exact_record_binding_and_cannot_import_notes(self):
+        from qecgraph.research import make_record
+        from qecgraph.workspace_assets import add_asset
+        path = self.root / 'matrix.bin'
+        path.write_bytes(b'\x00\x01\x10\x11')
+        asset = add_asset(self.root, path)
+        uri = asset['uri']
+        self.assertFalse(WorkspaceSession(self.ws.registry.root).invoke('qec_get_asset', {'identifier': uri})['ok'])
+        with self.assertRaisesRegex(ValueError, 'Human vault'):
+            add_asset(self.root, self.notes / 'private-only-name.md')
+        state, _ = self.ws.registry.read()
+        version, = state['versions']
+        origin = {'id': version, 'revision': state['versions'][version]['snapshot_id']}
+        record = make_record('code_presentation', 'presentation:matrix', 'r1',
+                             {'code_ref': None, 'check_weight_metrics': None,
+                              'generator_asset_refs': [uri], 'reconstruction_status': 'complete'},
+                             source=origin, method='fixture')
+        publish_records(self.ws.registry, [record])
+        session = WorkspaceSession(self.ws.registry.root)
+        response = session.invoke('qec_get_asset', {'identifier': uri, 'offset': 1, 'length': 2})['data']
+        self.assertEqual(response['content'], 'ARA=')
+        self.assertEqual(response['continuation'], 3)
+        self.assertTrue(response['truncated'])

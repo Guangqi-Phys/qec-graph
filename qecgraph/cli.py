@@ -89,6 +89,10 @@ def main(argv=None):
     cmd = sub.add_parser('human-build', help='Render Obsidian pages from the current fixed machine release')
     cmd.add_argument('--workspace')
     cmd.add_argument('--release')
+    cmd = sub.add_parser('asset-add', help='Copy one explicit non-human asset into the content-addressed machine store')
+    cmd.add_argument('input')
+    cmd.add_argument('--workspace')
+    cmd.add_argument('--media-type', default='application/octet-stream')
     cmd = sub.add_parser('extract-request', help='Export bounded, provenance-bound source excerpts for an optional provider')
     cmd.add_argument('source_version')
     cmd.add_argument('--workspace')
@@ -271,6 +275,11 @@ def main(argv=None):
             result = build_human(args.workspace, args.release)
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0 if result['status'] == 'current' else 2
+        if args.command == 'asset-add':
+            from .workspace_assets import add_asset
+            result = add_asset(args.workspace, args.input, media_type=args.media_type)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0
         if args.command in {'extract-request', 'extract-submit', 'extract-review'}:
             from . import semantic
             if args.command == 'extract-request':

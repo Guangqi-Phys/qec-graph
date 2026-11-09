@@ -28,10 +28,13 @@ def load_records(registry, state):
 def validate_sources(registry, state, records, *, require_source=True):
     """Resolve verified locators through registered graph identity, never paths supplied by a record."""
     from .workspace import HEX
+    from .workspace_assets import asset_bytes, references
     graphs = {}
     for record in records:
         if record['is_synthetic']:
             continue
+        for uri in references(record):
+            asset_bytes(registry, uri)
         for evidence in record['field_evidence'].values():
             locator = evidence.get('source_locator')
             if locator is None:

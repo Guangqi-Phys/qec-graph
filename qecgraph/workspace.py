@@ -14,7 +14,7 @@ import uuid
 
 from . import __version__
 from .extraction import RULE_VERSION, proposals
-from .research_store import load_records, stage_records
+from .research_store import load_records, stage_records, validate_sources
 from .graph import canonical, hash_text, read_json
 from .registry import Registry
 from .source_package import Limits, PackageError, read_bounded, unpack
@@ -403,7 +403,9 @@ class Workspace:
         state, fixed = self.registry.read(result['registry_revision'])
         issues = result.setdefault('issues', [])
         from .research import validate_bundle
-        validate_bundle(load_records(self.registry, state))
+        records = load_records(self.registry, state)
+        validate_bundle(records)
+        validate_sources(self.registry, state, records)
         for digest in state.get('materials', {}):
             try:
                 if not HEX.fullmatch(digest):
