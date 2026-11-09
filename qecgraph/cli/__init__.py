@@ -27,7 +27,11 @@ def main(argv: Sequence[str] | None = None, *, entrypoint: tuple[str, str] | Non
         return 0
     report_alias(args.alias)
     workspace_command = uses_workspace(args)
-    progress = WorkspaceProgress(args.command, quiet=args.quiet, color=args.color) if workspace_command and not args.json else None
+    progress = None
+    if workspace_command and not args.json:
+        progress = WorkspaceProgress(args.command, quiet=args.quiet, color=args.color, animate=not args.verbose)
+    if args.verbose:
+        print(f'qec-graph: running {args.command}', file=sys.stderr, flush=True)
     try:
         if workspace_command:
             return workspace_action(args, progress)

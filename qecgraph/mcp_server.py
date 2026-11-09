@@ -131,11 +131,12 @@ class MCPServer:
         return rpc_error(identifier, -32601, 'Method not found')
 
 
-def serve_stdio(session, *, input_stream=None, output_stream=None):
+def serve_stdio(session, *, input_stream=None, output_stream=None, verbose=False):
     incoming = sys.stdin.buffer if input_stream is None else input_stream
     outgoing = sys.stdout.buffer if output_stream is None else output_stream
     server = MCPServer(session)
-    level = logging.getLevelNamesMapping().get(os.environ.get('QECGRAPH_LOG_LEVEL', '').upper(), logging.WARNING)
+    configured = os.environ.get('QECGRAPH_LOG_LEVEL', '').upper()
+    level = logging.DEBUG if verbose else logging.getLevelNamesMapping().get(configured, logging.WARNING)
     logger = logging.Logger(__name__, level)
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter('qecgraph MCP %(levelname)s: %(message)s'))

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 
 from ...graph import read_json
 from ..process import cli_command
@@ -58,12 +59,21 @@ def workspace_action(args, progress):
     ws = Workspace(locate(args.workspace, default=default))
     if args.command != 'init' and not ws.path(CONFIG).is_file():
         raise ValueError('No initialized workspace found. Set QECGRAPH_WORKSPACE or use --workspace.')
-    if progress and args.command != 'status':
-        options['progress'] = progress.update
+
+    def update(done, total, message):
+        if progress:
+            progress.update(done, total, message)
+        if args.verbose:
+            print(f'qec-graph {args.command}: {message}', file=sys.stderr, flush=True)
+
+    if (progress or args.verbose) and args.command != 'status':
+        options['progress'] = update
     result = getattr(ws, args.command)(**options)
     if args.command in _WORKSPACE_WRITE_COMMANDS and result.get('release_id') and not args.no_human:
         if progress:
             progress.phase('Rendering Obsidian views')
+        if args.verbose:
+            print(f'qec-graph {args.command}: Rendering Obsidian views', file=sys.stderr, flush=True)
         import subprocess
         try:
             render = subprocess.run(

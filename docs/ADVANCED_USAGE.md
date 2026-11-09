@@ -124,14 +124,15 @@ on success and failure. `mcp serve` reserves stdout for MCP frames; startup
 errors go to stderr. Without `--json`, `query-tool` retains the response from
 the read tool. With `--json`, query errors also include the command, hint, and
 envelope version; the fixed release or snapshot scope remains attached.
-Use `--debug` to see a traceback for an unexpected CLI failure.
+Use `--verbose` to log workspace phases on stderr or `--debug` to see a
+traceback for an unexpected CLI failure.
 For a damaged workspace configuration or CURRENT pointer, the error gives
 its path. Run `qec-graph doctor` for a read-only inspection.
 
-Set `QECGRAPH_LOG_LEVEL=DEBUG` in the MCP server environment to log request
-frame sizes on stderr. Internal error diagnostics include a numeric request
-ID or a short hash of a string ID. Request text, tool arguments, and source
-passages stay out of those diagnostics.
+Pass `--verbose` to `mcp serve` or set `QECGRAPH_LOG_LEVEL=DEBUG` in the MCP
+server environment to log request frame sizes on stderr. Internal error
+diagnostics include a numeric request ID or a short hash of a string ID.
+Request text, tool arguments, and source passages stay out of those diagnostics.
 
 Related commands also have grouped names. For example, `workspace sync`,
 `query search`, `lean build`, and `mcp serve` use the same options and

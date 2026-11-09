@@ -12,12 +12,12 @@ from .errors import QecError, UsageError
 
 
 class WorkspaceProgress:
-    def __init__(self, action, *, quiet=False, color='auto'):
+    def __init__(self, action, *, quiet=False, color='auto', animate=True):
         self.action = action
         self.quiet = quiet
         self.stderr = sys.stderr
         terminal = sys.stdout.isatty() and self.stderr.isatty() and os.environ.get('TERM') != 'dumb'
-        self.live = terminal and not quiet
+        self.live = terminal and not quiet and animate
         forced = os.environ.get('FORCE_COLOR')
         self.color = (color == 'always' or color == 'auto' and not os.environ.get('NO_COLOR')
                       and (forced != '0' if forced is not None else terminal))

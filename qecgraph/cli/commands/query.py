@@ -131,7 +131,7 @@ def mcp_config(args):
 
 def mcp_serve(args):
     from ...mcp_server import serve_stdio
-    return serve_stdio(_ai_session(args))
+    return serve_stdio(_ai_session(args), verbose=args.verbose)
 
 
 def query_tool(args):

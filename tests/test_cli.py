@@ -15,6 +15,20 @@ from qecgraph.workspace import Workspace
 
 
 class CLIContractTests(unittest.TestCase):
+    def test_verbose_workspace_progress_keeps_stdout_json_and_quiet_suppresses_it(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            Workspace(root).init(no_ingest=True)
+            command = [sys.executable, '-m', 'qecgraph', 'workspace', '--verbose', 'sync', '--json', '--no-human',
+                       '--workspace', str(root)]
+            verbose = subprocess.run(command, capture_output=True, text=True, timeout=10, check=True)
+            self.assertEqual(json.loads(verbose.stdout)['status'], 'unchanged')
+            self.assertIn('qec-graph sync: Archiving inbox packages', verbose.stderr)
+            self.assertIn('qec-graph sync: Publishing workspace', verbose.stderr)
+            quiet = subprocess.run([*command, '--quiet'], capture_output=True, text=True, timeout=10, check=True)
+            self.assertEqual(json.loads(quiet.stdout)['status'], 'unchanged')
+            self.assertEqual(quiet.stderr, '')
+
     def test_quiet_and_color_control_reports_without_hiding_failures(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
