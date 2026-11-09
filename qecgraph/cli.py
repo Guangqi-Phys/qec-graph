@@ -16,6 +16,12 @@ from .graph import read_json
 _DAILY_WORKSPACE_COMMANDS = {'sync', 'status', 'validate'}
 
 
+def _cli_command(*arguments):
+    if getattr(sys, 'frozen', False):
+        return [sys.executable, *arguments]
+    return [sys.executable, '-m', 'qecgraph', *arguments]
+
+
 class _WorkspaceProgress:
     def __init__(self, action):
         self.action = action
@@ -345,8 +351,8 @@ def main(argv=None):
                 import subprocess
                 try:
                     render = subprocess.run(
-                        [sys.executable, '-m', 'qecgraph', 'human-build', '--workspace', str(ws.root),
-                         '--release', result['release_id']], capture_output=True, text=True, timeout=120, check=False)
+                        _cli_command('human-build', '--workspace', str(ws.root), '--release', result['release_id']),
+                        capture_output=True, text=True, timeout=120, check=False)
                     result['human'] = json.loads(render.stdout)
                 except (OSError, ValueError, subprocess.TimeoutExpired):
                     result['human'] = {'status': 'human_stale', 'release_id': result['release_id']}
@@ -447,7 +453,7 @@ def main(argv=None):
         elif args.command == 'mcp-config':
             from pathlib import Path
             session = _ai_session(args)
-            arguments = ['-m', 'qecgraph', 'serve-mcp']
+            executable, *arguments = _cli_command('serve-mcp')
             if args.workspace or args.machine:
                 arguments += ['--machine', str(session.machine), '--release', session.release]
             elif args.corpus:
@@ -458,7 +464,7 @@ def main(argv=None):
                 arguments += ['--store', str(Path(args.store).resolve()), '--snapshot', session.scope['snapshot_id']]
             for name in ('nodes', 'depth', 'chars', 'results'):
                 arguments += ['--session-max-' + name, str(getattr(args, 'session_max_' + name))]
-            result = {'mcpServers': {'qecgraph': {'command': sys.executable, 'args': arguments}}}
+            result = {'mcpServers': {'qecgraph': {'command': executable, 'args': arguments}}}
         elif args.command == 'serve-mcp':
             from .mcp_server import serve_stdio
             return serve_stdio(_ai_session(args))

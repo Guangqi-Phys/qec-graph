@@ -21,6 +21,33 @@ If you have the release wheel, you can install it in the same way with
 `python -m pip install /path/to/qec_graph-0.4.0rc1-py3-none-any.whl`.
 Local ingestion and queries run without an API key.
 
+## Single-file executable
+
+Build on the target operating system and architecture. On Apple Silicon macOS,
+use Python 3.13 and PyInstaller to bundle the runtime and dependencies.
+
+```sh
+python3.13 -m venv build/standalone-venv
+build/standalone-venv/bin/python -m pip install . 'PyInstaller==6.22.3'
+PYINSTALLER_CONFIG_DIR="$PWD/build/standalone-cache" \
+  build/standalone-venv/bin/python -m PyInstaller --noconfirm \
+  --distpath dist/standalone --workpath build/standalone tools/qec-graph.spec
+```
+
+Install the executable once in a user directory on `PATH`. For example, if
+`~/.local/bin` is on your `PATH`, run:
+
+```sh
+mkdir -p "$HOME/.local/bin"
+install -m 755 dist/standalone/qec-graph "$HOME/.local/bin/qec-graph"
+```
+
+From each directory you want to manage, initialize it once with
+`qec-graph init --workspace .`. Then put source packages in `inputs/` and run
+`qec-graph sync`, `qec-graph status`, or `qec-graph validate` from that directory.
+The executable carries its own Python runtime. Explicit Lean builds require the
+project's Lean toolchain.
+
 ## Start a workspace
 
 Try the bundled paper from the repository root.
