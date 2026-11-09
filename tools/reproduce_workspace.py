@@ -17,14 +17,14 @@ TEX = b'\\documentclass{article}\n\\begin{document}\nA CSS code has $[[13,1,3]]$
 SUBSYSTEM_SHA = '103a027e1258298afbc5de782625eb3a30efd86c68c981adfc2b0b96821ce52f'
 
 
-def verify(binary, workspace, real_source=None):
+def verify(binary, workspace, real_source=None, legacy_binary=None):
     env = dict(os.environ)
     env.pop('PYTHONPATH', None)
     env.pop('PYTHONHOME', None)
     checks = []
 
-    def run(label, args, expected=0, stdin=None, json_output=True):
-        result = subprocess.run([str(binary), *args], cwd=workspace, env=env, input=stdin,
+    def run(label, args, expected=0, stdin=None, json_output=True, executable=None):
+        result = subprocess.run([str(executable or binary), *args], cwd=workspace, env=env, input=stdin,
                                 capture_output=True, text=True, timeout=120, check=False)
         if result.returncode != expected:
             raise AssertionError(f'{label} returned {result.returncode}: {result.stderr[:1000]}')
@@ -81,6 +81,9 @@ def verify(binary, workspace, real_source=None):
     args = ['qecgraph_search', '--workspace', '.', '--arguments', 'args.json']
     cli = run('search', ['query-tool', *args])
     assert cli['ok'] and cli['data']['results']
+    occurrence = next(r['id'] for r in cli['data']['results'] if r.get('source'))
+    (workspace / 'source-args.json').write_text(json.dumps({'identifier': occurrence}), encoding='utf-8')
+    span = run('get_exact_source', ['query-tool', 'qec_get_source', '--workspace', '.', '--arguments', 'source-args.json'])['data']
     protocol = '2025-06-18'
     frames = [
         {'id': 1, 'method': 'initialize', 'params': {'protocolVersion': protocol, 'capabilities': {},
@@ -91,19 +94,69 @@ def verify(binary, workspace, real_source=None):
         {'id': 4, 'method': 'tools/call', 'params': {'name': 'qecgraph_search',
                                                    'arguments': {'query': 'RFC002-PERSONAL-CANARY-9212'}}},
         {'id': 5, 'method': 'tools/call', 'params': {'name': 'qec_find_software', 'arguments': {'query': 'Stim'}}},
+        {'id': 6, 'method': 'resources/list'},
+        {'id': 7, 'method': 'resources/read', 'params': {'uri': span['resource_uri']}},
+        {'id': 8, 'method': 'resources/read', 'params': {'uri': 'file:///human/notes/private-validation-note.md'}},
     ]
     stdio = run('mcp_stdio', ['mcp', 'serve', '--machine', 'machine', '--release', expected_release],
                 stdin=''.join(json.dumps({'jsonrpc': '2.0', **frame}) + '\n' for frame in frames), json_output=False)
-    replies = {r['id']: r['result'] for r in (json.loads(line) for line in stdio.splitlines())}
+    replies = {r['id']: r.get('result', r.get('error')) for r in (json.loads(line) for line in stdio.splitlines())}
     assert replies[1]['protocolVersion'] == protocol
     assert len(replies[2]['tools']) >= 11
     assert replies[3]['structuredContent'] == cli
     assert replies[4]['structuredContent']['data']['results'] == []
     assert replies[5]['structuredContent']['data']['results']
+    assert replies[6]['resources']
+    content, = replies[7]['contents']
+    assert content['text'] == span['latex'] and content['_meta']['content_sha256'] == span['content_sha256']
+    assert replies[8]['code'] == -32002
     assert 'private-validation-note' not in stdio and 'RFC002-PERSONAL-CANARY-9212' not in stdio
     assert note.read_text(encoding='utf-8') == 'RFC002-PERSONAL-CANARY-9212'
     index = (workspace / 'human/Index.md').read_text(encoding='utf-8')
     assert expected_release in index and '[[generated/' in index
+    upgrade = None
+    if legacy_binary:
+        def legacy(label, args):
+            return run('legacy_' + label, args, executable=legacy_binary)
+        def put(name, value):
+            (workspace / name).write_text(json.dumps(value), encoding='utf-8')
+        (workspace / 'legacy.tex').write_bytes(TEX)
+        legacy('ingest', ['ingest', 'legacy.tex', '--project-id', 'legacy-demo', '--out', 'legacy-store'])
+        legacy('register', ['register', '--corpus', 'legacy-corpus', '--store', 'legacy-store',
+                            '--work-id', 'work:legacy', '--source-version-id', 'source:legacy'])
+        base = {'schema_version': 'qecgraph.record.v3', 'id': 'claim:legacy', 'kind': 'claim',
+                'title': 'Legacy claim', 'revision': 'original',
+                'data': {'statement': 'Legacy draft wording', 'hypotheses': [], 'quantifiers': []}}
+        put('legacy-claim.json', base)
+        before = legacy('record', ['record-add', 'legacy-claim.json', '--corpus', 'legacy-corpus'])
+        revised = {**base, 'revision': 'human-revision',
+                   'data': {**base['data'], 'statement': 'Legacy human-reviewed wording'}}
+        put('legacy-proposal.json', {'changes': [{'record': revised, 'expected_revision': base['revision'],
+                                                'expected_content_sha256': before['record']['content_sha256']}],
+                                     'rationale': 'Release upgrade fixture'})
+        proposal = legacy('review', ['review', 'legacy-proposal.json', '--corpus', 'legacy-corpus',
+                                     '--actor-id', 'fixture:ai', '--actor-kind', 'ai'])
+        decision = legacy('decision', ['review-decide', proposal['id'], '--corpus', 'legacy-corpus',
+                                       '--actor-id', 'fixture:human', '--actor-kind', 'human',
+                                       '--decision', 'approve', '--rationale', 'Checked fixture wording',
+                                       '--checked-scope', 'statement', '--checked-scope', 'hypotheses', '--checked-scope', 'dependencies'])
+        applied = legacy('apply', ['apply', proposal['id'], '--review-id', decision['id'], '--corpus', 'legacy-corpus'])
+        legacy_fixed = applied['receipt']['registry_revision']
+        unchanged = (workspace / 'legacy-corpus/CURRENT.json').read_bytes()
+        migrated = run('migrate_0_3_0', ['workspace-migrate', '--corpus', 'legacy-corpus', '--workspace', 'upgraded'])
+        assert migrated['legacy_registry_revision'] == legacy_fixed
+        migrated_fixed = migrated['release_id']
+        rebuilt = run('rebuild_migrated_workspace', ['rebuild', '--workspace', 'upgraded'])
+        assert rebuilt['release_id'] == migrated_fixed
+        after = run('read_migrated_claim', ['show', 'claim:legacy', '--corpus', 'upgraded/machine'])
+        assert after['node']['record']['review']['status'] == 'reviewed'
+        assert after['node']['record']['revision'] == 'human-revision'
+        old = run('read_preserved_history', ['show', 'claim:legacy', '--corpus', 'upgraded/machine',
+                                             '--registry-revision', before['registry_revision']])
+        assert old['node']['record']['data']['statement'] == 'Legacy draft wording'
+        assert (workspace / 'legacy-corpus/CURRENT.json').read_bytes() == unchanged
+        upgrade = {'from_version': '0.3.0', 'legacy_release': legacy_fixed, 'migrated_release': migrated_fixed,
+                   'review_and_history_preserved': True, 'legacy_pointer_unchanged': True}
     return {'passed': True, 'platform': platform.platform(), 'package_version': '0.4.0rc1',
             'release_id': expected_release, 'protocol_version': protocol, 'checks': checks,
             'source_count': first['counts']['registered'], 'software_projects': coverage['projects'],
@@ -111,7 +164,7 @@ def verify(binary, workspace, real_source=None):
             'real_source': ({'url': 'https://arxiv.org/src/quant-ph/0610153v1', 'sha256': SUBSYSTEM_SHA,
                              'entrypoint': 'subsys.tex', 'scope': 'structural and three notation golden checks, not mathematical verification'}
                             if real_source else None),
-            'human_pages': rebuild['human']['generated_pages'], 'note_canary_preserved': True,
+            'upgrade': upgrade, 'human_pages': rebuild['human']['generated_pages'], 'note_canary_preserved': True,
             'observed_at': datetime.now(timezone.utc).isoformat()}
 
 
@@ -120,11 +173,13 @@ def main():
     parser.add_argument('--bin-dir', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--real-source', type=Path)
+    parser.add_argument('--legacy-bin-dir', type=Path)
     args = parser.parse_args()
     binary = (args.bin_dir / 'qec-graph').resolve(strict=True)
     real_source = args.real_source.resolve(strict=True) if args.real_source else None
+    legacy = (args.legacy_bin_dir / 'qec-graph').resolve(strict=True) if args.legacy_bin_dir else None
     with tempfile.TemporaryDirectory(prefix='qecgraph-installed-') as directory:
-        report = verify(binary, Path(directory), real_source)
+        report = verify(binary, Path(directory), real_source, legacy)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(report, ensure_ascii=False, indent=2))
