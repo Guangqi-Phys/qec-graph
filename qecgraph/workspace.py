@@ -20,7 +20,7 @@ from .research_store import load_records, stage_records, validate_sources
 from .graph import canonical, hash_text, read_json
 from .registry import Registry
 from .source_package import Limits, PackageError, unpack
-from .store import extraction_tool_identity, ingest
+from .store import extraction_tool_identity, ingest, source_span_index
 from .transactions import atomic_bytes, atomic_json, immutable_json, writer_lock
 
 CONFIG = 'qecgraph.toml'
@@ -401,20 +401,22 @@ class Workspace:
             parsed_versions = {m['source_version_id'] for m in materials.values() if m.get('source_version_id')}
             proposal_map = state.setdefault('generated_research', {})
             generated = []
+            manifest_hashes, verified_spans = {}, {}
             for identifier in sorted(parsed_versions):
                 version = state['versions'][identifier]
                 active = proposal_map.get(identifier)
                 if active and active['source_snapshot_id'] == version['snapshot_id'] and active['processor'] == PROCESSOR:
                     continue
-                snapshot = self.path('machine/' + version['snapshot_path'])
-                graph = read_json(snapshot / 'graph.json')
+                graph, snapshot, _ = self.registry.source_graph_from_state(
+                    state, identifier, old, verify=True, manifest_hashes=manifest_hashes)
+                verified_spans[snapshot, version['snapshot_id']] = source_span_index(graph)
                 records = proposals(graph, version)
                 generated.extend(records)
                 proposal_map[identifier] = {'source_snapshot_id': version['snapshot_id'], 'processor': PROCESSOR,
                                             'bindings': [{'id': r['id'], 'revision': r['revision']} for r in records],
                                             'code_mentions': len(records) - 1}
             if generated:
-                stage_records(self.registry, state, generated)
+                stage_records(self.registry, state, generated, verified_spans=verified_spans)
             collisions = {}
             for material in materials.values():
                 if material.get('upstream_version') and material.get('source_tree_hash'):
@@ -426,7 +428,7 @@ class Workspace:
             candidate = self.registry.prepare_publication(state)
             # This verifies every registered snapshot, including reused ones,
             # before publishing the pointer or consuming any input claims.
-            validation = self.registry.validate(candidate, check_live_lean=False)
+            validation = self.registry.validate(candidate, check_live_lean=False, manifest_hashes=manifest_hashes)
             if not validation['passed']:
                 raise ValueError('Candidate machine release failed validation; CURRENT was retained')
             if cfg != self.config():

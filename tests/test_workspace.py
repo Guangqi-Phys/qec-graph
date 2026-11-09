@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from qecgraph.cli import main
 from qecgraph.corpus import execute
+from qecgraph.research_store import stage_records
 from qecgraph.source_package import unpack
 from qecgraph.store import extraction_tool_identity, ingest
 from qecgraph.transactions import writer_lock
@@ -172,6 +173,32 @@ class WorkspaceTests(unittest.TestCase):
         self.assertIn('Preserved source tree does not match archive', material['reason'])
         self.assertTrue(material['retained_prior_extraction'])
         self.assertEqual(material['source_snapshot_id'], first['inputs'][0]['source_snapshot_id'])
+
+    def test_sync_rejects_a_snapshot_rewritten_after_generating_proposals(self):
+        first = self.ws.init(no_ingest=True)
+        (self.inbox / 'paper.tex').write_bytes(TEX)
+
+        def rewrite_after_staging(registry, state, records, **verification):
+            count = stage_records(registry, state, records, **verification)
+            version, = state['versions'].values()
+            snapshot = registry.root / version['snapshot_path']
+            graph_path = snapshot / 'graph.json'
+            graph = json.loads(graph_path.read_text())
+            graph['semantic_status'] = 'changed_after_proposal_capture'
+            graph_path.write_text(json.dumps(graph))
+            manifest_path = snapshot / 'manifest.json'
+            manifest = json.loads(manifest_path.read_text())
+            next(row for row in manifest['outputs'] if row['path'] == 'graph.json')['sha256'] = (
+                sha256(graph_path.read_bytes()).hexdigest())
+            manifest_path.write_text(json.dumps(manifest))
+            return count
+
+        with patch('qecgraph.workspace.stage_records', side_effect=rewrite_after_staging):
+            with self.assertRaisesRegex(ValueError, 'Snapshot manifest changed'):
+                self.ws.sync()
+        self.assertEqual(self.ws.status()['release_id'], first['release_id'])
+        payload, = (self.inbox / '.processing').glob('*/payload')
+        self.assertEqual(payload.read_bytes(), TEX)
 
     def test_kill_after_pointer_before_cleanup_recovers_exact_claim(self):
         self.ws.init(no_ingest=True)

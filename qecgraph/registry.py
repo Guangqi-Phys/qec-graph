@@ -287,17 +287,18 @@ class Registry:
             asset['original_path'] = original_path
         return asset
 
-    def validate(self, registry_revision=None, *, check_live_lean=True):
+    def validate(self, registry_revision=None, *, check_live_lean=True, manifest_hashes=None):
         state, fixed = self.read(registry_revision)
-        return self._validate_state(state, fixed, check_live_lean=check_live_lean)
+        return self._validate_state(state, fixed, check_live_lean=check_live_lean, manifest_hashes=manifest_hashes)
 
-    def _validate_state(self, state, fixed, *, check_live_lean=True, verified_spans=None):
+    def _validate_state(self, state, fixed, *, check_live_lean=True, verified_spans=None, manifest_hashes=None):
         from .validators import registry_issues, validate_graph_types
         from .corpus import _project_state
         records = self.records_from_state(state)
         issues = registry_issues(self, records)
         graph, _ = _project_state(self, state, fixed, check_live_lean=check_live_lean,
-                                  verify_sources=True, records=records, verified_spans=verified_spans)
+                                  verify_sources=True, records=records, verified_spans=verified_spans,
+                                  manifest_hashes=manifest_hashes)
         validate_graph_types(graph.graph)
         from .status import reviewed_cycles
         issues.extend(reviewed_cycles(graph.graph))

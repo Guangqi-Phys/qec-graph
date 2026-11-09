@@ -66,7 +66,7 @@ def validate_sources(registry, state, records, *, require_source=True, verified_
                 raise ValueError('Paper version records must refer to a registered source projection')
 
 
-def stage_records(registry, state, records):
+def stage_records(registry, state, records, *, verified_spans=None):
     previous = load_records(registry, state)
     indexed = {key(ref(row)): row for row in previous}
     incoming = {}
@@ -80,7 +80,7 @@ def stage_records(registry, state, records):
         input_count += 1
     indexed.update(incoming)
     validated = validate_bundle(indexed.values())
-    validate_sources(registry, state, (validated[identity] for identity in incoming))
+    validate_sources(registry, state, (validated[identity] for identity in incoming), verified_spans=verified_spans)
     index = state.setdefault('research_records', {})
     for identifier, revision in incoming:
         if revision in index.get(identifier, {}):
