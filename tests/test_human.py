@@ -7,10 +7,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 from qecgraph.human import _assign_pages, build_human
+from qecgraph.source_package import unpack
 from qecgraph.transactions import atomic_bytes
 from qecgraph.workspace import Workspace
 from qecgraph.workspace_query import WorkspaceSession
-from test_source_package import TEX
+from test_source_package import TEX, tar_bytes
 
 
 class HumanTests(unittest.TestCase):
@@ -180,3 +181,38 @@ Compute the commutator.
             self.assertEqual(build_human(self.root, newest)['status'], 'current')
             writes.assert_not_called()
         self.assertEqual(changes.read_text(encoding='utf-8'), report)
+
+    def test_removed_source_occurrence_keeps_its_page_until_restored(self):
+        lemma = br'\begin{lemma}[Temporary lemma]\label{lem:temporary}An original statement.\end{lemma}'
+        archive = tar_bytes({'first.tex': TEX.replace(b'Hello', lemma), 'alternate.tex': TEX})
+        (self.root / 'inputs/first').write_bytes(archive)
+        config = self.root / 'qecgraph.toml'
+        original_config = config.read_text(encoding='utf-8')
+
+        def choose(entrypoint):
+            config.write_text(original_config + f'\n[entrypoints]\n"{unpack(archive).digest}" = "{entrypoint}"\n',
+                              encoding='utf-8')
+
+        choose('first.tex')
+        original = self.ws.sync()['release_id']
+        self.assertEqual(build_human(self.root, original)['status'], 'current')
+        vault = self.root / 'human'
+        page, = (vault / 'generated/records').glob('lemma--*.md')
+        target = page.relative_to(vault).with_suffix('').as_posix()
+        self.assertIn('An original statement.', page.read_text(encoding='utf-8'))
+
+        choose('alternate.tex')
+        archived = self.ws.rebuild()['release_id']
+        self.assertEqual(build_human(self.root, archived)['status'], 'current')
+        self.assertIn('# Archived entity', page.read_text(encoding='utf-8'))
+        self.assertNotIn('An original statement.', page.read_text(encoding='utf-8'))
+        changes = (vault / 'generated/Changes.md').read_text(encoding='utf-8')
+        self.assertIn('## Archived (1)', changes)
+        self.assertIn(f'[[{target}|Temporary lemma]]', changes)
+
+        choose('first.tex')
+        restored = self.ws.rebuild()['release_id']
+        self.assertEqual(build_human(self.root, restored)['status'], 'current')
+        self.assertEqual(list((vault / 'generated/records').glob('lemma--*.md')), [page])
+        self.assertIn('An original statement.', page.read_text(encoding='utf-8'))
+        self.assertEqual(self.note.read_bytes(), b'private\x00note')
