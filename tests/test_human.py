@@ -100,6 +100,9 @@ Compute the commutator.
         vault = self.root / 'human'
         theorem, = (vault / 'generated').rglob('theorem--*.md')
         text = theorem.read_text(encoding='utf-8')
+        normalized = text.replace(release, '<RELEASE>').replace(release[:12], '<RELEASE_PREFIX>')
+        fixture = Path(__file__).with_name('fixtures') / 'obsidian-theorem.md'
+        self.assertEqual(normalized, fixture.read_text(encoding='utf-8'))
         front = {line.split(': ', 1)[0]: json.loads(line.split(': ', 1)[1]) for line in text.split('---', 2)[1].strip().splitlines()}
         self.assertEqual(front['title'], 'Commutation of checks')
         self.assertEqual(front['aliases'], ['thm:commute'])
