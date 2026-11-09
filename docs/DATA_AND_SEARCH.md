@@ -179,8 +179,9 @@ conditions before comparing values. [Import and review records](ADVANCED_USAGE.m
 
 Use `scope` and `knowledge_snapshot` to identify the release, and `coverage`
 to see what is registered or indexed. If a result is `truncated`, use its
-`continuation` as the next `offset` when the tool supports paging. For a
-source passage that exceeds the response budget, request a smaller character
+`continuation` as the next `offset` when the tool supports paging. A response
+budget can shorten a page, and the continuation starts at the next complete
+result. For a source passage that exceeds the response budget, request a smaller character
 range. An empty result describes the search and release you queried.
 
 An MCP connection fixes the knowledge release at startup. Reconnect after

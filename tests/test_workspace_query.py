@@ -216,6 +216,20 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.assert_research_cli_matches_tool(session, ['software', '--query', 'Fixture decoder', '--limit', '1', '--offset', '1'],
                                               'qec_find_software', {**args, 'offset': 1})
 
+        full = session.invoke('qec_find_software', {**args, 'limit': 2})['data']
+        maximum = len(canonical(full)) - 20
+        bounded = session.invoke('qec_find_software', {**args, 'limit': 2, 'max_chars': maximum})
+        self.assertTrue(bounded['ok'], bounded)
+        self.assertLessEqual(len(canonical(bounded['data'])), maximum)
+        self.assertEqual(bounded['data']['total_matches'], 2)
+        self.assertEqual(bounded['data']['results'], first['results'])
+        self.assertTrue(bounded['data']['truncated'])
+        self.assertEqual(bounded['data']['continuation'], 1)
+        following = session.invoke('qec_find_software', {**args, 'limit': 2, 'max_chars': maximum,
+                                                          'offset': bounded['data']['continuation']})['data']
+        self.assertEqual(following['results'], second['results'])
+        self.assertIsNone(following['continuation'])
+
     def test_real_stdio_does_not_return_human_files_or_synthetic_entities(self):
         publish_records(self.ws.registry, adapt_synthetic(read_json(FIXTURES / 'performance_context.synthetic.json')))
         lines = [initialization(), {'jsonrpc': '2.0', 'method': 'notifications/initialized'},

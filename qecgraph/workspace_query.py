@@ -275,6 +275,22 @@ class WorkspaceSession:
         return {'results': rows[offset:offset+limit], 'truncated': truncated,
                 'continuation': offset+limit if truncated else None, 'total_matches': len(rows)}
 
+    @staticmethod
+    def _fit_page(data, offset, maximum):
+        rows = data['results']
+        low, high = 0, len(rows) - 1
+        page = {**data, 'truncated': True}
+        while low < high:
+            count = (low + high + 1) // 2
+            page.update(results=rows[:count], continuation=offset + count)
+            if len(canonical(page)) <= maximum:
+                low = count
+            else:
+                high = count - 1
+        if not low:
+            raise ToolError('BUDGET_TOO_SMALL', 'Increase max_chars to fit a complete result row')
+        return {**page, 'results': rows[:low], 'continuation': offset + low}
+
     def _research(self, identifier, revision):
         if revision is not None:
             return self.visible.get((identifier, revision))
@@ -561,7 +577,10 @@ class WorkspaceSession:
             data.setdefault('truncated', False)
             data.setdefault('continuation', None)
             if len(canonical(data)) > maximum:
-                raise ToolError('BUDGET_TOO_SMALL', 'Reduce result limit or request an exact source codepoint range')
+                if 'total_matches' in data and data.get('results'):
+                    data = self._fit_page(data, arguments.get('offset', 0), maximum)
+                else:
+                    raise ToolError('BUDGET_TOO_SMALL', 'Increase max_chars or request an exact source codepoint range')
             return {'ok': True, 'data': copy.deepcopy(data)}
         except ToolError as exc:
             return {'ok': False, 'error': {'code': exc.code, 'message': str(exc), 'details': exc.details,
