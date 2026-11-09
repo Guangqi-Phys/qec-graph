@@ -79,7 +79,6 @@ def build_graph(parsed: dict, project_id: str, project_source_hash: str,
     nodes, edges, diagnostics = {}, [], list(parsed.get("diagnostics", []))
     labels = defaultdict(list)
     blocks = parsed["blocks"]
-    block_lookup = {block["key"]: block for block in blocks}
     key_to_id = {}
     files = {f["path"]: f for f in parsed["files"]}
     document_id = "paper:" + project_id
