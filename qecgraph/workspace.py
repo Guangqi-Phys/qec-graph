@@ -99,7 +99,9 @@ class Workspace:
                 raise ValueError('Invalid explicit source metadata')
         return cfg
 
-    def init(self, *, no_ingest=False, keep_inputs=False):
+    def init(self, *, no_ingest=False, keep_inputs=False, progress=None):
+        if progress:
+            progress(0, 1, 'Initializing workspace')
         self.root.mkdir(parents=True, exist_ok=True)
         with writer_lock(self.path('.qecgraph')):
             target = self.path(CONFIG)
@@ -110,9 +112,8 @@ class Workspace:
                 self.path(path).mkdir(parents=True, exist_ok=True)
             workspace_id = 'workspace:' + uuid.uuid4().hex
             atomic_bytes(target, f'format = "{FORMAT}"\nworkspace_id = "{workspace_id}"\n'.encode())
-            if no_ingest:
-                return self._run(self.config(), scan_inputs=False, rebuild=False, keep_inputs=True)
-            return self._run(self.config(), scan_inputs=True, rebuild=False, keep_inputs=keep_inputs)
+            return self._run(self.config(), scan_inputs=not no_ingest, rebuild=False,
+                             keep_inputs=no_ingest or keep_inputs, progress=progress)
 
     def sync(self, *, dry_run=False, keep_inputs=False, progress=None):
         if dry_run:
@@ -123,12 +124,14 @@ class Workspace:
             return self._run(self.config(), scan_inputs=True, rebuild=False, keep_inputs=keep_inputs,
                              progress=progress)
 
-    def rebuild(self, *, include_inputs=False, keep_inputs=False):
+    def rebuild(self, *, include_inputs=False, keep_inputs=False, progress=None):
         self.config()
         with writer_lock(self.path('.qecgraph')):
             cfg = self.config()
-            before = self._run(cfg, scan_inputs=True, rebuild=False, keep_inputs=keep_inputs) if include_inputs else None
-            result = self._run(cfg, scan_inputs=False, rebuild=True, keep_inputs=True)
+            before = None
+            if include_inputs:
+                before = self._run(cfg, scan_inputs=True, rebuild=False, keep_inputs=keep_inputs, progress=progress)
+            result = self._run(cfg, scan_inputs=False, rebuild=True, keep_inputs=True, progress=progress)
         if before is not None:
             result['sync'] = before
             if before['status'] == 'partial_batch':
@@ -263,6 +266,8 @@ class Workspace:
         run_id = uuid.uuid4().hex
         digests, rows, claims = set(), [], []
         if scan_inputs:
+            if progress:
+                progress(0, 1, 'Archiving inbox packages')
             for path in self._inbox():
                 if path.is_symlink() or not stat.S_ISREG(path.lstat().st_mode):
                     rows.append({'input': path.name, 'status': 'unsafe_input', 'input_consumed': False})
@@ -281,6 +286,8 @@ class Workspace:
                 digests.add(digest)
                 claims.append((job, meta, digest))
         if rebuild:
+            if progress:
+                progress(0, 1, 'Scanning the archive')
             digests.update(p.name for p in self.path('archive/blobs/sha256').iterdir() if HEX.fullmatch(p.name))
             for receipt_path in self.path('archive/receipts').iterdir():
                 if JOB.fullmatch(receipt_path.stem) and receipt_path.suffix == '.json':
@@ -293,8 +300,9 @@ class Workspace:
         package_count = len(digests)
         # Stages are archiving, one check per distinct package, publication and final CLI work.
         steps = package_count + 3
+        package_stage = 'Checking archive packages' if rebuild else 'Checking inbox packages'
         if progress:
-            progress(1, steps, f'Checking {package_count} packages')
+            progress(1, steps, f'{package_stage} 0/{package_count}' if package_count else 'Preparing workspace')
         with writer_lock(self.registry.root):
             from .workspace_query import check_machine_tree
             check_machine_tree(self.registry.root)
@@ -320,7 +328,7 @@ class Workspace:
                     materials[digest] = self._prepare(cfg, state, digest, prior, reused)
                     materials[digest]['config_fingerprint'] = fingerprint
                 if progress:
-                    progress(index + 1, steps, f'Checked {index}/{package_count} packages')
+                    progress(index + 1, steps, f'{package_stage} {index}/{package_count}')
             if progress:
                 progress(steps - 2, steps, 'Publishing workspace')
             # Explicit version metadata, never inferred from filenames.
@@ -356,6 +364,8 @@ class Workspace:
             if cfg != self.config():
                 raise ValueError('Workspace configuration changed while preparing; retry')
             release = self.registry.publish_prepared(candidate)
+        if progress:
+            progress(steps - 1, steps, 'Finalizing workspace')
         # Recovery after a killed process replays the exact claim and verifies the published result.
         for job, meta, digest in claims:
             material = materials[digest]
@@ -395,8 +405,6 @@ class Workspace:
                     'human': {'status': human_status, 'target_release_id': release, 'rendered_release_id': rendered}})
         partial = any(not r.get('processing_completed') or r.get('cleanup_error') or r.get('retained_claim')
                       or r.get('source_version_conflict') for r in rows)
-        if progress:
-            progress(steps - 1, steps, 'Refreshing workspace views')
         return {'status': 'partial_batch' if partial else 'unchanged' if old == release else 'published',
                 'run_id': run_id, 'workspace_id': cfg['workspace_id'], 'previous_release_id': old,
                 'release_id': release, 'counts': counts, 'inputs': rows}

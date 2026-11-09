@@ -26,3 +26,7 @@ Python 主实现和 pylatexenc==2.10 保持；上游 TypeScript/Rust 及其依�
 
 当前直接运行依赖 pylatexenc==2.10 的安装元数据声明 MIT（不内嵌其源码）；
 开发验证依赖与本次准确版本保存在 requirements-lock.txt 和 validation/p0/install-report.json。
+
+2026-11-09 另核对了 [CodeGraph 1.6.2 的进度渲染器](https://github.com/colbymchenry/codegraph/blob/6560052a6f856855d3f71eee838fd66ccfa4285d/src/ui/shimmer-progress.ts)
+及 `src/bin/codegraph.ts` 中的调用。该提交的 `LICENSE` 为 MIT，SHA-256 与上方相同。
+`init`、`sync` 和 `rebuild` 借鉴按阶段更新与后台刷新的交互，使用独立的 Python 实现。

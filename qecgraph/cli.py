@@ -5,6 +5,8 @@ import json
 import os
 import sqlite3
 import sys
+from threading import Event, Thread
+from time import monotonic
 
 from .query import context, dependencies, search, show
 from .splitter import split_project
@@ -14,6 +16,7 @@ from .graph import read_json
 
 
 _DAILY_WORKSPACE_COMMANDS = {'sync', 'status', 'validate'}
+_WORKSPACE_WRITE_COMMANDS = {'init', 'sync', 'rebuild'}
 
 
 def _cli_command(*arguments):
@@ -25,30 +28,81 @@ def _cli_command(*arguments):
 class _WorkspaceProgress:
     def __init__(self, action):
         self.action = action
-        self.filled = 0
-        self.previous_width = 0
+        self.stderr = sys.stderr
+        self.live = sys.stdout.isatty() and self.stderr.isatty() and os.environ.get('TERM') != 'dumb'
+        self.color = self.live and not os.environ.get('NO_COLOR')
+        self.state = (0, 1, 'Opening workspace')
+        self.started = None
+        self.stopped = Event()
+        self.worker = None
+        self.spinner, self.full, self.empty, self.ok, self.error = '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏', '█', '░', '✓', '✗'
+        try:
+            (self.spinner + self.full + self.empty + self.ok + self.error).encode(self.stderr.encoding or 'ascii')
+        except UnicodeEncodeError:
+            self.spinner, self.full, self.empty, self.ok, self.error = '|/-\\', '#', '.', '+', '!'
 
-    def line(self, message):
-        return f"[{'#' * self.filled}{'.' * (16 - self.filled)}] {self.action}: {message}"
+    def start(self):
+        if self.live:
+            self.started = monotonic()
+            self._draw(0)
+            self.worker = Thread(target=self._animate, daemon=True)
+            self.worker.start()
+
+    def _animate(self):
+        frame = 1
+        while not self.stopped.wait(0.1):
+            self._draw(frame)
+            frame += 1
+
+    def _paint(self, value, code):
+        return f'\x1b[{code}m{value}\x1b[0m' if self.color else value
+
+    def _draw(self, frame):
+        done, total, message = self.state
+        try:
+            columns = os.get_terminal_size(self.stderr.fileno()).columns or 80
+        except OSError:
+            columns = 80
+        spinner = self.spinner[frame % len(self.spinner)]
+        label = f' {self.action}: {message}'
+        elapsed = f'  {monotonic() - self.started:.1f}s'
+        filled = 12 * done // total
+        bar = self.full * filled + self.empty * (12 - filled)
+        width = max(0, columns - 2)  # Leave one column free to avoid terminal wrapping.
+        if total > 1 and len(label + elapsed) + len(bar) + 2 <= width:
+            label += '  ' + bar
+        if len(label + elapsed) <= width:
+            label += elapsed
+        print('\r\x1b[K' + self._paint(spinner, '36') + label[:width],
+              end='', file=self.stderr, flush=True)
 
     def update(self, done, total, message):
-        self.filled = 16 * done // total
-        if sys.stderr.isatty():
-            line = self.line(message)
-            print('\r' + line.ljust(self.previous_width), end='', file=sys.stderr, flush=True)
-            self.previous_width = len(line)
+        self.state = (done, total, message)
+
+    def phase(self, message):
+        self.update(*self.state[:2], message)
+
+    def close(self):
+        if self.started is not None:
+            self.stopped.set()
+            if self.worker is not None and self.worker.is_alive():
+                self.worker.join()
+            self.started = None
+            print('\r\x1b[K', end='', file=self.stderr, flush=True)
 
     def finish(self, message, code):
-        if self.previous_width:
-            print('\r' + ' ' * self.previous_width + '\r', end='', file=sys.stderr, flush=True)
+        self.close()
         message = ' '.join(''.join(char if char.isprintable() else ' ' for char in message).split())
         if len(message) > 180:
             message = message[:177] + '...'
-        if code:
-            print(self.line('ERROR: ' + message), file=sys.stderr)
+        if self.live:
+            marker = self._paint(self.error, '31') if code else self._paint(self.ok, '32')
         else:
-            self.filled = 16
-            print(self.line('OK' + (f' ({message})' if message else '')))
+            done, total, _ = self.state
+            filled = 16 * done // total if code else 16
+            marker = f"[{'#' * filled}{'.' * (16 - filled)}]"
+        outcome = 'ERROR: ' + message if code else 'OK' + (f' ({message})' if message else '')
+        print(f'{marker} {self.action}: {outcome}', file=self.stderr if code else sys.stdout)
         return code
 
 
@@ -68,6 +122,8 @@ def _input_problem(row):
 
 
 def _workspace_summary(action, result, code):
+    if result['status'] == 'already_initialized':
+        return 'workspace already initialized', code
     if action == 'validate':
         if not code:
             return '', 0
@@ -82,7 +138,8 @@ def _workspace_summary(action, result, code):
             return f'{ready}/{count} packages indexed; {problem}', 2
         return f'{ready}/{count} packages indexed', code
     if code:
-        problem = next(filter(None, map(_input_problem, result.get('inputs', []))), None)
+        inputs = result.get('sync', {}).get('inputs', []) + result.get('inputs', [])
+        problem = next(filter(None, map(_input_problem, inputs)), None)
         human = result.get('human', {})
         return (problem or human.get('error') or 'could not refresh workspace views'), code
     counts = result['counts']
@@ -154,8 +211,7 @@ def main(argv=None):
     for action in ('init', 'sync', 'rebuild', 'status'):
         workspace = sub.add_parser(action, help=f'{action.capitalize()} a managed QEC workspace')
         workspace.add_argument('--workspace')
-        if action in _DAILY_WORKSPACE_COMMANDS:
-            workspace.add_argument('--json', action='store_true', help='Print the detailed workspace report')
+        workspace.add_argument('--json', action='store_true', help='Print the detailed workspace report')
         if action != 'status':
             workspace.add_argument('--keep-inputs', action='store_true')
             workspace.add_argument('--no-human', action='store_true', help='Skip the separate Obsidian renderer')
@@ -330,9 +386,13 @@ def main(argv=None):
     cmd.add_argument('--json', action='store_true', help='Print the detailed workspace report')
     args = parser.parse_args(argv)
     daily = args.command in _DAILY_WORKSPACE_COMMANDS and argv[1:] in ([], ['--json'])
-    progress = _WorkspaceProgress(args.command) if daily and not args.json else None
+    interactive_write = (args.command in _WORKSPACE_WRITE_COMMANDS and sys.stdout.isatty()
+                         and not getattr(args, 'dry_run', False))
+    progress = _WorkspaceProgress(args.command) if (daily or interactive_write) and not args.json else None
     try:
-        if args.command in {'init', 'sync', 'rebuild', 'status'} or (args.command == 'validate' and not args.store):
+        if args.command in _WORKSPACE_WRITE_COMMANDS | {'status'} or (args.command == 'validate' and not args.store):
+            if progress:
+                progress.start()
             from .workspace import CONFIG, Workspace, locate
             if getattr(args, 'snapshot', None):
                 raise ValueError('--snapshot requires --store')
@@ -342,12 +402,12 @@ def main(argv=None):
             ws = Workspace(locate(args.workspace, default=default))
             if daily and not ws.path(CONFIG).is_file():
                 raise ValueError('No initialized workspace found. Set QECGRAPH_WORKSPACE or use --workspace.')
-            if progress:
-                progress.update(0, 1, 'Working')
-                if args.command in {'sync', 'validate'}:
-                    options['progress'] = progress.update
+            if progress and args.command != 'status':
+                options['progress'] = progress.update
             result = getattr(ws, args.command)(**options)
-            if args.command in {'init', 'sync', 'rebuild'} and result.get('release_id') and not args.no_human:
+            if args.command in _WORKSPACE_WRITE_COMMANDS and result.get('release_id') and not args.no_human:
+                if progress:
+                    progress.phase('Rendering Obsidian views')
                 import subprocess
                 try:
                     render = subprocess.run(
@@ -574,6 +634,9 @@ def main(argv=None):
         if progress:
             return progress.finish('interrupted', 130)
         raise
+    finally:
+        if progress:
+            progress.close()
 
 
 if __name__ == "__main__":
