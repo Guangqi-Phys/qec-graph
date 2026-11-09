@@ -156,6 +156,11 @@ Open the workspace's `human/` directory as an Obsidian vault. Start at
 `qec-graph human build` to regenerate the vault's derived pages from the
 current machine snapshot. [Vault layout and MCP isolation](rfc-002/WORKSPACE.md#obsidian-和机器访问隔离)
 
+The category indexes link to readable titles. A record page shows its source,
+review and verification status, eligible relations, and an expandable data
+section. Open **Release status and legend** from the vault index to see the
+fixed release's coverage and what each evidence status means.
+
 Use `qec-graph review list` to inspect proposals, `qec-graph software import-seed`
 to load the bundled software catalog, and `qec-graph software coverage` to
 inspect its coverage. The workspace guide covers explicit asset registration,

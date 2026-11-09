@@ -8,6 +8,7 @@ import tempfile
 
 from .graph import hash_text, read_json
 from .research import RELATIONS
+from .status import eligible
 from .transactions import atomic_bytes, atomic_json, writer_lock
 from .workspace import HEX, Workspace, _read_regular, now
 from .workspace_query import WorkspaceSession
@@ -41,85 +42,198 @@ def _fenced(text, language='text'):
     return f'{fence}{language}\n{text}\n{fence}'
 
 
-def _heading(title, release):
-    return f'---\nsource_release: "{release}"\n---\n\n# {_inline(title)}\n\n' \
-           '> Generated from a fixed QEC Graph release. Keep personal edits in `notes/`.\n'
+def _yaml_value(value):
+    # JSON-quoted scalars and arrays avoid interpreting a paper title as YAML.
+    return json.dumps(value, ensure_ascii=False).replace('\u0085', '\\u0085').replace(
+        '\u2028', '\\u2028').replace('\u2029', '\\u2029')
 
 
-def _link(path):
-    return f'[[{path.removesuffix(".md")}]]'
+def _heading(title, release, **metadata):
+    fields = {'source_release': release, 'title': title, **metadata}
+    front = '\n'.join(f'{key}: {_yaml_value(value)}' for key, value in fields.items())
+    return f'---\n{front}\n---\n\n# {_inline(title)}\n\n' \
+           '> Generated from a fixed QEC Graph release. Keep personal edits in `notes/`.'
+
+
+def _link(path, label):
+    display = re.sub(r'[\[\]|]', ' ', ' '.join(str(label).split())).strip()
+    target = path.removesuffix('.md')
+    return f'[[{target}|{display}]]' if display else f'[[{target}]]'
+
+
+def _title(record):
+    data = record.get('data', {})
+    if record['kind'] == 'source_artifact':
+        return record.get('work_id') or 'Source package ' + record['archive_sha256'][:12]
+    title = ' '.join(str(record.get('title') or data.get('title') or data.get('name') or record['id']).split())
+    return title if len(title) <= 160 else title[:159] + '…'
+
+
+def _source_label(span):
+    return f'{span["path"]}:{span["line_start"]}–{span["line_end"]}'
+
+
+def _aliases(records):
+    labels = set()
+    for row in records:
+        version = (row.get('source') or {}).get('source_version_id')
+        prefix = f'{version}::' if version else ''
+        labels.update(label.removeprefix(prefix) for label in row.get('labels', []))
+    return sorted(labels)
+
+
+def _review_status(record):
+    return (record.get('effective_review', {}).get('status') or record.get('review_status')
+            or record.get('data', {}).get('review_status') or 'unknown')
+
+
+def _table(values):
+    return '\n'.join(['| Field | Value |', '| --- | --- |',
+                      *(f'| {_inline(name)} | {_inline(value)} |' for name, value in values)])
+
+
+def _relation_index(edges):
+    indexed = {}
+    for edge in edges:
+        if not eligible(edge):
+            continue
+        source, target = edge['source'], edge['target']
+        if source == target:
+            continue
+        relation = edge['relation'].replace('_', ' ')
+        forward = 'Proof text for' if edge['relation'] == 'proof_of' else relation.capitalize()
+        reverse = 'Proof text' if edge['relation'] == 'proof_of' else 'Incoming ' + relation
+        indexed.setdefault(source, []).append((forward, target, edge['status']))
+        indexed.setdefault(target, []).append((reverse, source, edge['status']))
+    return indexed
+
+
+def _evidence_sections(record, session):
+    from .corpus import occurrence_id
+
+    sections = []
+    for field, evidence in sorted(record.get('field_evidence', {}).items()):
+        span = evidence.get('source_locator')
+        if not span:
+            continue
+        if span['snapshot_id'] == session.source_snapshot_id(span['source_version_id']):
+            try:
+                exact = session.source_excerpt(occurrence_id(span['source_version_id'], span['node_id']),
+                                               span['char_start'], span['char_end'])
+            except ValueError:
+                pass
+            else:
+                sections.append(f'**{_inline(field)}** — {_inline(_source_label(exact["source"]))}\n\n'
+                                + _excerpt(exact['latex'], 400))
+                continue
+        sections.append(f'**{_inline(field)}** — bound to a historical source snapshot.')
+    return sections
+
+
+def _excerpt(text, limit):
+    return _fenced(text[:limit] + ('\n[… excerpt]' if len(text) > limit else ''), 'latex')
+
+
+def _record_sections(record, session, targets, titles, relations, visible_revisions, section_level):
+    span = record.get('source')
+    fields = [('Kind', record['kind']), ('Review', _review_status(record)),
+              ('Verification', record.get('verification_status') or 'unknown')]
+    if 'revision' in record:
+        fields.append(('Revision', record['revision']))
+    if span:
+        fields.append(('Source', _source_label(span)))
+    if record['kind'] == 'source_artifact':
+        fields += [('Processing', record['status']), ('Semantic extraction', record['semantic_status']),
+                   ('Original package SHA-256', record['archive_sha256'])]
+    sections = [_table(fields)]
+    if record['kind'] == 'source_artifact':
+        source = record.get('source_version_id')
+        if source in targets:
+            sections.append('Parsed source: ' + _link(targets[source], titles[source]))
+        return sections
+    if span:
+        sections += [f'{section_level} Source text', _excerpt(record.get('latex', ''), 800)]
+    data = record.get('data', {})
+    links = list(relations.get(record['id'], []))
+    for relation in RELATIONS.get(record['kind'], {}):
+        value = data.get(relation)
+        for binding in value if isinstance(value, list) else [value] if value else []:
+            if (binding['id'], binding['revision']) in visible_revisions:
+                links.append((relation.replace('_', ' ').capitalize(), binding['id'], 'revision ' + binding['revision']))
+    rows = [f'- {_inline(relation)} → {_link(targets[target], titles[target])} ({_inline(detail)})'
+            for relation, target, detail in sorted(set(links)) if target in targets]
+    if rows:
+        sections += [f'{section_level} Relations', '\n'.join(rows)]
+    evidence = _evidence_sections(record, session)
+    if evidence:
+        sections += [f'{section_level} Source evidence', *evidence]
+    if data:
+        raw = _fenced(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True), 'json')
+        sections.append(f'<details>\n<summary>Raw record data</summary>\n\n{raw}\n\n</details>')
+    return sections
+
+
+def _status_page(release, materials):
+    rows = [('Registered packages', len(materials)),
+            ('Structurally indexed', sum(bool(row['processing_completed']) for row in materials)),
+            ('Source version conflicts', sum(bool(row['source_version_conflict']) for row in materials))]
+    return '\n\n'.join([_heading('Status', release), _table(rows),
+                        '## Reading the graph',
+                        '- **Extracted**: syntax located in a source; claims still require review.\n'
+                        '- **Proposed**: a candidate record that has not been reviewed.\n'
+                        '- **Reviewed**: an explicit decision is bound to the record and source revision.\n'
+                        '- A proof link identifies its target; it is not a verification result.']) + '\n'
 
 
 def _render(session, previous):
+    materials = session.material_records()
+    research = session.visible_research()
+    visible_revisions = {(record['id'], record['revision']) for record in research}
     entities = {}
-    for row in [*session.material_records(), *session.visible_research()]:
+    for row in [*materials, *research]:
         entities.setdefault(row['id'], []).append(row)
-    nodes, _ = session.projected_graph(parser_kinds={'theorem', 'lemma', 'definition', 'proposition', 'corollary'})
+    nodes, edges = session.projected_graph(parser_kinds={'theorem', 'lemma', 'definition', 'proposition',
+                                                        'corollary', 'proof'})
     for node in nodes:
         entities.setdefault(node['id'], []).append(node)
     targets = {identifier: _page(rows[0]['kind'], identifier) for identifier, rows in entities.items()}
+    titles = {identifier: _title(rows[0]) for identifier, rows in entities.items()}
+    relations = _relation_index(edges)
     pages, index = {}, {}
     for identifier, records in sorted(entities.items()):
-        path = targets[identifier]
-        row = records[0]
-        title = row.get('title') or row.get('data', {}).get('name') or identifier
-        index.setdefault(path.split('/')[1], []).append((title, path))
-        sections = [_heading(title, session.release), f'Kind: **{_inline(row["kind"])}**\n']
+        path, title, first = targets[identifier], titles[identifier], records[0]
+        kind = first['kind']
+        index.setdefault(path.split('/')[1], {}).setdefault(kind, []).append((title, path))
+        metadata = {'kind': kind, 'entity_id': identifier, 'aliases': _aliases(records),
+                    'tags': ['qec/' + _slug(kind), 'qec/review/' + _slug(_review_status(first)),
+                             'qec/release/' + session.release[:12]]}
+        if first.get('source'):
+            metadata['source'] = _source_label(first['source'])
+        sections = [_heading(title, session.release, **metadata)]
         for record in records:
-            if 'revision' in record:
-                sections.append(f'## Revision {_inline(record["revision"])}\n')
-            if record['kind'] == 'source_artifact':
-                sections.append(f'Processing status: **{_inline(record["status"])}**  \n'
-                                f'Semantic status: **{_inline(record["semantic_status"])}**  \n'
-                                f'Original package SHA-256: {_inline(record["archive_sha256"])}\n')
-                source = targets.get(record.get('source_version_id'))
-                if source:
-                    sections.append('Parsed source: ' + _link(source) + '\n')
-                continue
-            if record.get('source'):
-                span = record['source']
-                sections.append(f'TeX: {_inline(span["path"])}:{span["line_start"]}–{span["line_end"]}\n')
-                latex = record.get('latex', '')
-                sections.append(_fenced(latex[:800] + ('\n[… excerpt]' if len(latex) > 800 else ''), 'latex'))
-            data = record.get('data', {})
-            if data:
-                sections.append(_fenced(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True), 'json'))
-            for relation in RELATIONS.get(record['kind'], {}):
-                value = data.get(relation)
-                for binding in value if isinstance(value, list) else [value] if value else []:
-                    target = targets.get(binding['id'])
-                    if target:
-                        sections.append(f'{_inline(relation)}: {_link(target)} (revision {_inline(binding["revision"])})\n')
-            for field, evidence in sorted(record.get('field_evidence', {}).items()):
-                span = evidence.get('source_locator')
-                if span:
-                    if span['snapshot_id'] != session.source_snapshot_id(span['source_version_id']):
-                        sections.append(f'{_inline(field)}: bound to a historical source snapshot.\n')
-                        continue
-                    from .corpus import occurrence_id
-                    try:
-                        exact = session.source_excerpt(occurrence_id(span['source_version_id'], span['node_id']),
-                                                       span['char_start'], span['char_end'])
-                    except ValueError:
-                        sections.append(f'{_inline(field)}: bound to a historical source snapshot.\n')
-                    else:
-                        sections.append(f'{_inline(field)}: {_inline(span["path"])}:{exact["source"]["line_start"]}\n'
-                                        + _fenced(exact['latex'][:400], 'latex'))
-        pages[path] = '\n'.join(sections).encode()
+            if 'revision' in record and len(records) > 1:
+                sections.append(f'## Revision {_inline(record["revision"])}')
+            level = '###' if len(records) > 1 else '##'
+            sections.extend(_record_sections(record, session, targets, titles, relations, visible_revisions, level))
+        pages[path] = ('\n\n'.join(sections) + '\n').encode()
     for path in sorted(previous - pages.keys()):
-        index.setdefault(path.split('/')[1], []).append(('Archived entity', path))
+        index.setdefault(path.split('/')[1], {}).setdefault('archived', []).append(('Archived entity', path))
         pages[path] = (_heading('Archived entity', session.release)
-                       + '\nThis stable page is retained for existing links. The entity is absent from this release.\n').encode()
-    root = [_heading('QEC Graph', session.release), 'Open a category below. Personal notes live in `notes/`.\n']
-    for group, rows in sorted(index.items()):
+                       + '\n\nThis stable page is retained for existing links. The entity is absent from this release.\n').encode()
+    pages['generated/Status.md'] = _status_page(session.release, materials).encode()
+    root = [_heading('QEC Graph', session.release), 'Open a category below. Personal notes live in `notes/`.',
+            f'- {_link("generated/Status.md", "Release status and legend")}']
+    for group, by_kind in sorted(index.items()):
         path = f'generated/{group}/Index.md'
         body = [_heading(group.title(), session.release)]
-        for title, target in sorted(rows, key=lambda r: (str(r[0]).casefold(), r[1])):
-            if target not in pages:
-                raise ValueError('Renderer generated a missing internal target')
-            body.append(f'- {_link(target)} — {_inline(title)}')
+        for kind, rows in sorted(by_kind.items()):
+            body.append(f'## {_inline(kind.replace("_", " ").capitalize())} ({len(rows)})\n')
+            for title, target in sorted(rows, key=lambda r: (r[0].casefold(), r[1])):
+                if target not in pages:
+                    raise ValueError('Renderer generated a missing internal target')
+                body.append(f'- {_link(target, title)}')
         pages[path] = ('\n'.join(body) + '\n').encode()
-        root.append(f'- {_link(path)} ({len(rows)})')
+        root.append(f'- {_link(path, group.title())} ({sum(map(len, by_kind.values()))})')
     return pages, ('\n'.join(root) + '\n').encode()
 
 

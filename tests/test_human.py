@@ -1,3 +1,5 @@
+import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -75,4 +77,41 @@ class HumanTests(unittest.TestCase):
         page.unlink()
         page.symlink_to(self.note)
         self.assertEqual(build_human(self.root, release)['status'], 'human_stale')
+        self.assertEqual(self.note.read_bytes(), b'private\x00note')
+
+    def test_generated_pages_show_sources_labels_and_eligible_proof_links(self):
+        (self.root / 'inputs/first').write_text(r'''
+\documentclass{article}
+\newtheorem{theorem}{Theorem}
+\begin{document}
+\begin{theorem}[Commutation of checks]\label{thm:commute}
+The two check types commute.
+\end{theorem}
+\begin{proof}[Proof of Theorem~\ref{thm:commute}]
+\proves{thm:commute}
+Compute the commutator.
+\end{proof}
+\end{document}
+'''.lstrip(), encoding='utf-8')
+        release = self.ws.sync()['release_id']
+        self.assertEqual(build_human(self.root, release)['status'], 'current')
+        vault = self.root / 'human'
+        theorem, = (vault / 'generated').rglob('theorem--*.md')
+        text = theorem.read_text(encoding='utf-8')
+        front = {line.split(': ', 1)[0]: json.loads(line.split(': ', 1)[1]) for line in text.split('---', 2)[1].strip().splitlines()}
+        self.assertEqual(front['title'], 'Commutation of checks')
+        self.assertEqual(front['aliases'], ['thm:commute'])
+        self.assertEqual(front['source_release'], release)
+        self.assertIn('qec/theorem', front['tags'])
+        self.assertIn('| Verification | not\\_verified |', text)
+        self.assertIn('## Source text\n\n```latex', text)
+        proof = re.search(r'Proof text → \[\[([^|]+)\|([^\]]+)\]\]', text)
+        self.assertIsNotNone(proof, text)
+        self.assertIn(']] (declared)', text)
+        self.assertIn('Incoming references', text)
+        self.assertIn('Compute the commutator.', (vault / (proof[1] + '.md')).read_text(encoding='utf-8'))
+        index = (vault / 'generated/records/Index.md').read_text(encoding='utf-8')
+        self.assertIn('## Theorem (1)', index)
+        self.assertIn('|Commutation of checks]]', index)
+        self.assertIn('[[generated/Status|Release status and legend]]', (vault / 'Index.md').read_text(encoding='utf-8'))
         self.assertEqual(self.note.read_bytes(), b'private\x00note')
