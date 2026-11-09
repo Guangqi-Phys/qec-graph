@@ -1,8 +1,11 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+from qecgraph.graph import canonical, read_json
 from qecgraph.research import make_record
+from qecgraph.research_store import validate_sources
 from qecgraph.semantic import request_extraction, review_extraction, submit_extraction
 from qecgraph.source_package import unpack
 from qecgraph.workspace import Workspace
@@ -11,6 +14,37 @@ from test_source_package import TEX, tar_bytes
 
 
 class SemanticTests(unittest.TestCase):
+    def test_source_evidence_uses_the_graph_bytes_that_passed_validation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'inputs').mkdir()
+            (root / 'inputs/source.tex').write_bytes(TEX)
+            ws = Workspace(root)
+            ws.init()
+            state, _ = ws.registry.read()
+            identifier, = state['versions']
+            version = state['versions'][identifier]
+            graph_path = ws.registry.root / version['snapshot_path'] / 'graph.json'
+            replacement = read_json(graph_path)
+            node = next(n for n in replacement['nodes'] if n['latex'] == 'Hello')
+            node['content_sha256'] = 'b' * 64
+            locator = {**node['source'], 'node_id': node['id'], 'node_content_sha256': node['content_sha256'],
+                       'source_version_id': identifier, 'snapshot_id': version['snapshot_id']}
+            record = {'kind': 'noise_model', 'data': {}, 'is_synthetic': False, 'field_evidence': {
+                '/data/source_label': {'source_ref': {'id': identifier, 'revision': version['snapshot_id']},
+                                       'source_locator': locator}}}
+            read_bytes = Path.read_bytes
+
+            def replace_after_capture(path):
+                raw = read_bytes(path)
+                if path == graph_path:
+                    path.write_text(canonical(replacement), encoding='utf-8')
+                return raw
+
+            with patch.object(Path, 'read_bytes', replace_after_capture):
+                with self.assertRaisesRegex(ValueError, 'does not resolve to a verbatim registered span'):
+                    validate_sources(ws.registry, state, [record])
+
     def test_provider_draft_is_bound_reviewed_and_stale_on_projection_change(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

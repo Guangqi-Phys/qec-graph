@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from .graph import canonical, hash_text, read_json
 from .research import key, ref, validate_bundle
-from .store import safe_relative, validate_snapshot
+from .store import load_validated_snapshot, safe_relative
 from .transactions import immutable_json, writer_lock
 
 
@@ -47,8 +47,7 @@ def validate_sources(registry, state, records, *, require_source=True):
                 raise ValueError('Source evidence must bind a registered version and snapshot')
             if digest not in graphs:
                 snapshot = safe_relative(registry.root, 'source_snapshots/' + digest)
-                validate_snapshot(snapshot, digest)
-                graph = read_json(snapshot / 'graph.json')
+                graph, _ = load_validated_snapshot(snapshot, digest)
                 graphs[digest] = (graph['project_id'], {n['id']: n for n in graph['nodes']})
             project_id, nodes = graphs[digest]
             node = nodes.get(locator.get('node_id'), {})
