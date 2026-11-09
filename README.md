@@ -21,6 +21,20 @@ If you have the release wheel, you can install it in the same way with
 `python -m pip install /path/to/qec_graph-0.4.0rc1-py3-none-any.whl`.
 Local ingestion and queries run without an API key.
 
+## Install from GitHub Release on macOS
+
+Sign in with `gh auth login` using a GitHub account that can read this private
+repository, then run:
+
+```sh
+installer=$(gh release download v0.4.0rc1 --repo Guangqi-Phys/qec-graph --pattern install.sh --output -) && printf '%s\n' "$installer" | sh
+```
+
+The installer selects the Apple Silicon or Intel build, checks its SHA-256,
+and installs `qec-graph` into `~/.local/bin`. Open a new terminal if the
+installer adds that directory to your PATH. The release builds are tested on
+macOS 15 and carry their own Python runtime.
+
 ## Single-file executable
 
 Build on the target operating system and architecture. On Apple Silicon macOS,

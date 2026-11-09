@@ -1,0 +1,108 @@
+name: macOS Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-release-${{ github.ref }}
+
+jobs:
+  build:
+    name: Build and verify (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      - name: Build standalone executable
+        env:
+          RELEASE_ARCH: ${{ matrix.arch }}
+        run: |
+          test "$(uname -m)" = "$RELEASE_ARCH"
+          version="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          test "$GITHUB_REF_NAME" = "v$version"
+          python -m pip install . 'PyInstaller==6.22.3'
+          python -m PyInstaller --distpath dist/standalone --workpath build/standalone tools/qec-graph.spec
+          file dist/standalone/qec-graph | grep -F "$RELEASE_ARCH"
+          codesign --verify dist/standalone/qec-graph
+      - name: Verify the packaged CLI
+        run: |
+          sh -n install.sh
+          python tools/reproduce_workspace.py --bin-dir dist/standalone --out build/standalone/report.json
+      - name: Generate release assets
+        env:
+          RELEASE_ARCH: ${{ matrix.arch }}
+        run: |
+          mkdir -p dist/release
+          asset="qec-graph-darwin-$RELEASE_ARCH"
+          cp dist/standalone/qec-graph "dist/release/$asset"
+          cd dist/release
+          shasum -a 256 "$asset" > "$asset.sha256"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: qec-graph-darwin-${{ matrix.arch }}
+          path: dist/release/
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: qec-graph-darwin-*
+          path: dist/release
+          merge-multiple: true
+      - name: Publish verified assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd dist/release
+          sha256sum -c qec-graph-darwin-arm64.sha256 qec-graph-darwin-x86_64.sha256
+          repo="$GITHUB_REPOSITORY"
+          tag="$GITHUB_REF_NAME"
+          draft="$(gh release view "$tag" --repo "$repo" --json isDraft --jq .isDraft 2>/dev/null || true)"
+          if [ "$draft" = false ]; then
+            echo "Release $tag is already published."
+            exit 0
+          fi
+          if [ "$draft" != true ]; then
+            prerelease=()
+            if [[ "$tag" =~ (a|b|rc)[0-9]+$ ]]; then prerelease=(--prerelease); fi
+            {
+              printf '%s\n\n' 'Standalone builds tested on macOS 15 for Apple Silicon and Intel. Sign in to GitHub CLI with an account that can read this repository.'
+              printf '%s\n' '```sh'
+              printf 'installer=$(gh release download %s --repo %s --pattern install.sh --output -) && printf "%%s\\n" "$installer" | sh -s -- %s\n' "$tag" "$repo" "$tag"
+              printf '%s\n\n' '```'
+              printf '%s\n' 'Open a new terminal if the installer added the command to your PATH. In each new workspace, run `qec-graph init --workspace .` once, then place paper archives in `inputs/` and run `qec-graph sync`.'
+            } > release-notes.md
+            gh release create "$tag" --repo "$repo" --verify-tag --draft "${prerelease[@]}" \
+              --title "QEC Graph $tag for macOS" --notes-file release-notes.md
+          fi
+          gh release upload "$tag" --repo "$repo" --clobber ../../install.sh \
+            qec-graph-darwin-arm64 qec-graph-darwin-arm64.sha256 \
+            qec-graph-darwin-x86_64 qec-graph-darwin-x86_64.sha256
+          gh release edit "$tag" --repo "$repo" --draft=false
