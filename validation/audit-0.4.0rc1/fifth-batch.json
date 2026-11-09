@@ -1,0 +1,50 @@
+{
+  "source_test_commit": "139f4e7d9051cf32ad84a673ad0bc63251cd8d05",
+  "coverage_commands": [
+    "python -m coverage run -m unittest discover -s tests -v",
+    "python -m coverage report --fail-under=80"
+  ],
+  "macos": {
+    "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "python": "3.13.18",
+    "unit_tests_passed": 211,
+    "branch_aware_coverage_percent": 80.32
+  },
+  "linux": {
+    "platform": "Ubuntu 22.04.5 LTS arm64",
+    "python": "3.11.18",
+    "unit_tests_passed": 211,
+    "branch_aware_coverage_percent": 80.32,
+    "container_image_id": "sha256:cba31f8e8e5055ee1420017e7c4d1cfb9b23e167893739ff41ab49ef0f7cb3e5",
+    "test_scope": "Read-only Git export on PYTHONPATH with networking disabled"
+  },
+  "checks": [
+    {"command": "ruff check qecgraph tests tools", "passed": true},
+    {"command": "mypy", "passed": true, "source_files_checked": 50},
+    {"command": "pre-commit run --all-files", "passed": true},
+    {"command": "python tools/reproduce.py --out build/reproduce", "steps_passed": 14},
+    {"command": "python tools/reproduce_mcp.py --out build/reproduce-mcp", "checks_passed": 22},
+    {
+      "command": "python tools/reproduce_golden.py --archive-dir ARCHIVES --out build/golden-arxiv.json",
+      "source_versions_passed": 6,
+      "release_id": "5c998514288e76d6405a85cf02978efda4322dbc2dc8ca3d091e2dac2f664b1a"
+    },
+    {
+      "command": "python tools/reproduce_workspace.py --bin-dir WHEEL_VENV/bin --out build/reproduce-wheel.json",
+      "steps_passed": 11,
+      "release_id": "ae3b0e2da7a10d4b26dddb405f5d25fe95fc658a0b4f167887fdb69fd671f5ff"
+    }
+  ],
+  "verified_python_distributions": {
+    "commands": [
+      "python -m build --no-isolation --outdir DIST",
+      "python -m twine check --strict DIST/*.whl DIST/*.tar.gz",
+      "python tools/check_distribution.py DIST"
+    ],
+    "sha256": {
+      "qec_graph-0.4.0rc1-py3-none-any.whl": "b2dbe493bfde26a7ee3b109f575f43041c79df4b176485431a0d6c8452633684",
+      "qec_graph-0.4.0rc1.tar.gz": "68fff300f1942069acd9a66bf70e02f74c5afdcc1b40bbde178bf0bfe6c29e31"
+    }
+  },
+  "github_hosted_checks": "Deferred while the account billing lock is active"
+}

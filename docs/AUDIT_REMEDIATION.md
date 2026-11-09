@@ -24,7 +24,7 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 16 | Package all current schemas and expand research contracts | Complete. Graph and annotation schemas have one packaged copy. Research schema covers supported kinds, required fields, revision references, evidence metadata, domain values, matrix recipes, and managed assets. Runtime checks exact numeric representation, cross-field consistency, and provenance. The synthetic and software fixtures and 87 records from a fixed real release passed. |
 | 17 | Single packaged software seed and explicit test fixtures | Complete. The deleted seed matched the packaged resource byte for byte. The synthetic fixture kept its historical SHA-256. Research and workspace query tests load the canonical inputs. |
 | 18 | Organize documentation by purpose | Complete. The index separates user, design, operations, and archive pages, with a language and status guide. Design, maintenance, and prototype pages moved with forwarding links. The user guides retain their URLs and the hash-bound RFC inputs keep their original bytes and paths. |
-| 19 | CLI, renderer, schema, and docs tests with coverage | Complete. The 204-test suite passed on macOS and Linux at 80.22% branch-aware coverage. Checks include both CLI streams, inline docs commands and links, archive rejection, all 26 research schema kinds, numeric evidence validation, and renderer migration and recovery. [Fourth batch evidence](../validation/audit-0.4.0rc1/fourth-batch.json) |
+| 19 | CLI, renderer, schema, and docs tests with coverage | Complete. The 211-test suite passed on macOS and Linux at 80.32% branch-aware coverage. Checks include both CLI streams, inline docs commands and links, archive rejection, all 26 research schema kinds, numeric evidence validation, and renderer migration and recovery. [Fifth batch evidence](../validation/audit-0.4.0rc1/fifth-batch.json) |
 | 20 | Lint, type, coverage, and pre-commit configuration | Complete. Ruff, mypy, and pre-commit passed locally. Raised the coverage gate to 80% after testing it on both CI runtime versions. Enabling checks inside every unannotated function exposed 107 existing issues, so mypy remains gradual. |
 | 21 | Consolidate validation evidence and index current runs | Complete. The migration reduced the tracked evidence tree to 57 files at `3f4f13a`, including current runs, stage summaries, and fixtures with byte-bound tests. All 574 historical paths restored from the documented Git commit matched the SHA-256 inventory, including duplicates and empty logs. |
 | 22 | Share storage and publication primitives | Complete. Store, corpus, and workspace share the writer lock, pointer codec, and atomic replacement. Tests verify unchanged CURRENT after failed replacement in all three engines, lock contention between two ingest processes, and exact claim recovery after a real SIGKILL following publication. |
@@ -49,6 +49,18 @@ CI and publication checks are deferred while the account is locked.
 Follow-up CLI checks cover command spelling hints, configuration line and
 column numbers, and the scope of `review list`. An explicit actor identifies
 the legacy proposal form when its filename matches a read-only action.
+
+The fifth batch checked the remaining local failure cases and recorded the
+[verification results](../validation/audit-0.4.0rc1/fifth-batch.json):
+
+- Items 5, 12, and 15: Reject malformed record imports, report corrupt review
+  drafts and renderer status files with their paths, and have `doctor` test
+  whether the active SQLite runtime can create an FTS5 index.
+- Item 22: Reuse migrated assets after checking their hashes and sizes. Reject
+  linked and special writer locks before ingest can change the workspace.
+- Items 14 and 23: Honor exact record and metric revisions, keep integer
+  coordinates exact, page results within the response limit, and preserve the
+  fixed MCP release and its coverage if the operational status is damaged.
 
 ## Decisions requiring a different treatment
 
