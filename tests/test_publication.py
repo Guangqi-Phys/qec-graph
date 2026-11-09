@@ -1,15 +1,16 @@
 import json
 import os
+from select import select
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from textwrap import dedent
 from unittest.mock import patch
 
 from qecgraph.registry import Registry
 from qecgraph.store import current_snapshot, ingest, recover_store, validate_snapshot
-from qecgraph.transactions import writer_lock
 from qecgraph.workspace import Workspace
 
 
@@ -48,12 +49,41 @@ class PublicationTests(unittest.TestCase):
     def test_another_process_cannot_write_and_lock_is_released_after_crash(self):
         ingest(self.entry, 'publish', self.store)
         original = current_snapshot(self.store)
-        with writer_lock(self.store):
-            result = subprocess.run([sys.executable, '-m', 'qecgraph', 'ingest', str(self.entry), '--project-id', 'publish',
-                                     '--out', str(self.store)], capture_output=True, text=True)
-            self.assertEqual(result.returncode, 5)
-            self.assertIn('Another writer', result.stderr)
-        self.assertEqual(current_snapshot(self.store), original)
+        self.entry.write_text(self.entry.read_text().replace('A.', 'B.'))
+        arguments = ['ingest', str(self.entry), '--project-id', 'publish', '--out', str(self.store)]
+        waiting_writer = dedent('''
+            import sys
+            from qecgraph import store
+            from qecgraph.cli import main
+
+            ingest_locked = store._ingest_locked
+
+            def wait_under_lock(*args, **kwargs):
+                print('ready', flush=True)
+                if sys.stdin.readline() != '\\n':
+                    raise RuntimeError('No resume signal from test')
+                return ingest_locked(*args, **kwargs)
+
+            store._ingest_locked = wait_under_lock
+            raise SystemExit(main(sys.argv[1:]))
+        ''')
+        with subprocess.Popen([sys.executable, '-c', waiting_writer, *arguments], stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) as first:
+            try:
+                ready, _, _ = select([first.stdout], [], [], 10)
+                self.assertTrue(ready, 'First ingest did not reach its writer lock')
+                self.assertEqual(first.stdout.readline(), 'ready\n')
+                result = subprocess.run([sys.executable, '-m', 'qecgraph', *arguments], capture_output=True,
+                                        text=True, timeout=10)
+                self.assertEqual(result.returncode, 5)
+                self.assertIn('Another writer', result.stderr)
+                self.assertEqual(current_snapshot(self.store), original)
+                _, stderr = first.communicate('\n', timeout=15)
+                self.assertEqual(first.returncode, 0, stderr)
+            finally:
+                if first.poll() is None:
+                    first.kill()
+        self.assertNotEqual(current_snapshot(self.store), original)
         # os._exit bypasses Python cleanup; the kernel must still release flock.
         code = 'import os,sys; from qecgraph.transactions import writer_lock\nwith writer_lock(sys.argv[1]): os._exit(7)'
         crashed = subprocess.run([sys.executable, '-c', code, str(self.store)])
