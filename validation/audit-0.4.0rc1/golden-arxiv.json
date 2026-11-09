@@ -1,0 +1,80 @@
+{
+  "passed": true,
+  "release_id": "d23483fe72e11988afcae1fff7aaa05e781a73b00efa6cb39dfd97488d8df6a7",
+  "papers": [
+    {
+      "arxiv": "1001.0344v1",
+      "archive_sha256": "7893cafbeb28f8bcb95bdae8aca510de21947295cd48e7517931a6d6f46a32a9",
+      "entrypoint": "long_proof.tex",
+      "entrypoint_override": false,
+      "labels_checked": [
+        "lemma:boundary",
+        "thm:main"
+      ],
+      "nodes": 413,
+      "edges": 1047
+    },
+    {
+      "arxiv": "1311.0885v1",
+      "archive_sha256": "5c16a5dc3c1527c5e1326f763f88d26eb6e93e6e799258423bf080e5316ec376",
+      "entrypoint": "main.tex",
+      "entrypoint_override": false,
+      "labels_checked": [
+        "sec:appB",
+        "thm:main"
+      ],
+      "nodes": 352,
+      "edges": 849
+    },
+    {
+      "arxiv": "2009.03921v2",
+      "archive_sha256": "51d589227c038b9e16cededba73dc417a17d6728757184878b5ac2a43a2fb88a",
+      "entrypoint": "bundle.tex",
+      "entrypoint_override": false,
+      "labels_checked": [
+        "asmp:del",
+        "asmp:kapp",
+        "mainth"
+      ],
+      "nodes": 380,
+      "edges": 931
+    },
+    {
+      "arxiv": "2102.10030v3",
+      "archive_sha256": "fb6038885523f18e3dc849e992e0345a5fe6512f07dd85953808288cdc5d2c89",
+      "entrypoint": "qwr.tex",
+      "entrypoint_override": false,
+      "labels_checked": [
+        "applictheorem",
+        "conecode"
+      ],
+      "nodes": 257,
+      "edges": 559
+    },
+    {
+      "arxiv": "2308.07915v2",
+      "archive_sha256": "d0dc3ffbb467a71630efa6b930913d19ee3d5356c42412930bc43dbd96306b2e",
+      "entrypoint": "arXiv_v2.tex",
+      "entrypoint_override": true,
+      "labels_checked": [
+        "eq:logicalpaulis",
+        "sec:decoder",
+        "table:automorphisms"
+      ],
+      "nodes": 340,
+      "edges": 681
+    },
+    {
+      "arxiv": "2407.20526v1",
+      "archive_sha256": "c29be6cb6aa1c9ff2fb4377217db4711a76191d82a06dfe3005691a010cdc86f",
+      "entrypoint": "main.tex",
+      "entrypoint_override": false,
+      "labels_checked": [
+        "lemma:pauli_weight_reduction",
+        "thm:hypergraph_ldpc_energy_barrier"
+      ],
+      "nodes": 159,
+      "edges": 336
+    }
+  ]
+}

@@ -10,6 +10,7 @@ status see [the remediation ledger](../docs/AUDIT_REMEDIATION.md).
 | Installed wheel and standalone | Same audit revision | `tools/reproduce_installed.py`, `tools/reproduce_workspace.py` | 19 installed CLI checks, 11 installed wheel workspace steps, and 21 macOS arm64 standalone steps. The standalone run exercised one arXiv source and migration from 0.3.0. [Run summary](audit-0.4.0rc1/report.json) |
 | Read-only MCP | Same audit revision | `python tools/reproduce_mcp.py --out build/reproduce-mcp` | 22 stdio assertions passed. [Check list](audit-0.4.0rc1/report.json) |
 | Linux MCP isolation | `839a660` | `python tools/reproduce_linux_isolation.py --out build/linux-isolation.json` | 12 Compose checks passed on Linux arm64 with an alternate local Ubuntu base. [Results](audit-0.4.0rc1/linux-isolation.json) |
+| Pinned arXiv corpus | `cdbe50b` | `python tools/reproduce_golden.py --archive-dir ARCHIVES --out build/golden-arxiv.json` | Six archived source versions imported and validated. [Fixture instructions](../tests/golden/README.md) and [results](audit-0.4.0rc1/golden-arxiv.json) |
 | RFC-QEC-002 | `71c7904` | Workspace and macOS isolation replays | [Historical RFC acceptance](rfc002/REPORT.md) |
 | P0–P5 and 0.3.0 | Per-run commits where recorded | Python, Lean, installed CLI, MCP, and incremental replays | [Historical stage reports](REPORT.md) |
 
