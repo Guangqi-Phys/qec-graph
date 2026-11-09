@@ -5,7 +5,22 @@ workspace. It archives the original sources and links statements, code records,
 experiments, and evidence to their source spans. Read the results in Obsidian or
 query a fixed workspace release over read-only MCP.
 
-## Install
+## Install or update on macOS
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Guangqi-Phys/qec-graph/main/install.sh | sh
+```
+
+Run the same command again to update. The installer uses GitHub's Latest
+release. When there is no stable release, it uses the newest published
+prerelease from the release feed.
+
+Release `v0.4.0rc1` includes an Apple Silicon (arm64) build. The installer
+checks the executable's SHA-256 before replacing `~/.local/bin/qec-graph`.
+The executable carries its own Python runtime. Open a new terminal if the
+installer adds the command to your PATH.
+
+## Install from source
 
 The current version is **0.4.0rc1**. Use Python 3.11 or newer, a local POSIX
 filesystem, and SQLite with FTS5 enabled. The release candidate was tested on
@@ -20,17 +35,6 @@ python -m pip install .
 If you have the release wheel, you can install it in the same way with
 `python -m pip install /path/to/qec_graph-0.4.0rc1-py3-none-any.whl`.
 Local ingestion and queries run without an API key.
-
-## Install from GitHub Release on macOS
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/Guangqi-Phys/qec-graph/main/install.sh | sh
-```
-
-Release `v0.4.0rc1` includes a standalone Apple Silicon (arm64) build. The
-installer checks its SHA-256 and installs `qec-graph` into `~/.local/bin`.
-Open a new terminal if the installer adds that directory to your PATH.
-The executable carries its own Python runtime.
 
 ## Single-file executable
 

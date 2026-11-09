@@ -7,12 +7,7 @@ die() {
 }
 
 repository=Guangqi-Phys/qec-graph
-version="${1:-v0.4.0rc1}"
-case "$version" in
-    *[!A-Za-z0-9._-]*) die 'invalid release tag' ;;
-    v[0-9]*) ;;
-    *) die 'invalid release tag' ;;
-esac
+releases_url="https://github.com/$repository/releases"
 
 case "$(uname -s)-$(uname -m)" in
     Darwin-arm64) asset=qec-graph-darwin-arm64 ;;
@@ -34,7 +29,36 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 1' HUP INT TERM
 
-release_url="https://github.com/$repository/releases/download/$version"
+version="${1:-}"
+if [ -z "$version" ]; then
+    latest="$(curl -sSL --proto '=https' --proto-redir '=https' --retry 2 \
+        --output /dev/null --write-out '%{http_code} %{url_effective}' "$releases_url/latest")" \
+        || die 'could not resolve the latest GitHub Release'
+    case "$latest" in
+        "200 $releases_url/tag/"*) release_page="${latest#200 }" ;;
+        "200 $releases_url"|"200 $releases_url/"|"404 $releases_url/latest")
+            curl -fsSL --proto '=https' --proto-redir '=https' --retry 2 \
+                --output "$download/releases.atom" "$releases_url.atom" \
+                || die 'could not download the GitHub Releases feed'
+            release_page="$(xmllint --nonet --xpath \
+                'string(/*[local-name()="feed"]/*[local-name()="entry"][1]/*[local-name()="link"][@rel="alternate"]/@href)' \
+                "$download/releases.atom")" || die 'could not read the GitHub Releases feed'
+            ;;
+        *) die 'could not resolve the latest GitHub Release' ;;
+    esac
+    case "$release_page" in
+        "$releases_url/tag/"*) version="${release_page#"$releases_url/tag/"}" ;;
+        *) die 'no published GitHub Release found' ;;
+    esac
+fi
+
+case "$version" in
+    *[!A-Za-z0-9._-]*) die 'invalid release tag' ;;
+    v[0-9]*) ;;
+    *) die 'invalid release tag' ;;
+esac
+
+release_url="$releases_url/download/$version"
 for file in "$asset.sha256" "$asset"; do
     curl -fsSL --proto '=https' --proto-redir '=https' --retry 2 \
         --output "$download/$file" "$release_url/$file" \
