@@ -13,7 +13,7 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 5 | Validate review, claim-link, and experiment inputs | Complete. CLI tests reject missing or malformed fields before writing. Review and QEC validation suites pass. |
 | 6 | Protect annotated stores from source-only split | Complete. The store checks the bound CURRENT manifest while holding the writer lock. The regression covers refusal, explicit replacement, and validation of the previous snapshot. |
 | 7 | List, quarantine, and restore inbox packages | Complete. The lifecycle test verifies preserved bytes and receipt, a clear daily status, and restoration that refuses to overwrite a replacement. Explicit rebuild still checks every archived package. |
-| 8 | Build and check fresh release artifacts | In progress. Added a distribution check for version, README, and license. Strict Twine passed for both formats. Clean checkout and installed lifecycle checks remain. |
+| 8 | Build and check fresh release artifacts | Complete for the source changes. A clean export of `ffdbb5e` passed strict Twine, exact metadata checks, wheel installation and workspace verification, and all 165 tests from the unpacked source distribution. Item 26 tracks publication automation. |
 | 9 | Ignore generated state and development caches | Complete. Git ignore checks cover local graph state, macOS metadata, and coverage, lint, and test caches. |
 | 10 | Documentation index and factual corrections | Open. |
 | 11 | Separate CLI parsing, rendering, and dispatch | Open. |
@@ -24,8 +24,8 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 16 | Package all current schemas and expand research contracts | Open. Preserve validation across revisions and runtime-only invariants. |
 | 17 | Single packaged software seed and explicit test fixtures | Complete. The deleted seed matched the packaged resource byte for byte. The synthetic fixture kept its historical SHA-256. Research and workspace query tests load the canonical inputs. |
 | 18 | Organize documentation by purpose | Open. Preserve referenced entry points while migrating links. |
-| 19 | CLI, renderer, schema, and docs tests with coverage | Open. |
-| 20 | Lint, type, coverage, and pre-commit configuration | Open. |
+| 19 | CLI, renderer, schema, and docs tests with coverage | In progress. The full suite recorded 78% branch-aware coverage and passes the 70% gate. CLI contracts now have dedicated tests. Renderer, schema, and docs coverage remains. |
+| 20 | Lint, type, coverage, and pre-commit configuration | Complete. The configured Ruff rules, mypy, pre-commit hooks, and 70% coverage gate passed locally. mypy checks annotated code across all 37 modules. Enabling checks inside every unannotated function exposed 107 existing issues and remains incremental type work. |
 | 21 | Consolidate validation evidence and index current runs | Open. Retain verifiable historical provenance. |
 | 22 | Share storage and publication primitives | Open. |
 | 23 | Share query logic across store, corpus, and workspace | Open. Preserve scope and evidence semantics. |
@@ -35,7 +35,7 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 27 | Verify Linux and MCP isolation | Open. |
 | 28 | Pin expected results for a real-paper corpus | Open. Check redistribution rights for any fixture committed to Git. |
 | 29 | Add reproducible performance benchmarks | Open. |
-| 30 | Single-source the version and evaluate the optional source layout | In progress. CLI, wheel metadata, and release build use one package version. Clean installation checks will inform the optional layout decision. |
+| 30 | Single-source the version and evaluate the optional source layout | Complete. The CLI, package metadata, and standalone build use the same version. A wheel installed in a fresh environment and ran its lifecycle from a separate workspace. The optional source move would disrupt supported checkout-based commands without fixing a demonstrated packaging failure. |
 
 The assessment also proposes contribution, security, citation, and change
 history files, packaging the useful source distribution fixtures, documenting

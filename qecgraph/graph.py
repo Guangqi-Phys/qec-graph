@@ -79,7 +79,7 @@ def build_graph(parsed: dict, project_id: str, project_source_hash: str,
     files = {f["path"]: f for f in parsed["files"]}
     document_id = "paper:" + project_id
     source_hash = {path: f["sha256"] for path, f in files.items()}
-    occurrences = Counter()
+    occurrences: Counter[str] = Counter()
     label_counts = Counter(label for block in blocks for label in set(block.get("labels", [])))
 
     def add_node(node):
@@ -209,7 +209,7 @@ def build_graph(parsed: dict, project_id: str, project_source_hash: str,
 
     # A neighbouring proof is a candidate association, never a verified claim.
     declared_proofs = {item["source"] for item in edges if item["relation"] == "proof_of"}
-    statement_ends = defaultdict(dict)
+    statement_ends: dict[tuple[str, str | None], dict[int, dict]] = defaultdict(dict)
     for block in blocks:
         if block["kind"] in STATEMENTS:
             source = block["source"]

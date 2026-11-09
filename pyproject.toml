@@ -34,6 +34,17 @@ qec-graph = "qecgraph.cli:main"
 qec-latex-split = "qecgraph.splitter:main"
 qecgraph-mcp = "qecgraph.mcp_server:main"
 
+[dependency-groups]
+dev = [
+    "build==1.6.1",
+    "coverage==7.17.2",
+    "mypy==2.4.1",
+    "pre-commit==4.7.0",
+    "ruff==0.17.4",
+    "setuptools==84.2.1",
+    "twine==7.0.0",
+]
+
 [tool.setuptools.packages.find]
 include = ["qecgraph*"]
 
@@ -43,3 +54,26 @@ version = {attr = "qecgraph.__version__"}
 [tool.setuptools.package-data]
 "qecgraph" = ["catalog/*.json"]
 "qecgraph.validators" = ["schemas/*.json"]
+
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["qecgraph"]
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = ["jsonschema", "jsonschema.*", "pylatexenc", "pylatexenc.*"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+branch = true
+source = ["qecgraph"]
+
+[tool.coverage.report]
+fail_under = 70
+show_missing = true
