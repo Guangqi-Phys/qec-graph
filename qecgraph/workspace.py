@@ -16,6 +16,7 @@ from . import __version__
 from .extraction import RULE_VERSION, proposals
 from .research_store import load_records, stage_records, validate_sources
 from .graph import canonical, hash_text, read_json
+from .parser import PARSER_VERSION
 from .registry import Registry
 from .source_package import Limits, PackageError, read_bounded, unpack
 from .store import ingest, validate_snapshot
@@ -23,7 +24,7 @@ from .transactions import atomic_bytes, atomic_json, immutable_json, writer_lock
 
 CONFIG = 'qecgraph.toml'
 FORMAT = 'qecgraph.workspace.v1'
-PROCESSOR = f'qecgraph-{__version__}:archive-structure-v1:{RULE_VERSION}'
+PROCESSOR = f'qecgraph-{__version__}:archive-structure-v1:parser-{PARSER_VERSION}:{RULE_VERSION}'
 HEX = re.compile(r'[0-9a-f]{64}')
 JOB = re.compile(r'[0-9a-f]{32}')
 

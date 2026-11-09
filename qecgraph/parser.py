@@ -1,7 +1,7 @@
 """Conservative, source-preserving LaTeX structure extraction.
 
-This module uses pylatexenc 2.10's AST.  It does not run TeX, expand user
-macros, evaluate conditionals, infer theorem truth, or interpret data tables.
+This module uses pylatexenc 2.10's AST and recognizes a limited set of
+structural declarations without running TeX or expanding arbitrary macros.
 Offsets are half-open Python Unicode character offsets in UTF-8-decoded
 source.  File digests are SHA-256 of the original bytes, including CRLF/BOM.
 """
@@ -16,7 +16,8 @@ from typing import Any
 try:
     from pylatexenc import __version__ as PYLATEXENC_VERSION
     from pylatexenc.latexwalker import (
-        LatexWalker, LatexWalkerParseError, LatexCharsNode, LatexCommentNode,
+        LatexWalker, LatexWalkerEndOfStream, LatexWalkerParseError, LatexToken,
+        LatexCharsNode, LatexCommentNode,
         LatexEnvironmentNode, LatexGroupNode, LatexMacroNode, LatexMathNode,
         get_default_latex_context_db,
     )
@@ -28,7 +29,7 @@ except ImportError as exc:
     raise ImportError("qecgraph's LaTeX parser requires pylatexenc==2.10") from exc
 
 
-PARSER_VERSION = "0.1.0"
+PARSER_VERSION = "0.2.0"
 _KINDS = {
     "definition", "lemma", "theorem", "proposition", "corollary", "conjecture",
     "proof", "equation", "table", "figure", "remark", "example",
@@ -46,10 +47,10 @@ _ENVIRONMENTS = {
 }
 _SECTIONS = {"part": -1, "chapter": 0, "section": 1, "subsection": 2,
              "subsubsection": 3, "paragraph": 4, "subparagraph": 5}
-_DECLARATIONS = {
-    "newcommand", "renewcommand", "providecommand", "DeclareRobustCommand",
+_COMMAND_DECLARATIONS = {"newcommand", "renewcommand", "providecommand", "DeclareRobustCommand"}
+_PRIMITIVE_DEFINITIONS = {"def", "gdef", "edef", "xdef"}
+_DECLARATIONS = _COMMAND_DECLARATIONS | _PRIMITIVE_DEFINITIONS | {
     "DeclareMathOperator", "newenvironment", "renewenvironment", "newtheorem",
-    "def", "gdef", "edef", "xdef",
 }
 _LITERAL_ENVIRONMENTS = {
     "verbatim", "verbatim*", "Verbatim", "BVerbatim", "LVerbatim",
@@ -71,17 +72,17 @@ _CONDITIONALS = {
     "iftrue", "iffalse", "ifmmode", "ifhmode", "ifvmode", "ifodd", "ifcat",
     "ifeof", "ifvoid", "ifhbox", "ifvbox", "ifinner", "ifthenelse", "ifboolexpr",
 }
+_CONDITIONAL_MACROS = {"ifthenelse", "ifboolexpr"}
+_CONTROL_WORD = re.compile(r"\\([A-Za-z@]+)")
+_ENVIRONMENT_ALIAS = re.compile(r"\\(begin|end)\s*\{([A-Za-z0-9* ._-]+)\}")
 
 
 def _next_token(w, pos, parsing_state):
     while True:
         try:
             token = w.get_token(pos, parsing_state=parsing_state, environments=False)
-        except Exception as exc:
-            # get_token reports end of input with its own exception class.
-            if exc.__class__.__name__ == "LatexWalkerEndOfStream":
-                return None
-            raise
+        except LatexWalkerEndOfStream:
+            return None
         if token.tok != "comment":
             return token
         pos = token.pos + token.len
@@ -270,6 +271,150 @@ def _children(node):
     return values
 
 
+class _StructuralWalker(LatexWalker):
+    """Use environment tokens at the original control word's source coordinates."""
+
+    def __init__(self, text, aliases, **kwargs):
+        super().__init__(text, **kwargs)
+        self.aliases = aliases
+
+    def get_token(self, pos, include_brace_chars=None, environments=True,
+                  keep_inline_math=None, parsing_state=None, **kwargs):
+        token = super().get_token(pos, include_brace_chars, environments,
+                                  keep_inline_math, parsing_state, **kwargs)
+        if environments and token.tok == "macro" and token.pos in self.aliases:
+            operation, name = self.aliases[token.pos]
+            return LatexToken(operation + "_environment", name, token.pos,
+                              1 + len(token.arg), token.pre_space)
+        return token
+
+
+def _scan_structure(text, inherited, context, known_conditionals):
+    """Find literal environment aliases and statically decidable branch ranges."""
+    walker = LatexWalker(text, latex_context=context, tolerant_parsing=False)
+    state = walker.make_parsing_state()
+    scopes = [(None, dict(inherited))]
+    conditionals = []
+    conditional_names = known_conditionals - _CONDITIONAL_MACROS
+    aliases, include_bindings, masked, selected = {}, {}, [], []
+    inactive_start = None
+    pos = 0
+    while (token := _next_token(walker, pos, state)) is not None:
+        pos = token.pos + token.len
+        bindings = scopes[-1][1]
+        name = token.arg if token.tok == "macro" else None
+        if name in conditional_names or (conditionals and name in {"else", "fi"}):
+            was_inactive = inactive_start is not None
+            if name in conditional_names:
+                decidable = not was_inactive and all(value is not None for value, _ in conditionals)
+                decision = {"iftrue": True, "iffalse": False}.get(name) if decidable else None
+                if name == "ifdefined" and not was_inactive:
+                    operand = _next_token(walker, pos, state)
+                    if operand is not None:
+                        pos = operand.pos + operand.len
+                        if decidable and operand.tok == "macro" and operand.arg in bindings:
+                            decision = True
+                elif name == "ifx" and not was_inactive:
+                    # The compared control tokens are read without expanding them.
+                    for _ in range(2):
+                        operand = _next_token(walker, pos, state)
+                        if operand is None:
+                            break
+                        pos = operand.pos + operand.len
+                conditionals.append((decision, False))
+                if decision is not None and not was_inactive:
+                    selected.append((token.pos, pos))
+            else:
+                decision, in_else = conditionals.pop()
+                if name == "else":
+                    if in_else and decision is not None:
+                        raise LatexWalkerParseError(s=text, pos=token.pos, msg="Repeated conditional else")
+                    conditionals.append((None if decision is None else not decision, True))
+            inactive = any(value is False for value, _ in conditionals)
+            if was_inactive and not inactive:
+                masked.append((inactive_start, pos))
+                inactive_start = None
+            elif inactive and not was_inactive:
+                inactive_start = token.pos
+            elif not inactive and decision is not None:
+                masked.append((token.pos, pos))
+            continue
+        if inactive_start is not None:
+            continue
+
+        uncertain = any(value is None for value, _ in conditionals)
+        if name == "let":
+            target = _next_token(walker, pos, state)
+            if target is not None and target.tok == "macro":
+                bindings.pop(target.arg, None)
+                value = _next_token(walker, target.pos + target.len, state)
+                if value is not None and value.tok == "char" and value.arg == "=":
+                    value = _next_token(walker, value.pos + value.len, state)
+                pos = value.pos + value.len if value is not None else len(text)
+                continue
+        if name in _DECLARATIONS | _LITERAL_MACROS | {"newif", "input", "include"}:
+            parser = context.get_macro_spec(name).args_parser
+            arguments, start, length = parser.parse_args(walker, pos, parsing_state=state)
+            args = arguments.argnlist
+            if name in _COMMAND_DECLARATIONS:
+                control = _CONTROL_WORD.fullmatch(_raw_arg(args[1], text).strip())
+                if control:
+                    target = control[1]
+                    if uncertain or any(scope == ("brace_close", "{") for scope, _ in scopes):
+                        bindings.pop(target, None)
+                    elif name != "providecommand" or target not in bindings:
+                        replacement = _raw_arg(args[4], text).strip()
+                        zero_args = args[2] is None or _raw_arg(args[2], text).strip() == "0"
+                        alias = _ENVIRONMENT_ALIAS.fullmatch(replacement) if zero_args else None
+                        bindings[target] = alias.groups() if alias and name != "providecommand" else None
+            elif name in _PRIMITIVE_DEFINITIONS:
+                # A primitive definition can shadow a previously seen declaration.
+                target = _next_token(walker, pos, state)
+                if target is not None and target.tok == "macro":
+                    affected = scopes if name in {"gdef", "xdef"} else scopes[-1:]
+                    for _, definitions in affected:
+                        definitions.pop(target.arg, None)
+            elif name in {"input", "include"}:
+                include_bindings[token.pos] = dict(bindings)
+            elif name == "newif":
+                custom = _CONTROL_WORD.fullmatch(_raw_arg(args[0], text).strip())
+                if custom:
+                    conditional_names.add(custom[1])
+            pos = start + length
+            continue
+
+        operation = None
+        if name in {"begin", "end"}:
+            environment = walker.get_token(token.pos, parsing_state=state)
+            operation, environment_name = name, environment.arg
+            pos = environment.pos + environment.len
+            if operation == "begin" and environment_name in _LITERAL_ENVIRONMENTS:
+                parser = context.get_environment_spec(environment_name).args_parser
+                _, start, length = parser.parse_args(walker, pos, parsing_state=state)
+                pos = start + length
+                continue
+        elif not uncertain and name in bindings and bindings[name] is not None:
+            operation, environment_name = aliases[token.pos] = bindings[name]
+        if operation == "begin":
+            scopes.append((("end", environment_name), dict(bindings)))
+        elif token.tok == "brace_open":
+            scopes.append((("brace_close", token.arg), dict(bindings)))
+        elif ((operation == "end" and scopes[-1][0] == ("end", environment_name))
+              or (token.tok == "brace_close" and scopes[-1][0] == ("brace_close", "{"))):
+            scopes.pop()
+
+    if any(value is not None for value, _ in conditionals):
+        raise LatexWalkerParseError(s=text, pos=len(text), msg="Unclosed statically recognized conditional")
+    if not masked:
+        return text, aliases, include_bindings, selected
+    parts = []
+    pos = 0
+    for start, end in masked:
+        parts.extend((text[pos:start], re.sub(r"[^\r\n]", " ", text[start:end])))
+        pos = end
+    return "".join(parts) + text[pos:], aliases, include_bindings, selected
+
+
 class _ProjectParser:
     def __init__(self, entry: Path, project_root: Path, config: dict[str, Any], node_cache=None):
         self.node_cache = node_cache
@@ -288,6 +433,7 @@ class _ProjectParser:
         self.environment_map.update(explicit)
         self.macro_specs: dict[str, str] = {}
         self.files: dict[str, dict] = {}
+        self.structures: dict[str, tuple] = {}
         self.line_starts: dict[str, list[int]] = {}
         self.discovered: set[str] = set()
         self.discovery_stack: list[str] = []
@@ -339,11 +485,11 @@ class _ProjectParser:
         for name in ("input", "include"):
             specs[name] = MacroSpec(name, args_parser=_InputParser())
         specs["newtheorem"] = MacroSpec("newtheorem", args_parser=_OpaqueDeclarationParser("*{[{["))
-        for name in ("newcommand", "renewcommand", "providecommand", "DeclareRobustCommand"):
+        for name in _COMMAND_DECLARATIONS:
             specs[name] = MacroSpec(name, args_parser=_OpaqueDeclarationParser("*{[[{"))
         for name in ("newenvironment", "renewenvironment"):
             specs[name] = MacroSpec(name, args_parser=_OpaqueDeclarationParser("*{[[{{"))
-        for name in ("def", "gdef", "edef", "xdef"):
+        for name in _PRIMITIVE_DEFINITIONS:
             specs[name] = MacroSpec(name, args_parser=_PrimitiveDefinitionParser())
         specs["DeclareMathOperator"] = MacroSpec("DeclareMathOperator", args_parser=_OpaqueDeclarationParser("*{{"))
         for name in ("verb", "lstinline"):
@@ -372,17 +518,18 @@ class _ProjectParser:
         return context
 
     def parse_nodes(self, path: str):
-        text = self.files[path]["text"]
+        text, aliases = self.structures[path]
         key = None
         if self.node_cache:
             key = self.node_cache.key(path, text, {'environments': self.environment_map,
-                                                  'macro_specs': self.macro_specs, 'conditionals': sorted(self._conditional_names)})
+                                                  'macro_specs': self.macro_specs, 'conditionals': sorted(self._conditional_names),
+                                                  'aliases': sorted(aliases.items())})
             cached = self.node_cache.get(key, text)
             if cached is not None:
                 return cached
         try:
-            nodes, _, _ = LatexWalker(text, latex_context=self.context,
-                                      tolerant_parsing=False).get_latex_nodes()
+            nodes, _, _ = _StructuralWalker(text, aliases, latex_context=self.context,
+                                            tolerant_parsing=False).get_latex_nodes()
             if self.node_cache:
                 self.node_cache.put(key, nodes)
             return nodes
@@ -437,7 +584,7 @@ class _ProjectParser:
                             f"Include resolved relative to its containing file: {self.relative(chosen)}", source)
         return self.relative(chosen)
 
-    def discover(self, path: Path, source=None):
+    def discover(self, path: Path, source=None, *, inherited=None):
         rel = self.relative(path)
         if rel in self.discovery_stack:
             self.diagnostic("error", "include_cycle", "Include cycle: " + " -> ".join(self.discovery_stack + [rel]), source)
@@ -454,6 +601,21 @@ class _ProjectParser:
             return
         self.files[rel] = {"path": rel, "sha256": sha256(raw).hexdigest(), "text": text, "encoding": "utf-8"}
         self.line_starts[rel] = [0] + [m.end() for m in re.finditer("\n", text)]
+        try:
+            projected, aliases, include_bindings, selected = _scan_structure(
+                text, inherited or {}, self.context, self._conditional_names
+            )
+        except (LatexWalkerParseError, LatexWalkerEndOfStream, IndexError) as exc:
+            pos = max(0, min(getattr(exc, "pos", 0) or 0, len(text)))
+            self.diagnostic("warning", "structural_scan_incomplete",
+                            "Static LaTeX structure recognition failed; parsing the original token stream.",
+                            self.span(rel, pos, pos))
+            projected, aliases, include_bindings, selected = text, {}, {}, []
+        self.structures[rel] = projected, aliases
+        for start, end in selected:
+            self.diagnostic("warning", "conditional_branch_selected",
+                            "Selected a branch using literal condition syntax and visible source declarations.",
+                            self.span(rel, start, end))
         self.discovery_stack.append(rel)
         nodes = self.parse_nodes(rel)
 
@@ -464,7 +626,7 @@ class _ProjectParser:
                     if name == "newtheorem":
                         self.learn_environment(node, rel)
                         continue
-                    if name in {"newcommand", "renewcommand", "providecommand", "DeclareRobustCommand"}:
+                    if name in _COMMAND_DECLARATIONS:
                         self.learn_macro(node, rel)
                         continue
                     if name == "newif":
@@ -488,7 +650,7 @@ class _ProjectParser:
                         self.include_targets[(rel, node.pos)] = target
                         self.includes.append({"from": rel, "to": target, "literal": literal, "source": span})
                         if target is not None:
-                            self.discover(self.root / target, span)
+                            self.discover(self.root / target, span, inherited=include_bindings.get(node.pos))
                         continue
                 visit(_children(node))
 
@@ -660,7 +822,7 @@ class _ProjectParser:
             begin = start if begin is None else begin
             end = stop
             if isinstance(node, LatexCharsNode):
-                meaningful = meaningful or bool(text[start:stop].strip())
+                meaningful = meaningful or bool(node.chars[start - node.pos:stop - node.pos].strip())
             else:
                 buffer.append(node)
                 if not isinstance(node, LatexCommentNode):
@@ -775,7 +937,7 @@ class _ProjectParser:
             self.emit_file(entry, None, [], body=True)
         if self.macro_specs:
             self.diagnostic("warning", "custom_macros_not_expanded",
-                            "User macro argument shapes are learned, but replacement bodies are never expanded; hidden environments or references need explicit annotations.")
+                            "Literal environment aliases and macro argument shapes are recognized; arbitrary macro bodies are not expanded.")
         return {"entry": entry, "files": [self.files[name] for name in sorted(self.files)],
                 "blocks": self.blocks, "includes": self.includes, "resources": self.resources,
                 "diagnostics": self.diagnostics, "parser": "pylatexenc",
@@ -792,7 +954,8 @@ def parse_project(entry: str | Path, project_root: str | Path | None = None,
     kinds.  Includes resolve relative to ``project_root`` first, then relative
     to the containing file; ``include_resolution='file_first'`` reverses this.
     Repeated included files are represented once and diagnosed.  Unsupported
-    macro expansion and conditional execution are reported rather than guessed.
+    Macro expansion and conditional execution beyond static structural cases
+    are reported rather than guessed.
     """
     entry = Path(entry).expanduser().resolve()
     root = Path(project_root).expanduser().resolve() if project_root is not None else entry.parent

@@ -405,6 +405,29 @@ Let $n=13$. Then $n$ is positive.
         self.assertEqual(bundled_proof["source"], explicit_proof["source"])
         self.assertEqual(bundle["snapshot_id"], graph["snapshot_id"])
 
+    def test_proof_reference_to_untyped_assumption_remains_a_source_reference(self):
+        _, graph, snapshot = self._write_project(r"""
+\begin{definition}\label{def:bound}Define the bound.\end{definition}
+\begin{assumption}\label{asmp:bound}Assume the bound holds.\end{assumption}
+\begin{lemma}\label{lem:bound}A consequence follows.\end{lemma}
+\begin{proof}\label{proof:bound}
+Apply \Cref{asmp:bound} to the quantity in \ref{def:bound}.
+\end{proof}
+""")
+        proof = self._node(graph, "proof:bound")
+        lemma = self._node(graph, "lem:bound")
+        assumption = self._node(graph, "asmp:bound")
+        definition = self._node(graph, "def:bound")
+
+        self.assertEqual(assumption["kind"], "paragraph")
+        original, = self._edges(graph, proof["id"], assumption["id"], "references")
+        self.assertEqual(original["status"], "observed")
+        self.assertEqual(original["evidence"]["label"], "asmp:bound")
+        self.assertFalse(self._edges(graph, lemma["id"], assumption["id"], "depends_on_candidate"))
+        candidate, = self._edges(graph, lemma["id"], definition["id"], "depends_on_candidate")
+        self.assertEqual(candidate["status"], "candidate")
+        self.assertTrue(validate_snapshot(snapshot)["passed"])
+
     def test_stale_proof_dependency_is_not_lifted_to_its_statement(self):
         _, initial, _ = self._demo()
         proof = self._node(initial, "proof:hgp-length")

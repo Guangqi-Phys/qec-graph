@@ -112,6 +112,75 @@ class SplitterIntegrationTests(unittest.TestCase):
         self.assertTrue(result["source_only"])
         self.assertEqual(result["fragment_semantics"]["mathematical_verification"], "not_performed")
 
+    def test_environment_aliases_can_mix_with_literal_delimiters(self):
+        self.paper.mkdir()
+        equations = (
+            r"\openEq\label{eq:open} x = 1 \end{equation}",
+            r"\begin{equation}\label{eq:close} y = 2 \closeEq",
+        )
+        source = "\r\n".join((
+            r"\newcommand{\openEq}{\begin{equation}}",
+            r"\newcommand{\closeEq}[0]{\end{equation}}",
+            r"\begin{proof} Unicode α",
+            *equations,
+            r"\end{proof}",
+            r"\ifx\openEq\closeEq no expansion in a token comparison \fi",
+            "",
+        )).encode()
+        self.entry.write_bytes(source)
+
+        result = self.split()
+
+        self.assertEqual(result["extraction_status"], "complete_for_supported_syntax")
+        fragments = result["fragments_by_kind"]["equation"]["fragments"]
+        self.assertEqual([item["labels"] for item in fragments], [["eq:open"], ["eq:close"]])
+        for fragment, equation in zip(fragments, equations):
+            span = fragment["source"]
+            self.assertEqual(source.decode()[span["char_start"]:span["char_end"]], equation)
+            self.assertEqual(Path(fragment["tex_file"]).read_bytes(), equation.encode())
+        self.assertEqual(Path(result["sources"][0]["archived_file"]).read_bytes(), source)
+        self.assertTrue(any(item["code"] == "conditionals_not_evaluated" for item in result["diagnostics"]))
+
+    def test_included_supplement_uses_guard_declared_before_input(self):
+        self.paper.mkdir()
+        main = r"""\documentclass{article}
+\begin{document}
+\newcommand{\combined}{}
+\input{supplement}
+\section{After supplement}\label{sec:after}
+\end{document}
+"""
+        supplement = r"""\ifdefined\combined
+\else
+\input{standalone-preamble}
+\begin{document}
+\section{Standalone only}\label{sec:standalone}
+\fi
+\section{Shared supplement}\label{sec:shared}
+\ifdefined\combined
+\else
+\end{document}
+\fi
+"""
+        self.entry.write_text(main, encoding="utf-8")
+        (self.paper / "supplement.tex").write_text(supplement, encoding="utf-8")
+
+        result = self.split()
+
+        self.assertEqual(result["extraction_status"], "complete_for_supported_syntax")
+        sections = {label: item["source"] for item in result["fragments_by_kind"]["section"]["fragments"]
+                    for label in item["labels"]}
+        self.assertEqual(set(sections), {"sec:shared", "sec:after"})
+        self.assertEqual(sections["sec:shared"]["line_start"], 7)
+        archived = {item["path"]: Path(item["archived_file"]).read_bytes() for item in result["sources"]}
+        self.assertEqual(archived, {"main.tex": main.encode(), "supplement.tex": supplement.encode()})
+        self.assertTrue(any(item["code"] == "conditional_branch_selected" for item in result["diagnostics"]))
+
+        self.entry.write_text(main.replace(r"\newcommand{\combined}{}", ""), encoding="utf-8")
+        unresolved = self.split()
+        self.assertEqual(unresolved["extraction_status"], "partial")
+        self.assertTrue(any(item["code"] == "missing_include" for item in unresolved["diagnostics"]))
+
     def test_repeated_split_reuses_the_snapshot_without_mutating_source_or_fragments(self):
         self.demo()
         original = directory_hashes(self.paper)

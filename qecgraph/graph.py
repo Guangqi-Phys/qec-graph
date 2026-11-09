@@ -72,6 +72,8 @@ def node_filename(node_id: str) -> str:
 
 def build_graph(parsed: dict, project_id: str, project_source_hash: str,
                 annotations: dict | None = None, catalog: list[dict] | None = None) -> dict:
+    from .validators import ENDPOINTS
+
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", project_id):
         raise ValueError("project-id must contain only letters, numbers, dot, dash or underscore")
     nodes, edges, diagnostics = {}, [], list(parsed.get("diagnostics", []))
@@ -340,11 +342,16 @@ def build_graph(parsed: dict, project_id: str, project_source_hash: str,
         for reference in list(edges):
             if reference["source"] not in proof_children or reference["relation"] not in {"references", "depends_on_declared"}:
                 continue
-            if reference["target"] == statement_id or reference["status"] in {"stale", "unbound_review", "unresolved"}:
+            target = reference["target"]
+            if target == statement_id or reference["status"] in {"stale", "unbound_review", "unresolved"}:
                 continue
             declared = reference["relation"] == "depends_on_declared" and link["relation"] == "proof_of"
-            edge(statement_id, reference["target"], "depends_on_declared" if declared else "depends_on_candidate",
-                 "declared" if declared else "candidate",
+            relation = "depends_on_declared" if declared else "depends_on_candidate"
+            sources, targets = ENDPOINTS[relation]
+            # Keep ordinary source references without adding a dependency.
+            if nodes[statement_id]["kind"] not in sources or nodes[target]["kind"] not in targets:
+                continue
+            edge(statement_id, target, relation, "declared" if declared else "candidate",
                  {"method": "via_proof", "proof_id": proof_id, "proof_link_id": link["id"], "reference_id": reference["id"]})
 
     for node in nodes.values():

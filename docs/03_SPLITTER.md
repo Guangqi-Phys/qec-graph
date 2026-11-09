@@ -196,7 +196,9 @@ qecgraph validate --store work/qec-demo
 
 源码字符位置按 UTF-8 解码后的 Unicode codepoint 计数，区间是 `[char_start, char_end)`；行号从 1 开始。文件 SHA-256 对原始 bytes 计算，保留 CRLF 等原始细节。
 
-解析器不运行 TeX 或 Lean，不展开任意用户宏，不计算条件分支。重复 include、循环 include、缺失资源和不支持的配置会进入诊断。完整状态 `complete_for_supported_syntax` 只说明受支持的语法处理完成。
+解析器可识别由 `\newcommand` 等直接声明的无参数环境别名，例如 `\be` 作为 `\begin{equation}`，并保留片段中的原始写法。对于 `\iftrue`、`\iffalse`，以及能从前置声明确认宏已定义的 `\ifdefined`，解析器选择可判定的分支并记录诊断。被包含的文件可使用调用处可见的这些声明。
+
+解析器不运行 TeX 或 Lean，也不展开任意用户宏。无法静态判定的条件、重复 include、循环 include、缺失资源和不支持的配置会进入诊断。完整状态 `complete_for_supported_syntax` 只说明受支持的语法处理完成。
 
 ## 7. 快照、重复运行和退出码
 
