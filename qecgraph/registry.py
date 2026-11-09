@@ -11,7 +11,7 @@ from .graph import canonical, hash_text, read_json
 from .store import current_snapshot, load_validated_snapshot, safe_relative, validate_snapshot
 from .transactions import atomic_bytes, atomic_json, immutable_json, writer_lock
 from .records import prepare_record
-from .query import resolve
+from .query import resolve_node
 
 FORMAT = 'qecgraph.registry.v1'
 
@@ -201,8 +201,8 @@ class Registry:
         with writer_lock(self.root):
             state, fixed = self.read()
             graph, _, version = self.source_graph_from_state(state, source_version_id, fixed, verify=True)
-            node_id = resolve(graph, source_selector)
-            node = next(n for n in graph['nodes'] if n['id'] == node_id)
+            node = resolve_node(graph, source_selector)
+            node_id = node['id']
             if node['origin'] != 'parser' or not node.get('source'):
                 raise ValueError('Claim provenance requires an actual source block')
             claim = self.record_from_state(state, claim_id, claim_revision)

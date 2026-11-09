@@ -27,8 +27,9 @@ def answer_node(original, include_candidates=False):
     return node, excluded
 
 
-def resolve(graph, identifier):
-    nodes = {n["id"]: n for n in graph["nodes"]}
+def resolve(graph, identifier, *, nodes=None):
+    if nodes is None:
+        nodes = {n["id"]: n for n in graph["nodes"]}
     if identifier in nodes:
         return identifier
     label = identifier.removeprefix("label:")
@@ -38,6 +39,11 @@ def resolve(graph, identifier):
     if len(matches) > 1:
         raise ValueError(f"Ambiguous label {label!r}; choose an exact node ID: {matches}")
     raise ValueError(f"Unknown node or label: {identifier}")
+
+
+def resolve_node(graph, identifier):
+    nodes = {node["id"]: node for node in graph["nodes"]}
+    return nodes[resolve(graph, identifier, nodes=nodes)]
 
 
 def search(store, query, kind=None, limit=20):
@@ -93,11 +99,16 @@ def search(store, query, kind=None, limit=20):
 
 def show(store, identifier):
     graph, _ = load_graph(store)
-    node_id = resolve(graph, identifier)
-    node = next(n for n in graph["nodes"] if n["id"] == node_id)
+    node = resolve_node(graph, identifier)
+    node_id = node["id"]
+    outgoing, incoming = [], []
+    for edge in graph["edges"]:
+        if edge["source"] == node_id:
+            outgoing.append(edge)
+        if edge["target"] == node_id:
+            incoming.append(edge)
     return {"snapshot_id": graph["snapshot_id"], "node": node,
-            "outgoing": [e for e in graph["edges"] if e["source"] == node_id],
-            "incoming": [e for e in graph["edges"] if e["target"] == node_id]}
+            "outgoing": outgoing, "incoming": incoming}
 
 
 def traverse(graph, root, depth, include_candidates=False, reverse=False, max_nodes=100):
@@ -159,7 +170,8 @@ def context(store, identifier, depth=2, include_candidates=False, max_nodes=60):
     if not 0 <= depth <= 20 or not 1 <= max_nodes <= 1000:
         raise ValueError("depth must be 0..20 and max_nodes 1..1000")
     graph, _ = load_graph(store)
-    root = resolve(graph, identifier)
+    lookup = {n["id"]: n for n in graph["nodes"]}
+    root = resolve(graph, identifier, nodes=lookup)
     adjacent = _dependency_adjacency(graph, include_candidates)
     ids, _, omitted = _walk_dependencies(adjacent, root, depth, max_nodes)
     candidates = list(sorted(ids - {root}))
@@ -207,7 +219,6 @@ def context(store, identifier, depth=2, include_candidates=False, max_nodes=60):
                 changed = True
     truncated = len(chosen) > max_nodes or bool(omitted)
     selected = set(chosen[:max_nodes])
-    lookup = {n["id"]: n for n in graph["nodes"]}
     selected_nodes = []
     excluded_annotations = 0
     for identifier in chosen[:max_nodes]:
