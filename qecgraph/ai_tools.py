@@ -10,7 +10,7 @@ from jsonschema import Draft202012Validator
 from . import query
 from .corpus import project
 from .registry import Registry
-from .store import GraphInput, load_graph, pin_snapshot, validate_snapshot
+from .store import GraphInput, load_validated_snapshot, pin_snapshot
 
 TOOL_NAMES = ('qecgraph_search', 'qecgraph_show', 'qecgraph_context', 'qecgraph_deps', 'qecgraph_impact')
 
@@ -51,9 +51,8 @@ class ReadOnlySession:
                 raise ValueError('Corpus scope arguments require a corpus')
             reference = pin_snapshot(store, snapshot_id)
             self.reference = reference
-            validate_snapshot(reference.path)
-            graph, snapshot = load_graph(reference)
-            self.source = GraphInput(graph, snapshot)
+            graph, _ = load_validated_snapshot(reference.path, reference.snapshot_id)
+            self.source = GraphInput(graph, reference.path)
             self.scope = {'kind': 'store', 'snapshot_id': graph['snapshot_id'], 'project_id': graph['project_id'],
                           'project_source_hash': graph['project_source_hash']}
 
@@ -64,9 +63,8 @@ class ReadOnlySession:
             self._check_corpus_sources(self.corpus, full_scope)
             self.source = source
         else:
-            validate_snapshot(self.reference.path)
-            graph, snapshot = load_graph(self.reference)
-            self.source = GraphInput(graph, snapshot)
+            graph, _ = load_validated_snapshot(self.reference.path, self.reference.snapshot_id)
+            self.source = GraphInput(graph, self.reference.path)
 
     @staticmethod
     def _check_corpus_sources(corpus, scope):
