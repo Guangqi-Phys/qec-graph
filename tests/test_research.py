@@ -46,3 +46,25 @@ class ResearchTests(unittest.TestCase):
             make_record('software_usage', 'bad', 'r1',
                         {'usage_kind': 'citation', 'project_ref': None, 'release_ref': None,
                          'experiment_ref': {'id': 'exp', 'revision': 'r1'}}, source=source, method='manual')
+
+    def test_unknown_channels_and_counted_depth_are_independent(self):
+        source = ref(self.rows[0])
+        with self.assertRaisesRegex(ValueError, 'must be included, excluded or null'):
+            make_record('noise_model', 'noise:bad', 'r1',
+                        {'idle': False, 'loss': None, 'erasure': None, 'leakage': None},
+                        source=source, method='fixture')
+        with self.assertRaisesRegex(ValueError, 'requires a source locator'):
+            make_record('noise_model', 'noise:bad', 'r1',
+                        {'idle': {'consideration': 'excluded'}, 'loss': None, 'erasure': None, 'leakage': None},
+                        source=source, method='fixture')
+        with self.assertRaisesRegex(ValueError, 'Depth kind'):
+            make_record('circuit_protocol', 'circuit:bad', 'r1',
+                        {'depth_metrics': [{'kind': 'tick_count', 'unit': 'ns', 'value': 4, 'definition': 'TICK'}]},
+                        source=source, method='fixture')
+
+    def test_formula_with_unknown_seed_does_not_prove_reconstruction(self):
+        source = ref(self.rows[0])
+        with self.assertRaisesRegex(ValueError, 'complete matrix recipe'):
+            make_record('construction', 'construction:partial', 'r1',
+                        {'reconstruction_status': 'reconstructable',
+                         'matrix_recipe': {'formula': 'H from seeds', 'seed_refs': None}}, source=source, method='fixture')

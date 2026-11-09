@@ -173,6 +173,8 @@ def prepare(record):
             raise ValueError('Observed use requires a real execution run')
         if use in ('mention', 'citation') and (data.get('experiment_ref') or data.get('execution_run_ref')):
             raise ValueError('Mentions/citations do not establish use by an experiment')
+    from .validators.research import validate_details
+    validate_details(record)
     canonical(record)  # Reject non-serializable values; readers also use strict JSON.
     return record
 
@@ -204,6 +206,14 @@ def validate_bundle(records):
             if value is not None:
                 for binding in value if field.endswith('_refs') else [value]:
                     resolve(record, binding, (kinds,) if isinstance(kinds, str) else kinds)
+        if record['kind'] == 'construction' and isinstance(data.get('matrix_recipe'), dict):
+            for binding in data['matrix_recipe'].get('seed_refs') or []:
+                resolve(record, binding, ('classical_seed',))
+        if record['kind'] == 'code_presentation' and data.get('reconstruction_status') in ('complete', 'reconstructable'):
+            if not data.get('generator_asset_refs') and resolve(
+                    record, data['construction_recipe_ref'], ('construction',)).get('reconstruction_status') not in (
+                        'complete', 'reconstructable'):
+                raise ValueError('Presentation cites an incomplete matrix recipe')
         if record['kind'] == 'software_usage' and data.get('release_ref'):
             release = resolve(record, data['release_ref'], ('software_release',))
             distribution = resolve(record, release['distribution_ref'], ('software_distribution',))
