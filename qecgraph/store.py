@@ -25,11 +25,15 @@ def write_json(path, value):
 
 
 def safe_relative(root, relative):
+    return _safe_relative_to_resolved(root.resolve(), relative)
+
+
+def _safe_relative_to_resolved(root, relative):
     relative = Path(relative)
     if relative.is_absolute():
         raise ValueError("Expected a relative archive path")
     path = (root / relative).resolve()
-    if not path.is_relative_to(root.resolve()):
+    if not path.is_relative_to(root):
         raise ValueError(f"Path escapes root: {relative}")
     return path
 
@@ -368,13 +372,15 @@ def validate_snapshot(snapshot, expected_snapshot_id=None):
         raise ValueError("Snapshot identity mismatch")
     if hash_text(canonical(manifest["fingerprint_inputs"])) != expected:
         raise ValueError("Snapshot fingerprint mismatch")
+    output_root = snapshot.resolve()
     for output in manifest["outputs"]:
-        path = safe_relative(snapshot, output["path"])
+        path = _safe_relative_to_resolved(output_root, output["path"])
         if hashlib.sha256(path.read_bytes()).hexdigest() != output["sha256"]:
             raise ValueError(f"Snapshot file changed: {output['path']}")
     sources = {}
+    source_root = (snapshot / "sources").resolve()
     for source in manifest["source_files"]:
-        raw = safe_relative(snapshot / "sources", source["path"]).read_bytes()
+        raw = _safe_relative_to_resolved(source_root, source["path"]).read_bytes()
         if hashlib.sha256(raw).hexdigest() != source["sha256"]:
             raise ValueError("Source hash mismatch")
         sources[source["path"]] = raw.decode("utf-8")
