@@ -27,18 +27,19 @@ def _length(value):
 
 class ReadOnlySession:
     def __init__(self, *, store=None, corpus=None, snapshot_id=None, registry_revision=None,
-                 source_version_id=None, max_nodes=100, max_depth=4, max_chars=64000, max_results=50):
+                 source_version_id=None, max_nodes=100, max_depth=4, max_chars=64000, max_results=50, check_live_lean=True):
         if bool(store) == bool(corpus):
             raise ValueError('Choose exactly one fixed store or corpus')
         if not 1 <= max_nodes <= 1000 or not 0 <= max_depth <= 20 or not 256 <= max_chars <= 1000000 or not 1 <= max_results <= 200:
             raise ValueError('Session budgets exceed supported bounds')
         self.max_nodes, self.max_depth, self.max_chars, self.max_results = max_nodes, max_depth, max_chars, max_results
         self.corpus = corpus
+        self.check_live_lean = check_live_lean
         self.reference = None
         if corpus:
             if snapshot_id:
                 raise ValueError('snapshot_id belongs to a store, not a corpus')
-            source, full_scope = project(corpus, registry_revision, source_version_id)
+            source, full_scope = project(corpus, registry_revision, source_version_id, check_live_lean=check_live_lean)
             self._check_corpus_sources(corpus, full_scope)
             self.source = GraphInput(copy.deepcopy(source.graph))
             self.scope = {'kind': 'corpus', 'registry_revision': full_scope['registry_revision'],
@@ -58,7 +59,8 @@ class ReadOnlySession:
 
     def _refresh(self):
         if self.corpus:
-            source, full_scope = project(self.corpus, self.scope['registry_revision'], self.scope['source_version_id'])
+            source, full_scope = project(self.corpus, self.scope['registry_revision'], self.scope['source_version_id'],
+                                         check_live_lean=self.check_live_lean)
             self._check_corpus_sources(self.corpus, full_scope)
             self.source = GraphInput(copy.deepcopy(source.graph))
         else:

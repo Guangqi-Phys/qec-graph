@@ -47,7 +47,7 @@ def evidence_current(registry, evidence, records, required_ids, reviews=None, bu
 
 
 def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at_least=None,
-          metric_definition_id=None, sector='joint', construction=None, limit=100):
+          metric_definition_id=None, sector='joint', construction=None, limit=100, check_live_lean=True):
     if not 1 <= limit <= 200:
         raise ValueError('limit must be 1..200')
     for value in (n_min, n_max, distance_at_least):
@@ -64,7 +64,7 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
     records = {identifier: registry.record(identifier, registry_revision=fixed) for identifier in state['records']}
     reviews = review_states(registry, state, records, fixed)
     from .lean_integration import lean_record_states
-    builds = lean_record_states(registry, state, records, reviews)
+    builds = lean_record_states(registry, state, records, reviews, check_live_inputs=check_live_lean)
     results = []
     for identifier, code in sorted(records.items()):
         if code['kind'] != 'code_instance':

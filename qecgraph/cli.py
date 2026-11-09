@@ -12,17 +12,21 @@ from .registry import Registry
 from .graph import read_json
 
 
-def _add_query_scope(parser):
+def _add_query_scope(parser, *, workspace=False):
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--store')
     group.add_argument('--corpus')
+    if workspace:
+        group.add_argument('--workspace')
+        group.add_argument('--machine', help='Only the mounted machine directory (no workspace access)')
+        parser.add_argument('--release')
     parser.add_argument('--snapshot', help='Fixed store snapshot ID')
     parser.add_argument('--registry-revision', help='Fixed corpus state revision')
     parser.add_argument('--source-version-id', help='Restrict corpus source scope')
 
 
 def _add_ai_arguments(parser):
-    _add_query_scope(parser)
+    _add_query_scope(parser, workspace=True)
     parser.add_argument('--session-max-nodes', type=int, default=100)
     parser.add_argument('--session-max-depth', type=int, default=4)
     parser.add_argument('--session-max-chars', type=int, default=64000)
@@ -30,6 +34,17 @@ def _add_ai_arguments(parser):
 
 
 def _ai_session(args):
+    if args.workspace or args.machine:
+        from .workspace import Workspace
+        from .workspace_query import WorkspaceSession
+        if args.snapshot or args.source_version_id or args.registry_revision:
+            raise ValueError('Workspace tools use --release; store/corpus selectors are not applicable')
+        machine = args.machine or Workspace(args.workspace).path('machine')
+        return WorkspaceSession(machine, args.release, max_nodes=args.session_max_nodes,
+                                max_depth=args.session_max_depth, max_chars=args.session_max_chars,
+                                max_results=args.session_max_results)
+    if args.release:
+        raise ValueError('--release requires --workspace or --machine')
     from .ai_tools import ReadOnlySession
     return ReadOnlySession(store=args.store, corpus=args.corpus, snapshot_id=args.snapshot,
                            registry_revision=args.registry_revision, source_version_id=args.source_version_id,
@@ -48,6 +63,11 @@ def _add_source_arguments(parser):
 
 
 def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv[:2] == ['mcp', 'serve']:
+        argv[:2] = ['serve-mcp']
+    if argv[:2] == ['review', 'list'] and '--corpus' not in argv:
+        argv[:2] = ['review-list']
     parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graphs with explicit evidence checks")
     sub = parser.add_subparsers(dest="command", required=True)
     for action in ('init', 'sync', 'rebuild', 'status'):
@@ -254,7 +274,9 @@ def main(argv=None):
             from pathlib import Path
             session = _ai_session(args)
             arguments = ['-m', 'qecgraph', 'serve-mcp']
-            if args.corpus:
+            if args.workspace or args.machine:
+                arguments += ['--machine', str(session.machine), '--release', session.release]
+            elif args.corpus:
                 arguments += ['--corpus', str(Path(args.corpus).resolve()), '--registry-revision', session.scope['registry_revision']]
                 if args.source_version_id:
                     arguments += ['--source-version-id', args.source_version_id]

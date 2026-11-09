@@ -15,7 +15,7 @@ def occurrence_id(version_id, node_id):
     return 'occurrence:' + hash_text(version_id) + ':' + node_id
 
 
-def project(corpus, registry_revision=None, source_version_id=None):
+def project(corpus, registry_revision=None, source_version_id=None, *, check_live_lean=True):
     registry = Registry(corpus)
     state, fixed = registry.read(registry_revision)
     if source_version_id and source_version_id not in state['versions']:
@@ -50,7 +50,7 @@ def project(corpus, registry_revision=None, source_version_id=None):
     records = {identifier: registry.record(identifier, registry_revision=fixed) for identifier in sorted(state['records'])}
     reviews = review_states(registry, state, records, fixed)
     from .lean_integration import lean_record_states
-    builds = lean_record_states(registry, state, records, reviews)
+    builds = lean_record_states(registry, state, records, reviews, check_live_inputs=check_live_lean)
     for identifier, record in records.items():
         node = {'id': identifier, 'kind': record['kind'], 'title': record['title'],
                       'labels': record['aliases'], 'latex': '', 'data': record['data'], 'record': record,

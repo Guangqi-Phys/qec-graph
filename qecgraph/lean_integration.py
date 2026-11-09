@@ -240,7 +240,7 @@ def import_build(corpus, report_path, *, project_id, project=None, mappings=None
             'formalization_ids': mapping_records, 'freshness': 'historical' if historical else 'current', 'semantic_review': 'not_reviewed'}
 
 
-def lean_record_states(registry, state, records, reviews):
+def lean_record_states(registry, state, records, reviews, *, check_live_inputs=True):
     """Recompute freshness by reading pinned artifacts/explicit project inputs; never execute Lean."""
     projects = {}
     for project_id, entry in state.get('lean_projects', {}).items():
@@ -252,7 +252,10 @@ def lean_record_states(registry, state, records, reviews):
             export, audit, _ = _verify_artifacts(report, lambda relative: registry.asset_bytes(assets[relative]['uri']))
             if _build_id(raw_report) != entry['current_build_id']:
                 raise ValueError('Registered Lean build identity mismatch')
-            reasons.extend(_current_reasons(report, entry['root']))
+            if check_live_inputs:
+                reasons.extend(_current_reasons(report, entry['root']))
+            else:
+                reasons.append({'code': 'live_lean_inputs_not_checked_in_isolated_session'})
             if entry['historical']:
                 reasons.append({'code': 'imported_as_history'})
             exported = {declaration['name']: declaration for declaration in export['declarations']}

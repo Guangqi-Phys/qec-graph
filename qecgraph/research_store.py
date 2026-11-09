@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from .graph import canonical, hash_text, read_json
 from .research import key, ref, validate_bundle
-from .store import safe_relative
+from .store import safe_relative, validate_snapshot
 from .transactions import immutable_json, writer_lock
 
 
@@ -25,6 +25,42 @@ def load_records(registry, state):
     return result
 
 
+def validate_sources(registry, state, records, *, require_source=True):
+    """Resolve verified locators through registered graph identity, never paths supplied by a record."""
+    from .workspace import HEX
+    graphs = {}
+    for record in records:
+        if record['is_synthetic']:
+            continue
+        for evidence in record['field_evidence'].values():
+            locator = evidence.get('source_locator')
+            if locator is None:
+                continue
+            source = evidence.get('source_ref') or {}
+            identifier, digest = source.get('id'), source.get('revision')
+            version = state['versions'].get(identifier)
+            if (not version or not isinstance(digest, str) or not HEX.fullmatch(digest)
+                    or locator.get('source_version_id') != identifier or locator.get('snapshot_id') != digest):
+                raise ValueError('Source evidence must bind a registered version and snapshot')
+            if digest not in graphs:
+                snapshot = safe_relative(registry.root, 'source_snapshots/' + digest)
+                validate_snapshot(snapshot, digest)
+                graph = read_json(snapshot / 'graph.json')
+                graphs[digest] = (graph['project_id'], {n['id']: n for n in graph['nodes']})
+            project_id, nodes = graphs[digest]
+            node = nodes.get(locator.get('node_id'), {})
+            span = node.get('source') or {}
+            a, b = locator.get('char_start'), locator.get('char_end')
+            if (project_id != version['project_id'] or node.get('origin') != 'parser'
+                    or node.get('content_sha256') != locator.get('node_content_sha256')
+                    or span.get('path') != locator.get('path') or type(a) is not int or type(b) is not int
+                    or not span['char_start'] <= a < b <= span['char_end']):
+                raise ValueError('Source evidence does not resolve to a verbatim registered span')
+        if record['kind'] == 'paper_version' and require_source:
+            if record['id'] not in state['versions'] or record['data'].get('source_snapshot_id') != record['revision']:
+                raise ValueError('Paper version records must refer to a registered source projection')
+
+
 def stage_records(registry, state, records):
     previous = load_records(registry, state)
     indexed = {key(ref(row)): row for row in previous}
@@ -34,6 +70,7 @@ def stage_records(registry, state, records):
             raise ValueError('Research revision already binds different content')
         indexed[identity] = record
     validated = validate_bundle(indexed.values())
+    validate_sources(registry, state, (validated[key(ref(record))] for record in records))
     index = state.setdefault('research_records', {})
     for identity, record in validated.items():
         identifier, revision = identity
