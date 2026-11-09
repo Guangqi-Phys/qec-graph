@@ -189,21 +189,24 @@ def check_output_directory(out, *, allow_lock=False):
     return out
 
 
-def ingest(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None, *, strict=False, incremental=False):
+def ingest(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None,
+           *, strict=False, incremental=False, _tool_identity=None):
     out = check_output_directory(out)
     with writer_lock(out):
         check_output_directory(out, allow_lock=True)
         if not (out / '.qecgraph-store.json').exists():
             atomic_json(out / '.qecgraph-store.json', {'format': 'qecgraph.store.v1'})
         return _ingest_locked(entry, project_id, out, project_root, config_path, annotations_path, catalog_dir,
-                              strict=strict, incremental=incremental)
+                              strict=strict, incremental=incremental, tool_identity=_tool_identity)
 
 
-def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None, *, strict=False, incremental=False):
+def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None,
+                   *, strict=False, incremental=False, tool_identity=None):
     from .parser import parse_project
 
     started = time.perf_counter()
-    tool_identity = extraction_tool_identity()
+    if tool_identity is None:
+        tool_identity = extraction_tool_identity()
     entry = Path(entry).resolve()
     root = Path(project_root).resolve() if project_root else entry.parent
     out = Path(out).resolve()

@@ -255,7 +255,7 @@ class Workspace:
         immutable_json(self.path('archive/receipts/' + job.name + '.json'), receipt)
         return digest
 
-    def _prepare(self, cfg, state, digest, prior, reused, limits, *, captured, manifest_hashes):
+    def _prepare(self, cfg, state, digest, prior, reused, limits, *, captured, manifest_hashes, tool_identity):
         result = {'archive_sha256': digest, 'status': 'archived_only', 'processing_completed': False,
                   'semantic_status': 'not_extracted', 'processor': PROCESSOR}
         try:
@@ -299,7 +299,8 @@ class Workspace:
                         project = temporary / 'project'
                         tree.materialize(project)
                         extraction = ingest(project / entry, 'source-' + source_id.rsplit(':', 1)[-1],
-                                            temporary / 'store', project_root=project, strict=True)
+                                            temporary / 'store', project_root=project, strict=True,
+                                            _tool_identity=tool_identity)
                         if not extraction.get('published'):
                             result.update(status='parse_failed', reason='Structural extraction is partial; see diagnostics',
                                           diagnostics=extraction.get('diagnostics', []))
@@ -406,7 +407,8 @@ class Workspace:
                 if rebuild or version is None:
                     captured = []
                     materials[digest] = self._prepare(cfg, state, digest, prior, reused, limits,
-                                                       captured=captured, manifest_hashes=manifest_hashes)
+                                                       captured=captured, manifest_hashes=manifest_hashes,
+                                                       tool_identity=tool_identity)
                     materials[digest]['config_fingerprint'] = fingerprint
                     if captured:
                         graph, snapshot, registered = captured.pop()

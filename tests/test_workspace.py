@@ -107,7 +107,9 @@ class WorkspaceTests(unittest.TestCase):
 
     def test_rebuild_reuses_exact_extractions_and_reparses_after_processor_changes(self):
         (self.inbox / 'paper.tex').write_bytes(TEX)
-        first = self.ws.init()
+        with patch('qecgraph.store.extraction_tool_identity', wraps=extraction_tool_identity) as standalone_identity:
+            first = self.ws.init()
+            standalone_identity.assert_not_called()
         with patch('qecgraph.workspace.ingest', wraps=ingest) as extract:
             reused = self.ws.rebuild()
             self.assertEqual(reused['release_id'], first['release_id'])
