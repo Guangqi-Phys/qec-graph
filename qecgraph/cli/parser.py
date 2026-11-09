@@ -67,6 +67,13 @@ def _add_research_scope(parser, *, legacy_corpus=False):
     parser.add_argument('--max-chars', type=int, help='Maximum Unicode codepoints in the workspace response data')
 
 
+def _coordinate(value):
+    try:
+        return int(value)
+    except ValueError:
+        return float(value)
+
+
 def _add_ai_arguments(parser):
     _add_query_scope(parser, workspace=True)
     parser.add_argument('--session-max-nodes', type=int, default=100,
@@ -340,7 +347,7 @@ def _register_commands(add):
     cmd.add_argument('--complete-only', action='store_true', default=None,
                      help='Require all comparison context to be bound')
     cmd.add_argument('--coordinate-name', help='Name of the reported coordinate')
-    cmd.add_argument('--coordinate', type=float, help='Requested coordinate value')
+    cmd.add_argument('--coordinate', type=_coordinate, help='Requested coordinate value')
     cmd.add_argument('--selection', choices=['exact', 'nearest_reported'],
                      help='Select reported coordinates (default: exact)')
     cmd = add('query-software', help='Find software and its revision-bound catalogue evidence')

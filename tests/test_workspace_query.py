@@ -310,9 +310,11 @@ class WorkspaceQueryTests(unittest.TestCase):
         metric = make('metric_definition', 'metric:test', {'event': 'logical failure', 'denominator': 'block', 'unit': 'rate'})
         series = make('performance_series', 'series:test', {'experiment_ref': ref(exp), 'metric_definition_ref': ref(metric)})
         rows = [exp, metric, series]
+        discrete = 9007199254740993
         for i, coordinate in enumerate((0.01, 0.03)):
             noise = make('noise_instantiation', 'noise:' + str(i),
-                         {'model_ref': None, 'reported_coordinates': {'p': coordinate}, 'resolved_channel_parameters': None})
+                         {'model_ref': None, 'reported_coordinates': {'p': coordinate, 'index': discrete + i},
+                          'resolved_channel_parameters': None})
             point = make('performance_point', 'point:' + str(i), {'experiment_ref': ref(exp), 'noise_instantiation_ref': ref(noise),
                            'metric_definition_ref': ref(metric), 'curve_ref': ref(series), 'value': None})
             rows.extend([noise, point])
@@ -328,6 +330,11 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.assert_research_cli_matches_tool(session, ['performance', '--coordinate-name', 'p', '--coordinate', '0.011',
                                                       '--selection', 'nearest_reported'], 'qec_find_performance',
                                               {**inputs, 'selection': 'nearest_reported'})
+        exact_inputs = {'coordinate_name': 'index', 'coordinate': discrete}
+        exact, = session.invoke('qec_find_performance', exact_inputs)['data']['results']
+        self.assertEqual(exact['selection']['reported'], discrete)
+        self.assert_research_cli_matches_tool(session, ['performance', '--coordinate-name', 'index', '--coordinate', str(discrete)],
+                                              'qec_find_performance', exact_inputs)
 
     def test_resources_are_fixed_uri_bindings_not_file_names(self):
         from qecgraph.mcp_server import MCPServer
