@@ -43,10 +43,11 @@ jobs:
           RELEASE_ARCH: ${{ matrix.arch }}
         run: |
           test "$(uname -m)" = "$RELEASE_ARCH"
-          version="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
-          test "$GITHUB_REF_NAME" = "v$version"
           python -m pip install . 'PyInstaller==6.22.3'
+          version="$(python -c 'from importlib.metadata import version; print(version("qec-graph"))')"
+          test "$GITHUB_REF_NAME" = "v$version"
           python -m PyInstaller --distpath dist/standalone --workpath build/standalone tools/qec-graph.spec
+          test "$(dist/standalone/qec-graph --version)" = "qec-graph $version"
           if [ "$RUNNER_OS" = macOS ]; then
             file dist/standalone/qec-graph | grep -F "$RELEASE_ARCH"
             codesign --verify dist/standalone/qec-graph

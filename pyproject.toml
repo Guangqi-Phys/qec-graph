@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qec-graph"
-version = "0.4.0rc1"
+dynamic = ["version"]
 description = "Provenance-preserving LaTeX blocks and typed QEC knowledge graphs"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -36,6 +36,9 @@ qecgraph-mcp = "qecgraph.mcp_server:main"
 
 [tool.setuptools.packages.find]
 include = ["qecgraph*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "qecgraph.__version__"}
 
 [tool.setuptools.package-data]
 "qecgraph" = ["catalog/*.json"]

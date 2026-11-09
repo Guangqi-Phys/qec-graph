@@ -33,6 +33,8 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
             return json.loads(result.stdout)
         return result.stdout
 
+    product, package_version = run('version', ['--version'], json_output=False).strip().split(maxsplit=1)
+    assert product == 'qec-graph'
     inbox = workspace / 'inputs'
     inbox.mkdir()
     (inbox / 'format-is-not-an-extension.dat').write_bytes(gzip.compress(TEX, mtime=1))
@@ -157,7 +159,7 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
         assert (workspace / 'legacy-corpus/CURRENT.json').read_bytes() == unchanged
         upgrade = {'from_version': '0.3.0', 'legacy_release': legacy_fixed, 'migrated_release': migrated_fixed,
                    'review_and_history_preserved': True, 'legacy_pointer_unchanged': True}
-    return {'passed': True, 'platform': platform.platform(), 'package_version': '0.4.0rc1',
+    return {'passed': True, 'platform': platform.platform(), 'package_version': package_version,
             'release_id': expected_release, 'protocol_version': protocol, 'checks': checks,
             'source_count': first['counts']['registered'], 'software_projects': coverage['projects'],
             'code_mention_proposals': len(review['proposals']),

@@ -35,7 +35,7 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 27 | Verify Linux and MCP isolation | Open. |
 | 28 | Pin expected results for a real-paper corpus | Open. Check redistribution rights for any fixture committed to Git. |
 | 29 | Add reproducible performance benchmarks | Open. |
-| 30 | Single-source the version and evaluate the optional source layout | Open. |
+| 30 | Single-source the version and evaluate the optional source layout | In progress. CLI, wheel metadata, and release build use one package version. Clean installation checks will inform the optional layout decision. |
 
 The assessment also proposes contribution, security, citation, and change
 history files, packaging the useful source distribution fixtures, documenting
