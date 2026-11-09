@@ -226,32 +226,35 @@ class Workspace:
             build_key = (source_id, entry)
             version, verified = reused.get(build_key, (None, False))
             result['entrypoint'] = entry
-            with tempfile.TemporaryDirectory(prefix='ingest-', dir=self.path('.qecgraph')) as temporary:
-                temporary = Path(temporary)
-                saved = self.path('sources/' + tree_hash)
-                if not saved.exists():
-                    expanded = temporary / 'expanded'
-                    tree.materialize(expanded)
-                    expanded.rename(saved)
-                else:
-                    for path, original in sorted(tree.files.items()):
-                        raw_member = _read_regular(self.path('sources/' + tree_hash + '/' + path), limits.member_bytes)
-                        if raw_member != original:
-                            raise ValueError('Preserved source tree does not match archive')
-                if version is None:
-                    tree.materialize(temporary / 'project')
-                    extraction = ingest(temporary / 'project' / entry, 'source-' + source_id.rsplit(':', 1)[-1],
-                                        temporary / 'store',
-                                        project_root=temporary / 'project', strict=True)
-                    if not extraction.get('published'):
-                        result.update(status='parse_failed', reason='Structural extraction is partial; see diagnostics',
-                                      diagnostics=extraction.get('diagnostics', []))
-                        return self._keep_prior(result, prior)
-                    version = self.registry.stage_source(
-                        state, work_id, source_id, temporary / 'store', title=metadata.get('title'),
-                        upstream_version=upstream, replace_projection=True)
-                elif not verified:
-                    self.registry.validate_source_snapshot(version)
+            saved = self.path('sources/' + tree_hash)
+            preserve = not saved.exists()
+            if not preserve:
+                for path, original in sorted(tree.files.items()):
+                    raw_member = _read_regular(self.path('sources/' + tree_hash + '/' + path), limits.member_bytes)
+                    if raw_member != original:
+                        raise ValueError('Preserved source tree does not match archive')
+            if preserve or version is None:
+                with tempfile.TemporaryDirectory(prefix='ingest-', dir=self.path('.qecgraph')) as temporary:
+                    temporary = Path(temporary)
+                    if preserve:
+                        expanded = temporary / 'expanded'
+                        tree.materialize(expanded)
+                        expanded.rename(saved)
+                    if version is None:
+                        project = temporary / 'project'
+                        tree.materialize(project)
+                        extraction = ingest(project / entry, 'source-' + source_id.rsplit(':', 1)[-1],
+                                            temporary / 'store', project_root=project, strict=True)
+                        if not extraction.get('published'):
+                            result.update(status='parse_failed', reason='Structural extraction is partial; see diagnostics',
+                                          diagnostics=extraction.get('diagnostics', []))
+                            return self._keep_prior(result, prior)
+                        version = self.registry.stage_source(
+                            state, work_id, source_id, temporary / 'store', title=metadata.get('title'),
+                            upstream_version=upstream, replace_projection=True)
+                        verified = True
+            if not verified:
+                self.registry.validate_source_snapshot(version)
             reused[build_key] = (version, True)
             result.update(status='processing_completed', processing_completed=True, semantic_status='semantic_pending',
                           source_version_id=source_id, source_snapshot_id=version['snapshot_id'])
