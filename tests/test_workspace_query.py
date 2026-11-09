@@ -14,7 +14,7 @@ from qecgraph.workspace_query import WorkspaceSession
 from test_mcp import initialization, request
 from test_source_package import TEX
 
-DESIGN = Path(__file__).resolve().parents[1] / 'docs/rfc-002'
+FIXTURES = Path(__file__).resolve().parent / 'fixtures'
 
 
 class WorkspaceQueryTests(unittest.TestCase):
@@ -147,7 +147,7 @@ class WorkspaceQueryTests(unittest.TestCase):
         ])
 
     def test_real_stdio_does_not_return_human_files_or_synthetic_entities(self):
-        publish_records(self.ws.registry, adapt_synthetic(read_json(DESIGN / 'examples/performance_context.synthetic.json')))
+        publish_records(self.ws.registry, adapt_synthetic(read_json(FIXTURES / 'performance_context.synthetic.json')))
         lines = [initialization(), {'jsonrpc': '2.0', 'method': 'notifications/initialized'},
                  request(2, 'tools/list'),
                  request(3, 'tools/call', {'name': 'qecgraph_search', 'arguments': {'query': 'PRIVATE-ONLY-468f'}}),

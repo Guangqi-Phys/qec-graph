@@ -6,12 +6,12 @@ from qecgraph.graph import read_json
 from qecgraph.research import adapt_synthetic, make_record, pauli_weight, ref, validate_bundle
 from qecgraph.software import adapt_seed, bundled_seed
 
-DESIGN = Path(__file__).resolve().parents[1] / 'docs/rfc-002'
+FIXTURES = Path(__file__).resolve().parent / 'fixtures'
 
 
 class ResearchTests(unittest.TestCase):
     def setUp(self):
-        self.rows = adapt_synthetic(read_json(DESIGN / 'examples/performance_context.synthetic.json'))
+        self.rows = adapt_synthetic(read_json(FIXTURES / 'performance_context.synthetic.json'))
 
     def test_fixture_does_not_invent_unsupported_values(self):
         rows = {r['kind']: r for r in self.rows}
@@ -36,9 +36,7 @@ class ResearchTests(unittest.TestCase):
             validate_bundle(rows)
 
     def test_no_usage_or_release_inferred_from_seed_algorithms(self):
-        seed = read_json(DESIGN / 'software_catalog.seed.json')
-        self.assertEqual(bundled_seed(), seed)
-        rows = adapt_seed(seed)
+        rows = adapt_seed(bundled_seed())
         self.assertEqual(sum(r['kind'] == 'software_project' for r in rows), 14)
         self.assertFalse({'software_usage', 'software_release'} & {r['kind'] for r in rows})
         source = ref(self.rows[0])

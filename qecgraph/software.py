@@ -41,7 +41,7 @@ def adapt_seed(seed):
 
 
 def bundled_seed():
-    """Byte-identical packaging copy of the design attachment seed."""
+    """Load the canonical software catalog packaged with QEC Graph."""
     return strict_json_loads(files('qecgraph').joinpath('catalog/software_catalog.seed.json').read_text(encoding='utf-8'))
 
 

@@ -9,8 +9,8 @@
 本轮输入：
 
 - `QEC_GRAPH_DESIGN_UPDATE.md`：完整设计、对象语义、工作区事务、MCP/human 边界和验收。
-- `software_catalog.seed.json`：14 项非穷尽的软件目录种子，来源核查不等于安装测试。
-- `examples/performance_context.synthetic.json`：仅用于结构与缺失值测试的合成关联样例，不能混进正常研究结果。
+- [包内软件目录种子](../../qecgraph/catalog/software_catalog.seed.json)收录 14 项非穷尽的官方来源记录。来源核查不等于安装测试。
+- [合成关联样例](../../tests/fixtures/performance_context.synthetic.json)用于测试结构与缺失值，不参与正常研究结果。
 
 若现有 kind/字段名称不同，以保留本文语义的兼容适配为优先；先写映射，不要为照搬名称重写已兼容的模块。
 

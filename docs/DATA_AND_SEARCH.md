@@ -68,7 +68,7 @@ rounds and reports a logical failure rate at `p = 0.005`.
 The synthetic fixture shows how partial data is stored. `demo:noise-point`
 has the axis coordinate but leaves the channel mapping unresolved. The
 linked `demo:point` has `value: null` because the fixture supplies no logical
-failure rate. [Linked synthetic fixture](rfc-002/examples/performance_context.synthetic.json)
+failure rate. [Linked synthetic fixture](../tests/fixtures/performance_context.synthetic.json)
 
 ### Software and algorithms
 
