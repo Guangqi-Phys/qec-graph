@@ -8,9 +8,51 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 from qecgraph.cli import main
+from qecgraph.store import ingest
+from qecgraph.workspace import Workspace
 
 
 class CLIContractTests(unittest.TestCase):
+    def test_doctor_and_snapshot_list_distinguish_current_and_prepared_states(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            workspace = Workspace(root)
+            current = workspace.init(no_ingest=True)['release_id']
+            state, _ = workspace.registry.read()
+            candidate = workspace.registry.prepare_publication({**state, 'candidate_fixture': True})
+            pointer = root / 'machine/CURRENT.json'
+            original = pointer.read_bytes()
+
+            def report(*args, expected=0):
+                stdout, stderr = io.StringIO(), io.StringIO()
+                with redirect_stdout(stdout), redirect_stderr(stderr):
+                    self.assertEqual(main(args), expected)
+                self.assertEqual(stderr.getvalue(), '')
+                return json.loads(stdout.getvalue())
+
+            health = report('doctor', '--workspace', str(root), '--json')
+            self.assertEqual(health['release_id'], current)
+            self.assertEqual(health['checks']['archive_inventory']['blobs'], 0)
+            rows = report('snapshot', 'list', '--workspace', str(root))
+            self.assertEqual(rows['current'], current)
+            self.assertEqual(set(rows['stored_states']), {current, candidate})
+            self.assertTrue(rows['includes_unpublished_candidates'])
+            self.assertEqual(pointer.read_bytes(), original)
+            pointer.write_text('{', encoding='utf-8')
+            diagnosis = report('doctor', '--workspace', str(root), '--json', expected=1)
+            self.assertEqual(diagnosis['checks']['machine/CURRENT.json']['status'], 'error')
+            self.assertEqual(pointer.read_text(), '{')
+
+            entry = root / 'paper.tex'
+            entry.write_text(r'\section{First}', encoding='utf-8')
+            store = root / 'store'
+            first = ingest(entry, 'doctor-test', store)['snapshot_id']
+            entry.write_text(r'\section{Second}', encoding='utf-8')
+            second = ingest(entry, 'doctor-test', store)['snapshot_id']
+            rows = report('snapshot', 'list', '--store', str(store))
+            self.assertEqual(rows['current'], second)
+            self.assertEqual(set(rows['snapshots']), {first, second})
+
     def test_installed_entry_point_help_version_and_usage_status(self):
         from qecgraph import __version__
 

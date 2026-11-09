@@ -92,6 +92,13 @@ Quarantine preserves the file, archive blob, and any receipt. Status identifies
 the archived content by its hash and lists quarantined inputs separately.
 `sync` reads the inbox, while an explicit `rebuild` still checks the entire archive.
 
+Use `qec-graph doctor --json` to diagnose configuration, CURRENT, and inbox
+problems without making changes. It reports workspace metadata and counts.
+Use `validate` to verify archive and snapshot hashes.
+`qec-graph snapshot list` shows the current workspace release and locally stored
+registry states, including candidates that may never have been published.
+Use `--store` or `--corpus` to list snapshots or states for those scopes.
+
 ## Manage the Obsidian vault and research records
 
 Open the workspace's `human/` directory as an Obsidian vault. Start at

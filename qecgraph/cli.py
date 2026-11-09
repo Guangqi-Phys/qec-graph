@@ -269,6 +269,15 @@ def main(argv=None):
     sub.add_parser('version', help='Show the installed QEC Graph version')
     help_command = sub.add_parser('help', help='Show help for a specific command')
     help_command.add_argument('topic', nargs='?')
+    doctor = sub.add_parser('doctor', help='Inspect workspace health without writing files')
+    doctor.add_argument('--workspace')
+    doctor.add_argument('--json', action='store_true', help='Print the full diagnostic report')
+    snapshot = sub.add_parser('snapshot', help='Inspect local snapshots and stored registry states')
+    snapshot_list = snapshot.add_subparsers(dest='snapshot_action', required=True).add_parser(
+        'list', help='List snapshot IDs and identify the current pointer')
+    scope = snapshot_list.add_mutually_exclusive_group()
+    for option in ('--workspace', '--store', '--corpus'):
+        scope.add_argument(option)
     inputs = sub.add_parser('inputs', help='List, quarantine, or restore inbox packages')
     input_actions = inputs.add_subparsers(dest='input_action', required=True, metavar='<action>')
     for name, description in (('list', 'List inbox and quarantined packages'),
@@ -479,6 +488,28 @@ def main(argv=None):
                          or args.command == 'validate' and not args.store)
     progress = _WorkspaceProgress(args.command) if workspace_command and not args.json else None
     try:
+        if args.command == 'doctor':
+            from .maintenance import doctor
+            from .workspace import locate
+            result = doctor(locate(args.workspace, default=os.environ.get('QECGRAPH_WORKSPACE')))
+            if args.json:
+                print(json.dumps(result, ensure_ascii=False, indent=2))
+            else:
+                print(f"QEC Graph {__version__} · {result['workspace']}")
+                for name, check in result['checks'].items():
+                    details = ', '.join(f'{key}={value}' for key, value in check.items()
+                                        if key not in {'status', 'message', 'release_id'})
+                    print(f"{name}: {check.get('message') or details or check['status']}")
+                if result['release_id']:
+                    print(f"Release: {result['release_id']}")
+            return result['suggested_exit_code']
+        if args.command == 'snapshot':
+            from .maintenance import list_snapshots
+            from .workspace import locate
+            workspace = None if args.store or args.corpus else locate(args.workspace, default=os.environ.get('QECGRAPH_WORKSPACE'))
+            result = list_snapshots(store=args.store, corpus=args.corpus, workspace=workspace)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0
         if args.command == 'inputs':
             from .workspace import Workspace, locate
             ws = Workspace(locate(args.workspace, default=os.environ.get('QECGRAPH_WORKSPACE')))
