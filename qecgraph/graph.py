@@ -45,19 +45,13 @@ def strict_json_loads(text, source='<json>'):
     def constant(value):
         raise ValueError(f'Non-finite JSON number {value!r} in {source}')
 
-    def finite(value):
-        if isinstance(value, float) and not math.isfinite(value):
+    def finite_float(raw):
+        value = float(raw)
+        if not math.isfinite(value):
             raise ValueError(f'Non-finite JSON number in {source}')
-        if isinstance(value, dict):
-            for item in value.values():
-                finite(item)
-        if isinstance(value, list):
-            for item in value:
-                finite(item)
+        return value
 
-    value = json.loads(text, object_pairs_hook=pairs, parse_constant=constant)
-    finite(value)
-    return value
+    return json.loads(text, object_pairs_hook=pairs, parse_constant=constant, parse_float=finite_float)
 
 
 def read_json(path):
