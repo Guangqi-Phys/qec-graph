@@ -20,7 +20,10 @@ from dataclasses import dataclass
 from . import __version__
 from .graph import build_graph, canonical, hash_text, node_filename, read_json, strict_json_loads, views
 from .source_coordinates import SourceLines
-from .transactions import ManagedDataError, atomic_json, read_pointer, writer_lock
+from .transactions import ManagedDataError, atomic_json, publish_pointer, read_pointer, writer_lock
+
+
+CURRENT_FORMAT = 'qecgraph.current.v1'
 
 
 def write_json(path, value):
@@ -108,7 +111,7 @@ def current_snapshot(store):
         return store.path
     store = Path(store).resolve()
     path = store / 'CURRENT.json'
-    pointer = read_pointer(path, 'qecgraph.current.v1')
+    pointer = read_pointer(path, CURRENT_FORMAT)
     relative, identity = pointer.get('path'), pointer.get('snapshot_id')
     if not isinstance(relative, str) or not isinstance(identity, str):
         raise ManagedDataError(path, 'CURRENT is missing a snapshot path or identity')
@@ -386,8 +389,8 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
         if current_catalog != catalog_inputs:
             raise ValueError('Catalog changed during build; retry')
     if not staged:
-        atomic_json(out / 'CURRENT.json', {'format': 'qecgraph.current.v1', 'snapshot_id': snapshot_id,
-                                           'path': 'snapshots/' + snapshot_id})
+        publish_pointer(out / 'CURRENT.json', CURRENT_FORMAT, snapshot_id=snapshot_id,
+                        path='snapshots/' + snapshot_id)
     report = read_json(target / "report.json")
     result = {"store": str(out), "snapshot": str(target), "snapshot_id": snapshot_id,
             "node_count": report["node_count"], "edge_count": report["edge_count"],

@@ -9,11 +9,12 @@ from pathlib import Path
 
 from .graph import canonical, hash_text, read_json
 from .store import current_snapshot, load_validated_snapshot, safe_relative
-from .transactions import ManagedDataError, atomic_bytes, atomic_json, immutable_json, read_pointer, writer_lock
+from .transactions import ManagedDataError, atomic_bytes, atomic_json, immutable_json, publish_pointer, read_pointer, writer_lock
 from .records import prepare_record
 from .query import resolve_node
 
 FORMAT = 'qecgraph.registry.v1'
+CURRENT_FORMAT = 'qecgraph.registry.current.v1'
 
 
 def empty_state():
@@ -34,7 +35,7 @@ class Registry:
     def read(self, revision=None):
         pointer_path = self.root / 'CURRENT.json' if revision is None else None
         if pointer_path is not None:
-            pointer = read_pointer(pointer_path, 'qecgraph.registry.current.v1')
+            pointer = read_pointer(pointer_path, CURRENT_FORMAT)
             revision = pointer.get('revision')
         if not isinstance(revision, str) or len(revision) != 64 or any(c not in '0123456789abcdef' for c in revision):
             if pointer_path is not None:
@@ -82,7 +83,7 @@ class Registry:
         return revision
 
     def publish_prepared(self, revision):
-        atomic_json(self.root / 'CURRENT.json', {'format': 'qecgraph.registry.current.v1', 'revision': revision})
+        publish_pointer(self.root / 'CURRENT.json', CURRENT_FORMAT, revision=revision)
         return revision
 
     def _publish(self, state):

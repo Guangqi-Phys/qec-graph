@@ -56,20 +56,31 @@ def writer_lock(root):
             fcntl.flock(handle, fcntl.LOCK_UN)
 
 
-def atomic_json(path, value):
+@contextmanager
+def _atomic_writer(path, *, text=False):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, name = tempfile.mkstemp(prefix='.' + path.name, dir=path.parent)
+    descriptor, temporary = tempfile.mkstemp(prefix='.' + path.name, dir=path.parent)
     try:
-        with os.fdopen(descriptor, 'w', encoding='utf-8') as handle:
-            json.dump(value, handle, ensure_ascii=False, indent=2, allow_nan=False)
-            handle.write('\n')
+        stream = os.fdopen(descriptor, 'w', encoding='utf-8') if text else os.fdopen(descriptor, 'wb')
+        with stream as handle:
+            yield handle
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(name, path)
+        os.replace(temporary, path)
     finally:
-        if os.path.exists(name):
-            os.unlink(name)
+        Path(temporary).unlink(missing_ok=True)
+
+
+def atomic_json(path, value):
+    with _atomic_writer(path, text=True) as handle:
+        json.dump(value, handle, ensure_ascii=False, indent=2, allow_nan=False)
+        handle.write('\n')
+
+
+def publish_pointer(path, pointer_format, /, **binding):
+    """Make an already prepared publication visible by replacing CURRENT."""
+    atomic_json(path, {'format': pointer_format, **binding})
 
 
 def immutable_json(path, value):
@@ -83,15 +94,5 @@ def immutable_json(path, value):
 
 
 def atomic_bytes(path, raw):
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary = tempfile.mkstemp(prefix='.' + path.name, dir=path.parent)
-    try:
-        with os.fdopen(descriptor, 'wb') as handle:
-            handle.write(raw)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, path)
-    finally:
-        if os.path.exists(temporary):
-            os.unlink(temporary)
+    with _atomic_writer(path) as handle:
+        handle.write(raw)

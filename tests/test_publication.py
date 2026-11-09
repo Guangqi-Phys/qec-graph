@@ -1,12 +1,16 @@
 import json
+import os
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+from qecgraph.registry import Registry
 from qecgraph.store import current_snapshot, ingest, recover_store, validate_snapshot
 from qecgraph.transactions import writer_lock
+from qecgraph.workspace import Workspace
 
 
 class PublicationTests(unittest.TestCase):
@@ -69,6 +73,39 @@ class PublicationTests(unittest.TestCase):
         self.assertIn(str(unrelated), report['unrecognized'])
         self.assertTrue((unrelated / 'important.txt').exists())
         self.assertTrue(report['current']['passed'])
+
+    def test_publication_retry_after_failed_current_replace(self):
+        ingest(self.entry, 'publish', self.store)
+        registry = Registry(self.root / 'corpus')
+        registry.register_source('work:first', 'version:first', self.store)
+        workspace = Workspace(self.root / 'workspace')
+        workspace.init(no_ingest=True)
+        (workspace.root / 'inputs/paper.tex').write_bytes(self.entry.read_bytes())
+        self.entry.write_text(self.entry.read_text().replace('A.', 'B.'))
+
+        cases = [
+            (self.store, lambda: ingest(self.entry, 'publish', self.store)),
+            (registry.root, lambda: registry.register_source('work:second', 'version:second', self.store)),
+            (workspace.registry.root, workspace.sync),
+        ]
+        replace = os.replace
+        for root, publish in cases:
+            current = root / 'CURRENT.json'
+            before = current.read_bytes()
+
+            def reject_current(source, target):
+                if Path(target) == current:
+                    raise OSError('Interrupted CURRENT replacement')
+                return replace(source, target)
+
+            with self.subTest(root=root.name):
+                with patch('qecgraph.transactions.os.replace', side_effect=reject_current):
+                    with self.assertRaisesRegex(OSError, 'Interrupted CURRENT'):
+                        publish()
+                self.assertEqual(current.read_bytes(), before)
+                self.assertEqual(list(root.glob('.CURRENT.json*')), [])
+                publish()
+                self.assertNotEqual(current.read_bytes(), before)
 
 
 if __name__ == '__main__':
