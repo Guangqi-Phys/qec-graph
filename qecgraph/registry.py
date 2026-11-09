@@ -113,8 +113,11 @@ class Registry:
 
     def source_graph(self, source_version_id, revision=None):
         state, fixed = self.read(revision)
+        return self.source_graph_from_state(state, source_version_id, fixed)
+
+    def source_graph_from_state(self, state, source_version_id, registry_revision):
         if source_version_id not in state['versions']:
-            raise ValueError(f'Unknown source version in registry {fixed}: {source_version_id}')
+            raise ValueError(f'Unknown source version in registry {registry_revision}: {source_version_id}')
         version = state['versions'][source_version_id]
         snapshot = safe_relative(self.root, version['snapshot_path'])
         graph = read_json(snapshot / 'graph.json')

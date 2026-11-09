@@ -24,7 +24,7 @@ def project(corpus, registry_revision=None, source_version_id=None, *, check_liv
     nodes, edges, labels, versions = [], [], {}, {}
     partial = False
     for version_id in selected:
-        graph, _, version = registry.source_graph(version_id, fixed)
+        graph, _, version = registry.source_graph_from_state(state, version_id, fixed)
         versions[version_id] = version
         partial |= graph['extraction_status'] == 'partial'
         for original in graph['nodes']:
