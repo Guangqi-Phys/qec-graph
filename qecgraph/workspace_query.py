@@ -437,6 +437,8 @@ class WorkspaceSession:
             maximum = args.pop('max_chars', self.graph.max_chars)
             check_machine_tree(self.machine)
             if name == 'qecgraph_search':
+                if not args['query'].strip():
+                    raise ToolError('INVALID_ARGUMENT', 'Search query must not be blank')
                 data = self._search(args)
             elif name == 'qec_workspace_status':
                 data = {'operational_status': self._operational()}
@@ -486,8 +488,10 @@ class WorkspaceSession:
                 policy = args.pop('evidence_policy', 'verified')
                 if args.get('n_min', 0) > args.get('n_max', 1000000000):
                     raise ToolError('INVALID_ARGUMENT', 'n_min exceeds n_max')
+                if 'distance_at_least' in args and 'metric_definition_id' not in args:
+                    raise ToolError('INVALID_ARGUMENT', 'A distance hard condition needs an exact metric_definition_id')
                 if policy == 'source_reported':
-                    if 'distance_at_least' in args and not all(args.get(k) for k in ('metric_definition_id', 'metric_revision')):
+                    if 'distance_at_least' in args and 'metric_revision' not in args:
                         raise ToolError('INVALID_ARGUMENT', 'Source-reported hard bounds require exact metric ID and revision')
                     legacy = {'results': [], 'truncated': False,
                               'evidence_policy': 'Source-reported bound, exact metric and source locator; not mathematical verification'}

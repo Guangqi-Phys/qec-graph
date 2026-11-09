@@ -111,7 +111,7 @@ including counts and individual failures, and exit with code 2.
 | `0` | Completed successfully |
 | `1` | Input, storage, validation, or internal error |
 | `2` | A partial operation or a validation report with failures |
-| `4` | A required file could not be found |
+| `4` | A required file or an exact query target could not be found |
 | `5` | Another process holds the writer lock; retry after it finishes |
 | `64` | Invalid command syntax |
 | `130` | Interrupted |
@@ -121,7 +121,9 @@ reports `envelope_version: 1` and `ok: false`. Its `error` contains `code`,
 `message`, `hint`, `details`, `command`, and `scope`. Optional fields can
 be `null`. These errors go to stdout so scripts can parse the same stream
 on success and failure. `mcp serve` reserves stdout for MCP frames; startup
-errors go to stderr. `query-tool` retains the response from the read tool.
+errors go to stderr. Without `--json`, `query-tool` retains the response from
+the read tool. With `--json`, query errors also include the command, hint, and
+envelope version; the fixed release or snapshot scope remains attached.
 Use `--debug` to see a traceback for an unexpected CLI failure.
 For a damaged workspace configuration or CURRENT pointer, the error gives
 its path. Run `qec-graph doctor` for a read-only inspection.

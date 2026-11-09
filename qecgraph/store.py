@@ -71,6 +71,10 @@ class SnapshotReference:
     snapshot_id: str
 
 
+class SnapshotChanged(ValueError):
+    """A pinned session detected different manifest bytes for its snapshot."""
+
+
 @dataclass(frozen=True)
 class GraphInput:
     """An already fixed, read-only corpus projection for the shared query layer."""
@@ -566,7 +570,7 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_has
     if manifest_hashes is not None:
         manifest_hash = hashlib.sha256(manifest_bytes).hexdigest()
         if expected in manifest_hashes and manifest_hashes[expected] != manifest_hash:
-            raise ValueError("Snapshot manifest changed within the pinned session")
+            raise SnapshotChanged("Snapshot manifest changed within the pinned session")
     manifest = strict_json_loads(manifest_bytes.decode("utf-8"), source=str(manifest_path))
     graph_path = _safe_relative_to_resolved(output_root, "graph.json")
     graph_bytes = _read_snapshot_file(graph_path, copy_to, "graph.json")

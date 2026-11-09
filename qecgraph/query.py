@@ -10,6 +10,12 @@ from .store import load_graph, snapshot_database
 from .status import annotation_eligible, eligible
 
 
+class SelectionError(ValueError):
+    def __init__(self, code, message, details):
+        super().__init__(message)
+        self.code, self.details = code, details
+
+
 def answer_node(original, include_candidates=False):
     """Whole statement/data with effective relations, rather than raw audit duplicates."""
     node = dict(original)
@@ -37,8 +43,11 @@ def resolve(graph, identifier, *, nodes=None):
     if len(matches) == 1:
         return matches[0]
     if len(matches) > 1:
-        raise ValueError(f"Ambiguous label {label!r}; choose an exact node ID: {matches}")
-    raise ValueError(f"Unknown node or label: {identifier}")
+        candidates = sorted(matches)[:20]
+        raise SelectionError('AMBIGUOUS_SELECTOR', f"Ambiguous label {label!r}; choose an exact node ID: {candidates}",
+                             {'label': label, 'candidate_ids': candidates, 'candidate_count': len(matches),
+                              'truncated': len(candidates) < len(matches)})
+    raise SelectionError('NOT_FOUND', f"Unknown node or label: {identifier}", {'identifier': identifier})
 
 
 def resolve_node(graph, identifier):

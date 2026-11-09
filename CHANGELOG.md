@@ -13,6 +13,9 @@
   their existing fields.
 - A writer lock held by another process exits with code 5. Damaged workspace
   configuration and CURRENT files report the path to inspect.
+- An exact query target that is missing exits with code 4. Ambiguous labels
+  report candidate IDs. With `--json`, fixed-scope query errors use the CLI
+  envelope and keep the read tool's scope and error code.
 - `qec-graph --version` and `qec-graph help <command>` report the installed
   version and available command options.
 - Workspace queries support fixed releases. Splitting a store with annotations

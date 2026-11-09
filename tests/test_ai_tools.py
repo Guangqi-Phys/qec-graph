@@ -154,6 +154,8 @@ class AIToolTests(unittest.TestCase):
         ingest(self.entry, 'ai', self.store)
         ambiguous = ReadOnlySession(store=self.store).invoke('qecgraph_show', {'identifier': 'a'})
         self.assertEqual(ambiguous['error']['code'], 'AMBIGUOUS_SELECTOR')
+        self.assertEqual(ambiguous['error']['details']['candidate_count'], 2)
+        self.assertEqual(len(set(ambiguous['error']['details']['candidate_ids'])), 2)
 
     def test_corpus_fixed_scope_and_cli_python_are_identical(self):
         registry = Registry(self.root / 'corpus')

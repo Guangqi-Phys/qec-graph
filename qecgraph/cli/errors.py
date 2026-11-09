@@ -7,6 +7,7 @@ import sqlite3
 import tomllib
 from typing import Any
 
+from ..query import SelectionError
 from ..transactions import ManagedDataError, WriterBusy
 from ..workspace import WorkspaceConfigError
 
@@ -15,6 +16,7 @@ class QecError(ValueError):
     code = 'QEC_ERROR'
     exit_code = 1
     hint: str | None = None
+    scope: dict[str, Any] | None = None
 
     def __init__(self, message: str, *, details: dict[str, Any] | None = None):
         super().__init__(message)
@@ -23,7 +25,7 @@ class QecError(ValueError):
     def envelope(self, command: str | None) -> dict[str, Any]:
         return {'envelope_version': 1, 'ok': False,
                 'error': {'code': self.code, 'message': str(self), 'hint': self.hint,
-                          'details': self.details, 'command': command, 'scope': None}}
+                          'details': self.details, 'command': command, 'scope': self.scope}}
 
 
 class UsageError(QecError):
@@ -69,9 +71,25 @@ class InternalError(QecError):
     hint = 'Rerun with --debug to see the traceback.'
 
 
+class QueryError(QecError):
+    def __init__(self, error: dict[str, Any]):
+        super().__init__(error['message'], details=error.get('details'))
+        self.code = error['code']
+        self.scope = error.get('scope')
+        if self.code == 'NOT_FOUND':
+            self.exit_code = 4
+            self.hint = 'Search in the same scope, or check the exact ID and release.'
+        elif self.code in {'AMBIGUOUS_SELECTOR', 'AMBIGUOUS_REVISION'}:
+            self.hint = 'Select an exact ID or revision from the listed matches.'
+        elif self.code == 'INVALID_ARGUMENT':
+            self.hint = 'Run qec-graph help for the command options and limits.'
+
+
 def classify(exc: Exception) -> QecError:
     if isinstance(exc, QecError):
         return exc
+    if isinstance(exc, SelectionError):
+        return QueryError({'code': exc.code, 'message': str(exc), 'details': exc.details})
     if isinstance(exc, WriterBusy):
         return Conflict(str(exc), details={'path': str(exc.root)})
     if isinstance(exc, WorkspaceConfigError):

@@ -79,6 +79,34 @@ class WorkspaceQueryTests(unittest.TestCase):
                 self.assertTrue(expected['ok'], expected)
                 self.assertEqual(result['data'], expected['data'])
 
+        missing = version + '::missing-label'
+        tool = self.session.invoke('qec_get_entity', {'identifier': missing})
+        self.assertEqual(tool['error']['code'], 'NOT_FOUND')
+        for mode in ([], ['--json']):
+            process = subprocess.run([sys.executable, '-m', 'qecgraph', 'show', missing,
+                                      '--workspace', str(self.root), '--release', self.release, *mode],
+                                     text=True, capture_output=True, timeout=5)
+            self.assertEqual(process.returncode, 4, process.stderr)
+            self.assertEqual(process.stderr, '')
+            result = json.loads(process.stdout)
+            self.assertEqual(result['error']['scope'], tool['error']['scope'])
+            self.assertEqual(result['error']['code'], 'NOT_FOUND')
+            if mode:
+                self.assertEqual(result['envelope_version'], 1)
+                self.assertEqual(result['error']['command'], 'show')
+            else:
+                self.assertEqual(result, tool)
+
+    def test_query_arguments_are_distinct_from_a_failed_release_read(self):
+        for tool, args in (('qecgraph_search', {'query': '  '}),
+                           ('qec_find_codes', {'distance_at_least': 3}),
+                           ('qec_find_codes', {'distance_at_least': 3, 'metric_definition_id': 'metric:test',
+                                               'evidence_policy': 'source_reported'})):
+            with self.subTest(tool=tool, args=args):
+                result = self.session.invoke(tool, args)
+                self.assertEqual(result['error']['code'], 'INVALID_ARGUMENT')
+                self.assertEqual(result['error']['scope']['release_id'], self.release)
+
     def test_python_responses_cannot_mutate_the_pinned_session(self):
         state, _ = self.ws.registry.read()
         version, = state['versions']

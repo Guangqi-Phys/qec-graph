@@ -11,7 +11,7 @@ from jsonschema import Draft202012Validator
 from . import query
 from .corpus import _project_state
 from .registry import Registry
-from .store import GraphInput, load_validated_snapshot, snapshot_reference
+from .store import GraphInput, SnapshotChanged, load_validated_snapshot, snapshot_reference
 
 TOOL_NAMES = ('qecgraph_search', 'qecgraph_show', 'qecgraph_context', 'qecgraph_deps', 'qecgraph_impact')
 
@@ -203,6 +203,8 @@ class ReadOnlySession:
             error = next(validator.iter_errors(arguments), None)
             if error is not None:
                 raise ToolError('INVALID_ARGUMENT', error.message)
+            if name == 'qecgraph_search' and not arguments['query'].strip():
+                raise ToolError('INVALID_ARGUMENT', 'Search query must not be blank')
             self._refresh()
             action = name.removeprefix('qecgraph_')
             if action == 'search':
@@ -227,7 +229,13 @@ class ReadOnlySession:
             return {'ok': True, 'data': self._budget(result, arguments.get('max_chars', self.max_chars))}
         except ToolError as exc:
             return copy.deepcopy({'ok': False, 'error': {'code': exc.code, 'message': str(exc), 'details': exc.details, 'scope': self.scope}})
-        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
-            message = str(exc)
-            code = 'AMBIGUOUS_SELECTOR' if 'Ambiguous label' in message else 'NOT_FOUND' if 'Unknown node or label' in message else 'QUERY_ERROR'
-            return copy.deepcopy({'ok': False, 'error': {'code': code, 'message': message, 'scope': self.scope}})
+        except query.SelectionError as exc:
+            return copy.deepcopy({'ok': False, 'error': {'code': exc.code, 'message': str(exc),
+                                                         'details': exc.details, 'scope': self.scope}})
+        except SnapshotChanged as exc:
+            return copy.deepcopy({'ok': False, 'error': {'code': 'QUERY_ERROR', 'message': str(exc),
+                                                         'scope': self.scope}})
+        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error):
+            return copy.deepcopy({'ok': False, 'error': {'code': 'QUERY_ERROR',
+                                                         'message': 'The fixed graph could not be queried',
+                                                         'scope': self.scope}})

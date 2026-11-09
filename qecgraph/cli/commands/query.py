@@ -4,8 +4,9 @@ from __future__ import annotations
 from ...graph import read_json
 from ...query import context, dependencies, search, show
 from ...store import current_snapshot, snapshot_reference, validate_snapshot
+from ..errors import QueryError
 from ..process import cli_command
-from ..render import emit_report
+from ..render import emit_report, print_json, report_error
 
 
 def _workspace_session(args, **budgets):
@@ -57,7 +58,7 @@ def _select_store_snapshot(args):
 
 def graph_query(args):
     if args.workspace or args.machine:
-        return emit_report(_workspace_query(args))
+        return _emit_tool_result(args, _workspace_query(args))
     _select_store_snapshot(args)
     if getattr(args, 'corpus', None):
         from ...corpus import execute
@@ -124,4 +125,14 @@ def mcp_serve(args):
 
 def query_tool(args):
     result = _ai_session(args).invoke(args.tool, read_json(args.arguments))
-    return emit_report(result)
+    return _emit_tool_result(args, result)
+
+
+def _emit_tool_result(args, result):
+    if result['ok']:
+        return emit_report(result)
+    error = QueryError(result['error'])
+    if args.json:
+        return report_error(error, args.command, json_mode=True)
+    print_json(result)
+    return error.exit_code
