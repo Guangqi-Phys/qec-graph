@@ -118,6 +118,28 @@ class WorkspaceTests(unittest.TestCase):
             self.assertEqual(rebuilt['counts']['processed'], 1)
             extract.assert_called_once()
 
+    def test_sync_reselects_a_projection_when_an_older_entrypoint_returns(self):
+        files = {'a.tex': TEX, 'b.tex': TEX.replace(b'Hello', b'Alternate source')}
+        first = tar_bytes(files, mtime=1)
+        second = tar_bytes(files, mtime=2)
+        tree = unpack(first).digest
+        self.ws.init(no_ingest=True)
+        config = self.root / 'qecgraph.toml'
+        initial = config.read_text()
+        entrypoints = f'\n[entrypoints]\n"{tree}" = '
+
+        for raw, entry in ((first, 'a.tex'), (second, 'b.tex'), (first, 'a.tex')):
+            with self.subTest(entry=entry):
+                config.write_text(initial + entrypoints + f'"{entry}"\n')
+                (self.inbox / 'paper').write_bytes(raw)
+                result = self.ws.sync()
+                self.assertTrue(result['inputs'][0]['input_consumed'])
+                state, fixed = self.ws.registry.read()
+                identifier, = state['versions']
+                graph, _, version = self.ws.registry.source_graph(identifier, fixed)
+                self.assertEqual(graph['entry'], entry)
+                self.assertEqual(version['snapshot_id'], result['inputs'][0]['source_snapshot_id'])
+
     def test_rewrapped_archive_does_not_consume_input_when_prior_snapshot_is_damaged(self):
         (self.inbox / 'first.tar').write_bytes(tar_bytes({'paper.tex': TEX}, mtime=1))
         self.assertEqual(self.ws.init()['counts']['processed'], 1)

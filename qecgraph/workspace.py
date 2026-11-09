@@ -20,7 +20,7 @@ from .research_store import load_records, stage_records, validate_sources
 from .graph import canonical, hash_text, read_json
 from .registry import Registry
 from .source_package import Limits, PackageError, read_bounded, unpack
-from .store import extraction_tool_identity, ingest, validate_snapshot
+from .store import extraction_tool_identity, ingest
 from .transactions import atomic_bytes, atomic_json, immutable_json, writer_lock
 
 CONFIG = 'qecgraph.toml'
@@ -272,6 +272,14 @@ class Workspace:
                           retained_prior_extraction=True)
         return result
 
+    @staticmethod
+    def _matching_extraction(state, material, fingerprint):
+        if material.get('processing_completed') and material.get('config_fingerprint') == fingerprint:
+            version = state['versions'].get(material['source_version_id'])
+            if version and version['snapshot_id'] == material['source_snapshot_id']:
+                return version
+        return None
+
     def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None):
         run_id = uuid.uuid4().hex
         digests, rows, claims = set(), [], []
@@ -324,15 +332,17 @@ class Workspace:
             reused = {}
             if digests:
                 for prior in previous.values():
-                    if prior.get('processing_completed') and prior.get('config_fingerprint') == fingerprint:
-                        version = state['versions'].get(prior['source_version_id'])
-                        if version and version['snapshot_id'] == prior['source_snapshot_id']:
-                            reused[(prior['source_version_id'], prior['entrypoint'])] = (version, False)
+                    version = self._matching_extraction(state, prior, fingerprint)
+                    if version is not None:
+                        reused[(version['id'], prior['entrypoint'])] = (version, False)
             for index, digest in enumerate(sorted(digests), start=1):
                 prior = previous.get(digest, {})
-                if (not rebuild and prior.get('processing_completed') and prior.get('config_fingerprint') == fingerprint):
-                    snapshot = self.path('machine/source_snapshots/' + prior['source_snapshot_id'])
-                    validate_snapshot(snapshot, prior['source_snapshot_id'])
+                version = self._matching_extraction(state, prior, fingerprint)
+                if not rebuild and version is not None:
+                    build_key = (version['id'], prior['entrypoint'])
+                    if reused.get(build_key) != (version, True):
+                        self.registry.validate_source_snapshot(version)
+                        reused[build_key] = (version, True)
                 else:
                     materials[digest] = self._prepare(cfg, state, digest, prior, reused)
                     materials[digest]['config_fingerprint'] = fingerprint
