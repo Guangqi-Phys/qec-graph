@@ -33,6 +33,18 @@ def _project_source_hash(entry, sources, resources, config):
                                 "parser_config": config}))
 
 
+def extraction_tool_identity():
+    """Capture the exact extraction implementation and dependency versions."""
+    parser_version = version("pylatexenc")
+    if parser_version != "2.10":
+        raise ValueError(f"This release requires pylatexenc==2.10; found {parser_version}")
+    package_root = Path(__file__).parent
+    tool_sources = {str(path.relative_to(package_root)): hashlib.sha256(path.read_bytes()).hexdigest()
+                    for path in sorted(package_root.rglob('*')) if path.suffix in {'.py', '.json'}}
+    return {"tool_version": __version__, "tool_sources": tool_sources,
+            "pylatexenc": parser_version, "jsonschema": version("jsonschema")}
+
+
 def safe_relative(root, relative):
     return _safe_relative_to_resolved(root.resolve(), relative)
 
@@ -187,9 +199,7 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
     from .parser import parse_project
 
     started = time.perf_counter()
-    parser_version = version("pylatexenc")
-    if parser_version != "2.10":
-        raise ValueError(f"This release requires pylatexenc==2.10; found {parser_version}")
+    tool_identity = extraction_tool_identity()
     entry = Path(entry).resolve()
     root = Path(project_root).resolve() if project_root else entry.parent
     out = Path(out).resolve()
@@ -232,13 +242,8 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
     source_manifest = [{"path": path, "sha256": hashlib.sha256(raw).hexdigest()} for path, raw in sorted(source_bytes.items())]
     resource_manifest = [{"path": path, "sha256": digest} for path, digest in sorted(resource_digests.items())]
     project_source_hash = _project_source_hash(parsed["entry"], source_manifest, resource_manifest, config)
-    package_root = Path(__file__).parent
-    tool_sources = {str(path.relative_to(package_root)): hashlib.sha256(path.read_bytes()).hexdigest()
-                    for path in sorted(package_root.rglob('*')) if path.suffix in {'.py', '.json'}}
     fingerprint = {"project_id": project_id, "project_source_hash": project_source_hash,
-                   "annotations": annotations, "catalog_inputs": catalog_inputs,
-                   "tool_version": __version__, "tool_sources": tool_sources, "pylatexenc": parser_version,
-                   'jsonschema': version('jsonschema')}
+                   "annotations": annotations, "catalog_inputs": catalog_inputs, **tool_identity}
     snapshot_id = hash_text(canonical(fingerprint))
     graph = build_graph(parsed, project_id, project_source_hash, annotations, catalog)
     graph["snapshot_id"] = snapshot_id
