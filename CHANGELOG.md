@@ -25,3 +25,6 @@
   color in workspace summaries.
 - Workspace queries support fixed releases. Splitting a store with annotations
   or a catalog requires explicit `--force` to replace CURRENT.
+- Generated Obsidian pages use readable filenames. Existing generated links
+  remain usable through forwarding or archive pages. See the advanced guide
+  before rolling back to an older renderer.

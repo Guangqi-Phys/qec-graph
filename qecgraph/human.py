@@ -13,8 +13,10 @@ from .transactions import atomic_bytes, atomic_json, writer_lock
 from .workspace import HEX, Workspace, _read_regular, now
 from .workspace_query import WorkspaceSession
 
-FORMAT = 'qecgraph.human.v1'
-PAGE = re.compile(r'generated/[a-z-]+/[a-z-]+--[0-9a-f]{64}\.md')
+FORMAT_V1 = 'qecgraph.human.v1'
+FORMAT = 'qecgraph.human.v2'
+LEGACY_PAGE = re.compile(r'generated/[a-z-]+/[a-z-]+--[0-9a-f]{64}\.md')
+READABLE_PAGE = re.compile(r'generated/[a-z-]+/[a-z-]+--[a-z0-9-]+--([0-9a-f]{12,64})\.md')
 GROUPS = {
     'source_artifact': 'sources', 'paper_version': 'sources', 'code_instance': 'codes',
     'code_mention': 'codes', 'code_presentation': 'codes', 'distance_claim': 'codes',
@@ -28,8 +30,42 @@ def _slug(value):
     return re.sub(r'[^a-z]+', '-', value.lower()).strip('-') or 'entity'
 
 
-def _page(kind, identifier):
+def _legacy_page(kind, identifier):
     return f'generated/{GROUPS.get(kind, "records")}/{_slug(kind)}--{hash_text(identifier)}.md'
+
+
+def _entity_slug(identifier):
+    # Use the stable ID or its embedded source label. Paper titles can change.
+    if identifier.startswith('source-artifact:'):
+        return 'package'
+    text = identifier.rsplit(':label:', 1)[-1].lower()
+    text = re.sub(r'[0-9a-f]{24,}', '', text)
+    text = re.sub(r'[^a-z0-9]+', '-', text).strip('-')
+    return text[:40].rstrip('-') or 'entity'
+
+
+def _assign_pages(entities, previous, bindings):
+    targets = dict(bindings)
+    used = set(previous) | set(bindings.values())
+    for identifier, rows in sorted(entities.items()):
+        if identifier in targets:
+            continue
+        kind = rows[0]['kind']
+        base = f'generated/{GROUPS.get(kind, "records")}/{_slug(kind)}--{_entity_slug(identifier)}'
+        identity = hash_text(identifier)
+        for size in (12, 16, 24, 32, 64):
+            path = f'{base}--{identity[:size]}.md'
+            if path not in used:
+                targets[identifier] = path
+                used.add(path)
+                break
+        else:
+            raise ValueError('Unable to allocate a unique generated page')
+    return targets
+
+
+def _owned_page(path):
+    return LEGACY_PAGE.fullmatch(path) or READABLE_PAGE.fullmatch(path)
 
 
 def _inline(value):
@@ -185,7 +221,7 @@ def _status_page(release, materials):
                         '- A proof link identifies its target; it is not a verification result.']) + '\n'
 
 
-def _render(session, previous):
+def _render(session, previous, bindings):
     materials = session.material_records()
     research = session.visible_research()
     visible_revisions = {(record['id'], record['revision']) for record in research}
@@ -196,7 +232,8 @@ def _render(session, previous):
                                                         'corollary', 'proof'})
     for node in nodes:
         entities.setdefault(node['id'], []).append(node)
-    targets = {identifier: _page(rows[0]['kind'], identifier) for identifier, rows in entities.items()}
+    all_targets = _assign_pages(entities, previous, bindings)
+    targets = {identifier: all_targets[identifier] for identifier in entities}
     titles = {identifier: _title(rows[0]) for identifier, rows in entities.items()}
     relations = _relation_index(edges)
     pages, index = {}, {}
@@ -216,6 +253,10 @@ def _render(session, previous):
             level = '###' if len(records) > 1 else '##'
             sections.extend(_record_sections(record, session, targets, titles, relations, visible_revisions, level))
         pages[path] = ('\n\n'.join(sections) + '\n').encode()
+        old = _legacy_page(kind, identifier)
+        if old in previous:
+            pages[old] = (_heading(title, session.release) + '\n\nThis page moved to '
+                          + _link(path, title) + '.\n').encode()
     for path in sorted(previous - pages.keys()):
         index.setdefault(path.split('/')[1], {}).setdefault('archived', []).append(('Archived entity', path))
         pages[path] = (_heading('Archived entity', session.release)
@@ -234,7 +275,7 @@ def _render(session, previous):
                 body.append(f'- {_link(target, title)}')
         pages[path] = ('\n'.join(body) + '\n').encode()
         root.append(f'- {_link(path, group.title())} ({sum(map(len, by_kind.values()))})')
-    return pages, ('\n'.join(root) + '\n').encode()
+    return pages, ('\n'.join(root) + '\n').encode(), all_targets
 
 
 def _operational(ws, release, human_status, last_release):
@@ -249,13 +290,38 @@ def _operational(ws, release, human_status, last_release):
 def _history(ws, name):
     path = ws.path('.qecgraph/' + name + '.json')
     if not path.exists():
-        return {'release_id': None, 'pages': []}
+        return {'release_id': None, 'pages': [], 'entity_pages': {}}
     data = read_json(path)
-    if data.get('format') != FORMAT or not isinstance(data.get('release_id'), str) or not HEX.fullmatch(data['release_id']):
+    if (not isinstance(data, dict) or data.get('format') not in (FORMAT_V1, FORMAT)
+            or not isinstance(data.get('release_id'), str) or not HEX.fullmatch(data['release_id'])):
         raise ValueError('Invalid renderer history')
-    if not isinstance(data.get('pages'), list) or any(not isinstance(x, str) or not PAGE.fullmatch(x) for x in data['pages']):
+    owned = LEGACY_PAGE.fullmatch if data['format'] == FORMAT_V1 else _owned_page
+    if not isinstance(data.get('pages'), list) or any(not isinstance(x, str) or not owned(x) for x in data['pages']):
         raise ValueError('Renderer history has an unowned path')
+    if data['format'] == FORMAT_V1:
+        return {**data, 'entity_pages': {}}
+    bindings = data.get('entity_pages')
+    if not isinstance(bindings, dict):
+        raise ValueError('Invalid renderer page bindings')
+    seen, paths = set(), set(data['pages'])
+    for identifier, relative in bindings.items():
+        match = READABLE_PAGE.fullmatch(relative) if isinstance(relative, str) else None
+        if (not identifier or not match or relative in seen or relative not in paths
+                or not hash_text(identifier).startswith(match[1])):
+            raise ValueError('Invalid renderer page binding')
+        seen.add(relative)
     return data
+
+
+def _merge_bindings(published, pending):
+    result = dict(published)
+    reverse = {path: identifier for identifier, path in result.items()}
+    for identifier, path in pending.items():
+        if result.get(identifier, path) != path or reverse.get(path, identifier) != identifier:
+            raise ValueError('Conflicting renderer histories')
+        result[identifier] = path
+        reverse[path] = identifier
+    return result
 
 
 def build_human(workspace=None, release=None):
@@ -270,8 +336,11 @@ def build_human(workspace=None, release=None):
         try:
             _operational(ws, latest, 'human_stale', past['release_id'])
             session = WorkspaceSession(ws.registry.root, latest)
-            pages, index = _render(session, set(past['pages']) | set(interrupted['pages']))
-            state = {'format': FORMAT, 'release_id': latest, 'pages': sorted(p for p in pages if PAGE.fullmatch(p))}
+            bindings = _merge_bindings(past['entity_pages'], interrupted['entity_pages'])
+            previous = set(past['pages']) | set(interrupted['pages'])
+            pages, index, targets = _render(session, previous, bindings)
+            state = {'format': FORMAT, 'release_id': latest, 'pages': sorted(p for p in pages if _owned_page(p)),
+                     'entity_pages': dict(sorted(targets.items()))}
             staging_root = ws.path('.qecgraph/human-staging')
             staging_root.mkdir(exist_ok=True)
             with tempfile.TemporaryDirectory(prefix='render-', dir=staging_root) as staging:
@@ -279,6 +348,8 @@ def build_human(workspace=None, release=None):
                 changed = set()
                 for relative, raw in {**pages, 'Index.md': index}.items():
                     destination = ws.path('human/' + relative)
+                    if _owned_page(relative) and relative not in previous and destination.exists():
+                        raise ValueError('A generated page would overwrite a file outside the renderer history')
                     try:
                         if _read_regular(destination, len(raw)) == raw:
                             continue
@@ -293,7 +364,8 @@ def build_human(workspace=None, release=None):
                 notes.mkdir(parents=True, exist_ok=True)
                 manifest = {**state, 'outputs': {name: hash_text(raw.decode('utf-8')) for name, raw in sorted(pages.items())}}
                 atomic_json(ws.path('.qecgraph/human-pending.json'), state)
-                for relative in sorted(changed - {'Index.md'}):
+                # Publish readable targets before redirect pages and indexes.
+                for relative in sorted(changed - {'Index.md'}, key=lambda path: (not READABLE_PAGE.fullmatch(path), path)):
                     atomic_bytes(ws.path('human/' + relative), (stage / relative).read_bytes())
                 atomic_json(ws.path('human/generated/.qecgraph-manifest.json'), manifest)
                 if 'Index.md' in changed:

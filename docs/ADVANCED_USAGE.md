@@ -161,6 +161,12 @@ review and verification status, eligible relations, and an expandable data
 section. Open **Release status and legend** from the vault index to see the
 fixed release's coverage and what each evidence status means.
 
+On the first render after upgrading, old generated page paths become links
+to their replacements. Removed entities retain an archived page for existing
+links. Personal notes remain in place. If you need to run an older renderer,
+restore its generated pages and `.qecgraph/human-*.json` histories from the
+same vault backup; the machine database does not require a downgrade.
+
 Use `qec-graph review list` to inspect proposals, `qec-graph software import-seed`
 to load the bundled software catalog, and `qec-graph software coverage` to
 inspect its coverage. The workspace guide covers explicit asset registration,

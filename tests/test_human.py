@@ -2,10 +2,11 @@ import json
 import re
 import tempfile
 import unittest
+from hashlib import sha256
 from pathlib import Path
 from unittest.mock import patch
 
-from qecgraph.human import build_human
+from qecgraph.human import _assign_pages, build_human
 from qecgraph.transactions import atomic_bytes
 from qecgraph.workspace import Workspace
 from qecgraph.workspace_query import WorkspaceSession
@@ -115,3 +116,45 @@ Compute the commutator.
         self.assertIn('|Commutation of checks]]', index)
         self.assertIn('[[generated/Status|Release status and legend]]', (vault / 'Index.md').read_text(encoding='utf-8'))
         self.assertEqual(self.note.read_bytes(), b'private\x00note')
+
+    def test_legacy_vault_keeps_existing_links_after_readable_filename_migration(self):
+        release = self.ws.sync()['release_id']
+        identifier = 'source-artifact:' + sha256(TEX).hexdigest()
+        relative = 'generated/sources/source-artifact--' + sha256(identifier.encode()).hexdigest() + '.md'
+        vault = self.root / 'human'
+        legacy = vault / relative
+        legacy.parent.mkdir(parents=True)
+        legacy.write_text('# An old generated page\n', encoding='utf-8')
+        history = self.root / '.qecgraph/human-published.json'
+        history.write_text(json.dumps({'format': 'qecgraph.human.v1', 'release_id': release,
+                                       'pages': [relative]}), encoding='utf-8')
+
+        expected = vault / ('generated/sources/source-artifact--package--' + sha256(identifier.encode()).hexdigest()[:12] + '.md')
+        expected.write_text('An unrelated file at the prospective path', encoding='utf-8')
+        self.assertEqual(build_human(self.root, release)['status'], 'human_stale')
+        self.assertEqual(expected.read_text(), 'An unrelated file at the prospective path')
+        self.assertEqual(json.loads(history.read_text())['format'], 'qecgraph.human.v1')
+        expected.unlink()
+
+        self.assertEqual(build_human(self.root, release)['status'], 'current')
+        migrated = json.loads(history.read_text())
+        target = migrated['entity_pages'][identifier]
+        self.assertRegex(target, r'^generated/sources/source-artifact--package--[0-9a-f]{12}\.md$')
+        self.assertIn(f'[[{target.removesuffix(".md")}|', legacy.read_text(encoding='utf-8'))
+        self.assertIn(identifier, (vault / target).read_text(encoding='utf-8'))
+        self.assertEqual(build_human(self.root, release)['status'], 'current')
+        self.assertEqual(json.loads(history.read_text())['entity_pages'][identifier], target)
+        self.assertEqual(self.note.read_bytes(), b'private\x00note')
+
+    def test_page_collisions_do_not_change_existing_bindings(self):
+        rows = [{'kind': 'code_instance'}]
+        existing_id, new_id = 'code:test_x', 'code:test-x'
+
+        def collision(value):
+            return '0' * 12 + sha256(value.encode()).hexdigest()[12:]
+
+        with patch('qecgraph.human.hash_text', side_effect=collision):
+            old = _assign_pages({existing_id: rows}, set(), {})
+            bindings = _assign_pages({existing_id: rows, new_id: rows}, set(old.values()), old)
+        self.assertEqual(bindings[existing_id], old[existing_id])
+        self.assertNotEqual(bindings[existing_id], bindings[new_id])
