@@ -1,5 +1,7 @@
 # RFC-QEC-002 实施审计
 
+本页记录实施前的历史基线。当前进度见[文档索引](docs/README.md)。
+
 基线：`main` / `origin/main`，`0fd1b23`，审计时工作树无未提交改动。
 [附件原始规范](docs/rfc-002/QEC_GRAPH_DESIGN_UPDATE.md)按附件校验清单逐字节核对后保存。
 附件中的验证报告是设计包自检；以下是当前仓库基线，后续成果见 [实施进度](docs/rfc-002/IMPLEMENTATION.md)。

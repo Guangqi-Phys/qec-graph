@@ -15,7 +15,7 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 7 | List, quarantine, and restore inbox packages | Complete. The lifecycle test verifies preserved bytes and receipt, a clear daily status, and restoration that refuses to overwrite a replacement. Explicit rebuild still checks every archived package. |
 | 8 | Build and check fresh release artifacts | Complete for the source changes. A clean export of `ffdbb5e` passed strict Twine, exact metadata checks, wheel installation and workspace verification, and all 165 tests from the unpacked source distribution. Item 26 tracks publication automation. |
 | 9 | Ignore generated state and development caches | Complete. Git ignore checks cover local graph state, macOS metadata, and coverage, lint, and test caches. |
-| 10 | Documentation index and factual corrections | Open. |
+| 10 | Documentation index and factual corrections | Complete. The README links to a current index. Corrected runtime requirements, locking, command entry points, MCP scope, and validation links, and marked historical reports. Checked Markdown link targets. Physical reorganization remains in item 18. |
 | 11 | Separate CLI parsing, rendering, and dispatch | Open. |
 | 12 | Stable error taxonomy and JSON error contract | Open. |
 | 13 | Grouped help, examples, and alias migration | Open. |
@@ -48,6 +48,9 @@ these alongside items 1, 8, 10, 12, and 13.
   The directory can hold local copies and changes that Git cannot recover.
   Repository cleanup can document its historical role and keep it out of
   distributions without removing local data.
+- Section 3.3 treats a planned Intel macOS build as an available download.
+  The v0.4.0rc1 release asset list on 2026-11-09 contained only Apple Silicon
+  and the two Linux architectures. The README describes the published assets.
 - The split repair must protect CURRENT even if another writer is active.
   A preflight in the CLI alone would leave a race. Implement the check inside
   the store writer lock and preserve the previous immutable snapshot.

@@ -56,7 +56,7 @@ python tools/reproduce.py --out build/reproduce
 | `qecgraph/cli.py` | 命令入口、JSON 输出与退出码 | 原命令保持可用；新命令先定义输入输出契约 |
 | `knowledge_starter/` | 旧 Schema 的完整 QEC 示例 | 用显式适配和迁移接入；不要直接覆盖证据 |
 
-当前最小安装只有 `pylatexenc==2.10`；SQLite 与 unittest 使用 Python 标准库。若升级解析器，必须记录兼容性、更新指纹与测试，不能静默混用输出。
+当前运行依赖为 `pylatexenc==2.10` 与 `jsonschema==4.26.0`。SQLite 与 unittest 使用 Python 标准库。若升级解析器，必须记录兼容性、更新指纹与测试。
 
 旧的 `docs/reference/` 可用于理解原型实现细节，但不是未来版本的最高规范。记录差距、修改代码和文档；不要通过删掉失败用例来让报告变绿。
 

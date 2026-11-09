@@ -182,4 +182,5 @@ catalog 导入保留完整原记录，关系加 `catalog:` 前缀，导入状态
 | G11 | 有效数据关系能补齐矩阵、表示、指标与证据上下文 |
 | G12 | 部分抽取、截断、未解析目标与旧审核状态均可观察 |
 
-测试入口和阶段验收见 [08_ROADMAP_ACCEPTANCE.md](08_ROADMAP_ACCEPTANCE.md)。本规范不声称已经具备多文档注册表、审核事务、watch、MCP 或 Lean 导出。
+测试入口和阶段验收见 [08_ROADMAP_ACCEPTANCE.md](08_ROADMAP_ACCEPTANCE.md)。
+已实现的注册、审核、增量、MCP 和 Lean 能力与其边界见[文档索引](README.md)。

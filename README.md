@@ -44,3 +44,5 @@ codex mcp add qecgraph -- "$(command -v qec-graph)" mcp serve --machine "$PWD/ma
 Open a new Codex session after registering. For other MCP clients, run
 `qec-graph mcp-config --workspace .` to print a configuration pinned to the
 current snapshot. [Data and search guide](docs/DATA_AND_SEARCH.md)
+
+[Documentation index](docs/README.md)

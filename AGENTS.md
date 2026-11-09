@@ -5,7 +5,7 @@
 - 先读 `START_HERE.md`、`CODEX_TASK.md` 和对应编号文档。执行用户当前指定范围；范围内持续实现，不停在计划。
 - 先复现现有工具。测试命令是 `python -m unittest discover -s tests -v`，端到端命令是 `python tools/reproduce.py --out build/reproduce`。
 - 项目名 qec-graph，Python 包名 qecgraph。文件切割与图谱共用解析结果和来源模型。保持现有 CLI 的兼容性；破坏性变化必须提供迁移。
-- 当前代码是单工程原型。不要将目录中路线图、模板或 Schema 设计误报为已实现功能。
+- 当前代码支持单论文 store、版本注册表和 RFC-QEC-002 工作区。不要将目录中路线图、模板或 Schema 设计误报为已实现功能。
 
 ## RFC-QEC-002 工作区
 

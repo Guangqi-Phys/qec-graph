@@ -4,7 +4,7 @@
 
 `CODEX_TASK.md` 引用本表。P0 固定原型，P1–P5 规定各阶段验收范围；完成状态与证据见
 [实施记录](IMPLEMENTATION_LOG.md) 和 [验证报告](../validation/REPORT.md)。
-具体命令、环境、断言和本次结果以 `validation/REPORT.md`、`validation/results.json` 以及运行生成的报告为准。
+具体命令、环境、断言和结果见[历史报告](../validation/REPORT.md)、[工作区验收](../validation/rfc002/REPORT.md)及各次运行生成的报告。
 
 | 阶段 | 优先顺序 | 交付目标 | 依赖 |
 |---|---|---|---|
@@ -107,7 +107,7 @@ watch 只调度同一构建流程，处理编辑器临时文件、批量保存�
 测试已知结果、空结果、重复 label、错误 scope、旧 snapshot、截断和 partial 状态。
 
 **失败例。** MCP 展示候选为已确认；任务中无提示地混读两个 CURRENT；检索未命中被表述为定理不存在。
-当前本交付包没有 MCP 服务；P4 完成后才可更新能力表。
+已实现的只读 MCP 入口和验收见 [MCP 指南](12_AI_MCP.md)。
 
 ## 7. P5：Lean 真实声明／依赖／验证导出
 

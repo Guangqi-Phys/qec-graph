@@ -1,5 +1,7 @@
 # 0.3.0 验收与复现
 
+本页保留 0.3.0 的历史验收。当前工作区安装与验证入口见[高级用法](ADVANCED_USAGE.md)。
+
 从独立的 Git checkout 执行下列命令。使用本地 POSIX 文件系统、Python 3.11+ 与 SQLite FTS5。
 Python 的精确依赖见 `requirements-lock.txt`。产物输出到新目录；历史报告保留其实际提交、环境和运行结果。
 

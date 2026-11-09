@@ -21,7 +21,7 @@ CodeGraph 从源代码提取符号与关系；qec-graph 从论文源码提取来
 | Reference resolution | 解析 label、include、书目键和人工选择器 | `graph.py` | 跨文档、跨版本显式解析 |
 | Graph queries | 查询依赖及其反向影响 | `query.py` | 类型、证据和作用域策略 |
 | Context assembly | 选取完整原文、证明、假设和数据证据 | `query.context` | 预算内完整陈述与跨资料上下文 |
-| Change monitoring | 由输入变化触发重建和失效 | 当前仅显式全量 ingest | P3 的增量和 watch |
+| Change monitoring | 由输入变化触发重建和失效 | `watch` 和 `ingest --incremental` 共用解析与发布流程 | [增量与恢复](11_INCREMENTAL.md) |
 | AI tools / MCP | 让 AI 调用同一查询层 | 当前为 CLI/Python/JSON | P4 的只读 MCP |
 
 上游使用 tree-sitter 分析代码。本包使用 [pylatexenc 2.10 的 LatexWalker](https://pylatexenc.readthedocs.io/en/v2.10/latexwalker/) 取得 LaTeX 节点与位置；它不是完整 TeX 引擎。

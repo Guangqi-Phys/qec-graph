@@ -6,19 +6,20 @@
 
 ## 1. 安装和命令入口
 
-要求 Python 3.11+，依赖固定为 `pylatexenc==2.10`。在项目根目录安装：
+要求 Python 3.11+。当前运行依赖为 `pylatexenc==2.10` 与 `jsonschema==4.26.0`。在项目根目录安装：
 
 ```bash
 python3 -m pip install -e .
 ```
 
-包名为 `qec-graph`，版本为 `0.2.0`。安装后提供三个命令：
+包名为 `qec-graph`，可用 `qec-graph --version` 查看已安装版本。Python 安装提供四个入口：
 
 | 命令 | 用途 |
 |---|---|
 | `qecgraph` | 完整命令入口，包含 split、ingest、search、show、deps、impact、context、validate |
 | `qec-graph` | `qecgraph` 的同义入口 |
 | `qec-latex-split` | 专用于切割；参数等同于 `qecgraph split` |
+| `qecgraph-mcp` | 启动只读 MCP stdio 服务 |
 
 用附带的多文件 QEC 示例运行：
 
@@ -223,7 +224,7 @@ partial 的含义是已经保存可用部分，并不表示回滚。例如，一
 
 ## 8. 本次实现的验证
 
-新增的 `tests/test_splitter.py` 含 8 项集成测试，已实际通过。覆盖真实分类片段、原文字节与片段哈希、现有图查询复用、重复导入幂等、外部目录保护、partial 退出码、两个入口结果一致及环境配置转交。
+`tests/test_splitter.py` 覆盖分类片段、原文字节、图查询、重复导入、写入边界、部分抽取退出码、两个入口的一致性及环境配置。
 
 只运行这一组检查：
 

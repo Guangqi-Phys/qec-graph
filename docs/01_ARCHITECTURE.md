@@ -123,8 +123,8 @@ derived/<project-id>/snapshots/<snapshot-id>/
 ## 6. 单机起步与升级触发条件
 
 本地 Python + SQLite + FTS5 是起步部署方案。SQLite 适合本地应用，其写入应串行组织。[1]
-原型每个 store 使用单个写者；多个读取者固定 snapshot ID，避免一次任务混读两个快照。
-原型没有跨进程写锁，任务调度器必须避免同一 store 的并发 ingest。
+每个 store 通过本地文件锁串行化写者。多个读取者各自固定 snapshot ID，避免一次任务混读两个快照。
+工作区还会串行处理收件箱认领、归档和发布。
 不同论文先使用各自 store；跨论文查询通过 [版本注册表](09_CORPUS.md) 固定到同一个 corpus revision。
 
 出现持续写争用、多台服务共享写入、集中权限或远程事务需求时，再评估 PostgreSQL。
