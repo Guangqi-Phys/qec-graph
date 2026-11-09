@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+from contextlib import contextmanager
 from datetime import datetime, timezone
 import hashlib
 import os
@@ -46,17 +47,43 @@ def _managed(root, relative):
     return current
 
 
-def _read_regular(path, limit):
+@contextmanager
+def _regular_input(path, limit):
     fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     with os.fdopen(fd, 'rb') as stream:
         before = os.fstat(stream.fileno())
         if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
             raise ValueError('Expected a regular unlinked source file')
+        if before.st_size > limit:
+            raise PackageError('limit_exceeded', 'Source byte limit exceeded')
+        yield stream, before
+
+
+def _check_input_read(stream, before, size):
+    after = os.fstat(stream.fileno())
+    if (before.st_size != size or after.st_size != size or after.st_nlink != 1
+            or (before.st_mtime_ns, before.st_ctime_ns) != (after.st_mtime_ns, after.st_ctime_ns)):
+        raise ValueError('Input changed while reading; retry after writing finishes')
+
+
+def _read_regular(path, limit):
+    with _regular_input(path, limit) as (stream, before):
         raw = read_bounded(stream, limit)
-        after = os.fstat(stream.fileno())
-        if (before.st_size, before.st_mtime_ns) != (len(raw), after.st_mtime_ns):
-            raise ValueError('Input changed while reading; retry after writing finishes')
+        _check_input_read(stream, before, len(raw))
     return raw
+
+
+def _hash_regular(path, limit):
+    digest = hashlib.sha256()
+    size = 0
+    with _regular_input(path, limit) as (stream, before):
+        while chunk := stream.read(min(256 << 10, limit - size + 1)):
+            size += len(chunk)
+            if size > limit:
+                raise PackageError('limit_exceeded', 'Source byte limit exceeded')
+            digest.update(chunk)
+        _check_input_read(stream, before, size)
+    return digest.hexdigest()
 
 
 def locate(path=None, *, default=None):
@@ -398,8 +425,7 @@ class Workspace:
             row = {'input': meta['name'], 'receipt_id': job.name, **material, **decision, 'input_consumed': False}
             try:
                 if finished and not material['source_version_conflict'] and not decision['keep_inputs']:
-                    raw = _read_regular(payload, Limits(**cfg.get('limits', {})).input_bytes)
-                    if hashlib.sha256(raw).hexdigest() != digest:
+                    if _hash_regular(payload, Limits(**cfg.get('limits', {})).input_bytes) != digest:
                         raise ValueError('Claim changed after archiving')
                     payload.unlink()
                     row['input_consumed'] = True
@@ -458,8 +484,7 @@ class Workspace:
             try:
                 if not HEX.fullmatch(digest):
                     raise ValueError('Invalid archive hash')
-                raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
-                if hashlib.sha256(raw).hexdigest() != digest:
+                if _hash_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20) != digest:
                     raise ValueError('Archive hash mismatch')
             except (OSError, ValueError) as exc:
                 issues.append({'code': 'archive_invalid', 'archive_sha256': digest, 'message': str(exc)})
