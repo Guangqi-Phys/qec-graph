@@ -479,8 +479,7 @@ def parse_command(argv: list[str], *, entrypoint: tuple[str, str] | None = None)
         # be a grouped action name. Actor options identify the old form.
         legacy_actor = any(flag == '--actor-id' or flag.startswith('--actor-id=') for flag in argv[action_index + 1:])
         if (argument not in {*_GROUPS['review'][1], '--help', '-h'}
-                or argument == 'list' and '--corpus' in argv
-                or argument in {'show', 'import'} and legacy_actor):
+                or argument in {'list', 'show', 'import'} and legacy_actor):
             argv[start] = 'review-propose'
             name = 'review-propose'
     parser, topics = _build_parser(entrypoint)

@@ -15,6 +15,26 @@ from qecgraph.workspace import Workspace
 
 
 class CLIContractTests(unittest.TestCase):
+    def test_review_list_does_not_infer_a_write_from_the_corpus_option(self):
+        with tempfile.TemporaryDirectory() as directory, chdir(directory):
+            root = Path(directory).resolve()
+            corpus = root / 'corpus'
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                self.assertEqual(main(['review', 'list', '--corpus', str(corpus), '--json']), 64)
+            error = json.loads(stdout.getvalue())['error']
+            self.assertEqual(error['command'], 'review-list')
+            self.assertIn('--corpus', error['message'])
+            self.assertFalse(corpus.exists())
+
+            example = Path(__file__).resolve().parents[1] / 'examples/proposal.example.json'
+            (root / 'list').write_bytes(example.read_bytes())
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                self.assertEqual(main(['review', 'list', f'--corpus={corpus}', '--actor-id=fixture',
+                                       '--actor-kind=human', '--json']), 0)
+            self.assertTrue(json.loads(stdout.getvalue())['id'].startswith('proposal:'))
+
     def test_verbose_workspace_progress_keeps_stdout_json_and_quiet_suppresses_it(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
