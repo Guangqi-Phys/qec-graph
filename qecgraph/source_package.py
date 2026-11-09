@@ -138,7 +138,7 @@ class _TreeBuilder:
         if size < 0 or size > maximum:
             raise PackageError('limit_exceeded', 'Archive expanded or member size exceeds limit')
         with open_file() as stream:
-            raw = read_bounded(stream, maximum)
+            raw = stream.read(size + 1)
         if len(raw) != size:
             raise PackageError('damaged_archive', 'Archive member size differs from header')
         self.files[path] = raw
