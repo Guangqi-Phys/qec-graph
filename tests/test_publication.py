@@ -47,7 +47,7 @@ class PublicationTests(unittest.TestCase):
         with writer_lock(self.store):
             result = subprocess.run([sys.executable, '-m', 'qecgraph', 'ingest', str(self.entry), '--project-id', 'publish',
                                      '--out', str(self.store)], capture_output=True, text=True)
-            self.assertEqual(result.returncode, 1)
+            self.assertEqual(result.returncode, 5)
             self.assertIn('Another writer', result.stderr)
         self.assertEqual(current_snapshot(self.store), original)
         # os._exit bypasses Python cleanup; the kernel must still release flock.

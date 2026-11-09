@@ -112,7 +112,7 @@ including counts and individual failures, and exit with code 2.
 | `1` | Input, storage, validation, or internal error |
 | `2` | A partial operation or a validation report with failures |
 | `4` | A required file could not be found |
-| `5` | Reserved for a typed conflict |
+| `5` | Another process holds the writer lock; retry after it finishes |
 | `64` | Invalid command syntax |
 | `130` | Interrupted |
 
@@ -123,6 +123,8 @@ be `null`. These errors go to stdout so scripts can parse the same stream
 on success and failure. `mcp serve` reserves stdout for MCP frames; startup
 errors go to stderr. `query-tool` retains the response from the read tool.
 Use `--debug` to see a traceback for an unexpected CLI failure.
+For a damaged workspace configuration or CURRENT pointer, the error gives
+its path. Run `qec-graph doctor` for a read-only inspection.
 
 ## Manage the Obsidian vault and research records
 

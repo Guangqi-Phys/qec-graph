@@ -7,6 +7,9 @@ import sqlite3
 import tomllib
 from typing import Any
 
+from ..transactions import ManagedDataError, WriterBusy
+from ..workspace import WorkspaceConfigError
+
 
 class QecError(ValueError):
     code = 'QEC_ERROR'
@@ -43,6 +46,7 @@ class NotFound(QecError):
 class Conflict(QecError):
     code = 'CONFLICT'
     exit_code = 5
+    hint = 'Wait for the other writer to finish, then retry the command.'
 
 
 class InvalidConfig(QecError):
@@ -68,6 +72,12 @@ class InternalError(QecError):
 def classify(exc: Exception) -> QecError:
     if isinstance(exc, QecError):
         return exc
+    if isinstance(exc, WriterBusy):
+        return Conflict(str(exc), details={'path': str(exc.root)})
+    if isinstance(exc, WorkspaceConfigError):
+        return InvalidConfig(str(exc), details={'path': str(exc.path)})
+    if isinstance(exc, ManagedDataError):
+        return StorageError(str(exc), details={'path': str(exc.path)})
     if isinstance(exc, FileNotFoundError):
         path = str(exc.filename) if exc.filename is not None else None
         return NotFound(f'No file found at {path}' if path else 'A required file is missing',

@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from qecgraph.cli import main
 from qecgraph.store import ingest
+from qecgraph.transactions import writer_lock
 from qecgraph.workspace import Workspace
 
 
@@ -51,6 +52,41 @@ class CLIContractTests(unittest.TestCase):
             self.assertIn('--debug', report['hint'])
             with self.assertRaises(KeyError):
                 main(['--debug', 'doctor'])
+
+    def test_managed_config_pointer_and_writer_errors_are_actionable(self):
+        def report(args, exit_code, error_code, path):
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                self.assertEqual(main([*args, '--json']), exit_code)
+            self.assertEqual(stderr.getvalue(), '')
+            result = json.loads(stdout.getvalue())['error']
+            self.assertEqual(result['code'], error_code)
+            self.assertEqual(result['details']['path'], str(path))
+            self.assertTrue(result['hint'])
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            Workspace(root).init(no_ingest=True)
+            pointer = root / 'machine/CURRENT.json'
+            original = pointer.read_bytes()
+            lock = root / '.qecgraph'
+            with writer_lock(lock):
+                report(['sync', '--workspace', str(root)], 5, 'CONFLICT', lock)
+            self.assertEqual(pointer.read_bytes(), original)
+
+            config = root / 'qecgraph.toml'
+            config.write_text('[broken', encoding='utf-8')
+            report(['status', '--workspace', str(root)], 1, 'INVALID_CONFIG', config)
+
+            pointer.write_text('[]', encoding='utf-8')
+            report(['snapshot', 'list', '--workspace', str(root)], 1, 'STORAGE_ERROR', pointer)
+            self.assertEqual(pointer.read_text(), '[]')
+
+            store = root / 'store'
+            store.mkdir()
+            current = store / 'CURRENT.json'
+            current.write_text('{"format":"qecgraph.current.v1","path":[]}', encoding='utf-8')
+            report(['validate', '--store', str(store)], 1, 'STORAGE_ERROR', current)
 
     def test_doctor_and_snapshot_list_distinguish_current_and_prepared_states(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -11,6 +11,8 @@
   (`mcp serve` startup errors stay on stderr). A missing required file exits
   with code 4. Successful JSON reports and partial workspace reports keep
   their existing fields.
+- A writer lock held by another process exits with code 5. Damaged workspace
+  configuration and CURRENT files report the path to inspect.
 - `qec-graph --version` and `qec-graph help <command>` report the installed
   version and available command options.
 - Workspace queries support fixed releases. Splitting a store with annotations

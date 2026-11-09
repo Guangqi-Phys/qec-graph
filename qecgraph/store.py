@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from . import __version__
 from .graph import build_graph, canonical, hash_text, node_filename, read_json, strict_json_loads, views
 from .source_coordinates import SourceLines
-from .transactions import atomic_json, writer_lock
+from .transactions import ManagedDataError, atomic_json, read_pointer, writer_lock
 
 
 def write_json(path, value):
@@ -103,12 +103,17 @@ def current_snapshot(store):
     if isinstance(store, SnapshotReference):
         return store.path
     store = Path(store).resolve()
-    pointer = read_json(store / "CURRENT.json")
-    if pointer.get("format") != "qecgraph.current.v1":
-        raise ValueError("Not a qecgraph CURRENT pointer")
-    snapshot = safe_relative(store, pointer["path"])
-    if snapshot.name != pointer["snapshot_id"]:
-        raise ValueError("Snapshot pointer mismatch")
+    path = store / 'CURRENT.json'
+    pointer = read_pointer(path, 'qecgraph.current.v1')
+    relative, identity = pointer.get('path'), pointer.get('snapshot_id')
+    if not isinstance(relative, str) or not isinstance(identity, str):
+        raise ManagedDataError(path, 'CURRENT is missing a snapshot path or identity')
+    try:
+        snapshot = safe_relative(store, relative)
+    except ValueError as exc:
+        raise ManagedDataError(path, 'CURRENT contains an unsafe snapshot path') from exc
+    if snapshot.name != identity:
+        raise ManagedDataError(path, 'Snapshot pointer mismatch')
     return snapshot
 
 

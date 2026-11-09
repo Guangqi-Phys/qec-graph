@@ -21,7 +21,7 @@ from .graph import canonical, hash_text, read_json
 from .registry import Registry
 from .source_package import Limits, PackageError, unpack
 from .store import extraction_tool_identity, ingest, source_span_index
-from .transactions import atomic_bytes, atomic_json, immutable_json, writer_lock
+from .transactions import ManagedDataError, atomic_bytes, atomic_json, immutable_json, writer_lock
 
 CONFIG = 'qecgraph.toml'
 FORMAT = 'qecgraph.workspace.v1'
@@ -133,6 +133,10 @@ def locate(path=None, *, default=None):
     return local or (Path(default).expanduser().resolve() if default else start)
 
 
+class WorkspaceConfigError(ManagedDataError):
+    pass
+
+
 class Workspace:
     def __init__(self, root=None):
         self.root = locate(root)
@@ -142,28 +146,36 @@ class Workspace:
         return _managed(self.root, relative)
 
     def config(self):
-        with self.path(CONFIG).open('rb') as source:
-            cfg = tomllib.load(source)
+        path = self.path(CONFIG)
+        with path.open('rb') as source:
+            try:
+                cfg = tomllib.load(source)
+            except tomllib.TOMLDecodeError as exc:
+                raise WorkspaceConfigError(path, 'The workspace configuration is not valid TOML') from exc
+            except UnicodeDecodeError as exc:
+                raise WorkspaceConfigError(path, 'The workspace configuration is not valid UTF-8') from exc
         if cfg.get('format') != FORMAT or not isinstance(cfg.get('workspace_id'), str):
-            raise ValueError('Invalid workspace configuration')
+            raise WorkspaceConfigError(path, 'Invalid workspace configuration')
         if set(cfg) - {'format', 'workspace_id', 'limits', 'entrypoints', 'sources'}:
-            raise ValueError('Unsupported workspace settings')
+            raise WorkspaceConfigError(path, 'Unsupported workspace settings')
         for field in ('limits', 'entrypoints', 'sources'):
             if not isinstance(cfg.get(field, {}), dict):
-                raise ValueError(f'{field} must be a table')
+                raise WorkspaceConfigError(path, f'{field} must be a table')
         try:
             Limits(**cfg.get('limits', {}))
         except TypeError as exc:
-            raise ValueError('Unknown workspace limit') from exc
+            raise WorkspaceConfigError(path, 'Unknown workspace limit') from exc
+        except ValueError as exc:
+            raise WorkspaceConfigError(path, str(exc)) from exc
         for key, entry in cfg.get('entrypoints', {}).items():
             if not HEX.fullmatch(key) or not isinstance(entry, str) or not entry:
-                raise ValueError('Entry overrides use source tree hashes and exact relative member names')
+                raise WorkspaceConfigError(path, 'Entry overrides use source tree hashes and exact relative member names')
         for key, source in cfg.get('sources', {}).items():
             if (not HEX.fullmatch(key) or not isinstance(source, dict)
                     or set(source) - {'work_id', 'upstream_version', 'title'}
                     or not isinstance(source.get('work_id'), str) or not source['work_id'].strip()
                     or not all(isinstance(x, str) and x.strip() for x in source.values())):
-                raise ValueError('Invalid explicit source metadata')
+                raise WorkspaceConfigError(path, 'Invalid explicit source metadata')
         return cfg
 
     def init(self, *, no_ingest=False, keep_inputs=False, progress=None):

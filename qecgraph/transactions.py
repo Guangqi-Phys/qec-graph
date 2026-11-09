@@ -13,6 +13,31 @@ from contextlib import contextmanager
 from pathlib import Path
 
 
+class ManagedDataError(ValueError):
+    def __init__(self, path, message):
+        self.path = Path(path)
+        super().__init__(f'{message}: {self.path}')
+
+
+class WriterBusy(ValueError):
+    def __init__(self, root):
+        self.root = Path(root)
+        super().__init__(f'Another writer holds {self.root}')
+
+
+def read_pointer(path, expected_format):
+    """Read one authoritative pointer and reject corrupt JSON or format."""
+    from .graph import read_json
+
+    try:
+        pointer = read_json(path)
+    except ValueError as exc:
+        raise ManagedDataError(path, 'CURRENT contains invalid JSON') from exc
+    if not isinstance(pointer, dict) or pointer.get('format') != expected_format:
+        raise ManagedDataError(path, 'CURRENT has an invalid pointer format')
+    return pointer
+
+
 @contextmanager
 def writer_lock(root):
     root = Path(root)
@@ -24,7 +49,7 @@ def writer_lock(root):
         try:
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as exc:
-            raise ValueError(f'Another writer holds {root}') from exc
+            raise WriterBusy(root) from exc
         try:
             yield
         finally:

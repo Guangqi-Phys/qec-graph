@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .graph import canonical, hash_text, read_json
 from .store import current_snapshot, load_validated_snapshot, safe_relative
-from .transactions import atomic_bytes, atomic_json, immutable_json, writer_lock
+from .transactions import ManagedDataError, atomic_bytes, atomic_json, immutable_json, read_pointer, writer_lock
 from .records import prepare_record
 from .query import resolve_node
 
@@ -32,16 +32,21 @@ class Registry:
         self.root = Path(root).resolve()
 
     def read(self, revision=None):
-        if revision is None:
-            pointer = read_json(self.root / 'CURRENT.json')
-            if pointer.get('format') != 'qecgraph.registry.current.v1':
-                raise ValueError('Not a corpus registry pointer')
-            revision = pointer['revision']
+        pointer_path = self.root / 'CURRENT.json' if revision is None else None
+        if pointer_path is not None:
+            pointer = read_pointer(pointer_path, 'qecgraph.registry.current.v1')
+            revision = pointer.get('revision')
         if not isinstance(revision, str) or len(revision) != 64 or any(c not in '0123456789abcdef' for c in revision):
+            if pointer_path is not None:
+                raise ManagedDataError(pointer_path, 'CURRENT does not identify a valid registry revision')
             raise ValueError('Invalid registry revision')
-        state = read_json(self.root / 'states' / (revision + '.json'))
-        if state.get('schema_version') != FORMAT or hash_text(canonical(state)) != revision:
-            raise ValueError('Registry state schema/hash mismatch')
+        state_path = self.root / 'states' / (revision + '.json')
+        try:
+            state = read_json(state_path)
+        except ValueError as exc:
+            raise ManagedDataError(state_path, 'Registry state contains invalid JSON') from exc
+        if not isinstance(state, dict) or state.get('schema_version') != FORMAT or hash_text(canonical(state)) != revision:
+            raise ManagedDataError(state_path, 'Registry state schema/hash mismatch')
         return state, revision
 
     def _state_or_empty(self):
