@@ -15,6 +15,25 @@ from test_source_package import TEX, tar_bytes
 
 
 class SemanticTests(unittest.TestCase):
+    def test_new_paper_record_cannot_claim_an_unregistered_snapshot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'inputs').mkdir()
+            (root / 'inputs/source.tex').write_bytes(TEX)
+            ws = Workspace(root)
+            previous = ws.init()['release_id']
+            state, _ = ws.registry.read(previous)
+            version, = state['versions'].values()
+            digest = 'a' * 64
+            origin = {'id': version['id'], 'revision': digest}
+            record = make_record('paper_version', version['id'], digest,
+                                 {'work_id': version['work_id'], 'upstream_version': version['upstream_version'],
+                                  'source_snapshot_id': digest}, source=origin, method='fixture')
+            with self.assertRaisesRegex(ValueError, 'current registered source projection'):
+                publish_records(ws.registry, [record])
+            self.assertEqual(ws.registry.read()[1], previous)
+            self.assertTrue(ws.validate()['valid'])
+
     def test_iterator_records_are_verified_before_publication(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

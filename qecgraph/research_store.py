@@ -30,9 +30,27 @@ def validate_sources(registry, state, records, *, require_source=True, verified_
     from .workspace import HEX
     from .workspace_assets import asset_bytes, references
     graphs = {}
+
+    def snapshot_spans(digest):
+        if digest not in graphs:
+            snapshot = safe_relative(registry.root, 'source_snapshots/' + digest)
+            indexed = verified_spans.get((snapshot, digest)) if verified_spans is not None else None
+            if indexed is None:
+                graph, _ = load_validated_snapshot(snapshot, digest)
+                indexed = source_span_index(graph)
+            graphs[digest] = indexed
+        return graphs[digest]
+
     for record in records:
         if record['is_synthetic']:
             continue
+        if record['kind'] == 'paper_version' and require_source:
+            version = state['versions'].get(record['id'])
+            digest, data = record['revision'], record['data']
+            if (not version or not HEX.fullmatch(digest) or data.get('source_snapshot_id') != digest
+                    or any(data.get(field) != version[field] for field in ('work_id', 'upstream_version'))
+                    or snapshot_spans(digest)[0] != version['project_id']):
+                raise ValueError('Paper version records must refer to a registered source projection')
         for uri in references(record):
             asset_bytes(registry, uri)
         for evidence in record['field_evidence'].values():
@@ -45,14 +63,7 @@ def validate_sources(registry, state, records, *, require_source=True, verified_
             if (not version or not isinstance(digest, str) or not HEX.fullmatch(digest)
                     or locator.get('source_version_id') != identifier or locator.get('snapshot_id') != digest):
                 raise ValueError('Source evidence must bind a registered version and snapshot')
-            if digest not in graphs:
-                snapshot = safe_relative(registry.root, 'source_snapshots/' + digest)
-                indexed = verified_spans.get((snapshot, digest)) if verified_spans is not None else None
-                if indexed is None:
-                    graph, _ = load_validated_snapshot(snapshot, digest)
-                    indexed = source_span_index(graph)
-                graphs[digest] = indexed
-            project_id, nodes = graphs[digest]
+            project_id, nodes = snapshot_spans(digest)
             span = nodes.get(locator.get('node_id'))
             a, b = locator.get('char_start'), locator.get('char_end')
             if span is not None:
@@ -61,9 +72,6 @@ def validate_sources(registry, state, records, *, require_source=True, verified_
                         and path == locator.get('path') and type(a) is int and type(b) is int and start <= a < b <= end):
                     continue
             raise ValueError('Source evidence does not resolve to a verbatim registered span')
-        if record['kind'] == 'paper_version' and require_source:
-            if record['id'] not in state['versions'] or record['data'].get('source_snapshot_id') != record['revision']:
-                raise ValueError('Paper version records must refer to a registered source projection')
 
 
 def stage_records(registry, state, records, *, verified_spans=None):
@@ -80,6 +88,13 @@ def stage_records(registry, state, records, *, verified_spans=None):
         input_count += 1
     indexed.update(incoming)
     validated = validate_bundle(indexed.values())
+    index = state.get('research_records', {})
+    for identifier, revision in incoming:
+        record = validated[identifier, revision]
+        if (record['kind'] == 'paper_version' and not record['is_synthetic']
+                and revision not in index.get(identifier, {})
+                and state['versions'].get(identifier, {}).get('snapshot_id') != revision):
+            raise ValueError('New paper version records must bind the current registered source projection')
     validate_sources(registry, state, (validated[identity] for identity in incoming), verified_spans=verified_spans)
     index = state.setdefault('research_records', {})
     for identifier, revision in incoming:
