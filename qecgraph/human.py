@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import tempfile
 
-from .graph import hash_text, read_json
+from .graph import canonical, hash_text, read_json
 from .research import RELATIONS
 from .status import eligible
 from .transactions import atomic_bytes, atomic_json, writer_lock
@@ -221,7 +221,48 @@ def _status_page(release, materials):
                         '- A proof link identifies its target; it is not a verification result.']) + '\n'
 
 
-def _render(session, previous, bindings):
+def _active_entities(entities, titles, relations):
+    return {identifier: {'title': titles[identifier],
+                         'sha256': hash_text(canonical([rows, sorted(relations.get(identifier, ()))]))}
+            for identifier, rows in sorted(entities.items())}
+
+
+def _release_changes(active, past, release):
+    before = past.get('active_entities')
+    if before is None:
+        return {'base_release': None, 'added': [], 'updated': [], 'archived': []}
+    if past['release_id'] == release and before == active and 'changes' in past:
+        return past['changes']
+
+    def items(identifiers, view):
+        return [{'id': identifier, 'title': view[identifier]['title']} for identifier in sorted(identifiers)]
+
+    return {'base_release': past['release_id'], 'added': items(active.keys() - before.keys(), active),
+            'updated': items((k for k in active.keys() & before.keys() if active[k] != before[k]), active),
+            'archived': items(before.keys() - active.keys(), before)}
+
+
+def _changes_page(release, changes, targets):
+    sections = [_heading('Recent changes', release)]
+    base = changes['base_release']
+    if base is None:
+        sections.append('This is the first generated baseline. Future renders compare against the last rendered release.')
+    else:
+        sections.append(f'Compared with rendered release `{base}`.')
+        for kind in ('added', 'updated', 'archived'):
+            rows = changes[kind]
+            sections.append(f'## {kind.capitalize()} ({len(rows)})')
+            if rows:
+                links = [f'- {_link(targets[row["id"]], row["title"])}' for row in rows[:50]]
+                if len(rows) > 50:
+                    links.append(f'- … {len(rows) - 50} more; use the category indexes for the full list.')
+                sections.append('\n'.join(links))
+            else:
+                sections.append('None.')
+    return '\n\n'.join(sections) + '\n'
+
+
+def _render(session, previous, bindings, past):
     materials = session.material_records()
     research = session.visible_research()
     visible_revisions = {(record['id'], record['revision']) for record in research}
@@ -236,6 +277,8 @@ def _render(session, previous, bindings):
     targets = {identifier: all_targets[identifier] for identifier in entities}
     titles = {identifier: _title(rows[0]) for identifier, rows in entities.items()}
     relations = _relation_index(edges)
+    active = _active_entities(entities, titles, relations)
+    changes = _release_changes(active, past, session.release)
     pages, index = {}, {}
     for identifier, records in sorted(entities.items()):
         path, title, first = targets[identifier], titles[identifier], records[0]
@@ -262,8 +305,10 @@ def _render(session, previous, bindings):
         pages[path] = (_heading('Archived entity', session.release)
                        + '\n\nThis stable page is retained for existing links. The entity is absent from this release.\n').encode()
     pages['generated/Status.md'] = _status_page(session.release, materials).encode()
+    pages['generated/Changes.md'] = _changes_page(session.release, changes, all_targets).encode()
     root = [_heading('QEC Graph', session.release), 'Open a category below. Personal notes live in `notes/`.',
-            f'- {_link("generated/Status.md", "Release status and legend")}']
+            f'- {_link("generated/Status.md", "Release status and legend")}',
+            f'- {_link("generated/Changes.md", "Recent changes")}']
     for group, by_kind in sorted(index.items()):
         path = f'generated/{group}/Index.md'
         body = [_heading(group.title(), session.release)]
@@ -275,7 +320,7 @@ def _render(session, previous, bindings):
                 body.append(f'- {_link(target, title)}')
         pages[path] = ('\n'.join(body) + '\n').encode()
         root.append(f'- {_link(path, group.title())} ({sum(map(len, by_kind.values()))})')
-    return pages, ('\n'.join(root) + '\n').encode(), all_targets
+    return pages, ('\n'.join(root) + '\n').encode(), all_targets, active, changes
 
 
 def _operational(ws, release, human_status, last_release):
@@ -310,7 +355,29 @@ def _history(ws, name):
                 or not hash_text(identifier).startswith(match[1])):
             raise ValueError('Invalid renderer page binding')
         seen.add(relative)
+    _check_change_history(data, bindings)
     return data
+
+
+def _check_change_history(data, bindings):
+    active, changes = data.get('active_entities'), data.get('changes')
+    if active is None and changes is None:
+        return
+    if not isinstance(active, dict) or not isinstance(changes, dict) or 'base_release' not in changes:
+        raise ValueError('Invalid renderer change history')
+    for identifier, row in active.items():
+        if (identifier not in bindings or not isinstance(row, dict) or not isinstance(row.get('title'), str)
+                or not isinstance(row.get('sha256'), str) or not HEX.fullmatch(row['sha256'])):
+            raise ValueError('Invalid renderer entity history')
+    base = changes.get('base_release')
+    if base is not None and (not isinstance(base, str) or not HEX.fullmatch(base)):
+        raise ValueError('Invalid base release in renderer history')
+    for kind in ('added', 'updated', 'archived'):
+        rows = changes.get(kind)
+        if not isinstance(rows, list) or any(not isinstance(row, dict) or not isinstance(row.get('id'), str)
+                                             or row['id'] not in bindings or not isinstance(row.get('title'), str)
+                                             for row in rows):
+            raise ValueError('Invalid change list in renderer history')
 
 
 def _merge_bindings(published, pending):
@@ -338,9 +405,9 @@ def build_human(workspace=None, release=None):
             session = WorkspaceSession(ws.registry.root, latest)
             bindings = _merge_bindings(past['entity_pages'], interrupted['entity_pages'])
             previous = set(past['pages']) | set(interrupted['pages'])
-            pages, index, targets = _render(session, previous, bindings)
+            pages, index, targets, active, changes = _render(session, previous, bindings, past)
             state = {'format': FORMAT, 'release_id': latest, 'pages': sorted(p for p in pages if _owned_page(p)),
-                     'entity_pages': dict(sorted(targets.items()))}
+                     'entity_pages': dict(sorted(targets.items())), 'active_entities': active, 'changes': changes}
             staging_root = ws.path('.qecgraph/human-staging')
             staging_root.mkdir(exist_ok=True)
             with tempfile.TemporaryDirectory(prefix='render-', dir=staging_root) as staging:

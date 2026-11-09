@@ -158,3 +158,25 @@ Compute the commutator.
             bindings = _assign_pages({existing_id: rows, new_id: rows}, set(old.values()), old)
         self.assertEqual(bindings[existing_id], old[existing_id])
         self.assertNotEqual(bindings[existing_id], bindings[new_id])
+
+    def test_recent_changes_stays_bound_to_the_previous_rendered_release(self):
+        baseline = self.ws.sync()['release_id']
+        build_human(self.root, baseline)
+        vault = self.root / 'human'
+        changes = vault / 'generated/Changes.md'
+        self.assertIn('first generated baseline', changes.read_text(encoding='utf-8'))
+
+        (self.root / 'inputs/second').write_bytes(TEX.replace(b'Hello', b'Another article'))
+        newest = self.ws.sync()['release_id']
+        self.assertNotEqual(newest, baseline)
+        self.assertEqual(build_human(self.root, newest)['status'], 'current')
+        report = changes.read_text(encoding='utf-8')
+        self.assertIn(f'Compared with rendered release `{baseline}`.', report)
+        self.assertIn('## Added (2)', report)
+        self.assertIn('## Archived (0)', report)
+        for target in re.findall(r'\[\[([^|]+)\|', report):
+            self.assertTrue((vault / (target + '.md')).is_file(), target)
+        with patch('qecgraph.human.atomic_bytes', wraps=atomic_bytes) as writes:
+            self.assertEqual(build_human(self.root, newest)['status'], 'current')
+            writes.assert_not_called()
+        self.assertEqual(changes.read_text(encoding='utf-8'), report)

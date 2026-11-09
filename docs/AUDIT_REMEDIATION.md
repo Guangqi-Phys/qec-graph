@@ -30,7 +30,7 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 22 | Share storage and publication primitives | Open. |
 | 23 | Share query logic across store, corpus, and workspace | Open. Preserve scope and evidence semantics. |
 | 24 | Stage graph construction and test parser boundaries | Open. |
-| 25 | Improve generated Obsidian pages and migration | In progress. Pages show aliases, tags, source locators, evidence and review tables, eligible relations, readable links, grouped indexes, and a status legend. Readable paths preserve existing bindings, with forwarding pages for old links. Tests cover collisions, an unrelated file at a new path, and note isolation. Release change summaries and visual verification remain. |
+| 25 | Improve generated Obsidian pages and migration | Implemented and tested for Markdown output. Pages include aliases, tags, sources, evidence and review tables, eligible relations, grouped indexes, and status and change pages. Readable paths preserve old links. Tests cover deterministic rendering, migration, collisions, unrelated files, and note isolation. Visual verification in Obsidian remains. |
 | 26 | Verify release artifacts before publication | In progress. Tag builds gate GitHub Release on verified distributions and an installed wheel. The manual PyPI workflow checks published artifact hashes and requires repository environment and Trusted Publisher setup. Hosted publication remains unverified. |
 | 27 | Verify Linux and MCP isolation | Open. |
 | 28 | Pin expected results for a real-paper corpus | Open. Check redistribution rights for any fixture committed to Git. |
@@ -60,3 +60,6 @@ items 12, 13, and 19.
 - The proposed multi-line default workspace output conflicts with the requested
   one-line progress and outcome. Keep the compact default, add quiet and color
   controls, and expose detailed inspection through `--json` and `doctor`.
+- An existing vault-level README may be a personal file. Publish the vault
+  status guide and change summary under the owned `human/generated/` directory
+  and link them from the generated index.

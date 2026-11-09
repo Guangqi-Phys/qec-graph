@@ -160,6 +160,9 @@ The category indexes link to readable titles. A record page shows its source,
 review and verification status, eligible relations, and an expandable data
 section. Open **Release status and legend** from the vault index to see the
 fixed release's coverage and what each evidence status means.
+**Recent changes** compares that release with the previous rendered release.
+The first render establishes a baseline; rerendering the same release keeps
+the comparison intact.
 
 On the first render after upgrading, old generated page paths become links
 to their replacements. Removed entities retain an archived page for existing
