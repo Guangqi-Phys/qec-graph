@@ -7,7 +7,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -140,6 +143,16 @@ class PipelineSemanticsTests(unittest.TestCase):
         fragment.symlink_to(outside)
         with self.assertRaisesRegex(ValueError, "Path escapes root"):
             validate_snapshot(snapshot)
+
+    def test_snapshot_validation_rejects_a_named_pipe_without_blocking(self):
+        _, _, snapshot = self._write_project(r"\section{Example}Fixture.")
+        graph_path = snapshot / "graph.json"
+        graph_path.unlink()
+        os.mkfifo(graph_path)
+        result = subprocess.run([sys.executable, "-m", "qecgraph", "validate", "--store", str(self.store)],
+                                capture_output=True, text=True, timeout=5)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn("Expected a regular snapshot output", result.stderr)
 
     def test_demo_has_exact_real_labels_and_ignores_comment_and_verbatim_ghosts(self):
         _, graph, _ = self._demo()

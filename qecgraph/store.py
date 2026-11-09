@@ -416,6 +416,8 @@ def source_span_index(graph):
 def snapshot_database(snapshot):
     """Open only the standalone SQLite file belonging to a published snapshot."""
     path = safe_relative(snapshot, "graph.sqlite")
+    if not path.is_file():
+        raise ValueError("Expected a regular snapshot output: graph.sqlite")
     for suffix in ("-wal", "-shm", "-journal"):
         sidecar = path.with_name(path.name + suffix)
         try:
@@ -432,21 +434,31 @@ def snapshot_database(snapshot):
         connection.close()
 
 
+def _open_regular_snapshot_file(path, *, dir_fd=None):
+    flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+    output = os.fdopen(os.open(path, flags, dir_fd=dir_fd), "rb")
+    if not stat.S_ISREG(os.fstat(output.fileno()).st_mode):
+        output.close()
+        raise ValueError(f"Expected a regular snapshot output: {path}")
+    return output
+
+
+def _read_snapshot_file(path):
+    with _open_regular_snapshot_file(path) as output:
+        return output.read()
+
+
 def _hash_snapshot_output(root, relative, directory_fd):
     name = relative.rpartition("/")[2]
-    flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
     try:
-        descriptor = os.open(name, flags, dir_fd=directory_fd)
+        output = _open_regular_snapshot_file(name, dir_fd=directory_fd)
     except OSError as exc:
         if exc.errno != errno.ELOOP:
             raise
         # Older standalone stores may use links that resolve inside the snapshot.
-        descriptor = os.open(_safe_relative_to_resolved(root, relative), flags)
-    with os.fdopen(descriptor, "rb") as output:
-        metadata = os.fstat(output.fileno())
-        if not stat.S_ISREG(metadata.st_mode):
-            raise ValueError(f"Expected a regular snapshot output: {relative}")
-        if metadata.st_size > 1 << 20:
+        output = _open_regular_snapshot_file(_safe_relative_to_resolved(root, relative))
+    with output:
+        if os.fstat(output.fileno()).st_size > 1 << 20:
             return hashlib.file_digest(output, "sha256").hexdigest()
         return hashlib.sha256(output.read()).hexdigest()
 
@@ -488,14 +500,14 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_has
     expected = expected_snapshot_id or snapshot.name
     output_root = snapshot.resolve()
     manifest_path = _safe_relative_to_resolved(output_root, "manifest.json")
-    manifest_bytes = manifest_path.read_bytes()
+    manifest_bytes = _read_snapshot_file(manifest_path)
     if manifest_hashes is not None:
         manifest_hash = hashlib.sha256(manifest_bytes).hexdigest()
         if expected in manifest_hashes and manifest_hashes[expected] != manifest_hash:
             raise ValueError("Snapshot manifest changed within the pinned session")
     manifest = strict_json_loads(manifest_bytes.decode("utf-8"), source=str(manifest_path))
     graph_path = _safe_relative_to_resolved(output_root, "graph.json")
-    graph_bytes = graph_path.read_bytes()
+    graph_bytes = _read_snapshot_file(graph_path)
     graph = strict_json_loads(graph_bytes.decode("utf-8"), source=str(graph_path))
     validate_graph_types(graph)
     if graph["snapshot_id"] != expected or manifest["snapshot_id"] != expected:
@@ -505,7 +517,7 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_has
         raise ValueError("Snapshot fingerprint mismatch")
     config_relative = "inputs/parser_config.json"
     config_path = _safe_relative_to_resolved(output_root, config_relative)
-    config_bytes = config_path.read_bytes()
+    config_bytes = _read_snapshot_file(config_path)
     config = strict_json_loads(config_bytes.decode("utf-8"), source=str(config_path))
     source_hash = _project_source_hash(graph["entry"], manifest["source_files"], manifest["resources"], config)
     if (source_hash != fingerprint["project_source_hash"] or source_hash != graph["project_source_hash"]
@@ -517,7 +529,7 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_has
     source_root = _safe_relative_to_resolved(output_root, "sources")
     for source in manifest["source_files"]:
         path = source["path"]
-        raw = _safe_relative_to_resolved(source_root, path).read_bytes()
+        raw = _read_snapshot_file(_safe_relative_to_resolved(source_root, path))
         digest = hashlib.sha256(raw).hexdigest()
         if digest != source["sha256"]:
             raise ValueError("Source hash mismatch")
