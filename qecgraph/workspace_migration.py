@@ -58,7 +58,7 @@ def migrate_corpus(corpus, destination, revision=None):
             state, fixed = source.read(revision)
             if state.get('workspace_id'):
                 raise ValueError('Use backup/restore for a workspace; migration expects a legacy corpus')
-            validation = source.validate(fixed)
+            validation = source._validate_state(state, fixed)
             if not validation['passed']:
                 raise ValueError('Legacy corpus has validation errors; inspect validate-corpus before migrating')
             unknown = _unresolved(source, state)

@@ -423,8 +423,8 @@ class Workspace:
         check_machine_tree(self.registry.root)
         if progress:
             progress(1, 3, 'Checking the current release')
-        result = self.registry.validate(check_live_lean=False)
-        state, fixed = self.registry.read(result['registry_revision'])
+        state, fixed = self.registry.read()
+        result = self.registry._validate_state(state, fixed, check_live_lean=False)
         issues = result.setdefault('issues', [])
         from .research import validate_bundle
         records = load_records(self.registry, state)
