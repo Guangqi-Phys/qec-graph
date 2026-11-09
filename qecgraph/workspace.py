@@ -417,6 +417,41 @@ class Workspace:
                 digests.add(digest)
         return digests
 
+    def _finish_claims(self, claims, materials, release, limit, keep_inputs):
+        # Recovery replays the exact claim and verifies the published result.
+        for job, meta, digest in claims:
+            material = materials[digest]
+            payload = job / 'payload'
+            finished = material['processing_completed']
+            decision = {'release_id': release, 'archive_sha256': digest, 'source_registered': True,
+                        'outputs_committed': finished, 'keep_inputs': keep_inputs or meta['keep_inputs']}
+            atomic_json(job / 'commit.json', decision)
+            row = {'input': meta['name'], 'receipt_id': job.name, **material, **decision, 'input_consumed': False}
+            try:
+                if finished and not material['source_version_conflict'] and not decision['keep_inputs']:
+                    if _hash_regular(payload, limit) != digest:
+                        raise ValueError('Claim changed after archiving')
+                    payload.unlink()
+                    row['input_consumed'] = True
+                else:
+                    row['restored'] = self._restore(job, payload, meta['name'])
+                    if not row['restored']:
+                        row['retained_claim'] = job.name
+            except (OSError, ValueError) as exc:
+                row['cleanup_error'] = str(exc)
+                row['status'] = 'committed_pending_cleanup' if finished else material['status']
+            yield row
+
+    def _write_operational_status(self, release, counts):
+        self.path('machine/operational').mkdir(exist_ok=True)
+        operational = self.path('machine/operational/status.json')
+        earlier = read_json(operational) if operational.is_file() else {}
+        prior_human = earlier.get('human') or {}
+        rendered = prior_human.get('rendered_release_id')
+        human_status = 'current' if rendered == release and prior_human.get('status') == 'current' else 'human_stale'
+        atomic_json(operational, {'observed_at': now(), 'release_id': release, 'counts': counts,
+                    'human': {'status': human_status, 'target_release_id': release, 'rendered_release_id': rendered}})
+
     def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None):
         if not self.path('machine/CURRENT.json').is_file() and (
                 self.path('machine/operational/status.json').exists()
@@ -525,42 +560,13 @@ class Workspace:
             release = self.registry.publish_prepared(candidate)
         if progress:
             progress(steps - 1, steps, 'Finalizing workspace')
-        # Recovery after a killed process replays the exact claim and verifies the published result.
-        for job, meta, digest in claims:
-            material = materials[digest]
-            payload = job / 'payload'
-            finished = material['processing_completed']
-            decision = {'release_id': release, 'archive_sha256': digest, 'source_registered': True,
-                        'outputs_committed': finished, 'keep_inputs': keep_inputs or meta['keep_inputs']}
-            atomic_json(job / 'commit.json', decision)
-            row = {'input': meta['name'], 'receipt_id': job.name, **material, **decision, 'input_consumed': False}
-            try:
-                if finished and not material['source_version_conflict'] and not decision['keep_inputs']:
-                    if _hash_regular(payload, limits.input_bytes) != digest:
-                        raise ValueError('Claim changed after archiving')
-                    payload.unlink()
-                    row['input_consumed'] = True
-                else:
-                    row['restored'] = self._restore(job, payload, meta['name'])
-                    if not row['restored']:
-                        row['retained_claim'] = job.name
-            except (OSError, ValueError) as exc:
-                row['cleanup_error'] = str(exc)
-                row['status'] = 'committed_pending_cleanup' if finished else material['status']
-            rows.append(row)
+        rows.extend(self._finish_claims(claims, materials, release, limits.input_bytes, keep_inputs))
         if rebuild:
             rows.extend(materials[digest] for digest in sorted(digests))
         counts = {'registered': len(materials), 'processed': sum(x['processing_completed'] for x in materials.values()),
                   'conflicting': sum(x['source_version_conflict'] for x in materials.values()),
                   'code_mention_proposals': sum(p['code_mentions'] for p in proposal_map.values())}
-        self.path('machine/operational').mkdir(exist_ok=True)
-        operational = self.path('machine/operational/status.json')
-        earlier = read_json(operational) if operational.is_file() else {}
-        prior_human = earlier.get('human') or {}
-        rendered = prior_human.get('rendered_release_id')
-        human_status = 'current' if rendered == release and prior_human.get('status') == 'current' else 'human_stale'
-        atomic_json(operational, {'observed_at': now(), 'release_id': release, 'counts': counts,
-                    'human': {'status': human_status, 'target_release_id': release, 'rendered_release_id': rendered}})
+        self._write_operational_status(release, counts)
         partial = any(not r.get('processing_completed') or r.get('cleanup_error') or r.get('retained_claim')
                       or r.get('source_version_conflict') for r in rows)
         return {'status': 'partial_batch' if partial else 'unchanged' if old == release else 'published',
