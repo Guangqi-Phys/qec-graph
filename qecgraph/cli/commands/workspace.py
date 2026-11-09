@@ -95,8 +95,9 @@ def workspace_action(args, progress):
         if args.verbose:
             print(f'qec-graph {args.command}: Rendering Obsidian views', file=sys.stderr, flush=True)
         result['human'] = _render_release(ws.root, result['release_id'])
-    code = 2 if (result['status'] in {'partial_batch', 'invalid'}
-                 or result.get('human', {}).get('status') in ('human_stale', 'superseded')) else 0
+    renderer_failed = (args.command in _WORKSPACE_WRITE_COMMANDS
+                       and result.get('human', {}).get('status') in ('human_stale', 'superseded'))
+    code = 2 if result['status'] in {'partial_batch', 'invalid'} or renderer_failed else 0
     if progress:
         return progress.finish(*workspace_summary(args.command, result, code))
     return emit_report(result, exit_code=code)

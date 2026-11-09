@@ -625,11 +625,28 @@ class Workspace:
         partial = any((not material.get('processing_completed') or material.get('source_version_conflict'))
                       and not material['quarantined']
                       for material in materials)
+        pending_inputs = sum(1 for _ in self._inbox())
+        pending_claims = sum(1 for _ in self._pending_jobs())
+        counts = {'registered': len(materials), 'processed': sum(bool(m.get('processing_completed')) for m in materials),
+                  'conflicting': sum(bool(m.get('source_version_conflict')) for m in materials),
+                  'pending_inputs': pending_inputs, 'pending_claims': pending_claims, 'quarantined': len(quarantined)}
+        try:
+            observed = read_operational_status(self.path('machine/operational/status.json'))
+        except (OSError, ValueError):
+            observed = {}
+        human = {'status': 'unknown', 'target_release_id': release, 'rendered_release_id': None}
+        view = observed.get('human')
+        if (observed.get('release_id') == release and isinstance(view, dict) and view.get('target_release_id') == release
+                and view.get('status') in ('current', 'human_stale')):
+            rendered = view.get('rendered_release_id')
+            if rendered is None or isinstance(rendered, str) and HEX.fullmatch(rendered):
+                human['rendered_release_id'] = rendered
+                human['status'] = 'current' if rendered == release and view.get('status') == 'current' else 'human_stale'
         return {'status': 'partial_batch' if partial else 'ok',
                 'workspace_id': cfg['workspace_id'], 'release_id': release, 'materials': materials,
+                'counts': counts, 'human': human,
                 'quarantined_inputs': quarantined,
-                'pending_inputs': sum(1 for _ in self._inbox()),
-                'pending_claims': sum(1 for _ in self._pending_jobs())}
+                'pending_inputs': pending_inputs, 'pending_claims': pending_claims}
 
     def validate(self, *, progress=None):
         cfg = self.config()

@@ -125,12 +125,11 @@ def workspace_summary(action, result, code):
         return issue.get('message') or issue.get('code') or 'workspace validation failed', code
     if action == 'status':
         materials = result['materials']
-        count = len(materials)
-        ready = sum(row.get('processing_completed', False) for row in materials)
+        counts = result['counts']
         problem = next(filter(None, (_input_problem(row) for row in materials if not row.get('quarantined'))), None)
-        summary = f'{ready}/{count} packages indexed'
-        if held := result.get('quarantined_inputs'):
-            summary += f'; {len(held)} quarantined'
+        summary = f"{counts['processed']}/{counts['registered']} packages indexed"
+        if held := counts['quarantined']:
+            summary += f'; {held} quarantined'
         if problem:
             summary += f'; {problem}'
         return summary, code

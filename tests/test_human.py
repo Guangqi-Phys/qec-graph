@@ -86,6 +86,34 @@ class HumanTests(unittest.TestCase):
         self.assertEqual(self.ws.registry.read()[1], release)
         self.assertEqual(self.note.read_bytes(), b'private\x00note')
 
+    def test_workspace_status_binds_inventory_and_view_status_to_current_release(self):
+        from qecgraph.cli import main
+        from contextlib import redirect_stdout
+        from io import StringIO
+
+        release = self.ws.sync()['release_id']
+
+        def status():
+            stdout = StringIO()
+            with redirect_stdout(stdout):
+                self.assertEqual(main(['status', '--workspace', str(self.root), '--json']), 0)
+            return json.loads(stdout.getvalue())
+
+        first = status()
+        self.assertEqual(first['counts']['registered'], 1)
+        self.assertEqual(first['counts']['processed'], 1)
+        self.assertEqual(first['human'], {'status': 'human_stale', 'target_release_id': release,
+                                          'rendered_release_id': None})
+        self.assertEqual(build_human(self.root, release)['status'], 'current')
+        self.assertEqual(status()['human'], {'status': 'current', 'target_release_id': release,
+                                            'rendered_release_id': release})
+        path = self.ws.registry.root / 'operational/status.json'
+        other = json.loads(path.read_bytes())
+        other['release_id'] = '0' * 64
+        path.write_text(json.dumps(other), encoding='utf-8')
+        self.assertEqual(status()['human'], {'status': 'unknown', 'target_release_id': release,
+                                            'rendered_release_id': None})
+
     def test_renderer_does_not_follow_generated_symlink_to_note(self):
         release = self.ws.sync()['release_id']
         build_human(self.root, release)

@@ -121,6 +121,9 @@ Pass `--json` before or after a command to request a detailed workspace
 report and versioned CLI errors. Successful JSON reports keep their command
 specific fields. Partial workspace operations still return their full report,
 including counts and individual failures, and exit with code 2.
+`status --json` includes inventory counts and the Obsidian view status for the
+selected release. The view is `unknown` if no matching observation is available.
+View freshness is reported separately from the package status and exit code.
 
 | Exit code | Meaning |
 | --- | --- |
