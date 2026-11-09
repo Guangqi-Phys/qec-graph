@@ -180,6 +180,10 @@ class WorkspaceQueryTests(unittest.TestCase):
                 self.assertEqual(response['error']['details']['revisions'], ['r1', 'r2'])
         first = session.invoke('qec_get_entity', {'identifier': identifier, 'revision': 'r1'})
         self.assertEqual(first['data']['entity']['data']['n_data'], 3)
+        self.assert_research_cli_matches_tool(session, ['show', identifier, '--revision', 'r1'], 'qec_get_entity',
+                                              {'identifier': identifier, 'revision': 'r1'})
+        self.assert_research_cli_matches_tool(session, ['context', identifier, '--revision', 'r2'], 'qec_get_context',
+                                              {'identifier': identifier, 'revision': 'r2', 'max_nodes': 60})
         missing = session.invoke('qec_get_entity', {'identifier': identifier, 'revision': 'missing'})
         self.assertEqual(missing['error']['code'], 'NOT_FOUND')
 

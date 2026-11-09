@@ -155,7 +155,9 @@ JSON
 Copy a result's `id` into `qec_get_entity`. For a graph hit with a source span,
 pass its occurrence ID to `qec_get_source` to retrieve the exact LaTeX. MCP
 clients can also list and read registered passages by their `qec://source/`
-resource URIs. The CLI also offers direct commands for structured queries.
+resource URIs. In the CLI, use `--revision` with workspace `query show` or
+`query context` to select an exact research record revision. The CLI also
+offers direct commands for structured queries.
 
 ```sh
 qec-graph query codes --workspace . --n-min 10 --n-max 100 --limit 5

@@ -384,12 +384,15 @@ def _register_commands(add):
     cmd = add("show", help="Read one node with its incoming/outgoing edges")
     cmd.add_argument("id_or_label", help='Exact ID or unique label within the selected scope')
     _add_query_scope(cmd, workspace=True)
+    cmd.add_argument('--revision', help='Exact workspace research record revision')
     for name, description in (("deps", "Trace active graph dependencies"),
                               ("impact", "Trace potential impact through graph dependencies"),
                               ("context", "Read bounded evidence and source context")):
         cmd = add(name, help=description)
         cmd.add_argument("id_or_label", help='Exact ID or unique label within the selected scope')
         _add_query_scope(cmd, workspace=True)
+        if name == 'context':
+            cmd.add_argument('--revision', help='Exact workspace research record revision')
         cmd.add_argument("--depth", type=int, default=2,
             help='Maximum number of dependency steps (default: %(default)s)')
         cmd.add_argument("--include-candidates", action="store_true",

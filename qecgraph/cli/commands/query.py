@@ -51,12 +51,15 @@ def _workspace_query(args):
     if args.command == 'search':
         session = _workspace_session(args, max_results=args.limit)
         return session.invoke('qecgraph_search', {'query': args.query, 'kind': args.kind, 'limit': args.limit})
+    selector = {'identifier': args.id_or_label}
+    revision = getattr(args, 'revision', None)
+    if revision is not None:
+        selector['revision'] = revision
     if args.command == 'show':
-        return _workspace_session(args).invoke('qec_get_entity', {'identifier': args.id_or_label})
+        return _workspace_session(args).invoke('qec_get_entity', selector)
     session = _workspace_session(args, max_nodes=args.max_nodes, max_depth=args.depth)
     tool = 'qec_get_context' if args.command == 'context' else 'qecgraph_' + args.command
-    return session.invoke(tool, {'identifier': args.id_or_label, 'depth': args.depth,
-                                 'max_nodes': args.max_nodes,
+    return session.invoke(tool, {**selector, 'depth': args.depth, 'max_nodes': args.max_nodes,
                                  'include_candidates': args.include_candidates})
 
 
@@ -75,6 +78,8 @@ def _select_store_snapshot(args):
 def graph_query(args):
     if args.workspace or args.machine:
         return _emit_tool_result(args, _workspace_query(args))
+    if getattr(args, 'revision', None) is not None:
+        raise ValueError('--revision requires --workspace or --machine')
     _select_store_snapshot(args)
     selector = getattr(args, 'id_or_label', None)
     options = {'text': getattr(args, 'query', None), 'kind': getattr(args, 'kind', None),
