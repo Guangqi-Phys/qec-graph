@@ -3,11 +3,14 @@ graft examples
 graft knowledge_starter
 graft schemas
 graft tools
-include docs/ADVANCED_USAGE.md docs/DATA_AND_SEARCH.md docs/rfc-002/WORKSPACE.md
+include AGENTS.md CHANGELOG.md CODEX_TASK.md IMPLEMENTATION_AUDIT.md START_HERE.md
+recursive-include docs *.md
+exclude docs/CODEBASE_ASSESSMENT.md
+include validation/REPORT.md validation/rfc002/REPORT.md
 include lean/axiom-policy.json lean/targets.json
 graft validation/p5/step21
 include validation/p5/fixed-step20/report.json validation/p5/zero-axiom-policy/audit.json
 prune qec_graph_codex_handoff
 prune build
 prune dist
-global-exclude *.py[cod]
+global-exclude *.py[cod] .DS_Store
