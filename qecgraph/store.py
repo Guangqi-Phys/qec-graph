@@ -69,7 +69,9 @@ def snapshot_reference(store, snapshot_id=None):
     else:
         if len(snapshot_id) != 64 or any(c not in '0123456789abcdef' for c in snapshot_id):
             raise ValueError('Invalid snapshot ID')
-        snapshot = Path(store).resolve() / 'snapshots' / snapshot_id
+        snapshot = safe_relative(Path(store), 'snapshots/' + snapshot_id)
+        if snapshot.name != snapshot_id:
+            raise ValueError('Snapshot pointer mismatch')
     return SnapshotReference(snapshot, snapshot.name)
 
 

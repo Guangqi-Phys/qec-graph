@@ -113,6 +113,15 @@ class AIToolTests(unittest.TestCase):
         finally:
             connection.close()
 
+    def test_explicit_snapshot_cannot_follow_a_link_outside_its_store(self):
+        snapshot = Path(self.result['snapshot'])
+        outside = self.root / 'detached' / snapshot.name
+        outside.parent.mkdir()
+        snapshot.rename(outside)
+        snapshot.symlink_to(outside, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, 'Path escapes root'):
+            ReadOnlySession(store=self.store, snapshot_id=self.result['snapshot_id'])
+
     def test_budget_refuses_partial_root_and_marks_missing_dependencies(self):
         huge = 'Assumption H. ' * 1000
         self.entry.write_text(r'\newtheorem{lemma}{Lemma}\begin{lemma}\label{huge}' + huge + r'\end{lemma}'
