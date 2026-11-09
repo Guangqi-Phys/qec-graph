@@ -102,6 +102,29 @@ def _matches_regular(path, limit, expected):
     return True
 
 
+def _inbox_name(name):
+    if not name or Path(name).name != name or name in ('.', '..') or name.startswith('.'):
+        raise ValueError('Expected a file name directly inside inputs/')
+    return name
+
+
+def _move_input(source, destination):
+    # Exclusive destination creation also makes a retry after linking safe.
+    if source.is_symlink():
+        try:
+            destination.symlink_to(os.readlink(source))
+        except FileExistsError:
+            return False
+    else:
+        try:
+            os.link(source, destination, follow_symlinks=False)
+        except FileExistsError:
+            if not os.path.samestat(source.lstat(), destination.lstat()):
+                return False
+    source.unlink()
+    return True
+
+
 def locate(path=None, *, default=None):
     if path is not None:
         return Path(path).expanduser().resolve()
@@ -213,23 +236,43 @@ class Workspace:
         return job, meta
 
     def _restore(self, job, payload, name):
-        if Path(name).name != name or name in ('.', '..') or name.startswith('.'):
-            raise ValueError('Invalid claim filename')
-        original = self.root / 'inputs' / name
-        # The destination creation is exclusive: an incoming replacement is never overwritten.
-        if payload.is_symlink():
+        return _move_input(payload, self.root / 'inputs' / _inbox_name(name))
+
+    def _quarantined_inputs(self):
+        directory = self.path('inputs/.quarantine')
+        if not directory.exists():
+            return []
+        rows = []
+        for path in sorted(directory.iterdir()):
             try:
-                original.symlink_to(os.readlink(payload))
-            except FileExistsError:
-                return False
-        else:
-            try:
-                os.link(payload, original, follow_symlinks=False)
-            except FileExistsError:
-                if not os.path.samestat(payload.lstat(), original.lstat()):
-                    return False
-        payload.unlink()
-        return True
+                digest = _hash_regular(path, 128 << 20)
+            except PackageError as exc:
+                if exc.status != 'limit_exceeded':
+                    raise
+                digest = None
+            rows.append({'name': path.name, 'archive_sha256': digest})
+        return rows
+
+    def list_inputs(self):
+        self.config()
+        return {'status': 'ok', 'inputs': [path.name for path in self._inbox()],
+                'pending_claims': sum(1 for _ in self._pending_jobs()),
+                'quarantined_inputs': self._quarantined_inputs()}
+
+    def move_quarantine(self, name, *, restore=False):
+        name = _inbox_name(name)
+        with writer_lock(self.path('.qecgraph')):
+            self.config()
+            directory = self.path('inputs/.quarantine')
+            inbox = self.path('inputs/' + name)
+            held = self.path('inputs/.quarantine/' + name)
+            source, destination = (held, inbox) if restore else (inbox, held)
+            if not source.is_file():
+                raise ValueError(f'Input file is missing: {name}')
+            directory.mkdir(exist_ok=True)
+            if not _move_input(source, destination):
+                raise ValueError(f'Input already exists at the destination: {name}')
+        return {'status': 'restored' if restore else 'quarantined', 'name': name}
 
     def _archive(self, job, meta, limit):
         directory = self.path('archive/blobs/sha256')
@@ -507,11 +550,16 @@ class Workspace:
     def status(self):
         cfg = self.config()
         state, release = self.registry.read()
-        materials = list(state.get('materials', {}).values())
-        partial = any(not material.get('processing_completed') or material.get('source_version_conflict')
+        quarantined = self._quarantined_inputs()
+        digests = {row['archive_sha256'] for row in quarantined}
+        materials = [{**material, 'quarantined': digest in digests}
+                     for digest, material in state.get('materials', {}).items()]
+        partial = any((not material.get('processing_completed') or material.get('source_version_conflict'))
+                      and not material['quarantined']
                       for material in materials)
         return {'status': 'partial_batch' if partial else 'ok',
                 'workspace_id': cfg['workspace_id'], 'release_id': release, 'materials': materials,
+                'quarantined_inputs': quarantined,
                 'pending_inputs': sum(1 for _ in self._inbox()),
                 'pending_claims': sum(1 for _ in self._pending_jobs())}
 

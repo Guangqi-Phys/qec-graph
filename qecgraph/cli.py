@@ -156,10 +156,13 @@ def _workspace_summary(action, result, code):
         materials = result['materials']
         count = len(materials)
         ready = sum(row.get('processing_completed', False) for row in materials)
-        problem = next(filter(None, map(_input_problem, materials)), None)
+        problem = next(filter(None, (_input_problem(row) for row in materials if not row.get('quarantined'))), None)
+        summary = f'{ready}/{count} packages indexed'
+        if held := result.get('quarantined_inputs'):
+            summary += f'; {len(held)} quarantined'
         if problem:
-            return f'{ready}/{count} packages indexed; {problem}', code
-        return f'{ready}/{count} packages indexed', code
+            summary += f'; {problem}'
+        return summary, code
     if code:
         inputs = result.get('sync', {}).get('inputs', []) + result.get('inputs', [])
         problem = next(filter(None, map(_input_problem, inputs)), None)
@@ -266,6 +269,15 @@ def main(argv=None):
     sub.add_parser('version', help='Show the installed QEC Graph version')
     help_command = sub.add_parser('help', help='Show help for a specific command')
     help_command.add_argument('topic', nargs='?')
+    inputs = sub.add_parser('inputs', help='List, quarantine, or restore inbox packages')
+    input_actions = inputs.add_subparsers(dest='input_action', required=True, metavar='<action>')
+    for name, description in (('list', 'List inbox and quarantined packages'),
+                              ('quarantine', 'Move an inbox package aside'),
+                              ('restore', 'Return a quarantined package to the inbox')):
+        cmd = input_actions.add_parser(name, help=description)
+        cmd.add_argument('--workspace')
+        if name != 'list':
+            cmd.add_argument('name', help='Exact inbox file name')
     for action in ('init', 'sync', 'rebuild', 'status'):
         workspace = sub.add_parser(action, help=f'{action.capitalize()} a managed QEC workspace')
         workspace.add_argument('--workspace')
@@ -467,6 +479,13 @@ def main(argv=None):
                          or args.command == 'validate' and not args.store)
     progress = _WorkspaceProgress(args.command) if workspace_command and not args.json else None
     try:
+        if args.command == 'inputs':
+            from .workspace import Workspace, locate
+            ws = Workspace(locate(args.workspace, default=os.environ.get('QECGRAPH_WORKSPACE')))
+            result = (ws.list_inputs() if args.input_action == 'list'
+                      else ws.move_quarantine(args.name, restore=args.input_action == 'restore'))
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0
         if workspace_command:
             if progress and not getattr(args, 'dry_run', False):
                 progress.start()

@@ -75,6 +75,9 @@ for command options or `qec-graph --version` for the installed version.
 | Preview pending inputs | `qec-graph sync --dry-run` |
 | Import and keep the inbox copies | `qec-graph sync --keep-inputs` |
 | Inspect package and failure details | `qec-graph status --json` |
+| List pending and quarantined files | `qec-graph inputs list` |
+| Set aside a failed package | `qec-graph inputs quarantine broken.zip` |
+| Return a package to the inbox | `qec-graph inputs restore broken.zip` |
 | Recheck the entire archive and regenerate the derived workspace | `qec-graph rebuild` |
 | Import the inbox first, then rebuild from the archive | `qec-graph rebuild --include-inputs` |
 | Import or rebuild without generating Obsidian pages | `qec-graph sync --no-human` or `qec-graph rebuild --no-human` |
@@ -84,6 +87,10 @@ publication. Failed packages remain available for retry, and a partial batch
 returns exit code `2`. Use `status --json` to find an ambiguous source tree
 and its entry-point candidates. The workspace guide shows how to pin the
 entry point and record an explicit upstream version. [Workspace configuration](rfc-002/WORKSPACE.md#建库和日常操作)
+
+Quarantine preserves the file, archive blob, and any receipt. Status identifies
+the archived content by its hash and lists quarantined inputs separately.
+`sync` reads the inbox, while an explicit `rebuild` still checks the entire archive.
 
 ## Manage the Obsidian vault and research records
 

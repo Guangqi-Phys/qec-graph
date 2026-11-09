@@ -101,6 +101,46 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual({r['status'] for r in rebuilt['inputs']}, {'processing_completed', 'damaged_archive'})
         self.assertEqual(rebuilt['release_id'], duplicate['release_id'])
 
+    def test_quarantine_acknowledges_the_exact_failed_archive_and_restores_without_clobbering(self):
+        name = 'broken.zip'
+        raw = b'PK\x03\x04broken'
+        package = self.inbox / name
+        package.write_bytes(raw)
+        first = self.ws.init()
+        self.assertEqual(first['status'], 'partial_batch')
+        digest = sha256(raw).hexdigest()
+        receipt = self.root / 'archive/receipts' / (first['inputs'][0]['receipt_id'] + '.json')
+        original_receipt = receipt.read_bytes()
+
+        def inputs(*arguments):
+            output = io.StringIO()
+            with redirect_stdout(output):
+                self.assertEqual(main(['inputs', *arguments, '--workspace', str(self.root)]), 0)
+            return json.loads(output.getvalue())
+
+        self.assertEqual(inputs('quarantine', name)['status'], 'quarantined')
+        held = self.inbox / '.quarantine' / name
+        self.assertFalse(package.exists())
+        self.assertEqual(held.read_bytes(), raw)
+        self.assertEqual(inputs('list')['quarantined_inputs'], [{'name': name, 'archive_sha256': digest}])
+        self.assertEqual(self.ws.status()['status'], 'ok')
+        self.assertTrue(self.ws.status()['materials'][0]['quarantined'])
+        self.assertEqual(self.ws.sync()['inputs'], [])
+        self.assertEqual(receipt.read_bytes(), original_receipt)
+        self.assertEqual((self.root / 'archive/blobs/sha256' / digest).read_bytes(), raw)
+        self.assertTrue(self.ws.validate()['valid'])
+
+        package.write_bytes(TEX)
+        with self.assertRaisesRegex(ValueError, 'already exists'):
+            self.ws.move_quarantine(name, restore=True)
+        self.assertEqual(package.read_bytes(), TEX)
+        self.assertEqual(held.read_bytes(), raw)
+        package.unlink()
+        self.assertEqual(inputs('restore', name)['status'], 'restored')
+        self.assertEqual(package.read_bytes(), raw)
+        self.assertEqual(self.ws.status()['status'], 'partial_batch')
+        self.assertEqual(self.ws.sync()['status'], 'partial_batch')
+
     def test_entrypoint_override_retries_archived_failure_without_inbox(self):
         bundle = tar_bytes({'a.tex': TEX, 'b.tex': TEX})
         (self.inbox / 'two').write_bytes(bundle)
