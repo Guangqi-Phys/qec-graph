@@ -200,7 +200,7 @@ class Registry:
             raise ValueError('Link requires explicit identity')
         with writer_lock(self.root):
             state, fixed = self.read()
-            graph, _, version = self.source_graph(source_version_id, fixed)
+            graph, _, version = self.source_graph_from_state(state, source_version_id, fixed, verify=True)
             node_id = resolve(graph, source_selector)
             node = next(n for n in graph['nodes'] if n['id'] == node_id)
             if node['origin'] != 'parser' or not node.get('source'):

@@ -85,6 +85,18 @@ class CorpusTests(unittest.TestCase):
                 historical = execute(self.registry.root, 'show', 'claim:a', registry_revision=original)
                 self.assertEqual(historical['incoming'][0]['status'], 'candidate')
 
+    def test_claim_mapping_cannot_publish_from_a_changed_graph_file(self):
+        self.registry.add_record({'schema_version': 'qecgraph.record.v3', 'id': 'claim:a', 'revision': '1',
+                                  'kind': 'claim', 'title': 'Claim',
+                                  'data': {'statement': 'First.', 'hypotheses': [], 'quantifiers': []}})
+        previous = self.registry.read()[1]
+        _, snapshot, _ = self.registry.source_graph('version:a', previous)
+        with (snapshot / 'graph.json').open('ab') as output:
+            output.write(b' ')
+        with self.assertRaisesRegex(ValueError, 'Snapshot file changed: graph.json'):
+            self.registry.link_claim('link:a', 'version:a', 'same', 'claim:a')
+        self.assertEqual(self.registry.read()[1], previous)
+
 
 if __name__ == '__main__':
     unittest.main()
