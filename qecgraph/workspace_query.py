@@ -83,8 +83,10 @@ class WorkspaceSession:
         self.scope = {'kind': 'workspace', 'workspace_id': self.state['workspace_id'], 'release_id': self.release}
         self.scope['registry_revision'] = self.release
         self.assets = {uri for r in self.visible.values() for uri in references(r)}
-        self.resources = {self._resource_uri(n['id']): n['id'] for n in self.graph.source.graph['nodes']
-                          if n['origin'] == 'parser' and n.get('source')}
+        self._source_nodes = {n['id']: n for n in self.graph.source.graph['nodes']
+                              if n['origin'] == 'parser' and n.get('source')}
+        self.resources = {self._resource_uri(identifier): identifier for identifier in self._source_nodes}
+        self._resource_bindings = sorted(self.resources.items())
 
     def _resource_uri(self, occurrence):
         return f'qec://source/{self.release}/{hash_text(occurrence)}'
@@ -97,7 +99,7 @@ class WorkspaceSession:
             offset = int(cursor)
         else:
             raise ToolError('INVALID_ARGUMENT', 'Invalid source cursor')
-        bindings = sorted(self.resources.items())
+        bindings = self._resource_bindings
         rows = []
         for uri, identifier in bindings[offset:offset + self.graph.max_results]:
             rows.append({'uri': uri, 'name': identifier, 'mimeType': 'text/plain'})
@@ -202,8 +204,7 @@ class WorkspaceSession:
         return result
 
     def _source(self, identifier, start=None, end=None):
-        node = next((n for n in self.graph.source.graph['nodes'] if n['id'] == identifier and
-                     n['origin'] == 'parser' and n.get('source')), None)
+        node = self._source_nodes.get(identifier)
         if node is None:
             raise ToolError('NOT_FOUND', 'Expected an exact registered source occurrence ID')
         span = copy.deepcopy(node['source'])
@@ -212,6 +213,9 @@ class WorkspaceSession:
         end = original_end if end is None else end
         if not original_start <= start <= end <= original_end:
             raise ToolError('INVALID_ARGUMENT', 'Requested codepoint range escapes the registered span')
+        if (start, end) == (original_start, original_end):
+            return {'id': identifier, 'resource_uri': self._resource_uri(identifier), 'source': span,
+                    'content_sha256': node['content_sha256'], 'latex': node['latex']}
         latex = node['latex'][start - original_start:end - original_start]
         span.update(char_start=start, char_end=end,
                     line_start=span['line_start'] + node['latex'].count('\n', 0, start-original_start),
