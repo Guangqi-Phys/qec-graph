@@ -459,6 +459,8 @@ class WorkspaceSession:
                 raise ToolError('SNAPSHOT_UNAVAILABLE', 'This session is pinned to a different release')
             maximum = args.pop('max_chars', self.graph.max_chars)
             check_machine_tree(self.machine)
+            metadata = {'scope': self.scope, 'knowledge_snapshot': self.release, 'coverage': self._coverage}
+            graph_metadata = {**metadata, 'continuation': None}
             if name == 'qecgraph_search':
                 if not args['query'].strip():
                     raise ToolError('INVALID_ARGUMENT', 'Search query must not be blank')
@@ -489,7 +491,8 @@ class WorkspaceSession:
                 elif args.get('revision') or identifier in self._research_ids:
                     raise ToolError('NOT_FOUND', 'No eligible revision in this release')
                 else:
-                    response = self.graph.invoke('qecgraph_context', {**args, 'max_chars': maximum})
+                    response = self.graph.invoke('qecgraph_context', {**args, 'max_chars': maximum},
+                                                 output_metadata=graph_metadata)
                     if not response['ok']:
                         return response
                     data = response['data']
@@ -501,7 +504,8 @@ class WorkspaceSession:
                 elif args.get('revision') or identifier in self._research_ids:
                     raise ToolError('NOT_FOUND', 'No eligible revision in this release')
                 else:
-                    response = self.graph.invoke('qecgraph_show', {'identifier': identifier, 'max_chars': maximum})
+                    response = self.graph.invoke('qecgraph_show', {'identifier': identifier, 'max_chars': maximum},
+                                                 output_metadata=graph_metadata)
                     if not response['ok']:
                         return response
                     data = response['data']
@@ -546,11 +550,11 @@ class WorkspaceSession:
             elif name == 'qec_find_software':
                 data = self._software(args)
             else:
-                response = self.graph.invoke(name, {**args, 'max_chars': maximum})
+                response = self.graph.invoke(name, {**args, 'max_chars': maximum}, output_metadata=graph_metadata)
                 if not response['ok']:
                     return response
                 data = response['data']
-            data.update(scope=self.scope, knowledge_snapshot=self.release, coverage=self._coverage)
+            data.update(metadata)
             data.setdefault('truncated', False)
             data.setdefault('continuation', None)
             if len(canonical(data)) > maximum:

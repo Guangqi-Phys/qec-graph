@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 from qecgraph.corpus import occurrence_id
-from qecgraph.graph import read_json
+from qecgraph.graph import canonical, read_json
 from qecgraph.research import adapt_synthetic
 from qecgraph.research_store import publish_records
 from qecgraph.workspace import Workspace
@@ -31,6 +31,28 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.ws = Workspace(self.root)
         self.release = self.ws.init()['release_id']
         self.session = WorkspaceSession(self.ws.registry.root)
+
+    def test_graph_context_reserves_budget_for_workspace_metadata(self):
+        root_statement = r'\begin{lemma}\label{lem:root}Root statement. \uses{lem:dep}\end{lemma}'
+        source = '\\documentclass{article}\n\\begin{document}\n' + root_statement + '\n' + (
+            r'\begin{lemma}\label{lem:dep}' + 'Full dependency. ' * 60 + r'\end{lemma}') + '\n\\end{document}'
+        (self.root / 'inputs/budget.tex').write_text(source, encoding='utf-8')
+        release = self.ws.sync()['release_id']
+        state, _ = self.ws.registry.read(release)
+        version = next(version_id for version_id in state['versions']
+                       if 'lem:root' in self.ws.registry.source_graph(version_id, release)[0]['labels'])
+        graph, _, _ = self.ws.registry.source_graph(version, release)
+        selector = occurrence_id(version, graph['labels']['lem:root'][0])
+        session = WorkspaceSession(self.ws.registry.root, release)
+        full = session.invoke('qec_get_context', {'identifier': selector})['data']
+        maximum = len(canonical(full)) - 20
+        answer = session.invoke('qec_get_context', {'identifier': selector, 'max_chars': maximum})
+        self.assertTrue(answer['ok'], answer)
+        data = answer['data']
+        self.assertLessEqual(len(canonical(data)), maximum)
+        self.assertTrue(data['truncated'])
+        self.assertEqual(data['nodes'][0]['latex'], root_statement)
+        self.assertEqual(data['scope']['release_id'], release)
 
     def test_registered_failed_artifact_and_fixed_source_occurrence(self):
         result = self.session.invoke('qecgraph_search', {'query': 'damaged_archive'})
