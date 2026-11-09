@@ -271,13 +271,13 @@ class Registry:
         state, fixed = self.read(registry_revision)
         return self._validate_state(state, fixed, check_live_lean=check_live_lean)
 
-    def _validate_state(self, state, fixed, *, check_live_lean=True):
+    def _validate_state(self, state, fixed, *, check_live_lean=True, verified_spans=None):
         from .validators import registry_issues, validate_graph_types
         from .corpus import _project_state
         records = {identifier: self.record_from_state(state, identifier) for identifier in state['records']}
         issues = registry_issues(self, records)
         graph, _ = _project_state(self, state, fixed, check_live_lean=check_live_lean,
-                                  verify_sources=True, records=records)
+                                  verify_sources=True, records=records, verified_spans=verified_spans)
         validate_graph_types(graph.graph)
         from .status import reviewed_cycles
         issues.extend(reviewed_cycles(graph.graph))

@@ -5,7 +5,7 @@ from urllib.parse import quote
 
 from .graph import canonical, hash_text
 from .registry import Registry
-from .store import GraphInput
+from .store import GraphInput, source_span_index
 from . import query
 from .status import review_states
 
@@ -22,14 +22,16 @@ def project(corpus, registry_revision=None, source_version_id=None, *, check_liv
 
 
 def _project_state(registry, state, fixed, source_version_id=None, *,
-                   check_live_lean=True, verify_sources=False, records=None):
+                   check_live_lean=True, verify_sources=False, records=None, verified_spans=None):
     if source_version_id and source_version_id not in state['versions']:
         raise ValueError(f'Unknown source version in scope: {source_version_id}')
     selected = [source_version_id] if source_version_id else sorted(state['versions'])
     nodes, edges, labels, versions = [], [], {}, {}
     partial = False
     for version_id in selected:
-        graph, _, version = registry.source_graph_from_state(state, version_id, fixed, verify=verify_sources)
+        graph, snapshot, version = registry.source_graph_from_state(state, version_id, fixed, verify=verify_sources)
+        if verify_sources and verified_spans is not None:
+            verified_spans[snapshot, version['snapshot_id']] = source_span_index(graph)
         versions[version_id] = version
         partial |= graph['extraction_status'] == 'partial'
         occurrence_prefix = occurrence_id(version_id, '')

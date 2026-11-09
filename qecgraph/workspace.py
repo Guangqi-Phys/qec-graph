@@ -424,12 +424,13 @@ class Workspace:
         if progress:
             progress(1, 3, 'Checking the current release')
         state, fixed = self.registry.read()
-        result = self.registry._validate_state(state, fixed, check_live_lean=False)
+        verified_spans = {}
+        result = self.registry._validate_state(state, fixed, check_live_lean=False, verified_spans=verified_spans)
         issues = result.setdefault('issues', [])
         from .research import validate_bundle
         records = load_records(self.registry, state)
         validate_bundle(records)
-        validate_sources(self.registry, state, records)
+        validate_sources(self.registry, state, records, verified_spans=verified_spans)
         if progress:
             progress(2, 3, 'Verifying archived packages')
         for digest in state.get('materials', {}):

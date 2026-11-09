@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from .graph import canonical, hash_text, read_json
 from .research import key, ref, validate_bundle
-from .store import load_validated_snapshot, safe_relative
+from .store import load_validated_snapshot, safe_relative, source_span_index
 from .transactions import immutable_json, writer_lock
 
 
@@ -25,7 +25,7 @@ def load_records(registry, state):
     return result
 
 
-def validate_sources(registry, state, records, *, require_source=True):
+def validate_sources(registry, state, records, *, require_source=True, verified_spans=None):
     """Resolve verified locators through registered graph identity, never paths supplied by a record."""
     from .workspace import HEX
     from .workspace_assets import asset_bytes, references
@@ -47,17 +47,20 @@ def validate_sources(registry, state, records, *, require_source=True):
                 raise ValueError('Source evidence must bind a registered version and snapshot')
             if digest not in graphs:
                 snapshot = safe_relative(registry.root, 'source_snapshots/' + digest)
-                graph, _ = load_validated_snapshot(snapshot, digest)
-                graphs[digest] = (graph['project_id'], {n['id']: n for n in graph['nodes']})
+                indexed = verified_spans.get((snapshot, digest)) if verified_spans is not None else None
+                if indexed is None:
+                    graph, _ = load_validated_snapshot(snapshot, digest)
+                    indexed = source_span_index(graph)
+                graphs[digest] = indexed
             project_id, nodes = graphs[digest]
-            node = nodes.get(locator.get('node_id'), {})
-            span = node.get('source') or {}
+            span = nodes.get(locator.get('node_id'))
             a, b = locator.get('char_start'), locator.get('char_end')
-            if (project_id != version['project_id'] or node.get('origin') != 'parser'
-                    or node.get('content_sha256') != locator.get('node_content_sha256')
-                    or span.get('path') != locator.get('path') or type(a) is not int or type(b) is not int
-                    or not span['char_start'] <= a < b <= span['char_end']):
-                raise ValueError('Source evidence does not resolve to a verbatim registered span')
+            if span is not None:
+                content_sha256, path, start, end = span
+                if (project_id == version['project_id'] and content_sha256 == locator.get('node_content_sha256')
+                        and path == locator.get('path') and type(a) is int and type(b) is int and start <= a < b <= end):
+                    continue
+            raise ValueError('Source evidence does not resolve to a verbatim registered span')
         if record['kind'] == 'paper_version' and require_source:
             if record['id'] not in state['versions'] or record['data'].get('source_snapshot_id') != record['revision']:
                 raise ValueError('Paper version records must refer to a registered source projection')

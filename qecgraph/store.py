@@ -383,6 +383,15 @@ def validate_snapshot(snapshot, expected_snapshot_id=None):
     return report
 
 
+def source_span_index(graph):
+    """Keep original parser span identities independent of graph projection."""
+    return graph["project_id"], {
+        node["id"]: (node["content_sha256"], span["path"], span["char_start"], span["char_end"])
+        for node in graph["nodes"]
+        if node.get("origin") == "parser" and (span := node.get("source"))
+    }
+
+
 def load_validated_snapshot(snapshot, expected_snapshot_id=None):
     """Return the graph decoded from the bytes checked during validation."""
     from .validators import validate_graph_types

@@ -121,3 +121,9 @@ class SemanticTests(unittest.TestCase):
             self.assertFalse(after.invoke('qec_get_entity', query)['ok'])
             self.assertEqual(after.invoke('qec_workspace_status', {})['data']['coverage']['excluded_stale_provider_reviews'], 1)
             self.assertTrue(session.invoke('qec_get_entity', query)['ok'])
+            self.assertTrue(ws.validate()['passed'])
+            old_graph = ws.registry.root / state['versions'][identifier]['snapshot_path'] / 'graph.json'
+            with old_graph.open('ab') as output:
+                output.write(b' ')
+            with self.assertRaisesRegex(ValueError, 'Snapshot file changed: graph.json'):
+                ws.validate()
