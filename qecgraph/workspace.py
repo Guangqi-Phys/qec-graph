@@ -214,13 +214,14 @@ class Workspace:
             work_id = metadata.get('work_id', 'work:local:' + tree_hash)
             upstream = metadata.get('upstream_version')
             result.update(work_id=work_id, upstream_version=upstream)
-            candidates = tree.entrypoints()
             entry = cfg.get('entrypoints', {}).get(tree_hash)
-            if entry is None and len(candidates) == 1:
-                entry = candidates[0]
             if entry not in tree.files:
-                result.update(status='needs_entrypoint', entrypoint_candidates=candidates)
-                return self._keep_prior(result, prior)
+                candidates = tree.entrypoints()
+                if entry is None and len(candidates) == 1:
+                    entry = candidates[0]
+                else:
+                    result.update(status='needs_entrypoint', entrypoint_candidates=candidates)
+                    return self._keep_prior(result, prior)
             source_id = 'source:local:' + hash_text(canonical([tree_hash, work_id, upstream]))
             build_key = (source_id, entry)
             version, verified = reused.get(build_key, (None, False))
