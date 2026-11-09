@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = ROOT / 'examples'
-KNOWLEDGE = ROOT / 'knowledge_starter'
+KNOWLEDGE = ROOT / 'legacy/knowledge_starter'
 
 
 def main():

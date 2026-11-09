@@ -62,7 +62,7 @@ class QECValidationTests(unittest.TestCase):
                 matrix_rows(matrix(1, 2, ones))
 
     def test_real_finite_hgp_exact_distance_and_logicals(self):
-        folder = ROOT / 'knowledge_starter/assets/matrices'
+        folder = ROOT / 'legacy/knowledge_starter/assets/matrices'
         matrices = [read_json(folder / (name + '.gf2.json')) for name in ('HX', 'HZ', 'LX', 'LZ')]
         result = check_css(*matrices, enumerate_distance=True)
         self.assertTrue(result['passed'])

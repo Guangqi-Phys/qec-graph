@@ -19,7 +19,7 @@
 - 原始论文/TeX/数据、人工整理的 JSON 记录与 sidecar、Lean 源码分别承担自己的权威字段。由它们生成的快照、SQLite、向量索引不可手改。
 - 同一个字段只有一个可编辑的权威来源。YAML 模板不能与 JSON 记录长期双向维护同一内容。
 - 保留原始资产、来源版本、哈希和稳定 ID。对象身份不等于内容哈希，不以 `[n,k,d]` 作为码的身份。
-- `knowledge_starter/` 是独立的历史 Schema 样例；通过显式导入器和迁移连接，不能将其全部 JSON 当成新版 Schema。
+- `legacy/knowledge_starter/` 是独立的历史 Schema 样例；通过显式导入器和迁移连接，不能将其全部 JSON 当成新版 Schema。
 
 ## 语义边界
 

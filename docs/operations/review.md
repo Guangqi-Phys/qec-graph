@@ -40,7 +40,7 @@ Corpus 验证还检查悬空引用、修订绑定、受管理资产字节和来�
 ## 数学插件和硬条件
 
 ```bash
-qecgraph check-css --hx knowledge_starter/assets/matrices/HX.gf2.json --hz knowledge_starter/assets/matrices/HZ.gf2.json --lx knowledge_starter/assets/matrices/LX.gf2.json --lz knowledge_starter/assets/matrices/LZ.gf2.json --enumerate-distance
+qecgraph check-css --hx legacy/knowledge_starter/assets/matrices/HX.gf2.json --hz legacy/knowledge_starter/assets/matrices/HZ.gf2.json --lx legacy/knowledge_starter/assets/matrices/LX.gf2.json --lz legacy/knowledge_starter/assets/matrices/LZ.gf2.json --enumerate-distance
 qecgraph codes --corpus build/corpus --n-min 13 --n-max 13 --distance-at-least 3 --metric-definition-id definition:css-distance
 ```
 

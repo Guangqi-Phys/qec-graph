@@ -68,7 +68,7 @@ Corpus 搜索当前采用确定性的大小写无关子串匹配，并报告 lim
 ## 显式迁移和资产
 
 ```bash
-qecgraph migrate knowledge_starter/records --source-root knowledge_starter --out build/migration
+qecgraph migrate legacy/knowledge_starter/records --source-root legacy/knowledge_starter --out build/migration
 qecgraph migration-import build/migration --corpus build/corpus
 qecgraph context code:rep3-hgp:13 --corpus build/corpus
 ```

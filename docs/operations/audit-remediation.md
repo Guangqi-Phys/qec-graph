@@ -114,7 +114,7 @@ remain outside the acceptance gates.
 - Several example files are command inputs whose authoritative validation
   happens at runtime. Schema tests check the published schema examples and
   the persisted proposal produced from its example input.
-- Keep `knowledge_starter/` at its published path for existing reproducers
+- Keep `legacy/knowledge_starter/` at its published path for existing reproducers
   and checksum-bound legacy evidence. The documentation marks it as legacy.
 - Use the dependency group in `pyproject.toml` for development. The older
   requirements files preserve install entry points and recorded environments

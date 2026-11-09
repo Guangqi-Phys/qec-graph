@@ -116,7 +116,7 @@ def main(argv=None) -> int:
             raise RuntimeError("Default dependency/context queries exposed a filtered relation")
 
         catalog = run("catalog_ingest", ["-m", "qecgraph", "ingest", *base, "--out", str(catalog_store),
-                                        "--catalog", "knowledge_starter/records",
+                                        "--catalog", "legacy/knowledge_starter/records",
                                         "--annotations", "examples/catalog-links.example.json"])
         run("catalog_validate", ["-m", "qecgraph", "validate", "--store", str(catalog_store)])
         data = run("catalog_context", ["-m", "qecgraph", "context", "code:rep3-hgp:13", "--store", str(catalog_store)])
@@ -124,7 +124,7 @@ def main(argv=None) -> int:
         if not required <= {node["id"] for node in data["nodes"]}:
             raise RuntimeError("Catalog context did not retain instance/presentation/distance separation")
 
-        verify_args = ["knowledge_starter/tools/qec_kb.py", "verify"]
+        verify_args = ["legacy/knowledge_starter/tools/qec_kb.py", "verify"]
         if has_schema:
             verify_args.append("--json-schema")
         evidence = run("finite_qec_verification", verify_args)
@@ -141,7 +141,7 @@ def main(argv=None) -> int:
                 else:
                     for filename2 in ("annotations.example.json", "catalog-links.example.json"):
                         validator.validate(json.loads((ROOT / "examples" / filename2).read_text(encoding="utf-8")))
-            report["schema_checks"] = {"status": "passed", "schemas": ["graph.schema.json", "annotations.schema.json", "knowledge_starter schemas via verify"]}
+            report["schema_checks"] = {"status": "passed", "schemas": ["graph.schema.json", "annotations.schema.json", "legacy/knowledge_starter schemas via verify"]}
         report["summary"] = {
             "unit_tests": report["steps"][0]["test_count"],
             "source_files": len(split["sources"]), "source_fragments": split["fragment_count"],

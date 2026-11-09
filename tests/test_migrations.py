@@ -20,7 +20,7 @@ class MigrationTests(unittest.TestCase):
         self.root = Path(self.temp.name)
 
     def test_legacy_catalog_keeps_ids_evidence_unknowns_and_managed_assets(self):
-        starter = ROOT / 'knowledge_starter'
+        starter = ROOT / 'legacy/knowledge_starter'
         source_hashes = {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in starter.rglob('*.json')}
         report = migrate(starter / 'records', self.root / 'migration', source_root=starter)
         self.assertEqual(report['status'], 'passed')
@@ -87,7 +87,7 @@ class MigrationTests(unittest.TestCase):
         self.assertEqual(report['status'], 'partial')
         self.assertIn('kept opaque', report['rejected'][0]['reason'])
         self.assertEqual((self.root / 'future-out' / report['rejected'][0]['original_path']).read_bytes(), source.read_bytes())
-        legacy = ROOT / 'knowledge_starter/records/presentation_rep3_hgp.json'
+        legacy = ROOT / 'legacy/knowledge_starter/records/presentation_rep3_hgp.json'
         report = migrate(legacy, self.root / 'missing-assets')
         self.assertIn('explicit --source-root', report['rejected'][0]['reason'])
         with self.assertRaisesRegex(ValueError, 'no rejected'):

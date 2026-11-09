@@ -47,7 +47,7 @@ hypothetical settings and counts. [Bundled HGP example](../../examples/paper/sec
 These records let you follow a paper's notation to a specific instance once
 `code_ref` is resolved, then inspect the matrices and the evidence for its
 distance. The historical HGP example includes a finite enumeration check.
-[Finite distance example](../../knowledge_starter/records/claim_rep3_hgp_distance.json)
+[Finite distance example](../../legacy/knowledge_starter/records/claim_rep3_hgp_distance.json)
 
 ### Circuits, experiments, and results
 

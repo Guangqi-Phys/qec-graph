@@ -1,14 +1,13 @@
 graft tests
 graft examples
-graft knowledge_starter
+graft legacy/knowledge_starter
+include legacy/README.md
 graft schemas
 graft tools
-include AGENTS.md CHANGELOG.md CITATION.cff CODEX_TASK.md CONTRIBUTING.md IMPLEMENTATION_AUDIT.md SECURITY.md START_HERE.md install.sh
+include AGENTS.md CHANGELOG.md CITATION.cff CONTRIBUTING.md SECURITY.md install.sh
 recursive-include docs *.md
-exclude docs/CODEBASE_ASSESSMENT.md
 graft validation
 include lean/axiom-policy.json lean/targets.json
-prune qec_graph_codex_handoff
 prune build
 prune dist
 global-exclude *.py[cod] .DS_Store
