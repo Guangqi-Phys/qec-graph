@@ -8,7 +8,7 @@ Each entry is complete only when its acceptance evidence has been checked.
 | --- | --- | --- |
 | 1 | License and package metadata | Open. Check rights and attribution before declaring a distribution-wide license. |
 | 2 | CI on pull requests and pushes | Open. |
-| 3 | Consistent status and explicit JSON output | In progress. `cfdb783` made the partial status and exit code agree. Output selection and caller migration remain. |
+| 3 | Consistent status and explicit JSON output | Complete for workspace maintenance. Explicit and implicit workspace selection produce the same text. The CLI contract tests check exit code 2 in text and JSON, and release verification requests JSON explicitly. |
 | 4 | Version, help, and usage exit code | In progress. `4067e6e` exposed dependency, impact, and context commands in help. |
 | 5 | Validate review, claim-link, and experiment inputs | Open. |
 | 6 | Protect annotated stores from source-only split | Open. |

@@ -41,7 +41,7 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
         if hashlib.sha256(raw).hexdigest() != SUBSYSTEM_SHA:
             raise ValueError('Real regression expects the recorded Subsystem Codes v1 archive bytes')
         (inbox / 'subsystem-v1.source').write_bytes(raw)
-    first = run('init', ['init'])
+    first = run('init', ['init', '--json'])
     assert first['status'] == 'published'
     assert first['counts']['registered'] == (2 if real_source else 1)
     assert first['human']['status'] == 'current'
@@ -53,7 +53,7 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
     note = workspace / 'human/notes/private-validation-note.md'
     note.write_text('RFC002-PERSONAL-CANARY-9212', encoding='utf-8')
     (inbox / 'same-tree-new-compression').write_bytes(gzip.compress(TEX, mtime=2))
-    second = run('sync', ['sync', '--workspace', '.'])
+    second = run('sync', ['sync', '--workspace', '.', '--json'])
     assert second['inputs'][0]['input_consumed']
     assert second['inputs'][0]['source_tree_hash'] == next(
         x['source_tree_hash'] for x in first['inputs'] if x['input'].startswith('format-'))
@@ -62,10 +62,10 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
     coverage = run('catalogue_coverage', ['software', 'coverage'])
     assert coverage['projects'] == 14 and not coverage['installation_or_benchmarks_verified']
     expected_release = coverage['release_id']
-    rebuild = run('rebuild_from_archive', ['rebuild'])
+    rebuild = run('rebuild_from_archive', ['rebuild', '--json'])
     assert rebuild['release_id'] == expected_release and rebuild['status'] == 'unchanged'
     assert all(p.name.startswith('.') for p in inbox.iterdir())
-    assert run('validate', ['validate', '--workspace', '.'])['valid']
+    assert run('validate', ['validate', '--workspace', '.', '--json'])['valid']
     review = run('review_list', ['review', 'list'])
     assert len(review['proposals']) >= (3 if real_source else 1)
     if real_source:
@@ -146,7 +146,7 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
         migrated = run('migrate_0_3_0', ['workspace-migrate', '--corpus', 'legacy-corpus', '--workspace', 'upgraded'])
         assert migrated['legacy_registry_revision'] == legacy_fixed
         migrated_fixed = migrated['release_id']
-        rebuilt = run('rebuild_migrated_workspace', ['rebuild', '--workspace', 'upgraded'])
+        rebuilt = run('rebuild_migrated_workspace', ['rebuild', '--workspace', 'upgraded', '--json'])
         assert rebuilt['release_id'] == migrated_fixed
         after = run('read_migrated_claim', ['show', 'claim:legacy', '--corpus', 'upgraded/machine'])
         assert after['node']['record']['review']['status'] == 'reviewed'

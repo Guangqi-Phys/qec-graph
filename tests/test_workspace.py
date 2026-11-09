@@ -70,10 +70,14 @@ class WorkspaceTests(unittest.TestCase):
             code, stdout, stderr = invoke('status')
             self.assertEqual((code, stdout), (2, ''))
             self.assertIn('status: ERROR: 1/2 packages indexed', stderr)
-            for options in (('--json',), ('--workspace', str(self.root))):
+            self.assertEqual(invoke('status', '--workspace', str(self.root)), (code, stdout, stderr))
+            for options in (('--json',), ('--workspace', str(self.root), '--json')):
                 code, stdout, stderr = invoke('status', *options)
                 self.assertEqual((code, stderr), (2, ''))
                 self.assertEqual(json.loads(stdout)['status'], 'partial_batch')
+            code, stdout, stderr = invoke('sync', '--dry-run', '--workspace', str(self.root))
+            self.assertEqual((code, stderr), (0, ''))
+            self.assertIn('1 inbox files, 0 pending claims', stdout)
 
     def test_partial_batch_dedup_and_rebuild_from_full_inventory(self):
         (self.inbox / 'good.zip').write_bytes(TEX)

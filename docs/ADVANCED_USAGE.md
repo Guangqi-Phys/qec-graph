@@ -62,9 +62,10 @@ Commands find the workspace from the current directory or its parents. Pass
 commands `sync`, `status`, and `validate`, `QECGRAPH_WORKSPACE` can serve as a
 fallback when the current directory is outside an initialized workspace.
 
-In a terminal, the current source version of `init`, `sync`, and `rebuild`
-shows its stage, package counts, and elapsed time on one line. Pass `--json`
-to print the full report.
+Workspace maintenance commands print one outcome line by default. In a
+terminal, longer operations also show their progress on that line. Pass
+`--json` for the full report in scripts, including when using `--workspace`
+or redirecting output. A partial status exits with code 2 in either mode.
 
 | Task | Command from the workspace root |
 | --- | --- |

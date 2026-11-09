@@ -125,6 +125,8 @@ def _input_problem(row):
 def _workspace_summary(action, result, code):
     if result['status'] == 'already_initialized':
         return 'workspace already initialized', code
+    if result['status'] == 'planned':
+        return f"{len(result['inputs'])} inbox files, {result['pending_claims']} pending claims", code
     if action == 'validate':
         if not code:
             return '', 0
@@ -404,13 +406,12 @@ def main(argv=None):
     cmd.add_argument('--snapshot')
     cmd.add_argument('--json', action='store_true', help='Print the detailed workspace report')
     args = parser.parse_args(argv)
-    daily = args.command in _DAILY_WORKSPACE_COMMANDS and argv[1:] in ([], ['--json'])
-    interactive_write = (args.command in _WORKSPACE_WRITE_COMMANDS and sys.stdout.isatty()
-                         and not getattr(args, 'dry_run', False))
-    progress = _WorkspaceProgress(args.command) if (daily or interactive_write) and not args.json else None
+    workspace_command = (args.command in _WORKSPACE_WRITE_COMMANDS | {'status'}
+                         or args.command == 'validate' and not args.store)
+    progress = _WorkspaceProgress(args.command) if workspace_command and not args.json else None
     try:
-        if args.command in _WORKSPACE_WRITE_COMMANDS | {'status'} or (args.command == 'validate' and not args.store):
-            if progress:
+        if workspace_command:
+            if progress and not getattr(args, 'dry_run', False):
                 progress.start()
             from .workspace import CONFIG, Workspace, locate
             if getattr(args, 'snapshot', None):
@@ -419,7 +420,7 @@ def main(argv=None):
                        if hasattr(args, key)}
             default = os.environ.get('QECGRAPH_WORKSPACE') if args.command in _DAILY_WORKSPACE_COMMANDS else None
             ws = Workspace(locate(args.workspace, default=default))
-            if daily and not ws.path(CONFIG).is_file():
+            if args.command != 'init' and not ws.path(CONFIG).is_file():
                 raise ValueError('No initialized workspace found. Set QECGRAPH_WORKSPACE or use --workspace.')
             if progress and args.command != 'status':
                 options['progress'] = progress.update
