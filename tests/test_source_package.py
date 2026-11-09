@@ -28,6 +28,43 @@ def tar_bytes(files, *, mtime=0, format=tarfile.PAX_FORMAT):
 
 
 class SourcePackageTests(unittest.TestCase):
+    def test_input_size_and_archive_depth_boundaries(self):
+        exact = Limits(input_bytes=len(TEX))
+        self.assertEqual(unpack(TEX, exact).files, {'main.tex': TEX})
+        with self.assertRaises(PackageError) as oversized:
+            unpack(TEX + b' ', exact)
+        self.assertEqual(oversized.exception.status, 'limit_exceeded')
+
+        allowed = tar_bytes({'section/main.tex': TEX})
+        limits = Limits(depth=2)
+        self.assertEqual(unpack(allowed, limits).files, {'section/main.tex': TEX})
+        with self.assertRaises(PackageError) as too_deep:
+            unpack(tar_bytes({'section/nested/main.tex': TEX}), limits)
+        self.assertEqual(too_deep.exception.status, 'limit_exceeded')
+
+    def test_unsupported_zip_members_are_rejected_before_opening(self):
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, 'w') as archive:
+            archive.writestr('main.tex', TEX)
+        raw = buffer.getvalue()
+        central = raw.index(b'PK\x01\x02')
+        for field, local_offset, central_offset, value, expected in (
+                ('encryption', 6, 8, 1, 'unsafe_archive'),
+                ('compression', 8, 10, 99, 'unsupported_format')):
+            with self.subTest(field=field):
+                invalid = bytearray(raw)
+                struct.pack_into('<H', invalid, local_offset, value)
+                struct.pack_into('<H', invalid, central + central_offset, value)
+                with patch.object(zipfile.ZipFile, 'open') as open_member, self.assertRaises(PackageError) as error:
+                    unpack(bytes(invalid))
+                self.assertEqual(error.exception.status, expected)
+                open_member.assert_not_called()
+
+    def test_non_utf8_standalone_tex_has_a_format_error(self):
+        with self.assertRaisesRegex(PackageError, 'not UTF-8 TeX') as invalid:
+            unpack(TEX.replace(b'Hello', b'\xff'))
+        self.assertEqual(invalid.exception.status, 'unsupported_format')
+
     def test_content_identity_ignores_headers_but_preserves_every_asset_byte(self):
         a = tar_bytes({'paper.tex': TEX, 'figure.dat': b'\x00'}, mtime=1)
         b = tar_bytes({'figure.dat': b'\x00', 'paper.tex': TEX}, mtime=2)
