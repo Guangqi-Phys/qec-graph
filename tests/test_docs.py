@@ -6,7 +6,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-from qecgraph.cli.parser import parse_command
+from qecgraph.cli.parser import _build_parser, parse_command
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +19,27 @@ INLINE_COMMAND = re.compile(r'`qec-graph ([^`\n]+)`')
 
 
 class DocumentationTests(unittest.TestCase):
+    def test_every_command_help_path_has_a_parseable_example(self):
+        _, topics = _build_parser()
+        leaf_topics = {('inputs', action) for action in ('list', 'quarantine', 'restore')}
+        leaf_topics |= {('snapshot', 'list'), ('maintain', 'snapshot', 'list')}
+        self.assertLessEqual(leaf_topics, topics.keys())
+        for topic in topics:
+            with self.subTest(topic=topic):
+                explicit, option = io.StringIO(), io.StringIO()
+                with redirect_stdout(explicit):
+                    self.assertIsNone(parse_command(['help', *topic]))
+                with redirect_stdout(option), self.assertRaises(SystemExit) as requested:
+                    parse_command([*topic, '--help'])
+                self.assertEqual(requested.exception.code, 0)
+                self.assertEqual(explicit.getvalue(), option.getvalue())
+                help_text = explicit.getvalue()
+                if topic in leaf_topics:
+                    self.assertTrue(help_text.startswith(f'usage: qec-graph {" ".join(topic)} '))
+                example = help_text.split('Example:\n  qec-graph ', 1)[1].splitlines()[0]
+                with redirect_stdout(io.StringIO()):
+                    parse_command(shlex.split(example))
+
     def test_current_documentation_links_resolve_in_the_source_distribution(self):
         for name in USER_DOCS:
             page = ROOT / name

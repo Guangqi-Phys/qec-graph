@@ -142,6 +142,27 @@ def _print_aliases():
         print(f'  {display:22} {replacement}')
 
 
+def _add_snapshot_actions(parser, add_action):
+    actions = parser.add_subparsers(dest='snapshot_action', required=True, metavar='<action>')
+    listing = add_action(actions, 'list', 'List snapshot IDs and identify the current pointer', '--workspace ./qec')
+    scope = listing.add_mutually_exclusive_group()
+    for option in ('--workspace', '--store', '--corpus'):
+        scope.add_argument(option, help='Select the workspace, store, or corpus for the snapshot listing')
+
+
+def _add_input_actions(parser, add_action):
+    actions = parser.add_subparsers(dest='input_action', required=True, metavar='<action>')
+    for name, description in (('list', 'List inbox and quarantined packages'),
+                              ('quarantine', 'Move an inbox package aside'),
+                              ('restore', 'Return a quarantined package to the inbox')):
+        example = '--workspace ./qec' if name == 'list' else 'paper.zip --workspace ./qec'
+        cmd = add_action(actions, name, description, example)
+        cmd.add_argument('--workspace',
+            help='Path to the QEC workspace; omit to use local discovery where supported')
+        if name != 'list':
+            cmd.add_argument('name', help='Exact inbox file name')
+
+
 def _register_commands(add):
     add('version', help='Show the installed QEC Graph version')
     help_command = add('help', help='Show help for a specific command')
@@ -150,25 +171,8 @@ def _register_commands(add):
     doctor = add('doctor', help='Inspect workspace health without writing files')
     doctor.add_argument('--workspace',
         help='Path to the QEC workspace; omit to use local discovery where supported')
-    snapshot = add('snapshot', help='Inspect local snapshots and stored registry states')
-    snapshot_list = snapshot.add_subparsers(dest='snapshot_action', required=True, parser_class=_ArgumentParser).add_parser(
-        'list', help='List snapshot IDs and identify the current pointer',
-        epilog=f'Example:\n  qec-graph snapshot list --workspace ./qec\n\nGuide: {GUIDE_URL}')
-    scope = snapshot_list.add_mutually_exclusive_group()
-    for option in ('--workspace', '--store', '--corpus'):
-        scope.add_argument(option, help='Select the workspace, store, or corpus for the snapshot listing')
-    inputs = add('inputs', help='List, quarantine, or restore inbox packages')
-    input_actions = inputs.add_subparsers(dest='input_action', required=True, metavar='<action>', parser_class=_ArgumentParser)
-    for name, description in (('list', 'List inbox and quarantined packages'),
-                              ('quarantine', 'Move an inbox package aside'),
-                              ('restore', 'Return a quarantined package to the inbox')):
-        example = f'qec-graph inputs {name}' + (' paper.zip' if name != 'list' else '')
-        cmd = input_actions.add_parser(name, help=description,
-                                       epilog=f'Example:\n  {example} --workspace ./qec\n\nGuide: {GUIDE_URL}')
-        cmd.add_argument('--workspace',
-            help='Path to the QEC workspace; omit to use local discovery where supported')
-        if name != 'list':
-            cmd.add_argument('name', help='Exact inbox file name')
+    add('snapshot', help='Inspect local snapshots and stored registry states')
+    add('inputs', help='List, quarantine, or restore inbox packages')
     for action, description in (('init', 'Create a workspace and import its inbox'),
                                 ('sync', 'Import new source packages from inputs/'),
                                 ('rebuild', 'Verify and replay all archived source packages'),
@@ -424,9 +428,10 @@ def _build_parser(entrypoint=None):
     sub = parser.add_subparsers(dest='command', required=True, metavar='<command>')
     topics = {}
     groups = {}
-    for name, (description, _) in _GROUPS.items():
+    for name, (description, actions) in _GROUPS.items():
+        action = next(iter(actions))
         group = sub.add_parser(name, prog=f'qec-graph {name}', help=description, description=description,
-                               epilog=f'Use qec-graph help {name} ACTION for an example and options.')
+                               epilog=command_epilog(actions[action], f'qec-graph {name} {action}'))
         groups[name] = group.add_subparsers(dest='action', required=True, metavar='<action>')
         topics[name,] = group
 
@@ -438,6 +443,19 @@ def _build_parser(entrypoint=None):
         options = argparse.ArgumentParser(prog=f'qec-graph {name}', add_help=False)
         definitions[name] = options, help
         return options
+
+    def add_leaf_actions(path, command):
+        def add_action(actions, name, description, example):
+            prog = f'{topics[path].prog} {name}'
+            epilog = f'Example:\n  {prog} {example}\n\nGuide: {GUIDE_URL}'
+            child = actions.add_parser(name, prog=prog, help=description, description=description, epilog=epilog)
+            topics[(*path, name)] = child
+            return child
+
+        if command == 'snapshot':
+            _add_snapshot_actions(topics[path], add_action)
+        elif command == 'inputs':
+            _add_input_actions(topics[path], add_action)
 
     _register_commands(add)
     for name, (options, description) in definitions.items():
@@ -453,6 +471,7 @@ def _build_parser(entrypoint=None):
         listing = {} if name in _LEGACY_PATHS else {'help': description}
         topics[name,] = sub.add_parser(name, parents=[options], prog=prog, **listing,
                                        description=description, epilog=command_epilog(name, prog))
+        add_leaf_actions((name,), name)
     for name, (_, actions) in _GROUPS.items():
         for action, command in actions.items():
             options, description = definitions[command]
@@ -461,6 +480,7 @@ def _build_parser(entrypoint=None):
                                               description=description, epilog=command_epilog(command, prog))
             nested.set_defaults(command=command)
             topics[name, action] = nested
+            add_leaf_actions((name, action), command)
     parser.set_defaults(json=False, debug=False, quiet=False, verbose=False, color='auto')
     return parser, topics
 
