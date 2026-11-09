@@ -119,8 +119,9 @@ in a migrated workspace.
 The research schema lists the supported kinds, the fields that must be present
 for each kind, and the shape of nullable `{id, revision}` links. Its
 `x-qec-target-kinds` annotations describe the allowed target kinds. A JSON
-Schema validator also checks evidence metadata and portable value constraints,
-including code parameters, bound direction, measurement units, and rates.
+Schema validator also checks evidence metadata, managed asset IDs, and
+portable value constraints such as matrix recipes, code parameters, bound
+direction, measurement units, and rates.
 QEC Graph checks consistency between related values, that the exact target
 revision is present, that the pointer resolves to the value, and that the
 records agree.

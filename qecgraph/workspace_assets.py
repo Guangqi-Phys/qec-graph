@@ -5,18 +5,12 @@ from hashlib import sha256
 from pathlib import Path
 import re
 
+from .research import ASSET_FIELDS as FIELDS, ASSET_URI_PATTERN
 from .transactions import writer_lock
 from .workspace import Workspace, _hash_regular, _managed, _read_regular
 
-ASSET_URI = re.compile(r'qecasset:sha256:([0-9a-f]{64})')
+ASSET_URI = re.compile(ASSET_URI_PATTERN)
 MAX_ASSET_BYTES = 16 << 20
-FIELDS = {
-    'paper_version': {'asset_refs': True},
-    'code_presentation': {'generator_asset_refs': True},
-    'circuit_protocol': {'circuit_asset_ref': False},
-    'performance_series': {'data_asset_ref': False},
-    'execution_run': {'execution_asset_refs': True},
-}
 
 
 def references(record):

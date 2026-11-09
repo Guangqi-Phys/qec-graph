@@ -95,7 +95,8 @@
         "circuit_protocol": {
           "properties": {
             "presentation_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["code_presentation"]},
-            "depth_metrics": {"type": ["array", "null"], "items": {"$ref": "#/$defs/depth_metric"}}
+            "depth_metrics": {"type": ["array", "null"], "items": {"$ref": "#/$defs/depth_metric"}},
+            "circuit_asset_ref": {"$ref": "#/$defs/nullable_managed_asset", "x-qec-managed-asset": "single"}
           }
         },
         "classical_seed": {
@@ -131,11 +132,44 @@
           "properties": {
             "code_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["code_instance"]},
             "construction_recipe_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["construction"]},
-            "check_weight_metrics": {"type": ["array", "null"], "items": {"$ref": "#/$defs/weight_metric"}}
-          }
+            "check_weight_metrics": {"type": ["array", "null"], "items": {"$ref": "#/$defs/weight_metric"}},
+            "generator_asset_refs": {"$ref": "#/$defs/nullable_managed_assets", "x-qec-managed-asset": "multiple"}
+          },
+          "allOf": [
+            {
+              "if": {
+                "required": ["reconstruction_status"],
+                "properties": {"reconstruction_status": {"enum": ["complete", "reconstructable"]}}
+              },
+              "then": {
+                "anyOf": [
+                  {
+                    "required": ["generator_asset_refs"],
+                    "properties": {"generator_asset_refs": {"type": "array", "minItems": 1}}
+                  },
+                  {
+                    "required": ["construction_recipe_ref"],
+                    "properties": {"construction_recipe_ref": {"$ref": "#/$defs/ref"}}
+                  }
+                ]
+              }
+            }
+          ]
         },
         "construction": {
-          "properties": {"seed_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["classical_seed"]}}
+          "properties": {"seed_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["classical_seed"]}},
+          "allOf": [
+            {
+              "if": {
+                "required": ["reconstruction_status"],
+                "properties": {"reconstruction_status": {"enum": ["complete", "reconstructable"]}}
+              },
+              "then": {
+                "required": ["matrix_recipe"],
+                "properties": {"matrix_recipe": {"$ref": "#/$defs/complete_matrix_recipe"}}
+              }
+            }
+          ]
         },
         "decoder_configuration": {
           "properties": {
@@ -185,7 +219,8 @@
           "properties": {
             "reported_experiment_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["reported_experiment"]},
             "environment_ref": {"$ref": "#/$defs/ref", "x-qec-target-kinds": ["execution_environment"]},
-            "software_usage_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["software_usage"]}
+            "software_usage_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["software_usage"]},
+            "execution_asset_refs": {"$ref": "#/$defs/nullable_managed_assets", "x-qec-managed-asset": "multiple"}
           }
         },
         "hardware_assumptions": {},
@@ -206,7 +241,9 @@
             "leakage": {"$ref": "#/$defs/noise_consideration"}
           }
         },
-        "paper_version": {},
+        "paper_version": {
+          "properties": {"asset_refs": {"$ref": "#/$defs/nullable_managed_assets", "x-qec-managed-asset": "multiple"}}
+        },
         "performance_point": {
           "required": ["experiment_ref", "noise_instantiation_ref", "metric_definition_ref", "value"],
           "properties": {
@@ -224,7 +261,8 @@
         "performance_series": {
           "properties": {
             "experiment_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["reported_experiment"]},
-            "metric_definition_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["metric_definition"]}
+            "metric_definition_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["metric_definition"]},
+            "data_asset_ref": {"$ref": "#/$defs/nullable_managed_asset", "x-qec-managed-asset": "single"}
           }
         },
         "reported_experiment": {
@@ -326,6 +364,23 @@
         "upper": {"type": "number", "minimum": 0, "maximum": 1},
         "level": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1}
       }
+    },
+    "managed_asset": {"type": "string", "pattern": "^qecasset:sha256:([0-9a-f]{64})(?![\\s\\S])"},
+    "nullable_managed_asset": {"anyOf": [{"$ref": "#/$defs/managed_asset"}, {"type": "null"}]},
+    "nullable_managed_assets": {"type": ["array", "null"], "items": {"$ref": "#/$defs/managed_asset"}},
+    "complete_matrix_recipe": {
+      "description": "A complete recipe specifies the field, shape, indexing, bit order, formula, version and seeds.",
+      "type": "object",
+      "required": ["field", "index_convention", "bit_order", "formula", "version", "shape", "seed_refs"],
+      "properties": {
+        "field": {"not": {"type": "null"}},
+        "index_convention": {"not": {"type": "null"}},
+        "bit_order": {"not": {"type": "null"}},
+        "formula": {"not": {"type": "null"}},
+        "version": {"not": {"type": "null"}},
+        "shape": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "integer", "minimum": 0}},
+        "seed_refs": {"type": "array", "items": {"$ref": "#/$defs/ref"}}
+      }
     }
   },
   "allOf": [
@@ -372,6 +427,10 @@
     {
       "if": {"properties": {"kind": {"const": "noise_model"}}},
       "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/noise_model"}}}
+    },
+    {
+      "if": {"properties": {"kind": {"const": "paper_version"}}},
+      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/paper_version"}}}
     },
     {
       "if": {"properties": {"kind": {"const": "performance_point"}}},

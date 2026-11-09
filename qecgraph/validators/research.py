@@ -1,16 +1,6 @@
 """Domain checks that cannot be expressed as generic record/edge shapes."""
 from __future__ import annotations
 
-RECIPE_FIELDS = {'field', 'shape', 'index_convention', 'bit_order', 'formula', 'version', 'seed_refs'}
-
-
-def _recipe_complete(recipe):
-    return (isinstance(recipe, dict) and not any(recipe.get(k) is None for k in RECIPE_FIELDS)
-            and isinstance(recipe['seed_refs'], list)
-            and isinstance(recipe['shape'], list) and len(recipe['shape']) == 2
-            and all(type(x) is int and x >= 0 for x in recipe['shape']))
-
-
 def check_weight_metrics(metrics):
     for metric in metrics:
         low, high, mean = (metric.get(k) for k in ('min', 'max', 'mean'))
@@ -25,14 +15,11 @@ def check_weight_metrics(metrics):
 
 def validate_details(record):
     kind, data, evidence = record['kind'], record['data'], record['field_evidence']
-    if kind in {'construction', 'code_presentation'}:
-        if data.get('reconstruction_status') in ('complete', 'reconstructable'):
-            if kind == 'construction' and not _recipe_complete(data.get('matrix_recipe')):
-                raise ValueError('A complete matrix recipe needs the field, shape, indexing, bit order, formula, version and seeds')
-            if kind == 'code_presentation' and not (data.get('generator_asset_refs') or data.get('construction_recipe_ref')):
-                raise ValueError('A reconstructable presentation needs matrix assets or a complete construction')
-        if kind == 'code_presentation' and data.get('check_weight_metrics') is not None:
-            check_weight_metrics(data['check_weight_metrics'])
+    if kind == 'construction' and data.get('reconstruction_status') in ('complete', 'reconstructable'):
+        if any(type(size) is not int for size in data['matrix_recipe']['shape']):
+            raise ValueError('Matrix dimensions must be integers')
+    if kind == 'code_presentation' and data.get('check_weight_metrics') is not None:
+        check_weight_metrics(data['check_weight_metrics'])
     if kind == 'noise_model':
         for field in ('idle', 'loss', 'erasure', 'leakage'):
             value = data[field]

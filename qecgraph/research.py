@@ -20,6 +20,10 @@ REQUIRED = {kind: tuple(contract['required']) for kind, contract in _CONTRACTS.i
 RELATIONS = {kind: {field: tuple(rule['x-qec-target-kinds']) for field, rule in contract['properties'].items()
                     if 'x-qec-target-kinds' in rule}
              for kind, contract in _CONTRACTS.items() if 'properties' in contract}
+ASSET_URI_PATTERN = _VALIDATOR.schema['$defs']['managed_asset']['pattern']
+ASSET_FIELDS = {kind: {field: rule['x-qec-managed-asset'] == 'multiple'
+                       for field, rule in contract.get('properties', {}).items() if 'x-qec-managed-asset' in rule}
+                for kind, contract in _CONTRACTS.items()}
 
 
 def key(ref):

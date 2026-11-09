@@ -103,10 +103,21 @@ class ResearchTests(unittest.TestCase):
 
     def test_formula_with_unknown_seed_does_not_prove_reconstruction(self):
         source = ref(self.rows[0])
-        with self.assertRaisesRegex(ValueError, 'complete matrix recipe'):
+        with self.assertRaisesRegex(ValueError, r'\$\.data\.matrix_recipe'):
             make_record('construction', 'construction:partial', 'r1',
                         {'reconstruction_status': 'reconstructable',
                          'matrix_recipe': {'formula': 'H from seeds', 'seed_refs': None}}, source=source, method='fixture')
+
+        with self.assertRaisesRegex(ValueError, r'\$\.data\.generator_asset_refs\[0\]'):
+            make_record('code_presentation', 'presentation:bad', 'r1',
+                        {'code_ref': None, 'check_weight_metrics': None, 'reconstruction_status': 'complete',
+                         'generator_asset_refs': ['../human/notes/matrix.json']}, source=source, method='fixture')
+        recipe = {'field': 'GF(2)', 'shape': [2, 2], 'index_convention': 'row and column from zero',
+                  'bit_order': 'column order', 'formula': 'identity', 'version': '1', 'seed_refs': []}
+        record = make_record('construction', 'construction:complete', 'r1',
+                             {'reconstruction_status': 'complete', 'matrix_recipe': recipe},
+                             source=source, method='fixture')
+        self.assertEqual(record['data']['matrix_recipe'], recipe)
 
     def test_domain_shapes_do_not_replace_numeric_consistency_checks(self):
         source = ref(self.rows[0])
