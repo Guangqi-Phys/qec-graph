@@ -7,7 +7,7 @@ Each entry is complete only when its acceptance evidence has been checked.
 | Item | Change | Status and evidence |
 | --- | --- | --- |
 | 1 | License and package metadata | Complete. Wheel and source distribution include the MIT license and PEP 639 metadata. Both passed strict Twine and source-content checks. |
-| 2 | CI on pull requests and pushes | Open. |
+| 2 | CI on pull requests and pushes | In progress. Added Linux and macOS jobs for lint, mypy, coverage, distribution verification, and installed workspace checks. Local equivalents passed. Hosted runs await the scheduled push. |
 | 3 | Consistent status and explicit JSON output | Complete for workspace maintenance. Explicit and implicit workspace selection produce the same text. The CLI contract tests check exit code 2 in text and JSON, and release verification requests JSON explicitly. |
 | 4 | Version, help, and usage exit code | Complete. CLI tests cover version, concise no-argument help, command help, and usage exit 64. The changelog documents the exit-code migration. |
 | 5 | Validate review, claim-link, and experiment inputs | Complete. CLI tests reject missing or malformed fields before writing. Review and QEC validation suites pass. |
