@@ -1,5 +1,8 @@
 # 01｜架构、权威来源与部署边界
 
+> **Status: Historical.** Superseded by [the consolidated design](../../design/DESIGN.md). Keep for provenance; internal links and paths may describe the pre-consolidation layout.
+
+
 本文是供 Codex 执行的设计约定；标为“目标”的能力必须经过实现和验收后才能对外宣称可用。
 图的边语义见 [02](graph-contract.md)，文件契约见 [04](data-formats.md)，操作流程见 [06](../operations/maintenance.md)。
 

@@ -1,5 +1,8 @@
 # ADR 0002 · 固定作用域的只读 AI 工具
 
+> **Status: Historical.** Superseded by [the consolidated design](../../design/DESIGN.md). Keep for provenance; internal links and paths may describe the pre-consolidation layout.
+
+
 采用 Python `ReadOnlySession` 作为 CLI/MCP 共用边界。工具名称固定为：
 `qecgraph_search`、`qecgraph_show`、`qecgraph_context`、`qecgraph_deps`、`qecgraph_impact`。
 不提供写入、构建、TeX 执行、Lean 执行或任意文件读取工具。

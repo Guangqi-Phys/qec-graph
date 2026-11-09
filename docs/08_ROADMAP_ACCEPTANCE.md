@@ -16,7 +16,7 @@
 | P5 | 按形式化需求安排 | Lean 真实声明／依赖／验证导出 | P1、P2 |
 
 P3、P4、P5 可分别开展；Lean 工作不需要等待 MCP。各阶段保持旧输入可读取，先增加适配器，再讨论废弃旧格式。
-类型字段按 [04](04_DATA_FORMATS.md)，维护与发布按 [06](06_MAINTENANCE.md)，Lean 证据按 [05](05_LEAN.md)。
+类型字段按 [04](04_DATA_FORMATS.md)，维护与发布按 [06](06_MAINTENANCE.md)，Lean 证据按 [05](design/DESIGN.md#10-lean-boundary)。
 
 ## 2. P0：固定原型与复现闭环
 
@@ -107,7 +107,7 @@ watch 只调度同一构建流程，处理编辑器临时文件、批量保存�
 测试已知结果、空结果、重复 label、错误 scope、旧 snapshot、截断和 partial 状态。
 
 **失败例。** MCP 展示候选为已确认；任务中无提示地混读两个 CURRENT；检索未命中被表述为定理不存在。
-已实现的只读 MCP 入口和验收见 [MCP 指南](12_AI_MCP.md)。
+已实现的只读 MCP 入口和验收见 [MCP 指南](design/DESIGN.md#8-query-cli-and-mcp-contract)。
 
 ## 7. P5：Lean 真实声明／依赖／验证导出
 

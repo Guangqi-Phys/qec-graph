@@ -6,7 +6,7 @@ P2 新记录使用 `qecgraph.record.v3`。相对 P1 v2，新增逐 kind 必填�
 严格引用和受管理资产结构。权威 Schema 随 Python 包发布于
 [`qecgraph/validators/schemas/`](../qecgraph/validators/schemas)。旧路径见[迁移说明](../schemas/README.md)。
 P5 在 v3 添加 `lean_declaration` kind 与专用关系，原有字段和旧记录哈希不变；
-包含新 kind 的记录需支持该扩展的读者。实际构建与语义审核见 [13](13_LEAN_EXECUTION.md)。
+包含新 kind 的记录需支持该扩展的读者。实际构建与语义审核见 [13](design/DESIGN.md#10-lean-boundary)。
 
 原 v2 记录和历史哈希仍可读取，不就地改写。用 `migrate <旧记录目录> --out <新目录>`
 显式生成新 revision，完整旧对象及旧哈希保存在 `extensions.pre_validation_record`。

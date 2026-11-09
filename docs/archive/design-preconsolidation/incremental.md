@@ -1,5 +1,8 @@
 # 单写者发布、增量和 watch
 
+> **Status: Historical.** Superseded by [the consolidated design](../../design/DESIGN.md). Keep for provenance; internal links and paths may describe the pre-consolidation layout.
+
+
 ## 发布策略与恢复
 
 ingest/split 共用输出目录保护和 POSIX writer lock。不同进程不能同时写同一 store；

@@ -1,5 +1,8 @@
 # qec-graph：统一图与三个视图的工程规范
 
+> **Status: Historical.** Superseded by [the consolidated design](../../design/DESIGN.md). Keep for provenance; internal links and paths may describe the pre-consolidation layout.
+
+
 ## 1. 范围与术语
 
 本文规定图的语义、查询和兼容约束；领域字段以 [04_DATA_FORMATS.md](data-formats.md) 为准，维护流程见 [06_MAINTENANCE.md](../operations/maintenance.md)，Lean 证据见 [05_LEAN.md](../05_LEAN.md)。

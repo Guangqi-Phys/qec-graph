@@ -1,5 +1,8 @@
 # 04｜记录、资产、数学约定与哈希契约
 
+> **Status: Historical.** Superseded by [the consolidated design](../../design/DESIGN.md). Keep for provenance; internal links and paths may describe the pre-consolidation layout.
+
+
 本文定义目标领域契约，并说明当前原型和旧样例的兼容边界。
 除明确标注的现有字段、格式和命令外，新增字段须在领域 Schema、迁移器和校验器中实现后启用。
 图的实际边语义和状态枚举以 [02](graph-contract.md) 及对应版本 Schema 为准。

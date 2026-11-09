@@ -2,7 +2,7 @@
 
 工作区日常运行 `init`、`sync`、`status` 和 `validate`，见[工作区说明](../user/workspace.md)。
 本文件保留单论文 store 与 legacy corpus 的维护流程。
-运行时先读本包 `AGENTS.md`、[架构](../design/architecture.md) 和 [数据契约](../design/data-formats.md)。
+运行时先读本包 `AGENTS.md`、[架构](../design/DESIGN.md#2-system-overview) 和 [数据契约](../design/DESIGN.md#4-data-contracts)。
 以下命令以本包根目录为工作目录；各步骤成功后再执行下一步。
 
 ## 1. 首次安装与基线
@@ -60,7 +60,7 @@ qecgraph context thm:hgp-length --store build/demo
 7. 提交人工记录和代码，归档重要报告；将发布提交、输入清单与 snapshot ID 关联。
 
 默认 ingest 会在完整性验证后发布 partial 快照；正式发布可用 `--strict`，partial 保存在 staging 且 CURRENT 不变。
-详见 [增量和恢复](../11_INCREMENTAL.md)。
+详见 [增量和恢复](../design/DESIGN.md#73-incremental-and-watch)。
 同一输入、配置、工具源码和依赖指纹再次 ingest 应复用相同 snapshot ID。
 已发布快照只读；发现损坏应保留现场并从输入重建到新的 store，不能修改清单掩盖损坏。
 
@@ -80,7 +80,7 @@ qecgraph context thm:hgp-length --store build/demo
 逐文件 AST 复用和 watch 已实现，语义投影每次重建；当前没有通用领域产物的增量依赖闭包。
 目标任务清单应记录输入 ID＋revision＋hash、处理器版本、配置、输出及依赖边。
 建立完整依赖闭包后再按变化传播；未解析依赖应显式阻止“全部仍有效”的结论。
-依赖方向和反向影响查询按 [02](../design/graph-contract.md) 执行，不把普通引用一律当证明依赖。
+依赖方向和反向影响查询按 [02](../design/DESIGN.md#4-data-contracts) 执行，不把普通引用一律当证明依赖。
 旧证据继续属于旧输入，不因失效被删除；新结果与旧结果通过后继关系连接。
 审核更新必须重新比较陈述、假设和依赖，不能仅把 expected hash 替换成新值。
 
@@ -88,7 +88,7 @@ qecgraph context thm:hgp-length --store build/demo
 
 SQLite、FTS 和向量索引由权威记录生成。新索引在临时目录完整构建、校验，然后切换入口。
 当前会先生成完整快照，再原子替换 `CURRENT.json`；本地 POSIX writer lock 拒绝跨进程并发写入。
-用 `recover-store` 检查发布状态，详见 [11](../11_INCREMENTAL.md)。
+用 `recover-store` 检查发布状态，详见 [11](../design/DESIGN.md#73-incremental-and-watch)。
 不要混用一个快照的关系表和另一个快照的全文或向量数据。
 新增索引记录 source snapshot、Schema、模型版本、维度、归一化、配置及输入文本哈希。
 中文召回、定理完整性、参数硬条件和来源定位都进入查询回归；向量相似度不决定证据等级。
@@ -136,7 +136,7 @@ pointer 包含 `format: qecgraph.current.v1`、目标 `snapshot_id` 和 `path: s
 3. 运行 `qecgraph validate --store <恢复的store路径>`，检查诊断和完整性。
 4. 使用归档输入与对应工具版本在另一目录重新 ingest，核对节点、来源定位和预期快照。
 5. 重跑关键结构化查询及有界上下文；对本包旧例运行 `python knowledge_starter/tools/qec_kb.py verify`。
-6. Lean 项目按 [13](../13_LEAN_EXECUTION.md) 用固定工具链重建并检查证据；不可复建的记录只作为历史读取。
+6. Lean 项目按 [13](../design/DESIGN.md#10-lean-boundary) 用固定工具链重建并检查证据；不可复建的记录只作为历史读取。
 7. 记录恢复耗时、缺失资产、差异与修复动作，通过后再切换正式读取入口。
 
 恢复测试失败时先补齐备份或修复流程，不能仅因为备份任务退出成功就标记“可恢复”。

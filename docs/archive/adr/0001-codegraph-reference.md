@@ -1,5 +1,8 @@
 # ADR 0001 · 固定架构参考与独立实现
 
+> **Status: Historical.** Superseded by [the consolidated design](../../design/DESIGN.md). Keep for provenance; internal links and paths may describe the pre-consolidation layout.
+
+
 核对日期：2026-11-06。参考仓库：[colbymchenry/codegraph](https://github.com/colbymchenry/codegraph)。
 实际 checkout：`f72c9d2efb14454ff4f9fd7b8460abd82f19a287`（浅克隆，不作为本项目依赖）。
 许可证：该提交根目录 `LICENSE`，MIT，Copyright (c) 2026 Colby Mchenry；

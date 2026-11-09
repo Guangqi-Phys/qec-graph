@@ -37,7 +37,7 @@ PYINSTALLER_CONFIG_DIR="$PWD/build/standalone-cache" \
 
 Run `dist/standalone/qec-graph` directly or install it in a user directory on
 `PATH`. Explicit Lean builds require the project's Lean toolchain.
-[Lean guide](../05_LEAN.md)
+[Lean guide](../design/DESIGN.md#10-lean-boundary)
 
 ## Try the bundled paper
 

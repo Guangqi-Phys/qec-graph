@@ -1,5 +1,8 @@
 # 05 · Lean 接入、证明状态与可查询映射
 
+> **Status: Historical.** Superseded by [the consolidated design](../../design/DESIGN.md). Keep for provenance; internal links and paths may describe the pre-consolidation layout.
+
+
 状态：本文保留原接入规范。当前实现及真实构建、声明/依赖、公理报告见 [13_LEAN_EXECUTION.md](13_LEAN_EXECUTION.md)。
 已运行的 core-only Bool 向量边界与旧 HGP 距离示例分开；`knowledge_starter/records/formalization_rep3_hgp_distance.json` 的状态仍为 `not_started`，真实距离声明与构建证据为 null。
 

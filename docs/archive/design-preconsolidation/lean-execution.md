@@ -1,5 +1,8 @@
 # Lean 构建、实际声明与证据
 
+> **Status: Historical.** Superseded by [the consolidated design](../../design/DESIGN.md). Keep for provenance; internal links and paths may describe the pre-consolidation layout.
+
+
 本实现采用 [ADR 0003](adr/0003-lean-boundary.md) 的 core-only 边界和固定 Lean 4.19.0。
 不将旧 HGP [[13,1,3]] 距离穷举或 LaTeX leanok 升级成 Lean 验证。
 

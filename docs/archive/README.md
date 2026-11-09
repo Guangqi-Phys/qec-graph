@@ -8,6 +8,7 @@ and current behavior, see the [user guides](../user/README.md).
 - [Prototype design](prototype/DESIGN.md), [example expectations](prototype/EXAMPLE_EXPECTATIONS.md), and [validation](prototype/VALIDATION.md)
 - [0.3.0 release notes](releases/v0.3.0.md) and [initial implementation audit](../../IMPLEMENTATION_AUDIT.md)
 - [2026-11-09 codebase assessment](assessments/2026-11-09-codebase-assessment.md)
+- [Pre-consolidation design pages](design-preconsolidation/README.md) and [archived ADRs](adr/README.md)
 
 Historical sources tied to recorded hashes, including the RFC design input,
 keep their original paths and bytes. Former paths for moved pages lead to the

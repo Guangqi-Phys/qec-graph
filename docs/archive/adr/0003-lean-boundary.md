@@ -1,5 +1,8 @@
 # ADR 0003 · 小型 Lean 构建边界与第三方核对
 
+> **Status: Historical.** Superseded by [the consolidated design](../../design/DESIGN.md). Keep for provenance; internal links and paths may describe the pre-consolidation layout.
+
+
 核对日期 2026-11-06。选用官方 Lean 4.19.0，实际运行得到 commit 前缀 6caaee842e94，
 固定完整提交 `6caaee842e9495688c1567e78c0e68dbb96942aa`。
 本机使用官方 macOS ARM64 发布包，实际字节 SHA-256 为

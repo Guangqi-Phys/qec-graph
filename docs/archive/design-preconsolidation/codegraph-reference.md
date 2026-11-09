@@ -1,5 +1,8 @@
 # 07｜CodeGraph 参考架构与 qec-graph 映射
 
+> **Status: Historical.** Superseded by [the consolidated design](../../design/DESIGN.md). Keep for provenance; internal links and paths may describe the pre-consolidation layout.
+
+
 ## 1. 参考对象和使用范围
 
 本文参考明确的开源项目 [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph)，不把所有名为 CodeGraph 的工具视为同一实现。

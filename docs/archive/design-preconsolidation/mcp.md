@@ -1,5 +1,8 @@
 # 固定快照的只读 AI 接口
 
+> **Status: Historical.** Superseded by [the consolidated design](../../design/DESIGN.md). Keep for provenance; internal links and paths may describe the pre-consolidation layout.
+
+
 接口契约以 [ADR 0002](adr/0002-read-only-ai-contract.md) 为准。
 Python 使用 `ReadOnlySession`，CLI 使用 `query-tool`，二者返回同一 JSON envelope。
 
