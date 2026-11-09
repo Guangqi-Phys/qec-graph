@@ -79,3 +79,7 @@ macOS 严格运行配置：`tools/mcp_isolated_macos.py --python VENV/bin/python
 用 deny-by-default profile 启动 wheel 中的 MCP。实际进程验证可读机器库，无法读取或列出
 测试 notes、列出 inputs、写机器库或绑定网络端口。Docker Compose profile 已解析，
 本机 Docker daemon 不可用，未执行 Docker/Linux 容器验收。
+
+工作区写入先保存候选机器状态，再按固定候选修订验证来源、图、引用与审核状态，
+通过后才切换 CURRENT。已通过验证拒绝后的恢复测试：旧发布不动，原包与认领保留，
+重试可发布且不重复收据。没有将进程中断测试表述为掉电或分布式文件系统保证。

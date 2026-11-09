@@ -118,3 +118,18 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(row['data']['K'], 12)
         self.assertIsNone(row['data']['k_logical'])
         self.assertIsNone(row['data']['distance_interpretation'])
+
+    def test_candidate_failure_leaves_old_release_and_claim_for_retry(self):
+        self.ws.init(no_ingest=True)
+        release = self.ws.status()['release_id']
+        (self.inbox / 'first').write_bytes(TEX)
+        with patch.object(self.ws.registry, 'validate', return_value={'passed': False}):
+            with self.assertRaisesRegex(ValueError, 'Candidate machine release failed validation'):
+                self.ws.sync()
+        self.assertEqual(self.ws.status()['release_id'], release)
+        self.assertEqual(self.ws.status()['pending_claims'], 1)
+        self.assertEqual(len(list((self.root / 'archive/receipts').glob('*.json'))), 1)
+        result = self.ws.sync()
+        self.assertTrue(result['inputs'][0]['input_consumed'])
+        self.assertEqual(result['counts']['processed'], 1)
+        self.assertEqual(len(list((self.root / 'archive/receipts').glob('*.json'))), 1)

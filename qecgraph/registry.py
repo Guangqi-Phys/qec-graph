@@ -58,11 +58,17 @@ class Registry:
         state['corpus_id'] = identity['corpus_id']
         return state
 
-    def _publish(self, state):
+    def prepare_publication(self, state):
         revision = hash_text(canonical(state))
         immutable_json(self.root / 'states' / (revision + '.json'), state)
+        return revision
+
+    def publish_prepared(self, revision):
         atomic_json(self.root / 'CURRENT.json', {'format': 'qecgraph.registry.current.v1', 'revision': revision})
         return revision
+
+    def _publish(self, state):
+        return self.publish_prepared(self.prepare_publication(state))
 
     def register_source(self, work_id, source_version_id, store, *, title=None, upstream_version=None):
         with writer_lock(self.root):
@@ -245,7 +251,7 @@ class Registry:
             asset['original_path'] = original_path
         return asset
 
-    def validate(self, registry_revision=None):
+    def validate(self, registry_revision=None, *, check_live_lean=True):
         from .validators import registry_issues
         from .corpus import project
         state, fixed = self.read(registry_revision)
@@ -253,7 +259,7 @@ class Registry:
         for version_id in state['versions']:
             _, snapshot, _ = self.source_graph(version_id, fixed)
             validate_snapshot(snapshot)
-        graph, _ = project(self.root, fixed)
+        graph, _ = project(self.root, fixed, check_live_lean=check_live_lean)
         from .validators import validate_graph_types
         validate_graph_types(graph.graph)
         from .status import reviewed_cycles

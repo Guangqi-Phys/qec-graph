@@ -288,6 +288,8 @@ class Workspace:
                     digests.add(digest)
 
         with writer_lock(self.registry.root):
+            from .workspace_query import check_machine_tree
+            check_machine_tree(self.registry.root)
             old = self.registry.read()[1] if self.path('machine/CURRENT.json').exists() else None
             state = self.registry._state_or_empty()
             previous = copy.deepcopy(state.get('materials', {}))
@@ -335,9 +337,13 @@ class Workspace:
             for material in materials.values():
                 pair = (material.get('work_id'), material.get('upstream_version'))
                 material['source_version_conflict'] = len(collisions.get(pair, ())) > 1
+            candidate = self.registry.prepare_publication(state)
+            validation = self.registry.validate(candidate, check_live_lean=False)
+            if not validation['passed']:
+                raise ValueError('Candidate machine release failed validation; CURRENT was retained')
             if cfg != self.config():
                 raise ValueError('Workspace configuration changed while preparing; retry')
-            release = self.registry._publish(state)
+            release = self.registry.publish_prepared(candidate)
         # Recovery after a killed process replays the exact claim and verifies the published result.
         for job, meta, digest in claims:
             material = materials[digest]
@@ -368,8 +374,13 @@ class Workspace:
                   'conflicting': sum(x['source_version_conflict'] for x in materials.values()),
                   'code_mention_proposals': sum(p['code_mentions'] for p in proposal_map.values())}
         self.path('machine/operational').mkdir(exist_ok=True)
-        atomic_json(self.path('machine/operational/status.json'),
-                    {'observed_at': now(), 'release_id': release, 'counts': counts})
+        operational = self.path('machine/operational/status.json')
+        earlier = read_json(operational) if operational.is_file() else {}
+        prior_human = earlier.get('human') or {}
+        rendered = prior_human.get('rendered_release_id')
+        human_status = 'current' if rendered == release and prior_human.get('status') == 'current' else 'human_stale'
+        atomic_json(operational, {'observed_at': now(), 'release_id': release, 'counts': counts,
+                    'human': {'status': human_status, 'target_release_id': release, 'rendered_release_id': rendered}})
         partial = any(not r.get('processing_completed') or r.get('cleanup_error') or r.get('retained_claim')
                       or r.get('source_version_conflict') for r in rows)
         return {'status': 'partial_batch' if partial else 'unchanged' if old == release else 'published',
@@ -386,7 +397,9 @@ class Workspace:
 
     def validate(self):
         cfg = self.config()
-        result = self.registry.validate()
+        from .workspace_query import check_machine_tree
+        check_machine_tree(self.registry.root)
+        result = self.registry.validate(check_live_lean=False)
         state, fixed = self.registry.read(result['registry_revision'])
         issues = result.setdefault('issues', [])
         from .research import validate_bundle
