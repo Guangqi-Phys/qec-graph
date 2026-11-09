@@ -10,12 +10,7 @@ from pathlib import Path
 import sys
 
 from .graph import read_json
-from .store import check_output_directory, ingest, safe_relative
-
-
-def _check_output_directory(out: str | Path) -> Path:
-    """Avoid claiming an unrelated nonempty directory as a splitter store."""
-    return check_output_directory(out)
+from .store import ingest, safe_relative
 
 
 def split_project(
@@ -46,11 +41,10 @@ def split_project(
     are not guaranteed to compile individually.  ``sources/`` contains the
     preserved original source files.
     """
-    destination = _check_output_directory(out)
     result = ingest(
         entry=entry,
         project_id=project_id,
-        out=destination,
+        out=out,
         project_root=project_root,
         config_path=config_path,
         annotations_path=None,
