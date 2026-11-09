@@ -2,6 +2,7 @@
 from pathlib import Path
 
 __version__ = "0.4.0rc1"
+PARSER_VERSION = "0.2.0"
 __all__ = ["__version__", "split_project"]
 
 

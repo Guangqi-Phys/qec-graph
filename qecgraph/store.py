@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 from . import __version__
 from .graph import build_graph, canonical, hash_text, node_filename, read_json, strict_json_loads, views
-from .parser import SourceLines, parse_project
+from .source_coordinates import SourceLines
 from .transactions import atomic_json, writer_lock
 
 
@@ -171,6 +171,8 @@ def ingest(entry, project_id, out, project_root=None, config_path=None, annotati
 
 
 def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None, *, strict=False, incremental=False):
+    from .parser import parse_project
+
     started = time.perf_counter()
     parser_version = version("pylatexenc")
     if parser_version != "2.10":

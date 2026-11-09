@@ -12,11 +12,10 @@ import tempfile
 import tomllib
 import uuid
 
-from . import __version__
+from . import PARSER_VERSION, __version__
 from .extraction import RULE_VERSION, proposals
 from .research_store import load_records, stage_records, validate_sources
 from .graph import canonical, hash_text, read_json
-from .parser import PARSER_VERSION
 from .registry import Registry
 from .source_package import Limits, PackageError, read_bounded, unpack
 from .store import ingest, validate_snapshot

@@ -12,6 +12,9 @@ from pathlib import Path
 import re
 from typing import Any
 
+from . import PARSER_VERSION
+from .source_coordinates import SourceLines
+
 try:
     from pylatexenc import __version__ as PYLATEXENC_VERSION
     from pylatexenc.latexwalker import (
@@ -28,7 +31,6 @@ except ImportError as exc:
     raise ImportError("qecgraph's LaTeX parser requires pylatexenc==2.10") from exc
 
 
-PARSER_VERSION = "0.2.0"
 _KINDS = {
     "definition", "lemma", "theorem", "proposition", "corollary", "conjecture",
     "proof", "equation", "table", "figure", "remark", "example",
@@ -438,23 +440,6 @@ def _scan_structure(text, inherited, context, known_conditionals):
         parts.extend((text[pos:start], re.sub(r"[^\r\n]", " ", text[start:end])))
         pos = end
     return "".join(parts) + text[pos:], aliases, include_bindings, selected
-
-
-class SourceLines:
-    """Map codepoint offsets to 1-based lines using sparse LF counts."""
-
-    _STRIDE = 512
-
-    def __init__(self, text):
-        self.text = text
-        self.checkpoints = [1]
-        stride = self._STRIDE
-        for start in range(0, len(text) - stride + 1, stride):
-            self.checkpoints.append(self.checkpoints[-1] + text.count("\n", start, start + stride))
-
-    def line_at(self, offset):
-        checkpoint = offset // self._STRIDE
-        return self.checkpoints[checkpoint] + self.text.count("\n", checkpoint * self._STRIDE, offset)
 
 
 class _ProjectParser:
