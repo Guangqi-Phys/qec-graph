@@ -17,7 +17,7 @@ import uuid
 from . import PARSER_VERSION, __version__
 from .extraction import RULE_VERSION, proposals
 from .research_store import load_records, stage_records, validate_sources
-from .graph import canonical, hash_text, read_json
+from .graph import canonical, hash_text, read_json, strict_json_loads
 from .registry import Registry
 from .source_package import Limits, PackageError, unpack
 from .store import extraction_tool_identity, ingest, source_span_index
@@ -71,6 +71,19 @@ def _read_regular(path, limit):
         raw = stream.read(before.st_size + 1)
         _check_input_read(stream, before, len(raw))
     return raw
+
+
+def read_operational_status(path):
+    """Load a previous progress report when its bytes can be trusted and parsed."""
+    try:
+        raw = _read_regular(path, 1 << 20)
+    except FileNotFoundError:
+        return {}
+    try:
+        data = strict_json_loads(raw.decode('utf-8'), source=str(path))
+    except ValueError:
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 def _hash_regular(path, limit, *, copy_to=None):
@@ -466,9 +479,12 @@ class Workspace:
     def _write_operational_status(self, release, counts):
         self.path('machine/operational').mkdir(exist_ok=True)
         operational = self.path('machine/operational/status.json')
-        earlier = read_json(operational) if operational.is_file() else {}
-        prior_human = earlier.get('human') or {}
+        prior_human = read_operational_status(operational).get('human')
+        if not isinstance(prior_human, dict):
+            prior_human = {}
         rendered = prior_human.get('rendered_release_id')
+        if not isinstance(rendered, str) or not HEX.fullmatch(rendered):
+            rendered = None
         human_status = 'current' if rendered == release and prior_human.get('status') == 'current' else 'human_stale'
         atomic_json(operational, {'observed_at': now(), 'release_id': release, 'counts': counts,
                     'human': {'status': human_status, 'target_release_id': release, 'rendered_release_id': rendered}})

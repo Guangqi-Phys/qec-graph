@@ -10,7 +10,7 @@ from .graph import canonical, hash_text, read_json
 from .research import RELATIONS
 from .status import eligible
 from .transactions import atomic_bytes, atomic_json, writer_lock
-from .workspace import HEX, Workspace, _read_regular, now
+from .workspace import HEX, Workspace, _read_regular, now, read_operational_status
 from .workspace_query import WorkspaceSession
 
 FORMAT_V1 = 'qecgraph.human.v1'
@@ -325,9 +325,10 @@ def _render(session, previous, bindings, past):
 
 def _operational(ws, release, human_status, last_release):
     path = ws.path('machine/operational/status.json')
-    existing = read_json(path) if path.is_file() else {}
+    existing = read_operational_status(path)
+    counts = existing.get('counts')
     atomic_json(path, {'observed_at': now(), 'release_id': release,
-                       'counts': existing.get('counts', {}) if existing.get('release_id') == release else {},
+                       'counts': counts if isinstance(counts, dict) and existing.get('release_id') == release else {},
                        'human': {'status': human_status, 'target_release_id': release,
                                  'rendered_release_id': last_release}})
 

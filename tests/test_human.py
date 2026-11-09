@@ -72,6 +72,20 @@ class HumanTests(unittest.TestCase):
         self.assertEqual(self.note.read_bytes(), b'private\x00note')
         self.assertEqual(build_human(self.root, next_release)['status'], 'current')
 
+    def test_sync_and_human_build_can_replace_corrupt_operational_reports(self):
+        status = self.ws.registry.root / 'operational/status.json'
+        status.write_text('{"human": [1]}', encoding='utf-8')
+        release = self.ws.sync()['release_id']
+        self.assertEqual(json.loads(status.read_bytes())['human']['status'], 'human_stale')
+        self.assertFalse((self.root / 'inputs/first').exists())
+        status.write_text('{', encoding='utf-8')
+        self.assertEqual(build_human(self.root, release)['status'], 'current')
+        observed = json.loads(status.read_bytes())
+        self.assertEqual(observed['release_id'], release)
+        self.assertEqual(observed['human']['rendered_release_id'], release)
+        self.assertEqual(self.ws.registry.read()[1], release)
+        self.assertEqual(self.note.read_bytes(), b'private\x00note')
+
     def test_renderer_does_not_follow_generated_symlink_to_note(self):
         release = self.ws.sync()['release_id']
         build_human(self.root, release)
