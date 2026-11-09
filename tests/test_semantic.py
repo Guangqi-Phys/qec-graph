@@ -149,7 +149,15 @@ class SemanticTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'cite a span'):
                 submit_extraction(root, req['id'], payload)
             submitted_locator['path'] = block['path']
-            queued = submit_extraction(root, req['id'], payload)
+            response = root / 'response.json'
+            response.write_text(canonical(payload), encoding='utf-8')
+            before_import = ws.registry.read()[1]
+            imported = subprocess.check_output([sys.executable, '-m', 'qecgraph', 'review', 'import', req['id'], str(response),
+                                                '--workspace', str(root)], text=True, timeout=10)
+            queued = json.loads(imported)
+            self.assertEqual(queued['status'], 'proposed')
+            self.assertEqual(queued, submit_extraction(root, req['id'], payload))
+            self.assertEqual(ws.registry.read()[1], before_import)
             show = [sys.executable, '-m', 'qecgraph', 'review', 'show', queued['proposal_id'], '--workspace', str(root)]
             draft = json.loads(subprocess.check_output(show, text=True, timeout=10))
             self.assertIsNone(draft['provider_draft']['decision'])

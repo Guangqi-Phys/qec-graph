@@ -98,6 +98,7 @@ _GROUPS = {
     }),
     'review': ('Create, inspect, or apply proposals', {
         'propose': 'review', 'list': 'review-list', 'show': 'review-show', 'decide': 'review-decide', 'apply': 'apply',
+        'import': 'extract-submit',
     }),
     'lean': ('Build, import, or inspect Lean evidence', {
         'build': 'lean-build', 'import': 'lean-import', 'status': 'lean-status',
@@ -477,7 +478,7 @@ def parse_command(argv: list[str], *, entrypoint: tuple[str, str] | None = None)
         legacy_actor = any(flag == '--actor-id' or flag.startswith('--actor-id=') for flag in argv[action_index + 1:])
         if (argument not in {*_GROUPS['review'][1], '--help', '-h'}
                 or argument == 'list' and '--corpus' in argv
-                or argument == 'show' and legacy_actor):
+                or argument in {'show', 'import'} and legacy_actor):
             argv[start] = 'review-propose'
             name = 'review-propose'
     parser, topics = _build_parser(entrypoint)
