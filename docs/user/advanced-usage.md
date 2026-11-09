@@ -235,7 +235,7 @@ qec-graph context thm:hgp-length --store build/graph
 
 A Python installation also provides `qec-latex-split`. The `qecgraph` and
 `python -m qecgraph` entry points use the same main CLI as `qec-graph`.
-[Splitter reference](splitter.md) · [Corpus reference](../09_CORPUS.md)
+[Splitter reference](splitter.md) · [Corpus reference](../operations/corpus.md)
 
 To copy an existing corpus into a new workspace, use
 `qec-graph workspace-migrate --corpus /path/to/corpus --workspace /path/to/new-workspace`.

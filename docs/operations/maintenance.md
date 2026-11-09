@@ -1,7 +1,11 @@
-# 06｜日常运行、失效传播、迁移与恢复
+# Legacy store and corpus maintenance
+
+> **Status: Current for the legacy store/corpus surface; not the workspace daily guide.**
+> Workspace daily operations are in [the workspace guide](../user/workspace.md). This page
+> retains source changes, failure propagation, backups and recovery for the single-paper
+> store and corpus commands that remain supported for compatibility.
 
 工作区日常运行 `init`、`sync`、`status` 和 `validate`，见[工作区说明](../user/workspace.md)。
-本文件保留单论文 store 与 legacy corpus 的维护流程。
 运行时先读本包 `AGENTS.md`、[架构](../design/DESIGN.md#2-system-overview) 和 [数据契约](../design/DESIGN.md#4-data-contracts)。
 以下命令以本包根目录为工作目录；各步骤成功后再执行下一步。
 
@@ -106,7 +110,7 @@ SQLite 若以后保存不可重建的独有数据，应采用一致性快照或�
 新旧 canonicalization 并存期间保存协议标识；不得批量重算哈希后宣称旧审核仍然有效。
 在新输出位置完成验证后再切换读取端；写入端同时更新，避免旧写入器继续产生旧格式。
 
-使用 [migrate / migration-import](../09_CORPUS.md#显式迁移和资产) 将旧格式适配到新目录。
+使用 [migrate / migration-import](corpus.md#显式迁移和资产) 将旧格式适配到新目录。
 回退优先固定到已验证的历史快照或 registry revision，必要时恢复整套 store 和对应输入／工具版本。
 若由维护者手工回退 CURRENT，先停止写者并验证目标快照，再按现有 pointer 格式原子替换。
 pointer 包含 `format: qecgraph.current.v1`、目标 `snapshot_id` 和 `path: snapshots/<snapshot_id>`。
