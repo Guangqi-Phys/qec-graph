@@ -96,6 +96,14 @@ class SourcePackageTests(unittest.TestCase):
                 unpack(raw)
             self.assertEqual(error.exception.status, expected)
 
+    def test_oversized_standalone_tex_is_rejected_before_decoding(self):
+        for package in (TEX, gzip.compress(TEX)):
+            with patch('qecgraph.source_package._tex_body') as decode:
+                with self.assertRaises(PackageError) as error:
+                    unpack(package, Limits(member_bytes=len(TEX) - 1))
+                self.assertEqual(error.exception.status, 'limit_exceeded')
+                decode.assert_not_called()
+
     def test_gzip_accepts_split_members_and_checks_crc_and_expanded_limit(self):
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, 'w', compression=zipfile.ZIP_DEFLATED) as output:

@@ -218,6 +218,8 @@ def _unpack(stream, size, compressed, limits):
                 if chunk.count(0) != len(chunk):
                     raise PackageError('damaged_archive', 'Tar missing a valid zero-block trailer')
         return SourceTree('tar.gz' if compressed else 'tar', tree.files)
+    if size > min(limits.member_bytes, limits.expanded_bytes):
+        raise PackageError('limit_exceeded', 'Standalone source exceeds expanded byte limit')
     stream.seek(0)
     raw = stream.read()
     if _NON_TEX_PREFIX.match(raw) or b'\x00' in raw:
@@ -228,8 +230,6 @@ def _unpack(stream, size, compressed, limits):
         raise PackageError('unsupported_format', 'Standalone source is not UTF-8 TeX') from exc
     if not _TEX.search(text):
         raise PackageError('unsupported_format', 'No recognizable standalone TeX syntax')
-    if len(raw) > min(limits.member_bytes, limits.expanded_bytes):
-        raise PackageError('limit_exceeded', 'Standalone source exceeds expanded byte limit')
     return SourceTree('gzip_tex' if compressed else 'tex', {'main.tex': raw})
 
 
