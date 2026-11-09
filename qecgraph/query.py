@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections import defaultdict, deque
+from collections.abc import Callable, Iterable, Iterator
+from itertools import islice
 
 from .graph import CANDIDATES, DEPENDENCIES
 from .store import load_graph, snapshot_database
@@ -55,6 +57,42 @@ def resolve_node(graph, identifier):
     return nodes[resolve(graph, identifier, nodes=nodes)]
 
 
+def _serialize_search_data(data):
+    return json.dumps(data, ensure_ascii=False)
+
+
+class GraphTextIndex:
+    """Deterministic substring matching for a captured graph projection."""
+
+    def __init__(self, nodes: Iterable[dict], *,
+                 serialize_data: Callable[[dict], str] = _serialize_search_data) -> None:
+        self.nodes = sorted(nodes, key=lambda node: node['id'])
+        self._serialize_data = serialize_data
+        self._text: dict[str, str] = {}
+
+    def matching(self, query: str, kind: str | None = None) -> Iterator[dict]:
+        needle = query.casefold()
+        for node in self.nodes:
+            if kind and node['kind'] != kind:
+                continue
+            identifier = node['id']
+            text = self._text.get(identifier)
+            if text is None:
+                text = '\n'.join((node['title'], node['latex'], self._serialize_data(node['data']),
+                                  ' '.join(node['labels']))).casefold()
+                self._text[identifier] = text
+            if needle in text:
+                yield node
+
+
+def search_node_summary(node, *, include_build_binding=False):
+    row = {key: node.get(key) for key in ('id', 'kind', 'title', 'source', 'provenance',
+                                        'review_status', 'verification_status')}
+    if include_build_binding and 'build_binding' in node:
+        row['build_binding'] = node['build_binding']
+    return row
+
+
 def search(store, query, kind=None, limit=20):
     graph, snapshot = load_graph(store)
     if not query.strip():
@@ -62,16 +100,10 @@ def search(store, query, kind=None, limit=20):
     if not 1 <= limit <= 200:
         raise ValueError("limit must be between 1 and 200")
     if snapshot is None:
-        matches = [n for n in graph['nodes'] if (not kind or n['kind'] == kind)
-                   and query.casefold() in (n['title'] + '\n' + n['latex'] + '\n' + json.dumps(n['data'], ensure_ascii=False)
-                                           + '\n' + ' '.join(n['labels'])).casefold()]
-        matches.sort(key=lambda n: n['id'])
+        index = GraphTextIndex(graph['nodes'])
+        matches = list(islice(index.matching(query, kind), limit + 1))
         return {'snapshot_id': graph['snapshot_id'], 'extraction_status': graph['extraction_status'],
-                'query': query, 'results': [{'id': n['id'], 'kind': n['kind'], 'title': n['title'],
-                                           'source': n.get('source'), 'provenance': n.get('provenance'),
-                                           'review_status': n['review_status'], 'verification_status': n['verification_status'],
-                                           **({'build_binding': n['build_binding']} if 'build_binding' in n else {})}
-                                          for n in matches[:limit]],
+                'query': query, 'results': [search_node_summary(node, include_build_binding=True) for node in matches[:limit]],
                 'truncated': len(matches) > limit, 'method': 'deterministic corpus substring; no embedding'}
     with snapshot_database(snapshot) as con:
         con.row_factory = sqlite3.Row
