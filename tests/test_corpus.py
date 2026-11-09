@@ -6,6 +6,7 @@ from qecgraph.corpus import execute
 from qecgraph.registry import Registry
 from qecgraph.store import ingest, pin_snapshot
 from qecgraph.query import show
+from qecgraph.transactions import writer_lock
 
 
 class CorpusTests(unittest.TestCase):
@@ -62,6 +63,27 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(stale['incoming'][0]['status'], 'stale')
         context = execute(self.registry.root, 'context', 'claim:a', include_candidates=True)
         self.assertEqual(context['edges'], [])
+
+    def test_claim_mapping_becomes_stale_after_source_projection_replacement(self):
+        claim = {'schema_version': 'qecgraph.record.v3', 'id': 'claim:a', 'revision': '1',
+                 'kind': 'claim', 'title': 'Claim', 'data': {'statement': 'First.', 'hypotheses': [], 'quantifiers': []}}
+        self.registry.add_record(claim)
+        original = self.registry.link_claim('link:a', 'version:a', 'same', 'claim:a')['registry_revision']
+        changed = self.entry.read_text().replace('First.', 'Changed.')
+        for source, expected in ((changed, ['stale']), (r'\section{Changed}\label{same}', [])):
+            with self.subTest(expected=expected):
+                self.entry.write_text(source)
+                store = self.root / 'a'
+                ingest(self.entry, 'a', store)
+                with writer_lock(self.registry.root):
+                    state, _ = self.registry.read()
+                    self.registry.stage_source(state, 'work:a', 'version:a', store, replace_projection=True)
+                    self.registry._publish(state)
+                current = execute(self.registry.root, 'show', 'claim:a')
+                self.assertEqual([edge['status'] for edge in current['incoming']], expected)
+                self.assertTrue(self.registry.validate()['passed'])
+                historical = execute(self.registry.root, 'show', 'claim:a', registry_revision=original)
+                self.assertEqual(historical['incoming'][0]['status'], 'candidate')
 
 
 if __name__ == '__main__':

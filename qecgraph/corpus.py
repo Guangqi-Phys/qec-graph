@@ -8,6 +8,7 @@ from .registry import Registry
 from .store import GraphInput, source_span_index
 from . import query
 from .status import review_states
+from .validators import ENDPOINTS
 
 
 def occurrence_id(version_id, node_id):
@@ -83,10 +84,15 @@ def _project_state(registry, state, fixed, source_version_id=None, *,
         raise ValueError('Domain ID collides with source occurrence namespace')
     for link in state['links']:
         source = occurrence_id(link['source_version_id'], link['source_node_id'])
-        if source not in lookup or link['claim_id'] not in lookup:
+        occurrence, target = lookup.get(source), lookup.get(link['claim_id'])
+        if occurrence is None or 'original_node_id' not in occurrence or target is None:
             continue
-        target = lookup[link['claim_id']]
-        fresh = target['record']['revision'] == link['claim_revision'] and target['content_sha256'] == link['claim_content_sha256']
+        source_matches = (occurrence['provenance']['snapshot_id'] == link['source_snapshot_id']
+                          and occurrence['content_sha256'] == link['source_content_sha256'])
+        if not source_matches and occurrence['kind'] not in ENDPOINTS['normalizes_to'][0]:
+            continue  # The historical link remains bound to the original occurrence.
+        fresh = (source_matches and target['record']['revision'] == link['claim_revision']
+                 and target['content_sha256'] == link['claim_content_sha256'])
         edges.append({'id': link['id'], 'source': source, 'target': link['claim_id'], 'relation': 'normalizes_to',
                       'status': ('candidate' if link['status'] == 'proposed' else link['status']) if fresh else 'stale',
                       'evidence': link})
