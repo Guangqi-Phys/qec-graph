@@ -488,8 +488,9 @@ def parse_command(argv: list[str], *, entrypoint: tuple[str, str] | None = None)
         argument = argv[action_index]
         # A legacy review took a JSON filename directly, which can also
         # be a grouped action name. Actor options identify the old form.
-        legacy_actor = any(flag == '--actor-id' or flag.startswith('--actor-id=') for flag in argv[action_index + 1:])
-        if (argument not in {*_GROUPS['review'][1], '--help', '-h'}
+        legacy_actor = any(flag == '--actor-id' or flag.startswith('--actor-id=') for flag in argv[start + 1:])
+        path_like = not argument.startswith('-') and ('/' in argument or argument.endswith('.json'))
+        if (argument not in {*_GROUPS['review'][1], '--help', '-h'} and (legacy_actor or path_like)
                 or argument in {'list', 'show', 'import'} and legacy_actor):
             argv[start] = 'review-propose'
             name = 'review-propose'

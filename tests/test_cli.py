@@ -36,7 +36,8 @@ class CLIContractTests(unittest.TestCase):
                 self.assertEqual(pointer.read_bytes(), before)
 
     def test_unknown_commands_suggest_the_closest_help_topic(self):
-        for command, expected in ((['serach'], 'search'), (['workspace', 'stauts'], 'workspace status')):
+        for command, expected in ((['serach'], 'search'), (['workspace', 'stauts'], 'workspace status'),
+                                  (['review', 'lsit'], 'review list')):
             with self.subTest(command=command):
                 process = subprocess.run([sys.executable, '-m', 'qecgraph', '--json', *command],
                                          text=True, capture_output=True, timeout=10)
