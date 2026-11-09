@@ -149,6 +149,14 @@ The migration preserves source snapshots, record revisions, and review bindings.
 
 ## Reproduce the checks
 
+For maintainers, a version tag builds standalone executables and checks the
+Python wheel and source distribution before publishing GitHub Release assets.
+The separate PyPI workflow accepts an already published tag and checks its
+distribution hashes before upload. To enable it, configure the repository's
+`pypi` environment with reviewers and register the same environment and
+`pypi-publish.yml` with PyPI Trusted Publishing.
+[PyPI Trusted Publishing](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/)
+
 From the repository root, with the Python environment installed, run
 `python tools/reproduce.py --out build/reproduce` to run the regression suite
 and bundled end-to-end examples. The release report covers installed-package,
