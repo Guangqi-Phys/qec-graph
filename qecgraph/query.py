@@ -160,28 +160,33 @@ def context(store, identifier, depth=2, include_candidates=False, max_nodes=60):
     ids, _, omitted = _walk_dependencies(adjacent, root, depth, max_nodes)
     candidates = list(sorted(ids - {root}))
     chosen = [root] + candidates
+    chosen_ids = set(chosen)
     # Include proof text and its dependencies even when no direct theorem edge exists.
     proof_relations = {"proof_of"} | ({"proof_of_candidate"} if include_candidates else set())
     for edge in graph["edges"]:
         if edge["target"] in ids and edge["relation"] in proof_relations and eligible(edge, include_candidates):
-            if edge["source"] not in chosen:
+            if edge["source"] not in chosen_ids:
                 chosen.append(edge["source"])
+                chosen_ids.add(edge["source"])
                 proof_ids, _, extra_omitted = _walk_dependencies(adjacent, edge["source"], depth, max_nodes)
-                chosen.extend(x for x in sorted(proof_ids) if x not in chosen)
+                additional = sorted(proof_ids - chosen_ids)
+                chosen.extend(additional)
+                chosen_ids.update(additional)
                 omitted |= extra_omitted
     contextual = {"references", "cites", "uses_resource", "describes", "about", "supports", "formalizes",
                   "has_matrix", "has_presentation", "generated_by", "uses_circuit", "uses_noise",
                   "uses_decoder", "instance_of", "reports", "normalizes_to", 'maps_declaration', 'has_build_evidence',
                   'maps_source_occurrence'}
-    frontier = set(chosen)
+    frontier = chosen_ids.copy()
     for _ in range(depth):
         next_frontier = set()
         for edge in graph["edges"]:
             relevant = edge["relation"] in contextual or edge["relation"].startswith("catalog:")
             if relevant and eligible(edge, include_candidates) and (edge["source"] in frontier or edge["target"] in frontier):
                 for endpoint in (edge["source"], edge["target"]):
-                    if endpoint not in chosen:
+                    if endpoint not in chosen_ids:
                         chosen.append(endpoint)
+                        chosen_ids.add(endpoint)
                         next_frontier.add(endpoint)
         frontier = next_frontier
         if not frontier:
@@ -191,8 +196,10 @@ def context(store, identifier, depth=2, include_candidates=False, max_nodes=60):
     while changed:
         changed = False
         for edge in graph["edges"]:
-            if edge["relation"] == "contains" and edge["target"] in chosen and edge["source"] not in chosen and eligible(edge, include_candidates):
+            if (edge["relation"] == "contains" and edge["target"] in chosen_ids and edge["source"] not in chosen_ids
+                    and eligible(edge, include_candidates)):
                 chosen.append(edge["source"])
+                chosen_ids.add(edge["source"])
                 changed = True
     truncated = len(chosen) > max_nodes or bool(omitted)
     selected = set(chosen[:max_nodes])
