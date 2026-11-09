@@ -2,7 +2,7 @@
 
 日期：2026-11-09。编号：RFC-QEC-002。
 
-本页归档 RFC-QEC-002 的原始设计与实施任务。当前命令见[工作区说明](WORKSPACE.md)，
+本页归档 RFC-QEC-002 的原始设计与实施任务。当前命令见[工作区说明](../user/workspace.md)，
 实施范围见[实施记录](IMPLEMENTATION.md)。
 
 ## 文件

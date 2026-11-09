@@ -31,7 +31,7 @@ qec-graph validate
 
 Successful imports keep the original package in `archive/` and clear its inbox
 copy. Open `human/` as an Obsidian vault and start at `Index.md`.
-[Advanced usage](docs/ADVANCED_USAGE.md)
+[Advanced usage](docs/user/advanced-usage.md)
 
 ## MCP
 
@@ -43,6 +43,6 @@ codex mcp add qecgraph -- "$(command -v qec-graph)" mcp serve --machine "$PWD/ma
 
 Open a new Codex session after registering. For other MCP clients, run
 `qec-graph mcp config --workspace .` to print a configuration pinned to the
-current snapshot. [Data and search guide](docs/DATA_AND_SEARCH.md)
+current snapshot. [Data and search guide](docs/user/data-and-search.md)
 
 [Documentation index](docs/README.md)

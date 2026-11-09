@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-GUIDE_URL = 'https://github.com/Guangqi-Phys/qec-graph/blob/main/docs/ADVANCED_USAGE.md'
+GUIDE_URL = 'https://github.com/Guangqi-Phys/qec-graph/blob/main/docs/user/advanced-usage.md'
 
 EXAMPLES = {
     'version': '',

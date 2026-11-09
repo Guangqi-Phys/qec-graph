@@ -16,4 +16,4 @@ qec-graph validate
 
 查找文献和记录：`qec-graph search HGP --workspace .`。接入 Codex 请参照 [MCP 说明](../../README.md#mcp)，或运行 `qec-graph mcp config --workspace .` 打印其他客户端所需的配置。
 
-[进阶用法](../ADVANCED_USAGE.md) · [数据与检索](../DATA_AND_SEARCH.md)
+[进阶用法](advanced-usage.md) · [数据与检索](data-and-search.md)

@@ -2,7 +2,7 @@
 
 这里包含 LaTeX 切割工具、三视图图谱、版本注册、审核、增量更新、只读 MCP 和 Lean 构建适配器。原任务书和验收规范保留供后续维护。
 
-日常操作从 [README](README.md) 和[工作区说明](docs/rfc-002/WORKSPACE.md)开始。
+日常操作从 [README](README.md) 和[工作区说明](docs/user/workspace.md)开始。
 开发时用[审计台账](docs/AUDIT_REMEDIATION.md)和[验证索引](validation/README.md)
 核对当前能力和实测结果。[初始实施审计](IMPLEMENTATION_AUDIT.md)是 RFC 实施前的基线。
 本页下方的 P0–P5 文档说明原有三图、Lean 与旧 corpus。
@@ -15,7 +15,7 @@
 | 2 | `AGENTS.md` | Codex 修改代码和知识记录时必须保持的工程约定 |
 | 3 | `docs/01_ARCHITECTURE.md` | 统一架构、权威数据与派生索引、目录和容器边界 |
 | 4 | `docs/02_QEC_GRAPH_SPEC.md` | SourceGraph、LemmaGraph、DataGraph 的模型和查询契约 |
-| 5 | `docs/03_SPLITTER.md` | 已实现的文件切割工具：安装、运行、输出和限制 |
+| 5 | `docs/user/splitter.md` | 已实现的文件切割工具：安装、运行、输出和限制 |
 | 6 | `docs/04_DATA_FORMATS.md` | 论文、定理、QEC 码、矩阵、实验与证据的保存方式 |
 | 7 | `docs/05_LEAN.md` | 自然语言定理与 Lean 的映射、依赖、构建及信任检查 |
 | 8 | `docs/06_MAINTENANCE.md` | 日常导入、修改、失效、迁移、备份和恢复流程 |
@@ -70,7 +70,7 @@ python tools/reproduce.py --out build/reproduce
 
 > 请读取项目根目录的 CODEX_TASK.md、AGENTS.md 和 START_HERE.md，先复现现有工具，再按 docs/08_ROADMAP_ACCEPTANCE.md 逐阶段完善 qec-graph。保留已经工作的 LaTeX 切割工具，使用 SourceGraph、LemmaGraph、DataGraph 三个视图共用的类型化图模型。按 docs/07_CODEGRAPH_MAPPING.md 检查并参考指定 CodeGraph 的实现。请实际修改代码、运行验收并更新完成状态，不要只给实现建议；不要把待实现的功能或未执行的 Lean 构建标为完成。
 
-如果暂时只做文件切割，可以把范围缩为：修复并完善 `docs/03_SPLITTER.md` 和路线图中对应的解析任务，其余阶段保留为待办。
+如果暂时只做文件切割，可以把范围缩为：修复并完善 `docs/user/splitter.md` 和路线图中对应的解析任务，其余阶段保留为待办。
 
 ## 目录内资料的优先顺序
 

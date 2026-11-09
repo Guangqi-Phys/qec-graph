@@ -31,7 +31,7 @@ python tools/reproduce.py --out build/reproduce
 ```
 
 该命令应保存可审阅的命令、退出码、stdout/stderr 与检查结果。不能把示例报告或上次运行的数字写成本次实测。
-准确依赖、CLI 参数和产物路径按脚本与 [03_SPLITTER.md](03_SPLITTER.md)；测试总数以运行结果为准。
+准确依赖、CLI 参数和产物路径按脚本与 [03_SPLITTER.md](user/splitter.md)；测试总数以运行结果为准。
 
 **验收。** 原型语义回归通过，支持的样例完整抽取；三视图、SQLite 和节点片段属于同一快照；来源切片、资源及 manifest 可校验。
 仅入口与输出位置不同、其余语义输入相同的运行应产生相同图和 snapshot ID；结果中的绝对路径允许不同。

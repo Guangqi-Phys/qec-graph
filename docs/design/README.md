@@ -2,7 +2,7 @@
 
 - [Architecture](architecture.md): authority, workspace boundaries, and publication
 - [Graph contract](graph-contract.md) and [data formats](data-formats.md): identities, relations, and evidence
-- [Source extraction](../03_SPLITTER.md) and [incremental ingestion](../11_INCREMENTAL.md)
+- [Source extraction](../user/splitter.md) and [incremental ingestion](../11_INCREMENTAL.md)
 - [Read-only MCP protocol](../12_AI_MCP.md) and [Lean trust boundary](../13_LEAN_EXECUTION.md)
 - [CodeGraph reference](codegraph-reference.md): upstream comparison and recorded attribution
 

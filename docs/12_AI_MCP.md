@@ -39,7 +39,7 @@ python -m qecgraph serve-mcp --corpus build/corpus --registry-revision <固定re
 ```
 
 store 和 corpus 服务按协议 2025-06-18 实现本地 stdio，并提供以上五个工具。
-工作区服务增加研究查询与来源资源。见[工作区说明](rfc-002/WORKSPACE.md#研究查询和审核)。
+工作区服务增加研究查询与来源资源。见[工作区说明](user/workspace.md#研究查询和审核)。
 各模式均为本地只读服务。
 stdout 只发送逐行 UTF-8 JSON-RPC，兼容 text content 和 structuredContent；日志只能写 stderr。
 未知工具/非法参数返回协议错误，业务查询失败返回 isError=true 的相同 envelope。

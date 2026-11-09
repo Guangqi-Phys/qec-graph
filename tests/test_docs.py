@@ -10,8 +10,8 @@ from qecgraph.cli.parser import _build_parser, parse_command
 
 
 ROOT = Path(__file__).resolve().parents[1]
-USER_DOCS = ('README.md', 'docs/README.md', 'docs/ADVANCED_USAGE.md',
-             'docs/DATA_AND_SEARCH.md', 'docs/rfc-002/WORKSPACE.md',
+USER_DOCS = ('README.md', 'docs/README.md', 'docs/user/advanced-usage.md',
+             'docs/user/data-and-search.md', 'docs/user/workspace.md', 'docs/user/splitter.md',
              'docs/user/README.md', 'docs/user/quickstart.zh-CN.md', 'docs/design/README.md',
              'docs/operations/README.md', 'docs/archive/README.md', 'CONTRIBUTING.md', 'SECURITY.md')
 LINK = re.compile(r'\[[^\]\n]+\]\(([^\s)]+)\)')

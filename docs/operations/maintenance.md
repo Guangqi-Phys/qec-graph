@@ -1,6 +1,6 @@
 # 06｜日常运行、失效传播、迁移与恢复
 
-工作区日常运行 `init`、`sync`、`status` 和 `validate`，见[工作区说明](../rfc-002/WORKSPACE.md)。
+工作区日常运行 `init`、`sync`、`status` 和 `validate`，见[工作区说明](../user/workspace.md)。
 本文件保留单论文 store 与 legacy corpus 的维护流程。
 运行时先读本包 `AGENTS.md`、[架构](../design/architecture.md) 和 [数据契约](../design/data-formats.md)。
 以下命令以本包根目录为工作目录；各步骤成功后再执行下一步。
@@ -39,7 +39,7 @@ qecgraph deps thm:hgp-css --store build/demo
 qecgraph context thm:hgp-length --store build/demo
 ```
 
-只需要原文切块时使用 [03](../03_SPLITTER.md) 的 `qecgraph split` 流程。
+只需要原文切块时使用 [03](../user/splitter.md) 的 `qecgraph split` 流程。
 接入旧领域样例时可给 ingest 增加 `--catalog knowledge_starter/records`；它只导入 JSON 记录。
 旧记录引用的矩阵、验证脚本与报告依旧位于完整 `knowledge_starter/` 中，必须一起保存。
 每次运行记录输入路径、命令、退出码、snapshot ID 和 diagnostics。
