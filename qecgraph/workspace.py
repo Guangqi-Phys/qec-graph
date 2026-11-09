@@ -251,7 +251,7 @@ class Workspace:
                     return self._keep_prior(result, prior)
             source_id = 'source:local:' + hash_text(canonical([tree_hash, work_id, upstream]))
             build_key = (source_id, entry)
-            version, verified = reused.get(build_key, (None, False))
+            version = reused.get(build_key)
             result['entrypoint'] = entry
             saved = self.path('sources/' + tree_hash)
             preserve = not saved.exists()
@@ -279,10 +279,7 @@ class Workspace:
                         version = self.registry.stage_source(
                             state, work_id, source_id, temporary / 'store', title=metadata.get('title'),
                             upstream_version=upstream, replace_projection=True)
-                        verified = True
-            if not verified:
-                self.registry.validate_source_snapshot(version)
-            reused[build_key] = (version, True)
+            reused[build_key] = version
             result.update(status='processing_completed', processing_completed=True, semantic_status='semantic_pending',
                           source_version_id=source_id, source_snapshot_id=version['snapshot_id'])
             return result
@@ -361,16 +358,11 @@ class Workspace:
                 for prior in previous.values():
                     version = self._matching_extraction(state, prior, fingerprint)
                     if version is not None:
-                        reused[(version['id'], prior['entrypoint'])] = (version, False)
+                        reused[(version['id'], prior['entrypoint'])] = version
             for index, digest in enumerate(sorted(digests), start=1):
                 prior = previous.get(digest, {})
                 version = self._matching_extraction(state, prior, fingerprint)
-                if not rebuild and version is not None:
-                    build_key = (version['id'], prior['entrypoint'])
-                    if reused.get(build_key) != (version, True):
-                        self.registry.validate_source_snapshot(version)
-                        reused[build_key] = (version, True)
-                else:
+                if rebuild or version is None:
                     materials[digest] = self._prepare(cfg, state, digest, prior, reused)
                     materials[digest]['config_fingerprint'] = fingerprint
                 if progress:
@@ -404,6 +396,8 @@ class Workspace:
                 pair = (material.get('work_id'), material.get('upstream_version'))
                 material['source_version_conflict'] = len(collisions.get(pair, ())) > 1
             candidate = self.registry.prepare_publication(state)
+            # This verifies every registered snapshot, including reused ones,
+            # before publishing the pointer or consuming any input claims.
             validation = self.registry.validate(candidate, check_live_lean=False)
             if not validation['passed']:
                 raise ValueError('Candidate machine release failed validation; CURRENT was retained')
