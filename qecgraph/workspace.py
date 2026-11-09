@@ -7,7 +7,9 @@ import hashlib
 import os
 from pathlib import Path
 import re
+from sqlite3 import sqlite_version
 import stat
+import sys
 import tempfile
 import tomllib
 import uuid
@@ -18,7 +20,7 @@ from .research_store import load_records, stage_records, validate_sources
 from .graph import canonical, hash_text, read_json
 from .registry import Registry
 from .source_package import Limits, PackageError, read_bounded, unpack
-from .store import ingest, validate_snapshot
+from .store import extraction_tool_identity, ingest, validate_snapshot
 from .transactions import atomic_bytes, atomic_json, immutable_json, writer_lock
 
 CONFIG = 'qecgraph.toml'
@@ -312,9 +314,11 @@ class Workspace:
             previous = copy.deepcopy(state.get('materials', {}))
             materials = state.setdefault('materials', {})
             state['workspace_id'] = cfg['workspace_id']
-            fingerprint = hash_text(canonical([PROCESSOR, cfg]))
+            tool_identity = extraction_tool_identity() if digests else None
+            fingerprint = hash_text(canonical([PROCESSOR, cfg, tool_identity,
+                                               sys.implementation.name, sys.version, sqlite_version]))
             reused = {}
-            if not rebuild:
+            if digests:
                 for prior in previous.values():
                     if prior.get('processing_completed') and prior.get('config_fingerprint') == fingerprint:
                         version = state['versions'].get(prior['source_version_id'])
@@ -364,6 +368,8 @@ class Workspace:
                 raise ValueError('Candidate machine release failed validation; CURRENT was retained')
             if cfg != self.config():
                 raise ValueError('Workspace configuration changed while preparing; retry')
+            if tool_identity is not None and tool_identity != extraction_tool_identity():
+                raise ValueError('Extraction tools changed while preparing; retry')
             release = self.registry.publish_prepared(candidate)
         if progress:
             progress(steps - 1, steps, 'Finalizing workspace')

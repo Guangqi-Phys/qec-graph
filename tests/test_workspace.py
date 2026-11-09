@@ -10,6 +10,7 @@ from unittest.mock import patch
 from qecgraph.cli import main
 from qecgraph.corpus import execute
 from qecgraph.source_package import unpack
+from qecgraph.store import extraction_tool_identity, ingest
 from qecgraph.transactions import writer_lock
 from qecgraph.workspace import Workspace
 from test_source_package import TEX, tar_bytes
@@ -102,6 +103,20 @@ class WorkspaceTests(unittest.TestCase):
         rebuilt = self.ws.rebuild()
         self.assertEqual(rebuilt['counts']['processed'], 1)
         self.assertEqual(rebuilt['inputs'][0]['entrypoint'], 'b.tex')
+
+    def test_rebuild_reuses_exact_extractions_and_reparses_after_processor_changes(self):
+        (self.inbox / 'paper.tex').write_bytes(TEX)
+        first = self.ws.init()
+        with patch('qecgraph.workspace.ingest', wraps=ingest) as extract:
+            reused = self.ws.rebuild()
+            self.assertEqual(reused['release_id'], first['release_id'])
+            extract.assert_not_called()
+            previous_tool = extraction_tool_identity()
+            changed_tool = {**previous_tool, 'tool_version': 'changed-processor-fixture'}
+            with patch('qecgraph.workspace.extraction_tool_identity', return_value=changed_tool):
+                rebuilt = self.ws.rebuild()
+            self.assertEqual(rebuilt['counts']['processed'], 1)
+            extract.assert_called_once()
 
     def test_rewrapped_archive_does_not_consume_input_when_prior_snapshot_is_damaged(self):
         (self.inbox / 'first.tar').write_bytes(tar_bytes({'paper.tex': TEX}, mtime=1))
