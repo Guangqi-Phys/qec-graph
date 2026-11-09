@@ -32,7 +32,13 @@ class HumanTests(unittest.TestCase):
             return {p.relative_to(vault): p.read_bytes() for p in (vault / 'generated').rglob('*.md')}
         before = generated()
         self.assertTrue(before)
-        build_human(self.root, release)
+        with patch('qecgraph.human.atomic_bytes', wraps=atomic_bytes) as writes:
+            self.assertEqual(build_human(self.root, release)['status'], 'current')
+            writes.assert_not_called()
+        self.assertEqual(generated(), before)
+        page = next(iter(before))
+        (vault / page).write_bytes(b'manually modified')
+        self.assertEqual(build_human(self.root, release)['status'], 'current')
         self.assertEqual(generated(), before)
         (self.root / 'inputs/second').write_bytes(TEX.replace(b'Hello', b'Another article'))
         next_release = self.ws.sync()['release_id']

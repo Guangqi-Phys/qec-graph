@@ -9,7 +9,7 @@ import tempfile
 from .graph import hash_text, read_json
 from .research import RELATIONS
 from .transactions import atomic_bytes, atomic_json, writer_lock
-from .workspace import HEX, Workspace, now
+from .workspace import HEX, Workspace, _read_regular, now
 from .workspace_query import WorkspaceSession
 
 FORMAT = 'qecgraph.human.v1'
@@ -162,20 +162,28 @@ def build_human(workspace=None, release=None):
             staging_root.mkdir(exist_ok=True)
             with tempfile.TemporaryDirectory(prefix='render-', dir=staging_root) as staging:
                 stage = Path(staging)
+                changed = set()
                 for relative, raw in {**pages, 'Index.md': index}.items():
+                    destination = ws.path('human/' + relative)
+                    try:
+                        if _read_regular(destination, len(raw)) == raw:
+                            continue
+                    except (OSError, ValueError):
+                        pass
                     target = stage / relative
                     target.parent.mkdir(parents=True, exist_ok=True)
                     target.write_bytes(raw)
-                    ws.path('human/' + relative)  # Verify all output paths before writing any.
+                    changed.add(relative)
                 ws.path('human/generated/.qecgraph-manifest.json')
                 notes = ws.path('human/notes')
                 notes.mkdir(parents=True, exist_ok=True)
                 manifest = {**state, 'outputs': {name: hash_text(raw.decode('utf-8')) for name, raw in sorted(pages.items())}}
                 atomic_json(ws.path('.qecgraph/human-pending.json'), state)
-                for relative in sorted(pages):
+                for relative in sorted(changed - {'Index.md'}):
                     atomic_bytes(ws.path('human/' + relative), (stage / relative).read_bytes())
                 atomic_json(ws.path('human/generated/.qecgraph-manifest.json'), manifest)
-                atomic_bytes(ws.path('human/Index.md'), (stage / 'Index.md').read_bytes())
+                if 'Index.md' in changed:
+                    atomic_bytes(ws.path('human/Index.md'), (stage / 'Index.md').read_bytes())
                 atomic_json(ws.path('.qecgraph/human-published.json'), state)
                 ws.path('.qecgraph/human-pending.json').unlink(missing_ok=True)
             _operational(ws, latest, 'current', latest)
