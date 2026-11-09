@@ -11,6 +11,8 @@ def _integer(value, name, minimum=0):
 
 
 def matrix_rows(matrix):
+    if not isinstance(matrix, dict):
+        raise ValueError('Matrix needs a JSON object')
     if matrix.get('field') != 'GF(2)' or matrix.get('format') != 'coordinate-ones-v1' or type(matrix.get('index_base')) is not int or matrix['index_base'] != 0:
         raise ValueError('Expected GF(2) coordinate-ones-v1 with index_base=0')
     shape = matrix.get('shape')

@@ -1,5 +1,8 @@
 import copy
 import hashlib
+import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -27,6 +30,27 @@ def matrix(rows, columns, ones):
 
 
 class QECValidationTests(unittest.TestCase):
+    def test_check_css_cli_distinguishes_invalid_input_from_noncommutation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            hx = Path(directory) / 'hx.json'
+            hz = Path(directory) / 'hz.json'
+            one = matrix(1, 1, [[0, 0]])
+            hx.write_text(json.dumps(one), encoding='utf-8')
+            hz.write_text(json.dumps(one), encoding='utf-8')
+            command = [sys.executable, '-m', 'qecgraph', 'check-css', '--hx', str(hx), '--hz', str(hz), '--json']
+            failed = subprocess.run(command, capture_output=True, text=True, timeout=10)
+            self.assertEqual(failed.returncode, 2)
+            report = json.loads(failed.stdout)
+            self.assertFalse(report['commutes'])
+            self.assertEqual(report['suggested_exit_code'], 2)
+
+            hx.write_text('[]', encoding='utf-8')
+            malformed = subprocess.run(command, capture_output=True, text=True, timeout=10)
+            self.assertEqual(malformed.returncode, 1)
+            error = json.loads(malformed.stdout)['error']
+            self.assertEqual(error['code'], 'INVALID_INPUT')
+            self.assertIn('Matrix needs a JSON object', error['message'])
+
     def test_gf2_rank_noncommutation_and_malformed_coordinates(self):
         rows, _ = matrix_rows(matrix(3, 3, [[0, 0], [0, 1], [1, 0], [1, 2], [2, 1], [2, 2]]))
         self.assertEqual(len(basis(rows)), 2)  # Real-valued rank of this matrix is 3.
