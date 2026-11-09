@@ -64,6 +64,22 @@ class MigrationTests(unittest.TestCase):
             self.assertEqual(report['status'], 'passed')
             self.assertEqual((out / report['accepted'][0]['output_path']).read_bytes(), input_path.read_bytes())
 
+    def test_import_rejects_malformed_reports_before_opening_the_registry(self):
+        path = self.root / 'migration-report.json'
+        registry = Registry(self.root / 'corpus')
+        schema = {'schema_version': 'qecgraph.migration.v1', 'rejected': []}
+        for report, reason in (
+            ([], 'requires a migration report'),
+            ({**schema, 'accepted': {}}, 'accepted array'),
+            ({**schema, 'accepted': [None]}, r'accepted\[0\]'),
+            ({**schema, 'accepted': [{'output_schema': 'qecgraph.record.v3'}]}, r'accepted\[0\]'),
+        ):
+            with self.subTest(report=report):
+                path.write_text(json.dumps(report))
+                with self.assertRaisesRegex(ValueError, reason):
+                    registry.import_migration(self.root)
+                self.assertFalse(registry.root.exists())
+
     def test_unknown_schema_and_missing_external_asset_are_reported(self):
         source = self.root / 'future.json'
         source.write_text('{"schema_version":"future.v99","unknown":42}')

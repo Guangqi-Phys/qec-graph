@@ -261,10 +261,20 @@ class Registry:
     def import_migration(self, migration_root):
         migration_root = Path(migration_root).resolve()
         report = read_json(migration_root / 'migration-report.json')
-        if report.get('schema_version') != 'qecgraph.migration.v1' or report.get('rejected'):
+        if (not isinstance(report, dict) or report.get('schema_version') != 'qecgraph.migration.v1'
+                or report.get('rejected')):
             raise ValueError('Import requires a migration report with no rejected inputs')
-        records = [prepare_record(read_json(safe_relative(migration_root, item['output_path']))) for item in report['accepted']
-                   if item['output_schema'] == 'qecgraph.record.v3']
+        accepted = report.get('accepted')
+        if not isinstance(accepted, list):
+            raise ValueError('Migration report requires an accepted array')
+        records = []
+        for index, item in enumerate(accepted):
+            if not isinstance(item, dict) or not all(
+                isinstance(item.get(field), str) and item[field].strip() for field in ('output_schema', 'output_path')
+            ):
+                raise ValueError(f'Migration report accepted[{index}] requires an output schema and path')
+            if item['output_schema'] == 'qecgraph.record.v3':
+                records.append(prepare_record(read_json(safe_relative(migration_root, item['output_path']))))
         with writer_lock(self.root):
             state = self._state_or_empty()
             for record in records:
