@@ -12,10 +12,10 @@ from .parser import parse_command
 from .render import WorkspaceProgress, report_error
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def main(argv: Sequence[str] | None = None, *, entrypoint: tuple[str, str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     try:
-        args = parse_command(argv)
+        args = parse_command(argv, entrypoint=entrypoint)
         if args is None:
             return 0
     except UsageError as exc:

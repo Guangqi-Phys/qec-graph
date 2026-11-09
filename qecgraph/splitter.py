@@ -131,7 +131,7 @@ def main(argv=None):
     from .cli import main as graph_main
 
     arguments = sys.argv[1:] if argv is None else list(argv)
-    return graph_main(["split", *arguments])
+    return graph_main(["split", *arguments], entrypoint=('split', 'qec-latex-split'))
 
 
 if __name__ == "__main__":

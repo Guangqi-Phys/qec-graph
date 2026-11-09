@@ -172,6 +172,14 @@ class CLIContractTests(unittest.TestCase):
         self.assertEqual(version.stdout.strip(), f'qec-graph {__version__}')
         self.assertEqual(run('version').stdout, version.stdout)
         self.assertIn('--include-candidates', run('help', 'context').stdout)
+        self.assertIn('qec-graph query search HGP', run('help', 'query', 'search').stdout)
+        self.assertIn('130  interrupted', run('help', 'errors').stdout)
+        self.assertIn('MCP reserves stdout', run('help', 'json').stdout)
+        for module, program in (('splitter', 'qec-latex-split'), ('mcp_server', 'qecgraph-mcp')):
+            result = subprocess.run([sys.executable, '-m', f'qecgraph.{module}', '--help'], text=True,
+                                    capture_output=True, timeout=5)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(result.stdout.startswith(f'usage: {program} '), result.stdout)
         help_text = run('--help').stdout
         for name in ('deps', 'impact', 'context'):
             self.assertIn(f'    {name} ', help_text)

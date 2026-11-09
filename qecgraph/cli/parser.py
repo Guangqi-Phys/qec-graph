@@ -5,6 +5,7 @@ import argparse
 
 from .. import __version__
 from .errors import UsageError
+from .help import GUIDE_URL, TOPICS, command_epilog
 
 
 _QUICK_HELP = """Usage: qec-graph <command> [options]
@@ -21,6 +22,7 @@ Run qec-graph --help for all commands or qec-graph help <command> for options.""
 
 class _ArgumentParser(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
+        kwargs.setdefault('formatter_class', argparse.RawDescriptionHelpFormatter)
         super().__init__(*args, **kwargs)
         self.add_argument('--json', action='store_true', default=argparse.SUPPRESS,
                           help='Print detailed reports and structured errors')
@@ -33,12 +35,13 @@ class _ArgumentParser(argparse.ArgumentParser):
 
 def _add_query_scope(parser, *, workspace=False):
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--store')
-    group.add_argument('--corpus')
+    group.add_argument('--store', help='Path to a standalone snapshot store')
+    group.add_argument('--corpus', help='Path to a legacy multi-document corpus')
     if workspace:
-        group.add_argument('--workspace')
+        group.add_argument('--workspace',
+            help='Path to the QEC workspace; omit to use local discovery where supported')
         group.add_argument('--machine', help='Only the mounted machine directory (no workspace access)')
-        parser.add_argument('--release')
+        parser.add_argument('--release', help='Exact workspace release ID; omit to use CURRENT')
     parser.add_argument('--snapshot', help='Fixed store snapshot ID')
     parser.add_argument('--registry-revision', help='Fixed corpus state revision')
     parser.add_argument('--source-version-id', help='Restrict corpus source scope')
@@ -46,18 +49,22 @@ def _add_query_scope(parser, *, workspace=False):
 
 def _add_ai_arguments(parser):
     _add_query_scope(parser, workspace=True)
-    parser.add_argument('--session-max-nodes', type=int, default=100)
-    parser.add_argument('--session-max-depth', type=int, default=4)
-    parser.add_argument('--session-max-chars', type=int, default=64000)
-    parser.add_argument('--session-max-results', type=int, default=50)
+    parser.add_argument('--session-max-nodes', type=int, default=100,
+        help='Maximum nodes per session result (default: %(default)s)')
+    parser.add_argument('--session-max-depth', type=int, default=4,
+        help='Maximum dependency depth (default: %(default)s)')
+    parser.add_argument('--session-max-chars', type=int, default=64000,
+        help='Maximum codepoints per session result (default: %(default)s)')
+    parser.add_argument('--session-max-results', type=int, default=50,
+        help='Maximum search rows per session result (default: %(default)s)')
 
 
 def _add_source_arguments(parser):
-    parser.add_argument("entry")
-    parser.add_argument("--project-id", required=True)
-    parser.add_argument("--out", required=True)
-    parser.add_argument("--project-root")
-    parser.add_argument("--config")
+    parser.add_argument("entry", help='Path to the root LaTeX file')
+    parser.add_argument("--project-id", required=True, help='Stable project ID')
+    parser.add_argument("--out", required=True, help='Output directory for the command result')
+    parser.add_argument("--project-root", help='Root directory of the source tree')
+    parser.add_argument("--config", help='Path to a LaTeX parser configuration file')
     parser.add_argument('--strict', action='store_true', help='Keep partial extraction in staging without changing CURRENT')
     parser.add_argument('--incremental', action='store_true', help='Reuse content-checked per-file ASTs; rebuild semantic projections')
 
@@ -95,212 +102,263 @@ _GROUPS = {
 def _register_commands(add):
     add('version', help='Show the installed QEC Graph version')
     help_command = add('help', help='Show help for a specific command')
-    help_command.add_argument('topic', nargs='*', metavar='command')
+    help_command.add_argument('topic', nargs='*', metavar='command',
+        help='Command path or topic, such as workspace sync, errors, or json')
     doctor = add('doctor', help='Inspect workspace health without writing files')
-    doctor.add_argument('--workspace')
+    doctor.add_argument('--workspace',
+        help='Path to the QEC workspace; omit to use local discovery where supported')
     snapshot = add('snapshot', help='Inspect local snapshots and stored registry states')
     snapshot_list = snapshot.add_subparsers(dest='snapshot_action', required=True, parser_class=_ArgumentParser).add_parser(
-        'list', help='List snapshot IDs and identify the current pointer')
+        'list', help='List snapshot IDs and identify the current pointer',
+        epilog=f'Example:\n  qec-graph snapshot list --workspace ./qec\n\nGuide: {GUIDE_URL}')
     scope = snapshot_list.add_mutually_exclusive_group()
     for option in ('--workspace', '--store', '--corpus'):
-        scope.add_argument(option)
+        scope.add_argument(option, help='Select the workspace, store, or corpus for the snapshot listing')
     inputs = add('inputs', help='List, quarantine, or restore inbox packages')
     input_actions = inputs.add_subparsers(dest='input_action', required=True, metavar='<action>', parser_class=_ArgumentParser)
     for name, description in (('list', 'List inbox and quarantined packages'),
                               ('quarantine', 'Move an inbox package aside'),
                               ('restore', 'Return a quarantined package to the inbox')):
-        cmd = input_actions.add_parser(name, help=description)
-        cmd.add_argument('--workspace')
+        example = f'qec-graph inputs {name}' + (' paper.zip' if name != 'list' else '')
+        cmd = input_actions.add_parser(name, help=description,
+                                       epilog=f'Example:\n  {example} --workspace ./qec\n\nGuide: {GUIDE_URL}')
+        cmd.add_argument('--workspace',
+            help='Path to the QEC workspace; omit to use local discovery where supported')
         if name != 'list':
             cmd.add_argument('name', help='Exact inbox file name')
-    for action in ('init', 'sync', 'rebuild', 'status'):
-        workspace = add(action, help=f'{action.capitalize()} a managed QEC workspace')
-        workspace.add_argument('--workspace')
+    for action, description in (('init', 'Create a workspace and import its inbox'),
+                                ('sync', 'Import new source packages from inputs/'),
+                                ('rebuild', 'Verify and replay all archived source packages'),
+                                ('status', 'Report indexed, pending, and failed packages')):
+        workspace = add(action, help=description)
+        workspace.add_argument('--workspace',
+            help='Path to the QEC workspace; omit to use local discovery where supported')
         if action != 'status':
-            workspace.add_argument('--keep-inputs', action='store_true')
+            workspace.add_argument('--keep-inputs', action='store_true',
+                help='Retain successfully archived packages in the inbox')
             workspace.add_argument('--no-human', action='store_true', help='Skip the separate Obsidian renderer')
         if action == 'init':
-            workspace.add_argument('--no-ingest', action='store_true')
+            workspace.add_argument('--no-ingest', action='store_true',
+                help='Create the workspace without ingesting packages')
         if action == 'sync':
-            workspace.add_argument('--dry-run', action='store_true')
+            workspace.add_argument('--dry-run', action='store_true',
+                help='Report pending work without importing packages')
         if action == 'rebuild':
-            workspace.add_argument('--include-inputs', action='store_true')
+            workspace.add_argument('--include-inputs', action='store_true',
+                help='Ingest new inbox files as well as replaying the archive')
     cmd = add('human-build', help='Render Obsidian pages from the current fixed machine release')
-    cmd.add_argument('--workspace')
-    cmd.add_argument('--release')
+    cmd.add_argument('--workspace',
+        help='Path to the QEC workspace; omit to use local discovery where supported')
+    cmd.add_argument('--release', help='Exact workspace release ID; omit to use CURRENT')
     cmd = add('asset-add', help='Copy one explicit non-human asset into the content-addressed machine store')
-    cmd.add_argument('input')
-    cmd.add_argument('--workspace')
-    cmd.add_argument('--media-type', default='application/octet-stream')
+    cmd.add_argument('input', help='Path to the input file or directory described above')
+    cmd.add_argument('--workspace',
+        help='Path to the QEC workspace; omit to use local discovery where supported')
+    cmd.add_argument('--media-type', default='application/octet-stream',
+        help='Media type for the archived file (default: %(default)s)')
     cmd = add('extract-request', help='Export bounded, provenance-bound source excerpts for an optional provider')
-    cmd.add_argument('source_version')
-    cmd.add_argument('--workspace')
-    cmd.add_argument('--release')
-    cmd.add_argument('--max-chars', type=int, default=24000)
-    cmd.add_argument('--offset', type=int, default=0)
+    cmd.add_argument('source_version', help='Exact source version ID in the selected release')
+    cmd.add_argument('--workspace',
+        help='Path to the QEC workspace; omit to use local discovery where supported')
+    cmd.add_argument('--release', help='Exact workspace release ID; omit to use CURRENT')
+    cmd.add_argument('--max-chars', type=int, default=24000,
+        help='Maximum source codepoints per request (default: %(default)s)')
+    cmd.add_argument('--offset', type=int, default=0,
+        help='Codepoint offset for the next excerpt (default: %(default)s)')
     cmd = add('extract-submit', help='Validate a local provider response and queue a draft')
-    cmd.add_argument('request_id')
-    cmd.add_argument('response')
-    cmd.add_argument('--workspace')
+    cmd.add_argument('request_id', help='ID of the saved extraction request')
+    cmd.add_argument('response', help='Path to the local provider response JSON')
+    cmd.add_argument('--workspace',
+        help='Path to the QEC workspace; omit to use local discovery where supported')
     cmd = add('extract-review', help='Record an explicit human decision on an exact provider draft')
-    cmd.add_argument('proposal_id')
-    cmd.add_argument('--workspace')
-    cmd.add_argument('--reviewer', required=True)
-    cmd.add_argument('--decision', choices=['approve', 'reject'], required=True)
-    cmd.add_argument('--rationale', required=True)
+    cmd.add_argument('proposal_id', help='Exact proposal ID')
+    cmd.add_argument('--workspace',
+        help='Path to the QEC workspace; omit to use local discovery where supported')
+    cmd.add_argument('--reviewer', required=True, help='Stable identifier of the person making the decision')
+    cmd.add_argument('--decision', choices=['approve', 'reject'], required=True,
+        help='Decision to bind to the exact proposal')
+    cmd.add_argument('--rationale', required=True, help='Explain the review decision')
     cmd = add('workspace-migrate', help='Copy a legacy corpus into a new workspace; retain all exact revisions')
-    cmd.add_argument('--corpus', required=True)
-    cmd.add_argument('--workspace', required=True)
-    cmd.add_argument('--registry-revision')
-    for name in ('software-import-seed', 'software-coverage', 'software-refresh'):
-        cmd = add(name, help='Manage the bounded software directory')
-        cmd.add_argument('--workspace')
+    cmd.add_argument('--corpus', required=True, help='Path to a legacy multi-document corpus')
+    cmd.add_argument('--workspace', required=True,
+        help='Path to the QEC workspace; omit to use local discovery where supported')
+    cmd.add_argument('--registry-revision', help='Exact corpus state ID; omit to use CURRENT')
+    for name, description in (('software-import-seed', 'Import the bundled software catalogue'),
+                              ('software-coverage', 'Report the software records indexed in the workspace'),
+                              ('software-refresh', 'Refresh metadata for selected software projects')):
+        cmd = add(name, help=description)
+        cmd.add_argument('--workspace',
+            help='Path to the QEC workspace; omit to use local discovery where supported')
         if name == 'software-refresh':
-            cmd.add_argument('--project-id')
-            cmd.add_argument('--limit', type=int, default=20)
-            cmd.add_argument('--timeout', type=int, default=8)
+            cmd.add_argument('--project-id', help='Stable project ID')
+            cmd.add_argument('--limit', type=int, default=20,
+                help='Maximum number of results or entries to process (default: %(default)s)')
+            cmd.add_argument('--timeout', type=int, default=8,
+                help='Per-request time limit in seconds (default: %(default)s)')
     cmd = add('research-import', help='Validate and publish exact research records without evidence promotion')
-    cmd.add_argument('input')
-    cmd.add_argument('--workspace')
-    cmd.add_argument('--format', choices=['records', 'software-seed', 'synthetic-fixture'], default='records')
+    cmd.add_argument('input', help='Path to the input file or directory described above')
+    cmd.add_argument('--workspace',
+        help='Path to the QEC workspace; omit to use local discovery where supported')
+    cmd.add_argument('--format', choices=['records', 'software-seed', 'synthetic-fixture'], default='records',
+        help='Format of the research record input (default: %(default)s)')
     cmd = add('review-list', help='List source-linked proposals without approving them')
-    cmd.add_argument('--workspace')
+    cmd.add_argument('--workspace',
+        help='Path to the QEC workspace; omit to use local discovery where supported')
     cmd = add('lean-build', help='Explicitly build/export/audit a pinned Lean project; never invoked by read tools')
-    cmd.add_argument('--project', required=True)
-    cmd.add_argument('--out', required=True)
-    cmd.add_argument('--lake')
-    cmd.add_argument('--build-only', action='store_true')
+    cmd.add_argument('--project', required=True, help='Path to the pinned Lean project')
+    cmd.add_argument('--out', required=True, help='Output directory for the command result')
+    cmd.add_argument('--lake', help='Explicit Lake executable')
+    cmd.add_argument('--build-only', action='store_true', help='Run the build without exporting declarations')
     cmd = add('lean-import', help='Import an actual Lean export with current input or explicit historical bindings')
-    cmd.add_argument('report')
-    cmd.add_argument('--corpus', required=True)
-    cmd.add_argument('--project-id', required=True)
-    cmd.add_argument('--project')
-    cmd.add_argument('--mapping')
-    cmd.add_argument('--historical', action='store_true')
+    cmd.add_argument('report', help='Path to the actual Lean build report JSON')
+    cmd.add_argument('--corpus', required=True, help='Path to a legacy multi-document corpus')
+    cmd.add_argument('--project-id', required=True, help='Stable project ID')
+    cmd.add_argument('--project', help='Path to the pinned Lean project')
+    cmd.add_argument('--mapping', help='Path to a JSON object or list of exact declaration mappings')
+    cmd.add_argument('--historical', action='store_true',
+        help='Allow import as historical evidence using recorded bindings')
     cmd = add('lean-status', help='Read Lean build freshness without executing Lean')
-    cmd.add_argument('--corpus', required=True)
-    cmd.add_argument('--registry-revision')
+    cmd.add_argument('--corpus', required=True, help='Path to a legacy multi-document corpus')
+    cmd.add_argument('--registry-revision', help='Exact corpus state ID; omit to use CURRENT')
     cmd = add('mcp-config', help='Print a reviewable fixed-scope client config without editing user settings')
     _add_ai_arguments(cmd)
     cmd = add('serve-mcp', help='Serve only fixed-scope read tools over local MCP stdio')
     _add_ai_arguments(cmd)
     cmd = add('query-tool', help='Call the fixed-scope read-only AI contract from JSON')
-    cmd.add_argument('tool')
+    cmd.add_argument('tool', help='Exact name from the read-only MCP tool list')
     cmd.add_argument('--arguments', required=True, help='JSON file of tool arguments')
     _add_ai_arguments(cmd)
     cmd = add('watch', help='Debounced content polling; rebuild through the shared ingestion pipeline')
     _add_source_arguments(cmd)
-    cmd.add_argument('--annotations')
-    cmd.add_argument('--catalog')
-    cmd.add_argument('--interval', type=float, default=0.5)
-    cmd.add_argument('--debounce', type=float, default=0.25)
-    cmd.add_argument('--max-polls', type=int)
-    cmd.add_argument('--once', action='store_true')
+    cmd.add_argument('--annotations', help='Path to the source annotation sidecar JSON')
+    cmd.add_argument('--catalog', help='Directory of existing JSON records')
+    cmd.add_argument('--interval', type=float, default=0.5,
+        help='Polling interval in seconds (default: %(default)s)')
+    cmd.add_argument('--debounce', type=float, default=0.25,
+        help='Seconds of quiet before ingestion (default: %(default)s)')
+    cmd.add_argument('--max-polls', type=int, help='Stop after this many polling cycles')
+    cmd.add_argument('--once', action='store_true', help='Run a single poll and exit')
     cmd = add('recover-store', help='Validate CURRENT and inventory abandoned tool-owned builds')
-    cmd.add_argument('--store', required=True)
-    cmd.add_argument('--remove-abandoned', action='store_true')
+    cmd.add_argument('--store', required=True, help='Path to a standalone snapshot store')
+    cmd.add_argument('--remove-abandoned', action='store_true',
+        help='Remove only validated tool-owned abandoned builds')
     cmd = add('validate-staged', help='Validate an explicitly selected staged snapshot')
-    cmd.add_argument('--store', required=True)
-    cmd.add_argument('--snapshot', required=True)
+    cmd.add_argument('--store', required=True, help='Path to a standalone snapshot store')
+    cmd.add_argument('--snapshot', required=True, help='Exact immutable snapshot ID')
     cmd = add('audit-dependencies', help='Report SCCs only in active reviewed logical dependencies')
     _add_query_scope(cmd)
     cmd = add('apply', help='Atomically publish a reviewed proposal with input conflict checks')
-    cmd.add_argument('proposal_id')
-    cmd.add_argument('--review-id', required=True)
-    cmd.add_argument('--corpus', required=True)
+    cmd.add_argument('proposal_id', help='Exact proposal ID')
+    cmd.add_argument('--review-id', required=True, help='Exact review decision ID for the proposal')
+    cmd.add_argument('--corpus', required=True, help='Path to a legacy multi-document corpus')
     cmd = add('review', help='Create an inspectable proposal, without applying changes')
     cmd.add_argument('input', help='JSON with changes and rationale')
-    cmd.add_argument('--corpus', required=True)
-    cmd.add_argument('--actor-id', required=True)
-    cmd.add_argument('--actor-kind', choices=['ai', 'program', 'human'], default='ai')
+    cmd.add_argument('--corpus', required=True, help='Path to a legacy multi-document corpus')
+    cmd.add_argument('--actor-id', required=True, help='Stable identifier of the actor')
+    cmd.add_argument('--actor-kind', choices=['ai', 'program', 'human'], default='ai',
+        help='Kind of actor creating the record (default: %(default)s)')
     cmd = add('review-decide', help='Bind an explicit decision to an exact proposal')
-    cmd.add_argument('proposal_id')
-    cmd.add_argument('--corpus', required=True)
-    cmd.add_argument('--actor-id', required=True)
-    cmd.add_argument('--actor-kind', choices=['ai', 'program', 'human'], default='ai')
-    cmd.add_argument('--decision', choices=['approve', 'reject'], required=True)
-    cmd.add_argument('--rationale', required=True)
-    cmd.add_argument('--checked-scope', choices=['statement', 'hypotheses', 'dependencies'], action='append', default=[])
+    cmd.add_argument('proposal_id', help='Exact proposal ID')
+    cmd.add_argument('--corpus', required=True, help='Path to a legacy multi-document corpus')
+    cmd.add_argument('--actor-id', required=True, help='Stable identifier of the actor')
+    cmd.add_argument('--actor-kind', choices=['ai', 'program', 'human'], default='ai',
+        help='Kind of actor creating the record (default: %(default)s)')
+    cmd.add_argument('--decision', choices=['approve', 'reject'], required=True,
+        help='Decision to bind to the exact proposal')
+    cmd.add_argument('--rationale', required=True, help='Explain the review decision')
+    cmd.add_argument('--checked-scope', choices=['statement', 'hypotheses', 'dependencies'], action='append', default=[],
+        help='Part of the claim checked; repeat to include more than one')
     cmd = add('check-css', help='Validate binary check matrices; optionally enumerate a small distance')
-    cmd.add_argument('--hx', required=True)
-    cmd.add_argument('--hz', required=True)
-    cmd.add_argument('--lx')
-    cmd.add_argument('--lz')
-    cmd.add_argument('--enumerate-distance', action='store_true')
-    cmd.add_argument('--max-n', type=int, default=20)
+    cmd.add_argument('--hx', required=True, help='Path to the X check matrix JSON')
+    cmd.add_argument('--hz', required=True, help='Path to the Z check matrix JSON')
+    cmd.add_argument('--lx', help='Path to the optional X logical witness matrix JSON')
+    cmd.add_argument('--lz', help='Path to the optional Z logical witness matrix JSON')
+    cmd.add_argument('--enumerate-distance', action='store_true', help='Enumerate the distance for small inputs')
+    cmd.add_argument('--max-n', type=int, default=20,
+        help='Largest number of qubits to enumerate (default: %(default)s)')
     cmd = add('check-experiment', help='Check explicit experiment/metric JSON; no evidence promotion')
-    cmd.add_argument('input')
+    cmd.add_argument('input', help='Path to the input file or directory described above')
     cmd = add('codes', help='Exact code constraints, metric and currently bound distance evidence')
-    cmd.add_argument('--corpus', required=True)
-    cmd.add_argument('--registry-revision')
-    cmd.add_argument('--n-min', type=int)
-    cmd.add_argument('--n-max', type=int)
-    cmd.add_argument('--distance-at-least', type=int)
-    cmd.add_argument('--metric-definition-id')
-    cmd.add_argument('--sector', choices=['X', 'Z', 'joint'], default='joint')
-    cmd.add_argument('--construction')
-    cmd.add_argument('--limit', type=int, default=100)
+    cmd.add_argument('--corpus', required=True, help='Path to a legacy multi-document corpus')
+    cmd.add_argument('--registry-revision', help='Exact corpus state ID; omit to use CURRENT')
+    cmd.add_argument('--n-min', type=int, help='Minimum physical qubit count')
+    cmd.add_argument('--n-max', type=int, help='Maximum physical qubit count')
+    cmd.add_argument('--distance-at-least', type=int, help='Require current evidence for at least this distance')
+    cmd.add_argument('--metric-definition-id', help='Exact metric ID for the distance filter')
+    cmd.add_argument('--sector', choices=['X', 'Z', 'joint'], default='joint',
+        help='Logical sector for the distance filter (default: %(default)s)')
+    cmd.add_argument('--construction', help='Exact construction ID or kind')
+    cmd.add_argument('--limit', type=int, default=100,
+        help='Maximum number of results or entries to process (default: %(default)s)')
     cmd = add('validate-corpus', help='Check typed records, references, sources and managed assets')
-    cmd.add_argument('--corpus', required=True)
-    cmd.add_argument('--registry-revision')
+    cmd.add_argument('--corpus', required=True, help='Path to a legacy multi-document corpus')
+    cmd.add_argument('--registry-revision', help='Exact corpus state ID; omit to use CURRENT')
     cmd = add('migrate', help='Adapt legacy inputs into a new location with a rejection report')
-    cmd.add_argument('input')
-    cmd.add_argument('--out', required=True)
-    cmd.add_argument('--source-root')
+    cmd.add_argument('input', help='Path to the input file or directory described above')
+    cmd.add_argument('--out', required=True, help='Output directory for the command result')
+    cmd.add_argument('--source-root', help='Root directory for the legacy record assets')
     cmd = add('migration-import', help='Import adapted records and managed assets atomically')
-    cmd.add_argument('input')
-    cmd.add_argument('--corpus', required=True)
+    cmd.add_argument('input', help='Path to the input file or directory described above')
+    cmd.add_argument('--corpus', required=True, help='Path to a legacy multi-document corpus')
     for name in ('record-add', 'claim-link'):
         cmd = add(name, help="Add an explicit record or provenance mapping from JSON")
-        cmd.add_argument("input")
-        cmd.add_argument("--corpus", required=True)
+        cmd.add_argument("input", help='Path to the input file or directory described above')
+        cmd.add_argument("--corpus", required=True, help='Path to a legacy multi-document corpus')
     cmd = add("register", help="Archive a store as an explicit work/source version in a corpus")
-    cmd.add_argument("--corpus", required=True)
-    cmd.add_argument("--store", required=True)
-    cmd.add_argument("--work-id", required=True)
-    cmd.add_argument("--source-version-id", required=True)
-    cmd.add_argument("--title")
-    cmd.add_argument("--upstream-version")
+    cmd.add_argument("--corpus", required=True, help='Path to a legacy multi-document corpus')
+    cmd.add_argument("--store", required=True, help='Path to a standalone snapshot store')
+    cmd.add_argument("--work-id", required=True, help='Stable identity shared across source versions')
+    cmd.add_argument("--source-version-id", required=True, help='Stable identity of this exact source version')
+    cmd.add_argument("--title", help='Display title for the registered work')
+    cmd.add_argument("--upstream-version", help='Version string from the source provider, such as v2')
     cmd = add("ingest", help="Parse a LaTeX project and write an immutable snapshot")
     _add_source_arguments(cmd)
-    cmd.add_argument("--annotations")
+    cmd.add_argument("--annotations", help='Path to the source annotation sidecar JSON')
     cmd.add_argument("--catalog", help="Directory of existing JSON records, such as the earlier starter records/")
     cmd = add("split", help="Write source-only semantic fragments and return their exact file paths")
     _add_source_arguments(cmd)
     cmd.add_argument("--force", action="store_true", help="Allow replacing CURRENT when it includes annotations or a catalog")
     cmd = add("search", help="Search titles, labels and text")
-    cmd.add_argument("query")
+    cmd.add_argument("query", help='Literal search text')
     _add_query_scope(cmd, workspace=True)
-    cmd.add_argument("--kind")
-    cmd.add_argument("--limit", type=int, default=20)
+    cmd.add_argument("--kind", help='Only return records and blocks of this kind')
+    cmd.add_argument("--limit", type=int, default=20,
+        help='Maximum number of results or entries to process (default: %(default)s)')
     cmd = add("show", help="Read one node with its incoming/outgoing edges")
-    cmd.add_argument("id_or_label")
+    cmd.add_argument("id_or_label", help='Exact ID or unique label within the selected scope')
     _add_query_scope(cmd, workspace=True)
     for name, description in (("deps", "Trace active graph dependencies"),
                               ("impact", "Trace potential impact through graph dependencies"),
                               ("context", "Read bounded evidence and source context")):
         cmd = add(name, help=description)
-        cmd.add_argument("id_or_label")
+        cmd.add_argument("id_or_label", help='Exact ID or unique label within the selected scope')
         _add_query_scope(cmd, workspace=True)
-        cmd.add_argument("--depth", type=int, default=2)
-        cmd.add_argument("--include-candidates", action="store_true")
-        cmd.add_argument("--max-nodes", type=int, default=60)
+        cmd.add_argument("--depth", type=int, default=2,
+            help='Maximum number of dependency steps (default: %(default)s)')
+        cmd.add_argument("--include-candidates", action="store_true",
+            help='Include candidate relations explicitly')
+        cmd.add_argument("--max-nodes", type=int, default=60,
+            help='Maximum number of returned nodes (default: %(default)s)')
     cmd = add("validate", help="Validate hashes, source spans, endpoints and SQLite")
     group = cmd.add_mutually_exclusive_group()
-    group.add_argument("--store")
-    group.add_argument("--workspace")
-    cmd.add_argument('--snapshot')
+    group.add_argument("--store", help='Path to a standalone snapshot store')
+    group.add_argument("--workspace",
+        help='Path to the QEC workspace; omit to use local discovery where supported')
+    cmd.add_argument('--snapshot', help='Exact immutable snapshot ID')
 
 
-def _build_parser():
+def _build_parser(entrypoint=None):
     parser = _ArgumentParser(prog='qec-graph', usage='%(prog)s <command> [options]',
-                             description='LaTeX source blocks and typed QEC graphs with explicit evidence checks')
+                             description='LaTeX source blocks and typed QEC graphs with explicit evidence checks',
+                             epilog=f'Examples:\n  qec-graph init --workspace ./qec\n  qec-graph sync --dry-run\n'
+                                    f'  qec-graph query search HGP --workspace ./qec\n\nGuide: {GUIDE_URL}')
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     sub = parser.add_subparsers(dest='command', required=True, metavar='<command>')
     topics = {}
     groups = {}
     for name, (description, _) in _GROUPS.items():
-        group = sub.add_parser(name, prog=f'qec-graph {name}', help=description, description=description)
+        group = sub.add_parser(name, prog=f'qec-graph {name}', help=description, description=description,
+                               epilog=f'Use qec-graph help {name} ACTION for an example and options.')
         groups[name] = group.add_subparsers(dest='action', required=True, metavar='<action>')
         topics[name,] = group
 
@@ -317,17 +375,19 @@ def _build_parser():
     for name, (options, description) in definitions.items():
         if name == 'review':
             legacy = sub.add_parser('review-propose', parents=[options], prog='qec-graph review',
-                                    description=description)
+                                    description=description, epilog=command_epilog(name, 'qec-graph review'))
             legacy.set_defaults(command='review')
             topics['review-propose',] = legacy
             continue
-        topics[name,] = sub.add_parser(name, parents=[options], prog=f'qec-graph {name}',
-                                       help=description, description=description)
+        prog = entrypoint[1] if entrypoint and entrypoint[0] == name else f'qec-graph {name}'
+        topics[name,] = sub.add_parser(name, parents=[options], prog=prog, help=description,
+                                       description=description, epilog=command_epilog(name, prog))
     for name, (_, actions) in _GROUPS.items():
         for action, command in actions.items():
             options, description = definitions[command]
-            nested = groups[name].add_parser(action, parents=[options], prog=f'qec-graph {name} {action}',
-                                              help=description, description=description)
+            prog = f'qec-graph {name} {action}'
+            nested = groups[name].add_parser(action, parents=[options], prog=prog, help=description,
+                                              description=description, epilog=command_epilog(command, prog))
             nested.set_defaults(command=command)
             topics[name, action] = nested
     parser.set_defaults(json=False, debug=False)
@@ -338,7 +398,7 @@ def _command_index(argv: list[str], start=0) -> int:
     return next((i for i in range(start, len(argv)) if argv[i] not in {'--json', '--debug'}), len(argv))
 
 
-def parse_command(argv: list[str]) -> argparse.Namespace | None:
+def parse_command(argv: list[str], *, entrypoint: tuple[str, str] | None = None) -> argparse.Namespace | None:
     if not argv:
         print(_QUICK_HELP)
         return None
@@ -353,7 +413,7 @@ def parse_command(argv: list[str]) -> argparse.Namespace | None:
                 or argument == 'list' and '--corpus' in argv):
             argv[start] = 'review-propose'
             name = 'review-propose'
-    parser, topics = _build_parser()
+    parser, topics = _build_parser(entrypoint)
     if name and not name.startswith('-') and (name,) not in topics:
         raise UsageError(f'Unknown command {name!r}')
     try:
@@ -362,6 +422,8 @@ def parse_command(argv: list[str]) -> argparse.Namespace | None:
         exc.command = ('review' if name == 'review-propose' else name) if (name,) in topics else None
         if name in _GROUPS and action_index < len(argv):
             exc.command = _GROUPS[name][1].get(argv[action_index], exc.command)
+        if entrypoint is not None:
+            exc.hint = f'Run {entrypoint[1]} --help for usage.'
         raise
     if args.command == 'help':
         topic = tuple(args.topic)
@@ -369,6 +431,8 @@ def parse_command(argv: list[str]) -> argparse.Namespace | None:
             parser.print_help()
         elif topic in topics:
             topics[topic].print_help()
+        elif len(topic) == 1 and topic[0] in TOPICS:
+            print(f'{TOPICS[topic[0]]}\n\nGuide: {GUIDE_URL}')
         else:
             error = UsageError(f'Unknown help topic {" ".join(topic)!r}')
             error.command = 'help'

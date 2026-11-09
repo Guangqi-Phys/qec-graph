@@ -162,7 +162,8 @@ def serve_stdio(session, *, input_stream=None, output_stream=None):
 
 def main(argv=None):
     from .cli import main as cli_main
-    return cli_main(['serve-mcp', *(sys.argv[1:] if argv is None else argv)])
+    return cli_main(['serve-mcp', *(sys.argv[1:] if argv is None else argv)],
+                    entrypoint=('serve-mcp', 'qecgraph-mcp'))
 
 
 if __name__ == '__main__':
