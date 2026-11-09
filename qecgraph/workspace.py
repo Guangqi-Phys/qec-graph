@@ -255,7 +255,7 @@ class Workspace:
         immutable_json(self.path('archive/receipts/' + job.name + '.json'), receipt)
         return digest
 
-    def _prepare(self, cfg, state, digest, prior, reused, limits):
+    def _prepare(self, cfg, state, digest, prior, reused, limits, *, captured, manifest_hashes):
         result = {'archive_sha256': digest, 'status': 'archived_only', 'processing_completed': False,
                   'semantic_status': 'not_extracted', 'processor': PROCESSOR}
         try:
@@ -306,7 +306,8 @@ class Workspace:
                             return self._keep_prior(result, prior)
                         version = self.registry.stage_source(
                             state, work_id, source_id, temporary / 'store', title=metadata.get('title'),
-                            upstream_version=upstream, replace_projection=True)
+                            upstream_version=upstream, replace_projection=True,
+                            captured=captured, manifest_hashes=manifest_hashes)
             reused[build_key] = version
             result.update(status='processing_completed', processing_completed=True, semantic_status='semantic_pending',
                           source_version_id=source_id, source_snapshot_id=version['snapshot_id'])
@@ -381,6 +382,18 @@ class Workspace:
             tool_identity = extraction_tool_identity() if digests else None
             fingerprint = hash_text(canonical([PROCESSOR, cfg, tool_identity,
                                                sys.implementation.name, sys.version, sqlite_version]))
+            proposal_map = state.setdefault('generated_research', {})
+            manifest_hashes, verified_spans, staged_proposals = {}, {}, {}
+
+            def needs_proposals(version):
+                active = proposal_map.get(version['id'])
+                return (not active or active['source_snapshot_id'] != version['snapshot_id']
+                        or active['processor'] != PROCESSOR)
+
+            def generate(graph, snapshot, version):
+                verified_spans[snapshot, version['snapshot_id']] = source_span_index(graph)
+                return proposals(graph, version)
+
             reused = {}
             if digests:
                 for prior in materials.values():
@@ -391,26 +404,31 @@ class Workspace:
                 prior = materials.get(digest, {})
                 version = self._matching_extraction(state, prior, fingerprint)
                 if rebuild or version is None:
-                    materials[digest] = self._prepare(cfg, state, digest, prior, reused, limits)
+                    captured = []
+                    materials[digest] = self._prepare(cfg, state, digest, prior, reused, limits,
+                                                       captured=captured, manifest_hashes=manifest_hashes)
                     materials[digest]['config_fingerprint'] = fingerprint
+                    if captured:
+                        graph, snapshot, registered = captured.pop()
+                        if needs_proposals(registered):
+                            identity = (registered['id'], registered['snapshot_id'])
+                            staged_proposals[identity] = generate(graph, snapshot, registered)
                 if progress:
                     progress(index + 1, steps, f'{package_stage} {index}/{package_count}')
             if progress:
                 progress(steps - 2, steps, 'Publishing workspace')
             # Explicit version metadata, never inferred from filenames.
             parsed_versions = {m['source_version_id'] for m in materials.values() if m.get('source_version_id')}
-            proposal_map = state.setdefault('generated_research', {})
             generated = []
-            manifest_hashes, verified_spans = {}, {}
             for identifier in sorted(parsed_versions):
                 version = state['versions'][identifier]
-                active = proposal_map.get(identifier)
-                if active and active['source_snapshot_id'] == version['snapshot_id'] and active['processor'] == PROCESSOR:
+                if not needs_proposals(version):
                     continue
-                graph, snapshot, _ = self.registry.source_graph_from_state(
-                    state, identifier, old, verify=True, manifest_hashes=manifest_hashes)
-                verified_spans[snapshot, version['snapshot_id']] = source_span_index(graph)
-                records = proposals(graph, version)
+                records = staged_proposals.pop((identifier, version['snapshot_id']), None)
+                if records is None:
+                    graph, snapshot, _ = self.registry.source_graph_from_state(
+                        state, identifier, old, verify=True, manifest_hashes=manifest_hashes)
+                    records = generate(graph, snapshot, version)
                 generated.extend(records)
                 proposal_map[identifier] = {'source_snapshot_id': version['snapshot_id'], 'processor': PROCESSOR,
                                             'bindings': [{'id': r['id'], 'revision': r['revision']} for r in records],

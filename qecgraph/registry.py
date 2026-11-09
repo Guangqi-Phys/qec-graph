@@ -8,7 +8,7 @@ import uuid
 from pathlib import Path
 
 from .graph import canonical, hash_text, read_json
-from .store import current_snapshot, load_validated_snapshot, safe_relative, validate_snapshot
+from .store import current_snapshot, load_validated_snapshot, safe_relative
 from .transactions import atomic_bytes, atomic_json, immutable_json, writer_lock
 from .records import prepare_record
 from .query import resolve_node
@@ -92,7 +92,7 @@ class Registry:
         return {'registry_revision': revision, 'source_version': version}
 
     def stage_source(self, state, work_id, source_version_id, store, *, title=None, upstream_version=None,
-                     replace_projection=False):
+                     replace_projection=False, captured=None, manifest_hashes=None):
         """Prepare a verified source projection under the caller's registry writer lock."""
         if not all(isinstance(x, str) and x.strip() for x in (work_id, source_version_id)):
             raise ValueError('work_id and source_version_id must be explicit nonempty IDs')
@@ -103,7 +103,8 @@ class Registry:
         target.parent.mkdir(parents=True, exist_ok=True)
         temporary = None if target.exists() else Path(tempfile.mkdtemp(prefix='.register-', dir=target.parent))
         try:
-            graph, _ = load_validated_snapshot(source, copy_to=temporary)
+            graph, _ = load_validated_snapshot(source, copy_to=temporary,
+                                               manifest_hashes=manifest_hashes if temporary is not None else None)
             version = {'id': source_version_id, 'work_id': work_id, 'project_id': graph['project_id'],
                        'snapshot_id': snapshot_id, 'project_source_hash': graph['project_source_hash'],
                        'snapshot_path': snapshot_path, 'upstream_version': upstream_version}
@@ -113,7 +114,8 @@ class Registry:
                                                  for field in ('work_id', 'project_id', 'upstream_version')):
                     raise ValueError('Source version ID already binds different inputs; create a new version ID')
             if temporary is None:
-                validate_snapshot(target, expected_snapshot_id=snapshot_id)
+                graph, _ = load_validated_snapshot(target, snapshot_id, manifest_hashes=manifest_hashes)
+                _check_source_binding(graph, version)
             else:
                 temporary.rename(target)
         finally:
@@ -121,6 +123,8 @@ class Registry:
                 shutil.rmtree(temporary)
         state['works'].setdefault(work_id, {'id': work_id, 'title': title or work_id})
         state['versions'][source_version_id] = version
+        if captured is not None:
+            captured.append((graph, target, version))
         return version
 
     def source_graph(self, source_version_id, revision=None):
