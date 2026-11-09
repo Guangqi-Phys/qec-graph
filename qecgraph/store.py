@@ -407,25 +407,38 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None):
     if (source_hash != fingerprint["project_source_hash"] or source_hash != graph["project_source_hash"]
             or graph["project_id"] != fingerprint["project_id"]):
         raise ValueError("Project source fingerprint mismatch")
-    captured = {"graph.json": graph_bytes, config_relative: config_bytes}
+    captured = {"graph.json": hashlib.sha256(graph_bytes).hexdigest(),
+                config_relative: hashlib.sha256(config_bytes).hexdigest()}
+    sources = {}
+    source_root = _safe_relative_to_resolved(output_root, "sources")
+    for source in manifest["source_files"]:
+        path = source["path"]
+        raw = _safe_relative_to_resolved(source_root, path).read_bytes()
+        digest = hashlib.sha256(raw).hexdigest()
+        if digest != source["sha256"]:
+            raise ValueError("Source hash mismatch")
+        sources[path] = raw.decode("utf-8")
+        captured["sources/" + path] = digest
     resources = {"assets/" + row["path"]: row["sha256"] for row in manifest["resources"]}
+    sqlite_relative = "graph.sqlite"
+    sqlite_path = _safe_relative_to_resolved(output_root, sqlite_relative)
+    seen_outputs = set()
     for output in manifest["outputs"]:
         relative = output["path"]
-        raw = captured[relative] if relative in captured else _safe_relative_to_resolved(output_root, relative).read_bytes()
-        digest = hashlib.sha256(raw).hexdigest()
+        if relative in seen_outputs:
+            raise ValueError(f"Duplicate snapshot output: {relative}")
+        seen_outputs.add(relative)
+        digest = captured.get(relative)
+        if digest is None:
+            path = sqlite_path if relative == sqlite_relative else _safe_relative_to_resolved(output_root, relative)
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
         if digest != output["sha256"]:
             raise ValueError(f"Snapshot file changed: {output['path']}")
-        if digest != resources.pop(relative, digest):
+        if digest != resources.get(relative, digest):
             raise ValueError(f"Resource hash mismatch: {relative}")
-    if resources:
-        raise ValueError(f"Resources missing from snapshot outputs: {', '.join(sorted(resources))}")
-    sources = {}
-    source_root = (snapshot / "sources").resolve()
-    for source in manifest["source_files"]:
-        raw = _safe_relative_to_resolved(source_root, source["path"]).read_bytes()
-        if hashlib.sha256(raw).hexdigest() != source["sha256"]:
-            raise ValueError("Source hash mismatch")
-        sources[source["path"]] = raw.decode("utf-8")
+    missing = {sqlite_relative, *captured, *resources} - seen_outputs
+    if missing:
+        raise ValueError(f"Required snapshot outputs missing: {', '.join(sorted(missing))}")
     source_lines = {}
     nodes = {n["id"]: n for n in graph["nodes"]}
     if len(nodes) != len(graph["nodes"]):
@@ -453,7 +466,7 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None):
     for label, ids in graph["labels"].items():
         if any(label not in nodes[i]["labels"] for i in ids):
             raise ValueError("Label ownership mismatch")
-    con = sqlite3.connect((snapshot / "graph.sqlite").resolve().as_uri() + "?mode=ro", uri=True)
+    con = sqlite3.connect(sqlite_path.as_uri() + "?mode=ro", uri=True)
     try:
         if con.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
             raise ValueError("SQLite integrity check failed")

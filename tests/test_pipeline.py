@@ -114,6 +114,17 @@ class PipelineSemanticsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Project source fingerprint mismatch"):
             validate_snapshot(snapshot)
 
+    def test_snapshot_requires_checksum_entries_for_graph_and_sources(self):
+        _, _, snapshot = self._write_project(r"\section{Example}Fixture.")
+        manifest_path = snapshot / "manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        for relative in ("graph.json", "sources/main.tex"):
+            with self.subTest(relative=relative):
+                updated = {**manifest, "outputs": [row for row in manifest["outputs"] if row["path"] != relative]}
+                manifest_path.write_text(json.dumps(updated))
+                with self.assertRaisesRegex(ValueError, "Required snapshot outputs missing"):
+                    validate_snapshot(snapshot)
+
     def test_demo_has_exact_real_labels_and_ignores_comment_and_verbatim_ghosts(self):
         _, graph, _ = self._demo()
         self.assertEqual(set(graph["labels"]), set(EXPECTED_LABEL_KINDS))
