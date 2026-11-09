@@ -5,54 +5,20 @@ import copy
 import re
 
 from .graph import canonical, hash_text
+from .validators import packaged_validator
 
 SCHEMA = 'qecgraph.research.v1'
 UNKNOWN = {'not_extracted', 'unresolved', 'not_reported', 'not_applicable', 'conflicting'}
-# Each field has its own role. A null binding is unknown, never a wildcard join.
-RELATIONS = {
-    'code_mention': {'source_ref': 'paper_version', 'code_ref': 'code_instance'},
-    'construction': {'seed_refs': 'classical_seed'},
-    'code_instance': {'construction_ref': 'construction', 'presentation_refs': 'code_presentation',
-                      'distance_claim_refs': 'distance_claim'},
-    'code_presentation': {'code_ref': 'code_instance', 'construction_recipe_ref': 'construction'},
-    'distance_claim': {'subject_ref': ('code_instance', 'code_presentation', 'circuit_protocol'),
-                       'metric_definition_ref': 'metric_definition'},
-    'circuit_protocol': {'presentation_ref': 'code_presentation'},
-    'noise_instantiation': {'model_ref': 'noise_model', 'circuit_ref': 'circuit_protocol'},
-    'decoder_configuration': {'algorithm_ref': 'algorithm', 'software_usage_refs': 'software_usage'},
-    'reported_experiment': {'source_ref': 'paper_version', 'code_ref': 'code_instance',
-                            'presentation_ref': 'code_presentation', 'circuit_ref': 'circuit_protocol',
-                            'noise_model_ref': 'noise_model', 'decoder_ref': 'decoder_configuration',
-                            'hardware_ref': 'hardware_assumptions', 'software_usage_refs': 'software_usage',
-                            'execution_run_refs': 'execution_run'},
-    'performance_series': {'experiment_ref': 'reported_experiment', 'metric_definition_ref': 'metric_definition'},
-    'performance_point': {'experiment_ref': 'reported_experiment', 'noise_instantiation_ref': 'noise_instantiation',
-                          'metric_definition_ref': 'metric_definition', 'curve_ref': 'performance_series'},
-    'execution_run': {'reported_experiment_ref': 'reported_experiment', 'environment_ref': 'execution_environment',
-                      'software_usage_refs': 'software_usage'},
-    'software_distribution': {'project_ref': 'software_project'},
-    'software_catalog_observation': {'project_ref': 'software_project'},
-    'software_release': {'distribution_ref': 'software_distribution'},
-    'software_usage': {'project_ref': 'software_project', 'release_ref': 'software_release',
-                       'source_ref': 'paper_version', 'experiment_ref': 'reported_experiment',
-                       'execution_run_ref': 'execution_run'},
-}
-KINDS = set(RELATIONS) | {'paper_version', 'classical_seed', 'code_family', 'noise_model',
-                         'metric_definition', 'hardware_assumptions', 'execution_environment',
-                         'software_project', 'algorithm', 'catalog_source'}
-REQUIRED = {
-    'code_instance': ('coding_domain', 'n_data', 'k_logical'),
-    'code_presentation': ('code_ref', 'check_weight_metrics'),
-    'distance_claim': ('subject_ref', 'metric_definition_ref', 'relation', 'lower_bound', 'upper_bound'),
-    'noise_model': ('idle', 'loss', 'erasure', 'leakage'),
-    'noise_instantiation': ('model_ref', 'reported_coordinates', 'resolved_channel_parameters'),
-    'reported_experiment': ('source_ref', 'code_ref', 'presentation_ref', 'circuit_ref', 'noise_model_ref', 'decoder_ref'),
-    'performance_point': ('experiment_ref', 'noise_instantiation_ref', 'metric_definition_ref', 'value'),
-    'software_usage': ('usage_kind', 'project_ref', 'release_ref'),
-    'software_distribution': ('project_ref', 'ecosystem', 'name'),
-    'software_release': ('distribution_ref', 'version'),
-    'execution_run': ('environment_ref', 'execution_evidence'),
-}
+# The packaged schema owns the portable record structure. Reference target
+# kinds also drive the runtime join and the published graph views.
+_VALIDATOR = packaged_validator('research.v1')
+_CONTRACTS = _VALIDATOR.schema['$defs']['record_data']['$defs']
+KINDS = frozenset(_VALIDATOR.schema['properties']['kind']['enum'])
+REQUIRED = {kind: tuple(contract['required']) for kind, contract in _CONTRACTS.items()
+            if 'required' in contract}
+RELATIONS = {kind: {field: tuple(rule['x-qec-target-kinds']) for field, rule in contract['properties'].items()
+                    if 'x-qec-target-kinds' in rule}
+             for kind, contract in _CONTRACTS.items() if 'properties' in contract}
 
 
 def key(ref):
@@ -89,15 +55,12 @@ def _ptr(name):
 
 
 def prepare(record):
-    from .validators import packaged_validator
     record = copy.deepcopy(record)
-    error = next(packaged_validator('research.v1').iter_errors(record), None)
+    error = next(_VALIDATOR.iter_errors(record), None)
     if error:
         raise ValueError(f'Research record schema at {error.json_path}: {error.message}')
     key(ref(record))
     data, kind = record['data'], record['kind']
-    if kind not in KINDS or set(REQUIRED.get(kind, ())) - data.keys():
-        raise ValueError(f'Unknown kind or missing required explicit fields: {kind}')
     if data.get('review_status') not in (None, 'proposed', 'unreviewed'):
         raise ValueError('Research import cannot declare a reviewed status without bound review evidence')
     fields = record['field_evidence']
@@ -116,17 +79,6 @@ def prepare(record):
             raise ValueError(f'{state} requires an explanation: {path}')
         if state == 'not_reported' and not all(evidence.get(f) for f in ('source_ref', 'checked_scope', 'checked_at')):
             raise ValueError(f'not_reported requires a dated source scope: {path}')
-    for field in RELATIONS.get(kind, {}):
-        value = data.get(field)
-        if value is None:
-            continue
-        if field.endswith('_refs'):
-            if not isinstance(value, list):
-                raise ValueError(f'{field} must be a list of revision references or null')
-            if len({key(item) for item in value}) != len(value):
-                raise ValueError(f'Duplicate revision reference in {field}')
-        else:
-            key(value)
     if kind in {'code_instance', 'classical_seed'}:
         for field in ('n_data', 'k_logical', 'K', 'r_gauge'):
             value = data.get(field)
@@ -206,7 +158,7 @@ def validate_bundle(records):
             value = data.get(field)
             if value is not None:
                 for binding in value if field.endswith('_refs') else [value]:
-                    resolve(record, binding, (kinds,) if isinstance(kinds, str) else kinds)
+                    resolve(record, binding, kinds)
         if record['kind'] == 'construction' and isinstance(data.get('matrix_recipe'), dict):
             for binding in data['matrix_recipe'].get('seed_refs') or []:
                 resolve(record, binding, ('classical_seed',))

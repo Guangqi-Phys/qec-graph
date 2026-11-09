@@ -5,6 +5,7 @@ from pathlib import Path
 from qecgraph.graph import read_json
 from qecgraph.research import adapt_synthetic, make_record, pauli_weight, ref, validate_bundle
 from qecgraph.software import adapt_seed, bundled_seed
+from qecgraph.validators import packaged_validator
 
 FIXTURES = Path(__file__).resolve().parent / 'fixtures'
 
@@ -20,6 +21,26 @@ class ResearchTests(unittest.TestCase):
         self.assertIsNone(rows['noise_model']['data']['idle'])
         self.assertNotIn('execution_run', rows)
         self.assertEqual(pauli_weight([1, 0, 1], [1, 1, 0]), 3)
+
+    def test_packaged_schema_distinguishes_unknown_values_and_invalid_bindings(self):
+        validator = packaged_validator('research.v1')
+        validator.check_schema(validator.schema)
+        for row in [*self.rows, *adapt_seed(bundled_seed())]:
+            validator.validate(row)
+
+        code = deepcopy(next(row for row in self.rows if row['kind'] == 'code_instance'))
+        code['data']['k_logical'] = None
+        self.assertTrue(validator.is_valid(code))
+        del code['data']['k_logical']
+        self.assertIn("'k_logical' is a required property", next(validator.iter_errors(code)).message)
+
+        code = deepcopy(next(row for row in self.rows if row['kind'] == 'code_instance'))
+        code['data']['presentation_refs'] = [{'id': 'presentation:fixture', 'revision': 'r1'}] * 2
+        self.assertEqual(next(validator.iter_errors(code)).validator, 'uniqueItems')
+        code['data']['presentation_refs'] = [{'id': 'presentation:fixture'}]
+        self.assertFalse(validator.is_valid(code))
+        code['kind'] = 'unknown_record_kind'
+        self.assertEqual(next(validator.iter_errors(code)).json_path, '$.kind')
 
     def test_exact_revision_and_wrong_noise_are_not_interchangeable(self):
         rows = deepcopy(self.rows)

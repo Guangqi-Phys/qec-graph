@@ -116,6 +116,12 @@ and `conflicting` record why the field has no single value. Default workspace
 queries filter synthetic records and stale provider approvals. Legacy
 `qecgraph.record.v3` records can also carry claims, evidence, and Lean mappings
 in a migrated workspace.
+The research schema lists the supported kinds, the fields that must be present
+for each kind, and the shape of nullable `{id, revision}` links. Its
+`x-qec-target-kinds` annotations describe the allowed target kinds. A JSON
+Schema validator checks shape; QEC Graph also checks that the exact target
+revision is present, that the evidence resolves, and that the records agree.
+
 [Research record schema](../qecgraph/validators/schemas/research.v1.schema.json) · [Legacy record schema](../qecgraph/validators/schemas/record.v3.schema.json)
 
 ## Search by keyword, source, or structured fields
