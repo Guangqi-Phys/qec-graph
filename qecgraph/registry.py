@@ -1,7 +1,6 @@
 """Versioned corpus registry: explicit identities, immutable source snapshots."""
 from __future__ import annotations
 
-import copy
 import hashlib
 import shutil
 import tempfile
@@ -36,7 +35,7 @@ class Registry:
         state = read_json(self.root / 'states' / (revision + '.json'))
         if state.get('schema_version') != FORMAT or hash_text(canonical(state)) != revision:
             raise ValueError('Registry state schema/hash mismatch')
-        return copy.deepcopy(state), revision
+        return state, revision
 
     def _state_or_empty(self):
         existing = (self.root / 'CURRENT.json').exists()
