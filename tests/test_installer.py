@@ -57,10 +57,11 @@ class InstallerTests(unittest.TestCase):
                     'QECGRAPH_BIN_DIR': str(self.install_dir), 'TMPDIR': str(self.downloads),
                     'QEC_INSTALL_TEST_RELEASES': str(self.releases), 'QEC_INSTALL_TEST_URL': RELEASES}
 
-    def make_release(self, version, *, bad_checksum=False):
+    def make_release(self, version, *, bad_checksum=False, executable_version=None):
         release = self.releases / version
         release.mkdir()
-        executable = f"#!/bin/sh\nprintf '%s\\n' 'qec-graph {version}'\n".encode()
+        reported = executable_version or version.removeprefix('v')
+        executable = f"#!/bin/sh\nprintf '%s\\n' 'qec-graph {reported}'\n".encode()
         (release / self.asset).write_bytes(executable)
         digest = '0' * 64 if bad_checksum else hashlib.sha256(executable).hexdigest()
         (release / f'{self.asset}.sha256').write_text(f'{digest}  {self.asset}\n', encoding='ascii')
@@ -81,14 +82,28 @@ class InstallerTests(unittest.TestCase):
             latest.write_text(version, encoding='ascii')
             installed = self.install()
             self.assertEqual(installed.returncode, 0, installed.stderr)
-            self.assertEqual(self.version(), f'qec-graph {version}')
+            self.assertEqual(self.version(), f'qec-graph {version.removeprefix("v")}')
 
         self.make_release('v0.11.0', bad_checksum=True)
         latest.write_text('v0.11.0', encoding='ascii')
         failed = self.install()
         self.assertEqual(failed.returncode, 1)
         self.assertIn('failed SHA-256 verification', failed.stderr)
-        self.assertEqual(self.version(), 'qec-graph v0.10.0')
+        self.assertEqual(self.version(), 'qec-graph 0.10.0')
+        self.assertEqual([p.name for p in self.install_dir.iterdir()], ['qec-graph'])
+
+    def test_wrong_executable_version_preserves_the_previous_installation(self):
+        latest = self.releases / 'latest'
+        self.make_release('v0.9.0')
+        latest.write_text('v0.9.0', encoding='ascii')
+        first = self.install()
+        self.assertEqual(first.returncode, 0, first.stderr)
+        self.make_release('v0.10.0', executable_version='0.8.0')
+        latest.write_text('v0.10.0', encoding='ascii')
+        failed = self.install()
+        self.assertEqual(failed.returncode, 1)
+        self.assertIn('executable version does not match release v0.10.0', failed.stderr)
+        self.assertEqual(self.version(), 'qec-graph 0.9.0')
         self.assertEqual([p.name for p in self.install_dir.iterdir()], ['qec-graph'])
 
     def test_prerelease_feed_is_used_when_there_is_no_stable_release(self):
@@ -99,4 +114,4 @@ class InstallerTests(unittest.TestCase):
             encoding='utf-8')
         installed = self.install()
         self.assertEqual(installed.returncode, 0, installed.stderr)
-        self.assertEqual(self.version(), f'qec-graph {version}')
+        self.assertEqual(self.version(), 'qec-graph 0.9.0rc1')

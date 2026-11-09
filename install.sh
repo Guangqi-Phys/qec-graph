@@ -85,7 +85,8 @@ esac
 mkdir -p "$bin_dir"
 staged="$(mktemp "$bin_dir/.qec-graph.XXXXXX")"
 install -m 755 "$download/$asset" "$staged"
-"$staged" --help >/dev/null || die 'the executable could not start on this system'
+installed_version="$("$staged" --version)" || die 'the executable could not start on this system'
+[ "$installed_version" = "qec-graph ${version#v}" ] || die "the executable version does not match release $version"
 mv -f "$staged" "$destination"
 staged=''
 printf 'Installed qec-graph %s at %s\n' "$version" "$destination"

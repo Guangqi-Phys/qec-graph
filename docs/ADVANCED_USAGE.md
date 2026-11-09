@@ -6,7 +6,7 @@ For the install command, daily workflow, and MCP setup, start with the [README](
 
 The installer selects an executable for your operating system and CPU from
 GitHub's latest stable release, or the newest published prerelease when no
-stable release exists. It verifies the executable's SHA-256 before replacing
+stable release exists. It verifies the executable's SHA-256 and version before replacing
 `~/.local/bin/qec-graph`. Open a new terminal if it added that directory to
 your `PATH`. The `v0.4.0rc1` Linux builds were tested on Ubuntu 22.04 (glibc 2.35).
 [Release assets](https://github.com/Guangqi-Phys/qec-graph/releases/tag/v0.4.0rc1)
