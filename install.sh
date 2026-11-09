@@ -9,10 +9,13 @@ die() {
 repository=Guangqi-Phys/qec-graph
 releases_url="https://github.com/$repository/releases"
 
-case "$(uname -s)-$(uname -m)" in
+platform="$(uname -s)"
+case "$platform-$(uname -m)" in
     Darwin-arm64) asset=qec-graph-darwin-arm64 ;;
     Darwin-x86_64) asset=qec-graph-darwin-x86_64 ;;
-    *) die 'this release supports Apple Silicon and Intel Macs' ;;
+    Linux-aarch64|Linux-arm64) asset=qec-graph-linux-arm64 ;;
+    Linux-x86_64) asset=qec-graph-linux-x86_64 ;;
+    *) die 'supported platforms are macOS and Linux on arm64 or x86_64' ;;
 esac
 
 bin_dir="${QECGRAPH_BIN_DIR:-$HOME/.local/bin}"
@@ -40,9 +43,14 @@ if [ -z "$version" ]; then
             curl -fsSL --proto '=https' --proto-redir '=https' --retry 2 \
                 --output "$download/releases.atom" "$releases_url.atom" \
                 || die 'could not download the GitHub Releases feed'
-            release_page="$(xmllint --nonet --xpath \
-                'string(/*[local-name()="feed"]/*[local-name()="entry"][1]/*[local-name()="link"][@rel="alternate"]/@href)' \
-                "$download/releases.atom")" || die 'could not read the GitHub Releases feed'
+            release_page="$(awk '
+                /<entry>/ { in_entry = 1 }
+                /<\/entry>/ && in_entry { exit }
+                in_entry && /<link[[:space:]]/ && /rel="alternate"/ && match($0, /href="[^"]*"/) {
+                    print substr($0, RSTART + 6, RLENGTH - 7)
+                    exit
+                }
+            ' "$download/releases.atom")" || die 'could not read the GitHub Releases feed'
             ;;
         *) die 'could not resolve the latest GitHub Release' ;;
     esac
@@ -68,13 +76,16 @@ done
 IFS=' ' read -r expected filename < "$download/$asset.sha256" || die 'invalid SHA-256 manifest'
 case "$expected" in ''|*[!0-9a-f]*) die 'invalid SHA-256 manifest' ;; esac
 [ "${#expected}" -eq 64 ] && [ "$filename" = "$asset" ] || die 'invalid SHA-256 manifest'
-actual="$(shasum -a 256 "$download/$asset")"
+case "$platform" in
+    Darwin) actual="$(shasum -a 256 "$download/$asset")" ;;
+    Linux) actual="$(sha256sum "$download/$asset")" ;;
+esac
 [ "${actual%% *}" = "$expected" ] || die 'download failed SHA-256 verification'
 
 mkdir -p "$bin_dir"
 staged="$(mktemp "$bin_dir/.qec-graph.XXXXXX")"
 install -m 755 "$download/$asset" "$staged"
-"$staged" --help >/dev/null || die 'the executable could not start on this Mac'
+"$staged" --help >/dev/null || die 'the executable could not start on this system'
 mv -f "$staged" "$destination"
 staged=''
 printf 'Installed qec-graph %s at %s\n' "$version" "$destination"
@@ -84,9 +95,10 @@ case ":${PATH:-}:" in
     *)
         startup=''
         if [ "$bin_dir" = "$HOME/.local/bin" ]; then
-            case "${SHELL:-/bin/zsh}" in
-                */zsh) startup="${ZDOTDIR:-$HOME}/.zshrc" ;;
-                */bash) startup="$HOME/.bash_profile" ;;
+            case "$platform:${SHELL:-}" in
+                Darwin:|*:*/zsh) startup="${ZDOTDIR:-$HOME}/.zshrc" ;;
+                Darwin:*/bash) startup="$HOME/.bash_profile" ;;
+                Linux:*/bash) startup="$HOME/.bashrc" ;;
             esac
         fi
         path_line='export PATH="$HOME/.local/bin:$PATH" # qec-graph installer'

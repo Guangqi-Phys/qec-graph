@@ -5,26 +5,28 @@ workspace. It archives the original sources and links statements, code records,
 experiments, and evidence to their source spans. Read the results in Obsidian or
 query a fixed workspace release over read-only MCP.
 
-## Install or update on macOS
+## Install or update on macOS and Linux
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Guangqi-Phys/qec-graph/main/install.sh | sh
 ```
 
 Run the same command again to update. The installer uses GitHub's Latest
-release. When there is no stable release, it uses the newest published
-prerelease from the release feed.
+release and picks the executable for your operating system and CPU. When
+there is no stable release, it uses the newest published prerelease.
 
-Release `v0.4.0rc1` includes an Apple Silicon (arm64) build. The installer
-checks the executable's SHA-256 before replacing `~/.local/bin/qec-graph`.
-The executable carries its own Python runtime. Open a new terminal if the
-installer adds the command to your PATH.
+[Release `v0.4.0rc1`](https://github.com/Guangqi-Phys/qec-graph/releases/tag/v0.4.0rc1)
+includes Apple Silicon (arm64) and Linux (x86_64 and arm64) builds. The Linux
+builds were tested on Ubuntu 22.04 (glibc 2.35). The installer checks the
+executable's SHA-256 before replacing `~/.local/bin/qec-graph`. The executable
+bundles Python. Open a new terminal if the installer adds the command to your
+PATH.
 
 ## Install from source
 
 The current version is **0.4.0rc1**. Use Python 3.11 or newer, a local POSIX
-filesystem, and SQLite with FTS5 enabled. The release candidate was tested on
-macOS arm64. Run these commands from a checkout of this repository.
+filesystem, and SQLite with FTS5 enabled. Run these commands from a checkout
+of this repository.
 
 ```sh
 python3 -m venv .venv
@@ -38,8 +40,9 @@ Local ingestion and queries run without an API key.
 
 ## Single-file executable
 
-Build on the target operating system and architecture. On Apple Silicon macOS,
-use Python 3.13 and PyInstaller to bundle the runtime and dependencies.
+Build on the target operating system and architecture with Python 3.13 and
+PyInstaller. On Linux, install `binutils` and build on the oldest glibc-based
+distribution you intend to support.
 
 ```sh
 python3.13 -m venv build/standalone-venv
