@@ -1,14 +1,18 @@
 """Immutable extraction snapshots with a rebuildable SQLite query projection."""
 from __future__ import annotations
 
+import errno
 import hashlib
 import json
+import os
 import shutil
 import sqlite3
+import stat
 import tempfile
 import time
 from collections import Counter
 from importlib.metadata import version
+from itertools import groupby
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -394,6 +398,52 @@ def source_span_index(graph):
     }
 
 
+def _hash_snapshot_output(root, relative, directory_fd):
+    name = relative.rpartition("/")[2]
+    flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+    try:
+        descriptor = os.open(name, flags, dir_fd=directory_fd)
+    except OSError as exc:
+        if exc.errno != errno.ELOOP:
+            raise
+        # Older standalone stores may use links that resolve inside the snapshot.
+        descriptor = os.open(_safe_relative_to_resolved(root, relative), flags)
+    with os.fdopen(descriptor, "rb") as output:
+        if not stat.S_ISREG(os.fstat(output.fileno()).st_mode):
+            raise ValueError(f"Expected a regular snapshot output: {relative}")
+        return hashlib.sha256(output.read()).hexdigest()
+
+
+def _validate_output_hashes(root, outputs, captured, resources):
+    seen = set()
+    for folder, group in groupby(outputs, key=lambda row: row["path"].rpartition("/")[0]):
+        directory_fd = None
+        try:
+            for output in group:
+                relative = output["path"]
+                if relative in seen:
+                    raise ValueError(f"Duplicate snapshot output: {relative}")
+                seen.add(relative)
+                digest = captured.get(relative)
+                if digest is None:
+                    if relative.startswith("/"):
+                        raise ValueError("Expected a relative archive path")
+                    if directory_fd is None:
+                        directory = _safe_relative_to_resolved(root, folder)
+                        directory_fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+                    digest = _hash_snapshot_output(root, relative, directory_fd)
+                if digest != output["sha256"]:
+                    raise ValueError(f"Snapshot file changed: {relative}")
+                if digest != resources.get(relative, digest):
+                    raise ValueError(f"Resource hash mismatch: {relative}")
+        finally:
+            if directory_fd is not None:
+                os.close(directory_fd)
+    missing = {"graph.sqlite", *captured, *resources} - seen
+    if missing:
+        raise ValueError(f"Required snapshot outputs missing: {', '.join(sorted(missing))}")
+
+
 def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_hashes=None):
     """Return the graph decoded from the bytes checked during validation."""
     from .validators import validate_graph_types
@@ -437,25 +487,7 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_has
         sources[path] = raw.decode("utf-8")
         captured["sources/" + path] = digest
     resources = {"assets/" + row["path"]: row["sha256"] for row in manifest["resources"]}
-    sqlite_relative = "graph.sqlite"
-    sqlite_path = _safe_relative_to_resolved(output_root, sqlite_relative)
-    seen_outputs = set()
-    for output in manifest["outputs"]:
-        relative = output["path"]
-        if relative in seen_outputs:
-            raise ValueError(f"Duplicate snapshot output: {relative}")
-        seen_outputs.add(relative)
-        digest = captured.get(relative)
-        if digest is None:
-            path = sqlite_path if relative == sqlite_relative else _safe_relative_to_resolved(output_root, relative)
-            digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        if digest != output["sha256"]:
-            raise ValueError(f"Snapshot file changed: {output['path']}")
-        if digest != resources.get(relative, digest):
-            raise ValueError(f"Resource hash mismatch: {relative}")
-    missing = {sqlite_relative, *captured, *resources} - seen_outputs
-    if missing:
-        raise ValueError(f"Required snapshot outputs missing: {', '.join(sorted(missing))}")
+    _validate_output_hashes(output_root, manifest["outputs"], captured, resources)
     source_lines = {}
     nodes = {n["id"]: n for n in graph["nodes"]}
     if len(nodes) != len(graph["nodes"]):
@@ -483,6 +515,7 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_has
     for label, ids in graph["labels"].items():
         if any(label not in nodes[i]["labels"] for i in ids):
             raise ValueError("Label ownership mismatch")
+    sqlite_path = _safe_relative_to_resolved(output_root, "graph.sqlite")
     con = sqlite3.connect(sqlite_path.as_uri() + "?mode=ro", uri=True)
     try:
         if con.execute("PRAGMA integrity_check").fetchone()[0] != "ok":

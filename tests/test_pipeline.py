@@ -125,6 +125,22 @@ class PipelineSemanticsTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "Required snapshot outputs missing"):
                     validate_snapshot(snapshot)
 
+    def test_snapshot_output_links_must_resolve_inside_the_snapshot(self):
+        _, graph, snapshot = self._write_project(r"\section{Example}Fixture.")
+        node = next(node for node in graph["nodes"] if node.get("fragment_path"))
+        fragment = snapshot / node["fragment_path"]
+        retained = snapshot / "retained.tex"
+        fragment.rename(retained)
+        fragment.symlink_to(retained)
+        self.assertTrue(validate_snapshot(snapshot)["passed"])
+
+        outside = self.work / "outside.tex"
+        outside.write_bytes(retained.read_bytes())
+        fragment.unlink()
+        fragment.symlink_to(outside)
+        with self.assertRaisesRegex(ValueError, "Path escapes root"):
+            validate_snapshot(snapshot)
+
     def test_demo_has_exact_real_labels_and_ignores_comment_and_verbatim_ghosts(self):
         _, graph, _ = self._demo()
         self.assertEqual(set(graph["labels"]), set(EXPECTED_LABEL_KINDS))
