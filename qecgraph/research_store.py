@@ -28,8 +28,9 @@ def load_records(registry, state):
 def validate_sources(registry, state, records, *, require_source=True, verified_spans=None):
     """Resolve verified locators through registered graph identity, never paths supplied by a record."""
     from .workspace import HEX
-    from .workspace_assets import asset_bytes, references
+    from .workspace_assets import references, verify_asset
     graphs = {}
+    verified_assets = set()
 
     def snapshot_spans(digest):
         if digest not in graphs:
@@ -52,7 +53,9 @@ def validate_sources(registry, state, records, *, require_source=True, verified_
                     or snapshot_spans(digest)[0] != version['project_id']):
                 raise ValueError('Paper version records must refer to a registered source projection')
         for uri in references(record):
-            asset_bytes(registry, uri)
+            if uri not in verified_assets:
+                verify_asset(registry, uri)
+                verified_assets.add(uri)
         for evidence in record['field_evidence'].values():
             locator = evidence.get('source_locator')
             if locator is None:

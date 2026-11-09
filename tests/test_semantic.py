@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from qecgraph import store
+from qecgraph import store, workspace_assets
 from qecgraph.graph import canonical, read_json
 from qecgraph.research import make_record
 from qecgraph.research_store import publish_records, validate_sources
@@ -15,6 +15,23 @@ from test_source_package import TEX, tar_bytes
 
 
 class SemanticTests(unittest.TestCase):
+    def test_repeated_asset_bindings_stream_one_verification_per_operation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            ws = Workspace(directory)
+            ws.init(no_ingest=True)
+            raw = b'fixture matrix bytes'
+            asset = ws.registry._put_asset(raw, 'application/octet-stream')
+            state, _ = ws.registry.read()
+            record = {'kind': 'circuit_protocol', 'data': {'circuit_asset_ref': asset['uri']},
+                      'is_synthetic': False, 'field_evidence': {}}
+            with patch.object(workspace_assets, '_hash_regular', wraps=workspace_assets._hash_regular) as verify:
+                validate_sources(ws.registry, state, [record, record])
+                verify.assert_called_once()
+            path = ws.registry.root / asset['path']
+            path.write_bytes(raw + b'changed')
+            with self.assertRaisesRegex(ValueError, 'Managed asset content changed'):
+                validate_sources(ws.registry, state, [record, record])
+
     def test_new_paper_record_cannot_claim_an_unregistered_snapshot(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

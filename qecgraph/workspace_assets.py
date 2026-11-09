@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 
 from .transactions import writer_lock
-from .workspace import Workspace, _managed, _read_regular
+from .workspace import Workspace, _hash_regular, _managed, _read_regular
 
 ASSET_URI = re.compile(r'qecasset:sha256:([0-9a-f]{64})')
 MAX_ASSET_BYTES = 16 << 20
@@ -47,12 +47,23 @@ def add_asset(workspace, source, *, media_type='application/octet-stream'):
         return ws.registry._put_asset(raw, media_type)
 
 
-def asset_bytes(registry, uri):
+def _asset_binding(registry, uri):
     match = ASSET_URI.fullmatch(uri)
     if not match:
         raise ValueError('Invalid managed asset ID')
     digest = match[1]
-    raw = _read_regular(_managed(registry.root, 'assets/' + digest), MAX_ASSET_BYTES)
+    return _managed(registry.root, 'assets/' + digest), digest
+
+
+def verify_asset(registry, uri):
+    path, digest = _asset_binding(registry, uri)
+    if _hash_regular(path, MAX_ASSET_BYTES) != digest:
+        raise ValueError('Managed asset content changed')
+
+
+def asset_bytes(registry, uri):
+    path, digest = _asset_binding(registry, uri)
+    raw = _read_regular(path, MAX_ASSET_BYTES)
     if sha256(raw).hexdigest() != digest:
         raise ValueError('Managed asset content changed')
     return raw
