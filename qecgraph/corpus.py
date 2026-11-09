@@ -17,6 +17,12 @@ def occurrence_id(version_id, node_id):
 def project(corpus, registry_revision=None, source_version_id=None, *, check_live_lean=True, verify_sources=False):
     registry = Registry(corpus)
     state, fixed = registry.read(registry_revision)
+    return _project_state(registry, state, fixed, source_version_id,
+                          check_live_lean=check_live_lean, verify_sources=verify_sources)
+
+
+def _project_state(registry, state, fixed, source_version_id=None, *,
+                   check_live_lean=True, verify_sources=False, records=None):
     if source_version_id and source_version_id not in state['versions']:
         raise ValueError(f'Unknown source version in scope: {source_version_id}')
     selected = [source_version_id] if source_version_id else sorted(state['versions'])
@@ -49,11 +55,13 @@ def project(corpus, registry_revision=None, source_version_id=None, *, check_liv
             edge['source'] = occurrence_prefix + edge['source']
             edge['target'] = occurrence_prefix + edge['target']
             edges.append(edge)
-    records = {identifier: registry.record_from_state(state, identifier) for identifier in sorted(state['records'])}
+    if records is None:
+        records = {identifier: registry.record_from_state(state, identifier) for identifier in sorted(state['records'])}
     reviews = review_states(registry, state, records)
     from .lean_integration import lean_record_states
     builds = lean_record_states(registry, state, records, reviews, check_live_inputs=check_live_lean)
-    for identifier, record in records.items():
+    for identifier in sorted(records):
+        record = records[identifier]
         node = {'id': identifier, 'kind': record['kind'], 'title': record['title'],
                       'labels': record['aliases'], 'latex': '', 'data': record['data'], 'record': record,
                       'review_status': reviews[identifier]['effective_status'], 'review_binding': reviews[identifier],

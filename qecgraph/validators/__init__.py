@@ -111,10 +111,8 @@ def validate_graph_types(graph):
         validate_endpoint(source_kind, target_kind, relation)
 
 
-def registry_issues(registry, state, records=None):
+def registry_issues(registry, records):
     issues = []
-    if records is None:
-        records = {identifier: registry.record_from_state(state, identifier) for identifier in state['records']}
     for identifier, record in records.items():
         if record['schema_version'] != 'qecgraph.record.v3':
             issues.append({'code': 'legacy_record_requires_migration', 'record_id': identifier})

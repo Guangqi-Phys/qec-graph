@@ -228,7 +228,7 @@ def apply(corpus, proposal_id, review_id):
         for record in records:
             registry._put_record(state, record)
         after_records = {identifier: registry.record_from_state(state, identifier) for identifier in state['records']}
-        errors = [issue for issue in registry_issues(registry, state, after_records)
+        errors = [issue for issue in registry_issues(registry, after_records)
                   if issue.get('severity', 'error') == 'error']
         if errors:
             raise ValueError('Apply cross-record validation failed: ' + canonical(errors))
