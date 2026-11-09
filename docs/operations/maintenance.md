@@ -1,6 +1,6 @@
 # 06｜日常运行、失效传播、迁移与恢复
 
-工作区日常运行 `init`、`sync`、`status` 和 `validate)，见[工作区说明](../rfc-002/WORKSPACE.md)。
+工作区日常运行 `init`、`sync`、`status` 和 `validate`，见[工作区说明](../rfc-002/WORKSPACE.md)。
 本文件保留单论文 store 与 legacy corpus 的维护流程。
 运行时先读本包 `AGENTS.md`、[架构](../design/architecture.md) 和 [数据契约](../design/data-formats.md)。
 以下命令以本包根目录为工作目录；各步骤成功后再执行下一步。

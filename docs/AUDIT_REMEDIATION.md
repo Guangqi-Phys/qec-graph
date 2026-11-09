@@ -42,6 +42,14 @@ included in source distributions. The changelog records command and output
 migrations. Command contracts and accessibility controls are tracked in
 items 12, 13, and 19.
 
+The latest hosted attempt ended before either runner started a step. Hosted
+CI and publication checks are deferred while the account is locked.
+[GitHub Actions run](https://github.com/Guangqi-Phys/qec-graph/actions/runs/42657448620)
+
+Follow-up CLI checks cover command spelling hints, configuration line and
+column numbers, and the scope of `review list`. An explicit actor identifies
+the legacy proposal form when its filename matches a read-only action.
+
 ## Decisions requiring a different treatment
 
 - Section 4.2 proposes deleting the ignored `qec_graph_codex_handoff/` tree.
@@ -71,6 +79,9 @@ items 12, 13, and 19.
   the persisted proposal produced from its example input.
 - Keep `knowledge_starter/` at its published path for existing reproducers
   and checksum-bound legacy evidence. The documentation marks it as legacy.
+- Use the dependency group in `pyproject.toml` for development. The older
+  requirements files preserve install entry points and recorded environments
+  used by historical validation reports.
 - The full Ruff style set currently reports 2,577 long lines and 56 import
   ordering issues. Keep the correctness rules gated and separate broad
   formatting changes from the behavioral audit fixes.

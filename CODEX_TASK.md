@@ -42,7 +42,7 @@ python -m unittest discover -s tests -v
 python tools/reproduce.py --out build/reproduce
 ```
 
-开发可选依赖见 `requirements-dev.txt`；没有可选 JSON Schema 库时，复现脚本必须明确记录跳过的 Schema 检查，不能说完整检查已通过。
+当前开发工具由 `pyproject.toml` 的 `dev` 组固定，安装命令见[贡献指南](CONTRIBUTING.md)。复现报告应明确记录实际运行的 Schema 检查及任何跳过项。
 
 ## C. 正确使用现有代码
 
