@@ -26,8 +26,8 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 15 | Doctor, version command, and snapshot listing | Complete. CLI tests cover version, healthy and corrupt CURRENT diagnosis, an unchanged pointer, and listing both immutable store snapshots and unpublished registry candidates. |
 | 16 | Package all current schemas and expand research contracts | Complete. Graph and annotation schemas have one packaged copy. Research schema covers supported kinds, required fields, revision references, evidence metadata, domain values, matrix recipes, and managed assets. Runtime checks exact numeric representation, cross-field consistency, and provenance. The synthetic and software fixtures and 87 records from a fixed real release passed. |
 | 17 | Single packaged software seed and explicit test fixtures | Complete. The deleted seed matched the packaged resource byte for byte. The synthetic fixture kept its historical SHA-256. Research and workspace query tests load the canonical inputs. |
-| 18 | Organize documentation by purpose | Complete. The index separates user, design, operations, and archive pages, with a language and status guide. Design, maintenance, and prototype pages moved with forwarding links. The user guides retain their URLs and the hash-bound RFC inputs keep their original bytes and paths. |
-| 19 | CLI, renderer, schema, and docs tests with coverage | Complete. The 219-test suite passed on macOS and Linux at 80.50% branch-aware coverage. Checks include both CLI streams, all registered command help paths, inline docs commands and links, archive rejection, all 26 research schema kinds, numeric evidence validation, and renderer migration and recovery. [Sixth batch evidence](../../validation/audit-0.4.0rc1/sixth-batch.json) |
+| 18 | Organize documentation by purpose | Complete. `docs/design/DESIGN.md` is the single authoritative design; user guides live under `docs/user/`, operations under `docs/operations/`, and historical material under `docs/archive/`. Three public user-guide paths keep one-line redirects; internal shims were removed. The RFC input moved to `docs/archive/rfc-002/` with its bytes unchanged. [Docs contract tests](../../tests/test_docs.py) enforce status markers, links, reachability and one current location per page. |
+| 19 | CLI, renderer, schema, and docs tests with coverage | Complete. The 219-test suite passed on macOS and Linux at 80.50% branch-aware coverage; the documentation contract tests were expanded afterwards, bringing the local suite to 223. Checks include both CLI streams, all registered command help paths, inline docs commands and links, archive rejection, all 26 research schema kinds, numeric evidence validation, and renderer migration and recovery. [Sixth batch evidence](../../validation/audit-0.4.0rc1/sixth-batch.json) |
 | 20 | Lint, type, coverage, and pre-commit configuration | Complete. Ruff, mypy, and pre-commit passed locally. Raised the coverage gate to 80% after testing it on both CI runtime versions. Enabling checks inside every unannotated function exposed 107 existing issues, so mypy remains gradual. |
 | 21 | Consolidate validation evidence and index current runs | Complete. The migration reduced the tracked evidence tree to 57 files at `3f4f13a`, including current runs, stage summaries, and fixtures with byte-bound tests. All 574 historical paths restored from the documented Git commit matched the SHA-256 inventory, including duplicates and empty logs. |
 | 22 | Share storage and publication primitives | Complete. Store, corpus, and workspace share the writer lock, pointer codec, and atomic replacement. Tests verify unchanged CURRENT after failed replacement in all three engines, lock contention between two ingest processes, and exact claim recovery after a real SIGKILL following publication. |
@@ -114,11 +114,11 @@ remain outside the acceptance gates.
 - Several example files are command inputs whose authoritative validation
   happens at runtime. Schema tests check the published schema examples and
   the persisted proposal produced from its example input.
-- Keep `legacy/knowledge_starter/` at its published path for existing reproducers
-  and checksum-bound legacy evidence. The documentation marks it as legacy.
-- Use the dependency group in `pyproject.toml` for development. The older
-  requirements files preserve install entry points and recorded environments
-  used by historical validation reports.
+- Keep `legacy/knowledge_starter/` as the explicit home of the historical schema
+  sample; reproducers, tests and the sdist use that path, and active docs mark it as legacy.
+- Use the dependency group in `pyproject.toml` for development. The obsolete
+  root requirements files were removed; the 0.3.0 lock is archived under
+  `docs/archive/releases/` for historical reproducibility.
 - The full Ruff style set currently reports 2,577 long lines and 56 import
   ordering issues. Keep the correctness rules gated and separate broad
   formatting changes from the behavioral audit fixes.
