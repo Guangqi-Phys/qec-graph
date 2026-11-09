@@ -2,9 +2,10 @@
 
 这里包含 LaTeX 切割工具、三视图图谱、版本注册、审核、增量更新、只读 MCP 和 Lean 构建适配器。原任务书和验收规范保留供后续维护。
 
-RFC-QEC-002 增量工作从[工作区说明](docs/rfc-002/WORKSPACE.md)开始；
-对照[实现审计](IMPLEMENTATION_AUDIT.md)和[验收](validation/rfc002/REPORT.md)核对真实能力。
-本页下方的 P0–P5 文档仍适用于原有三图、Lean 与旧 corpus。
+日常操作从 [README](README.md) 和[工作区说明](docs/rfc-002/WORKSPACE.md)开始。
+开发时用[审计台账](docs/AUDIT_REMEDIATION.md)和[验证索引](validation/README.md)
+核对当前能力和实测结果。[初始实施审计](IMPLEMENTATION_AUDIT.md)是 RFC 实施前的基线。
+本页下方的 P0–P5 文档说明原有三图、Lean 与旧 corpus。
 
 ## 先读哪几个文件
 
@@ -21,7 +22,8 @@ RFC-QEC-002 增量工作从[工作区说明](docs/rfc-002/WORKSPACE.md)开始；
 | 9 | `docs/07_CODEGRAPH_MAPPING.md` | 参考哪一个 CodeGraph、哪些设计可借鉴、如何落到本项目 |
 | 10 | `docs/08_ROADMAP_ACCEPTANCE.md` | 后续开发顺序、验收条件和失败案例 |
 
-`README.md` 是日常命令入口。[实施记录](docs/IMPLEMENTATION_LOG.md) 与 [验证报告](validation/REPORT.md) 说明已交付范围和实际检查。
+[历史实施记录](docs/IMPLEMENTATION_LOG.md)与[P0–P5 验证报告](validation/REPORT.md)
+说明旧阶段的交付范围和当时实际执行的检查。
 
 ## 现在就能运行
 

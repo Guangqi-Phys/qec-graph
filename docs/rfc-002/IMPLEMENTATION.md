@@ -1,5 +1,8 @@
 # RFC-QEC-002 实施进度
 
+本页记录 RFC-QEC-002 的阶段成果。当前命令见[工作区说明](WORKSPACE.md)，
+后续修复和跨平台验证见[审计台账](../AUDIT_REMEDIATION.md)与[验证索引](../../validation/README.md)。
+
 [现有实现审计](../../IMPLEMENTATION_AUDIT.md)固定 0.3.0 基线；
 [设计](QEC_GRAPH_DESIGN_UPDATE.md)定义目标，[任务说明](CODEX_UPDATE_TASK.md)列出验收。
 设计目录中的合成样例和目录核查记录不代表论文数据或本地实验。
@@ -22,7 +25,7 @@ U1 数据契约：`qecgraph.research.v1` 与历史 v3 并存；`research.validat
 U2 解包：按内容识别 TeX、gzip、tar 和 ZIP；限制原包与展开资源，
 拒绝链接、特殊成员和会覆盖的路径；来源树哈希包含每个文件的原始字节。
 只有唯一有 `documentclass` 和 `begin{document}` 的 UTF-8 文件才自动选作入口，
-多个候选留待配置。解包测试通过；工作区提交与回收由下一步接入。
+多个候选留待配置。工作区提交与回收通过下方的归档和认领流程接入。
 
 U2 工作区：`qec-graph init/sync/rebuild/status/validate --workspace PATH`。
 机器发布复用 Registry 的不可变状态与单写锁；原包以 SHA-256 归档，
@@ -82,8 +85,9 @@ U6 迁移：`qec-graph workspace-migrate --corpus OLD --workspace NEW` 验证旧
 
 macOS 严格运行配置：`tools/mcp_isolated_macos.py --python VENV/bin/python --machine WORKSPACE/machine`
 用 deny-by-default profile 启动 wheel 中的 MCP。实际进程验证可读机器库，无法读取或列出
-测试 notes、列出 inputs、写机器库或绑定网络端口。Docker Compose profile 已解析，
-本机 Docker daemon 不可用，未执行 Docker/Linux 容器验收。
+测试 notes、列出 inputs、写机器库或绑定网络端口。RFC 初次验收时只解析了
+Docker Compose profile；后续在本地 Linux arm64 容器执行了
+[隔离验收](../../validation/audit-0.4.0rc1/linux-isolation.json)。
 
 工作区写入先保存候选机器状态，再按固定候选修订验证来源、图、引用与审核状态，
 通过后才切换 CURRENT。已通过验证拒绝后的恢复测试：旧发布不动，原包与认领保留，
