@@ -21,6 +21,8 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
     env = dict(os.environ)
     env.pop('PYTHONPATH', None)
     env.pop('PYTHONHOME', None)
+    env.pop('QECGRAPH_WORKSPACE', None)
+    env['NO_COLOR'] = '1'
     checks = []
 
     def run(label, args, expected=0, stdin=None, json_output=True, executable=None):
@@ -55,7 +57,7 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
     note = workspace / 'human/notes/private-validation-note.md'
     note.write_text('RFC002-PERSONAL-CANARY-9212', encoding='utf-8')
     (inbox / 'same-tree-new-compression').write_bytes(gzip.compress(TEX, mtime=2))
-    second = run('sync', ['sync', '--workspace', '.', '--json'])
+    second = run('sync', ['sync', '--json'])
     assert second['inputs'][0]['input_consumed']
     assert second['inputs'][0]['source_tree_hash'] == next(
         x['source_tree_hash'] for x in first['inputs'] if x['input'].startswith('format-'))
@@ -67,7 +69,14 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
     rebuild = run('rebuild_from_archive', ['rebuild', '--json'])
     assert rebuild['release_id'] == expected_release and rebuild['status'] == 'unchanged'
     assert all(p.name.startswith('.') for p in inbox.iterdir())
-    assert run('validate', ['validate', '--workspace', '.', '--json'])['valid']
+    for action in ('sync', 'status', 'validate'):
+        outcome = run(f'{action}_without_options', [action], json_output=False)
+        assert len(outcome.splitlines()) == 1 and f'{action}: OK' in outcome
+    status = run('status_json', ['status', '--json'])
+    assert status['release_id'] == expected_release and status['status'] == 'ok'
+    assert status['counts']['registered'] == status['counts']['processed'] == (3 if real_source else 2)
+    assert status['human']['rendered_release_id'] == expected_release and status['human']['status'] == 'current'
+    assert run('validate', ['validate', '--json'])['valid']
     review = run('review_list', ['review', 'list'])
     assert len(review['proposals']) >= (3 if real_source else 1)
     if real_source:
@@ -79,10 +88,13 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
                        and tuple(row['data'].get(field) for field in ('coding_domain', 'parameter_semantics', 'n_data',
                                                                      'k_logical', 'r_gauge', 'k_classical')) == expected
                        and row['data']['distance_interpretation'] is None for row in review['proposals']), notation
-    (workspace / 'args.json').write_text(json.dumps({'query': 'CSS code'}), encoding='utf-8')
+    search_args = {'query': 'CSS code', 'limit': 10}
+    (workspace / 'args.json').write_text(json.dumps(search_args), encoding='utf-8')
     args = ['qecgraph_search', '--workspace', '.', '--arguments', 'args.json']
-    cli = run('search', ['query-tool', *args])
+    cli = run('query_tool_search', ['query-tool', *args])
     assert cli['ok'] and cli['data']['results']
+    direct = run('search', ['search', 'CSS code', '--workspace', '.', '--limit', '10'])
+    assert direct == cli
     occurrence = next(r['id'] for r in cli['data']['results'] if r.get('source'))
     (workspace / 'source-args.json').write_text(json.dumps({'identifier': occurrence}), encoding='utf-8')
     span = run('get_exact_source', ['query-tool', 'qec_get_source', '--workspace', '.', '--arguments', 'source-args.json'])['data']
@@ -92,7 +104,7 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
                                                     'clientInfo': {'name': 'qecgraph-release-client', 'version': '1'}}},
         {'method': 'notifications/initialized'},
         {'id': 2, 'method': 'tools/list'},
-        {'id': 3, 'method': 'tools/call', 'params': {'name': 'qecgraph_search', 'arguments': {'query': 'CSS code'}}},
+        {'id': 3, 'method': 'tools/call', 'params': {'name': 'qecgraph_search', 'arguments': search_args}},
         {'id': 4, 'method': 'tools/call', 'params': {'name': 'qecgraph_search',
                                                    'arguments': {'query': 'RFC002-PERSONAL-CANARY-9212'}}},
         {'id': 5, 'method': 'tools/call', 'params': {'name': 'qec_find_software', 'arguments': {'query': 'Stim'}}},
