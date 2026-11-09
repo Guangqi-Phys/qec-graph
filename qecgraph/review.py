@@ -15,7 +15,6 @@ from jsonschema import Draft202012Validator
 from .graph import canonical, hash_text, read_json
 from .records import prepare_record
 from .registry import Registry
-from .store import validate_snapshot
 from .transactions import immutable_json, writer_lock
 
 SCOPES = {'statement', 'hypotheses', 'dependencies'}
@@ -57,7 +56,7 @@ def _validate(value, schema_name):
         raise ValueError('Review/proposal schema: ' + errors[0].message)
 
 
-def input_bindings(registry, state, fixed, after_records=()):
+def input_bindings(registry, state, after_records=()):
     records = [registry.record_from_state(state, identifier) for identifier in sorted(state['records'])]
     assets = {}
     for record in records + list(after_records):
@@ -66,9 +65,8 @@ def input_bindings(registry, state, fixed, after_records=()):
             if len(raw) != asset['size_bytes']:
                 raise ValueError('Review asset size mismatch')
             assets[asset['uri']] = {'uri': asset['uri'], 'sha256': asset['sha256'], 'size_bytes': len(raw)}
-    for version_id in state['versions']:
-        _, snapshot, _ = registry.source_graph(version_id, fixed)
-        validate_snapshot(snapshot)
+    for version in state['versions'].values():
+        registry.validate_source_snapshot(version)
     return {'records': [{key: record[key] for key in ('id', 'revision', 'content_sha256')} for record in records],
             'source_versions': copy.deepcopy(state['versions']), 'assets': [assets[key] for key in sorted(assets)]}
 
@@ -107,7 +105,7 @@ def create_proposal(corpus, changes, *, actor, rationale, expected_registry_revi
         payload = {'schema_version': 'qecgraph.proposal.v1', 'corpus_id': state['corpus_id'],
                    'base_registry_revision': fixed, 'actor': actor, 'rationale': rationale,
                    'created_at': datetime.now(timezone.utc).isoformat(), 'status': 'proposed',
-                   'changes': prepared, 'input_bindings': input_bindings(registry, state, fixed, [x['after'] for x in prepared])}
+                   'changes': prepared, 'input_bindings': input_bindings(registry, state, [x['after'] for x in prepared])}
         proposal_id = 'proposal:' + hash_text(canonical(payload))
         proposal = {'id': proposal_id, **payload}
         _validate(proposal, 'proposal.v1')
@@ -139,7 +137,7 @@ def decide(corpus, proposal_id, *, actor, decision, rationale, checked_scopes=()
         proposal = read_proposal(registry, proposal_id)
         if state.get('corpus_id') != proposal['corpus_id'] or fixed != proposal['base_registry_revision']:
             raise ValueError('Proposal belongs to another corpus or stale registry revision')
-        if input_bindings(registry, state, fixed, [x['after'] for x in proposal['changes']]) != proposal['input_bindings']:
+        if input_bindings(registry, state, [x['after'] for x in proposal['changes']]) != proposal['input_bindings']:
             raise ValueError('Proposal input/asset bindings changed; create and inspect a new proposal')
         review_id = 'review:' + str(uuid.uuid4())
         status = 'rejected' if decision == 'reject' else 'human_approved' if actor['kind'] == 'human' else 'machine_accepted'
@@ -220,7 +218,7 @@ def apply(corpus, proposal_id, review_id):
         if fixed != proposal['base_registry_revision']:
             raise ValueError('Stale proposal: registry changed; inspect and propose a new revision')
         records = final_records(proposal, review)
-        if input_bindings(registry, state, fixed, records) != proposal['input_bindings']:
+        if input_bindings(registry, state, records) != proposal['input_bindings']:
             raise ValueError('Proposal input/asset bindings changed')
         for change in proposal['changes']:
             identifier = change['after']['id']

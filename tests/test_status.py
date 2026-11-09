@@ -8,7 +8,7 @@ from qecgraph.query import context, dependencies
 from qecgraph.registry import Registry
 from qecgraph.review import apply, create_proposal, decide
 from qecgraph.status import reviewed_cycles
-from qecgraph.store import GraphInput
+from qecgraph.store import GraphInput, ingest
 
 
 def claim(identifier, revision='1'):
@@ -50,8 +50,10 @@ class StatusTests(unittest.TestCase):
         graph['edges'][0]['status'] = 'unbound_review'
         self.assertEqual(reviewed_cycles(graph), [])
 
-    def reviewed_fixture(self, root, with_asset=False):
+    def reviewed_fixture(self, root, with_asset=False, source_store=None):
         registry = Registry(root / 'corpus')
+        if source_store is not None:
+            registry.register_source('work:review-fixture', 'source:review-fixture', source_store)
         target = claim('claim:target')
         asset_path = None
         if with_asset:
@@ -97,6 +99,23 @@ class StatusTests(unittest.TestCase):
             shown = execute(registry.root, 'show', 'claim:source')
             self.assertEqual(shown['node']['review_status'], 'stale')
             self.assertIn('review_asset_unavailable', {reason['code'] for reason in shown['node']['review_binding']['reasons']})
+            self.assertFalse(execute(registry.root, 'deps', 'claim:source', include_candidates=True)['edges'])
+
+    def test_tampered_archived_source_invalidates_bound_review(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            paper = root / 'main.tex'
+            paper.write_text(r'\documentclass{article}\begin{document}A statement.\end{document}')
+            store = root / 'store'
+            ingest(paper, 'review-fixture', store)
+            registry, _ = self.reviewed_fixture(root, source_store=store)
+            self.assertTrue(execute(registry.root, 'deps', 'claim:source')['edges'])
+            _, snapshot, _ = registry.source_graph('source:review-fixture')
+            (snapshot / 'sources' / 'main.tex').write_text('Changed archived source')
+            shown = execute(registry.root, 'show', 'claim:source')
+            self.assertEqual(shown['node']['review_status'], 'stale')
+            reasons = shown['node']['review_binding']['reasons']
+            self.assertIn('review_source_unavailable', {reason['code'] for reason in reasons})
             self.assertFalse(execute(registry.root, 'deps', 'claim:source', include_candidates=True)['edges'])
 
 

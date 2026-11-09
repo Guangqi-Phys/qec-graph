@@ -48,7 +48,7 @@ def project(corpus, registry_revision=None, source_version_id=None, *, check_liv
             edge['target'] = occurrence_id(version_id, edge['target'])
             edges.append(edge)
     records = {identifier: registry.record_from_state(state, identifier) for identifier in sorted(state['records'])}
-    reviews = review_states(registry, state, records, fixed)
+    reviews = review_states(registry, state, records)
     from .lean_integration import lean_record_states
     builds = lean_record_states(registry, state, records, reviews, check_live_inputs=check_live_lean)
     for identifier, record in records.items():

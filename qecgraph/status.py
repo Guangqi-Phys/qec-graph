@@ -16,9 +16,8 @@ def annotation_eligible(annotation, include_candidates=False):
     return status not in INACTIVE and (include_candidates or status not in {'candidate', 'proposed'})
 
 
-def review_states(registry, state, records, fixed):
+def review_states(registry, state, records):
     from .review import final_records, read_proposal, read_review
-    from .store import validate_snapshot
     result, assets, sources = {}, {}, {}
     for identifier, record in records.items():
         status = record['review']['status']
@@ -50,8 +49,7 @@ def review_states(registry, state, records, fixed):
                         continue
                     if version_id not in sources:
                         try:
-                            _, snapshot, _ = registry.source_graph(version_id, fixed)
-                            validate_snapshot(snapshot)
+                            registry.validate_source_snapshot(expected_source)
                             sources[version_id] = None
                         except (OSError, ValueError) as exc:
                             sources[version_id] = str(exc)
