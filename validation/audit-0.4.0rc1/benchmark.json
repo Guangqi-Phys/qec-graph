@@ -1,0 +1,181 @@
+{
+  "format": "qecgraph.benchmark.v1",
+  "runtime": {
+    "qecgraph": "0.4.0rc1",
+    "python": "3.13.18",
+    "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "sqlite": "3.54.1",
+    "pylatexenc": "2.10",
+    "jsonschema": "4.26.0"
+  },
+  "runs": 3,
+  "scope": "Local elapsed times with fresh application state and ordinary OS caches.",
+  "synthetic_incremental": {
+    "workload": {
+      "generated_source_files": 13,
+      "lemmas_per_file": 8,
+      "lemma_count": 96,
+      "runs_per_scenario": 3,
+      "scope": "generated fixtures, not user papers or mathematical validation"
+    },
+    "paired_projection_equality": true,
+    "timings": {
+      "cold_full": {
+        "seconds": [
+          0.1001693750731647
+        ],
+        "median_seconds": 0.1001693750731647,
+        "min_seconds": 0.1001693750731647,
+        "max_seconds": 0.1001693750731647
+      },
+      "cold_incremental": {
+        "seconds": [
+          0.07951466599479318
+        ],
+        "median_seconds": 0.07951466599479318,
+        "min_seconds": 0.07951466599479318,
+        "max_seconds": 0.07951466599479318
+      },
+      "unchanged_full": {
+        "seconds": [
+          0.045543457847088575,
+          0.0415757498703897,
+          0.0410987907089293
+        ],
+        "median_seconds": 0.0415757498703897,
+        "min_seconds": 0.0410987907089293,
+        "max_seconds": 0.045543457847088575
+      },
+      "unchanged_incremental": {
+        "seconds": [
+          0.03509458294138312,
+          0.02946775034070015,
+          0.030802250374108553
+        ],
+        "median_seconds": 0.030802250374108553,
+        "min_seconds": 0.02946775034070015,
+        "max_seconds": 0.03509458294138312
+      },
+      "leaf_edit_full": {
+        "seconds": [
+          0.07264150027185678,
+          0.07272154232487082,
+          0.07445424981415272
+        ],
+        "median_seconds": 0.07272154232487082,
+        "min_seconds": 0.07264150027185678,
+        "max_seconds": 0.07445424981415272
+      },
+      "leaf_edit_incremental": {
+        "seconds": [
+          0.06328758271411061,
+          0.06319270795211196,
+          0.0649751671589911
+        ],
+        "median_seconds": 0.06328758271411061,
+        "min_seconds": 0.06319270795211196,
+        "max_seconds": 0.0649751671589911
+      },
+      "asset_edit_full": {
+        "seconds": [
+          0.08137675002217293,
+          0.09006812516599894,
+          0.07420604210346937
+        ],
+        "median_seconds": 0.08137675002217293,
+        "min_seconds": 0.07420604210346937,
+        "max_seconds": 0.09006812516599894
+      },
+      "asset_edit_incremental": {
+        "seconds": [
+          0.06261508399620652,
+          0.06452370807528496,
+          0.06222320906817913
+        ],
+        "median_seconds": 0.06261508399620652,
+        "min_seconds": 0.06222320906817913,
+        "max_seconds": 0.06452370807528496
+      }
+    }
+  },
+  "arxiv_workspace": {
+    "arxiv_versions": [
+      "1001.0344v1",
+      "1311.0885v1",
+      "2009.03921v2",
+      "2102.10030v3",
+      "2308.07915v2",
+      "2407.20526v1"
+    ],
+    "manifest_sha256": "cd0d6878c5c30c6d7ac415e61f6eddd60849156665069ce53c07a4e5f9f058dc",
+    "query_result_counts": {
+      "search_results": 2,
+      "context_nodes": 8
+    },
+    "query_arguments": {
+      "search": {
+        "query": "thm:main",
+        "kind": "theorem",
+        "limit": 10
+      },
+      "context": {
+        "depth": 1,
+        "max_nodes": 8,
+        "label": "1311.0885v1::thm:main"
+      }
+    },
+    "timings": {
+      "fresh_workspace_sync": {
+        "seconds": [
+          3.8758098748512566,
+          3.8751995833590627,
+          3.817681874614209
+        ],
+        "median_seconds": 3.8751995833590627,
+        "min_seconds": 3.817681874614209,
+        "max_seconds": 3.8758098748512566
+      },
+      "validate_release": {
+        "seconds": [
+          0.24749954184517264,
+          0.2416223748587072,
+          0.24339658301323652
+        ],
+        "median_seconds": 0.24339658301323652,
+        "min_seconds": 0.2416223748587072,
+        "max_seconds": 0.24749954184517264
+      },
+      "open_fixed_session": {
+        "seconds": [
+          0.24007141729816794,
+          0.23646829184144735,
+          0.24144070921465755
+        ],
+        "median_seconds": 0.24007141729816794,
+        "min_seconds": 0.23646829184144735,
+        "max_seconds": 0.24144070921465755
+      },
+      "fixed_search": {
+        "seconds": [
+          0.02885141596198082,
+          0.02858933387324214,
+          0.02851995825767517
+        ],
+        "median_seconds": 0.02858933387324214,
+        "min_seconds": 0.02851995825767517,
+        "max_seconds": 0.02885141596198082
+      },
+      "fixed_context": {
+        "seconds": [
+          0.17903587454929948,
+          0.17591541726142168,
+          0.17711862502619624
+        ],
+        "median_seconds": 0.17711862502619624,
+        "min_seconds": 0.17591541726142168,
+        "max_seconds": 0.17903587454929948
+      }
+    }
+  },
+  "package_source_revision": "ad789c05159010ce9d6e3e3e301ad954d97ccc01"
+}
