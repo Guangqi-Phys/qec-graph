@@ -63,3 +63,8 @@ U6 迁移：`qec-graph workspace-migrate --corpus OLD --workspace NEW` 验证旧
 以及标注为 parent BCH 的经典种子列。数值或符号记法都绑定原文；
 不按括号猜类别、混用 K/k，或把表格距离当成经过验证的数值。
 真实 *Subsystem Codes* v1 回放校对了表中量子码、经典 parent 与正文 K/R 记法。
+
+工作区 MCP 另支持固定发布的 `resources/list` 和 `resources/read`。
+只接受本会话登记的 `qec://source/...` 标识，带代码点坐标、内容哈希和 release；
+不解析 file URI 或任意编码路径。协议固定为
+[MCP 2025-06-18 resources](https://modelcontextprotocol.io/specification/2025-06-18/server/resources)。

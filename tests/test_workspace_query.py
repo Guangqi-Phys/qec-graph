@@ -142,3 +142,25 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.assertEqual(found['selection']['requested'], 0.011)
         self.assertFalse(found['selection']['is_interpolated'])
         self.assertIn('resolved_channel_parameters', found['unresolved'])
+
+    def test_resources_are_fixed_uri_bindings_not_file_names(self):
+        from qecgraph.mcp_server import MCPServer
+        (self.root / 'inputs/second').write_bytes(TEX.replace(b'Hello', b'Second source'))
+        release = self.ws.sync()['release_id']
+        server = MCPServer(WorkspaceSession(self.ws.registry.root, max_results=1))
+        offer = server.handle(initialization())['result']
+        self.assertIn('resources', offer['capabilities'])
+        server.handle({'jsonrpc': '2.0', 'method': 'notifications/initialized'})
+        listing = server.handle(request(2, 'resources/list'))['result']
+        self.assertEqual(len(listing['resources']), 1)
+        self.assertIn('nextCursor', listing)
+        resource = listing['resources'][0]
+        second = server.handle(request(5, 'resources/list', {'cursor': listing['nextCursor']}))['result']
+        self.assertNotEqual(second['resources'][0]['uri'], resource['uri'])
+        content, = server.handle(request(3, 'resources/read', {'uri': resource['uri']}))['result']['contents']
+        self.assertEqual(content['_meta']['release_id'], release)
+        self.assertTrue(content['text'])
+        for uri in ('file:///human/notes/private-only-name.md', 'qec://source/%2e%2e/human/notes'):
+            failure = server.handle(request(4, 'resources/read', {'uri': uri}))
+            self.assertEqual(failure['error']['code'], -32002)
+            self.assertNotIn(uri, str(failure))

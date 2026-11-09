@@ -64,6 +64,47 @@ class WorkspaceSession:
                         if not r['is_synthetic'] and (r['id'] not in generated or generated[r['id']] == r['revision'])}
         self.scope = {'kind': 'workspace', 'workspace_id': self.state['workspace_id'], 'release_id': self.release}
         self.scope['registry_revision'] = self.release
+        self.resources = {self._resource_uri(n['id']): n['id'] for n in self.graph.source.graph['nodes']
+                          if n['origin'] == 'parser' and n.get('source')}
+
+    def _resource_uri(self, occurrence):
+        return f'qec://source/{self.release}/{hash_text(occurrence)}'
+
+    def list_resources(self, cursor=None):
+        check_machine_tree(self.machine)
+        if cursor is None:
+            offset = 0
+        elif isinstance(cursor, str) and len(cursor) <= 10 and cursor.isascii() and cursor.isdecimal():
+            offset = int(cursor)
+        else:
+            raise ToolError('INVALID_ARGUMENT', 'Invalid source cursor')
+        bindings = sorted(self.resources.items())
+        rows = []
+        for uri, identifier in bindings[offset:offset + self.graph.max_results]:
+            rows.append({'uri': uri, 'name': identifier, 'mimeType': 'text/plain'})
+            if len(canonical({'resources': rows, 'nextCursor': str(offset+len(rows))})) > self.graph.max_chars:
+                rows.pop()
+                break
+        if not rows and offset < len(bindings):
+            raise ToolError('BUDGET_TOO_SMALL', 'Resource descriptor exceeds the response budget')
+        result = {'resources': rows}
+        if offset + len(rows) < len(bindings):
+            result['nextCursor'] = str(offset + len(rows))
+        return result
+
+    def read_resource(self, uri):
+        check_machine_tree(self.machine)
+        identifier = self.resources.get(uri)
+        if identifier is None:
+            raise ToolError('NOT_FOUND', 'Resource is not registered in this release')
+        source = self._source(identifier)
+        resource = {'uri': uri, 'mimeType': 'text/plain', 'text': source['latex'],
+                    '_meta': {'release_id': self.release, 'occurrence_id': identifier,
+                              'content_sha256': source['content_sha256'], 'source': source['source']}}
+        result = {'contents': [resource]}
+        if len(canonical(result)) > self.graph.max_chars:
+            raise ToolError('BUDGET_TOO_SMALL', 'Use qec_get_source with an exact source codepoint range')
+        return result
 
     def tools(self):
         descriptors = copy.deepcopy(self.graph.tools())
@@ -153,7 +194,8 @@ class WorkspaceSession:
         span.update(char_start=start, char_end=end,
                     line_start=span['line_start'] + node['latex'].count('\n', 0, start-original_start),
                     line_end=span['line_start'] + node['latex'].count('\n', 0, max(start-original_start, end-original_start-1)))
-        return {'id': identifier, 'source': span, 'content_sha256': hash_text(latex), 'latex': latex}
+        return {'id': identifier, 'resource_uri': self._resource_uri(identifier), 'source': span,
+                'content_sha256': hash_text(latex), 'latex': latex}
 
     @staticmethod
     def _paginate(rows, args, default_limit):
