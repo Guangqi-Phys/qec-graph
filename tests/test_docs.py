@@ -10,14 +10,16 @@ from qecgraph.cli.parser import _build_parser, parse_command
 
 
 ROOT = Path(__file__).resolve().parents[1]
-USER_DOCS = ('README.md', 'docs/README.md', 'docs/user/advanced-usage.md',
-             'docs/user/data-and-search.md', 'docs/user/workspace.md', 'docs/user/splitter.md',
-             'docs/user/README.md', 'docs/user/quickstart.zh-CN.md',
-             'docs/design/DESIGN.md', 'docs/operations/README.md', 'docs/operations/maintenance.md',
-             'docs/operations/corpus.md', 'docs/operations/review.md', 'docs/operations/audit-remediation.md',
-             'docs/archive/README.md', 'CONTRIBUTING.md', 'SECURITY.md')
+CURRENT_DOCS = ('docs/README.md', 'docs/user/README.md', 'docs/user/quickstart.zh-CN.md',
+                'docs/user/advanced-usage.md', 'docs/user/data-and-search.md',
+                'docs/user/workspace.md', 'docs/user/splitter.md', 'docs/design/DESIGN.md',
+                'docs/operations/README.md', 'docs/operations/maintenance.md',
+                'docs/operations/corpus.md', 'docs/operations/review.md',
+                'docs/operations/audit-remediation.md')
+USER_DOCS = ('README.md', *CURRENT_DOCS, 'docs/archive/README.md', 'CONTRIBUTING.md', 'SECURITY.md')
 LINK = re.compile(r'\[[^\]\n]+\]\(([^\s)]+)\)')
 INLINE_COMMAND = re.compile(r'`qec-graph ([^`\n]+)`')
+PUBLIC_REDIRECTS = {'docs/03_SPLITTER.md', 'docs/ADVANCED_USAGE.md', 'docs/DATA_AND_SEARCH.md'}
 
 
 class DocumentationTests(unittest.TestCase):
@@ -83,3 +85,61 @@ class DocumentationTests(unittest.TestCase):
                         self.assertEqual(help_requested.exception.code, 0)
                     checked += 1
         self.assertGreater(checked, 20)
+
+    def test_current_docs_have_a_status_marker(self):
+        for name in CURRENT_DOCS:
+            text = (ROOT / name).read_text(encoding='utf-8')
+            head = '\n'.join(text.splitlines()[:20])
+            with self.subTest(page=name):
+                self.assertTrue('Status:' in head or '状态：' in head,
+                                f'{name} has no Current/Historical status marker')
+
+    def test_current_docs_are_reachable_from_the_index(self):
+        graph = {}
+        for name in CURRENT_DOCS:
+            page = ROOT / name
+            targets = set()
+            for link in LINK.findall(page.read_text(encoding='utf-8')):
+                url = urlsplit(link)
+                if url.scheme or url.netloc or not url.path:
+                    continue
+                target = (page.parent / unquote(url.path)).resolve()
+                if target.exists() and target.suffix == '.md':
+                    try:
+                        targets.add(str(target.relative_to(ROOT)))
+                    except ValueError:
+                        pass
+            graph[name] = targets
+        seen = {'docs/README.md'}
+        pending = ['docs/README.md']
+        while pending:
+            current = pending.pop()
+            for target in graph.get(current, ()):
+                if target in graph and target not in seen:
+                    seen.add(target)
+                    pending.append(target)
+        self.assertEqual(set(CURRENT_DOCS) - seen, set(),
+                         'current docs are not reachable from docs/README.md')
+
+    def test_indexes_never_link_to_public_redirects(self):
+        for name in ('docs/README.md', 'docs/user/README.md', 'docs/operations/README.md',
+                     'docs/archive/README.md'):
+            page = ROOT / name
+            for link in LINK.findall(page.read_text(encoding='utf-8')):
+                url = urlsplit(link)
+                if url.scheme or url.netloc or not url.path:
+                    continue
+                target = (page.parent / unquote(url.path)).resolve()
+                try:
+                    relative = str(target.relative_to(ROOT))
+                except ValueError:
+                    continue
+                with self.subTest(page=name, target=relative):
+                    self.assertNotIn(relative, PUBLIC_REDIRECTS)
+
+    def test_docs_tree_has_one_current_location_per_page(self):
+        root_docs = {p.name for p in (ROOT / 'docs').iterdir() if p.is_file() and p.suffix == '.md'}
+        self.assertEqual(root_docs, {'README.md', *{Path(name).name for name in PUBLIC_REDIRECTS}})
+        design = {p.name for p in (ROOT / 'docs/design').iterdir() if p.is_file() and p.suffix == '.md'}
+        self.assertEqual(design, {'DESIGN.md'})
+        self.assertFalse((ROOT / 'docs/rfc-002').exists())

@@ -1,5 +1,7 @@
 # QEC Graph documentation
 
+> **Status: Current.** This is the documentation entry point for the 0.4.x release.
+
 Start with the [project README](../README.md) or the [中文快速开始](user/quickstart.zh-CN.md).
 
 | Section | Status | Purpose |
@@ -36,6 +38,6 @@ operations and historical pages retain Chinese text; every current/historical
 page states its status at the top. Only **Current** pages describe the 0.4.x
 release.
 
-The files `ADVANCED_USAGE.md`, `DATA_AND_SEARCH.md`, `03_SPLITTER.md` and
-`rfc-002/WORKSPACE.md` are one-line redirects kept for saved external links.
+The files `ADVANCED_USAGE.md`, `DATA_AND_SEARCH.md` and `03_SPLITTER.md` are
+one-line redirects kept for saved external links.
 Do not add them to navigation and do not edit them as content.

@@ -1,5 +1,8 @@
 # QEC Graph — System Design
 
+> **Status: Current authoritative design (0.4.x).** This is the only active design document.
+
+
 | | |
 |---|---|
 | **Status** | Current authoritative design (0.4.x) |
@@ -382,7 +385,7 @@ The typed JSON envelope (`ok/data` or `error/code/message/details/scope`) is sha
 
 ## 11. CodeGraph reference and third-party attribution
 
-This project independently implements its Python architecture. It references [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) at commit `f72c9d2efb14454ff4f9fd7b8460abd82f19a287` (MIT, Copyright (c) 2026 Colby Mchenry) for extraction/storage/resolution/query/watch boundaries. No upstream code is copied and no upstream performance number applies. The full record, including the later progress-renderer check at `6560052a6f856855d3f71eee838fd66ccfa4285d`, is in `docs/archive/adr/` once the architecture ADR is archived.
+This project independently implements its Python architecture. It references [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) at commit `f72c9d2efb14454ff4f9fd7b8460abd82f19a287` (MIT, Copyright (c) 2026 Colby Mchenry) for extraction/storage/resolution/query/watch boundaries. No upstream code is copied and no upstream performance number applies. The full record, including the later progress-renderer check at `6560052a6f856855d3f71eee838fd66ccfa4285d`, is in `docs/archive/adr/`.
 
 Mapping summary:
 
