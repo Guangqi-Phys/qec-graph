@@ -101,24 +101,31 @@ def build_sqlite(path, graph):
             CREATE TABLE edges(id TEXT PRIMARY KEY, source TEXT NOT NULL REFERENCES nodes(id),
                 target TEXT NOT NULL REFERENCES nodes(id), relation TEXT NOT NULL,
                 status TEXT NOT NULL, payload TEXT NOT NULL);
-            CREATE INDEX outgoing_edges ON edges(source, relation);
-            CREATE INDEX incoming_edges ON edges(target, relation);
             CREATE TABLE labels(label TEXT NOT NULL, node_id TEXT NOT NULL REFERENCES nodes(id));
-            CREATE INDEX label_lookup ON labels(label);
             CREATE VIRTUAL TABLE node_fts USING fts5(id UNINDEXED, title, text);
         """)
-        for node in graph["nodes"]:
-            source = node.get("source") or {}
-            con.execute("INSERT INTO nodes VALUES (?, ?, ?, ?, ?, ?, ?)",
-                        (node["id"], node["kind"], node["title"], node["review_status"], source.get("path"),
-                         source.get("line_start"), canonical(node)))
-            text = " ".join(node["labels"]) + "\n" + node["latex"] + "\n" + canonical(node["data"])
-            con.execute("INSERT INTO node_fts VALUES (?, ?, ?)", (node["id"], node["title"], text))
-        for edge in graph["edges"]:
-            con.execute("INSERT INTO edges VALUES (?, ?, ?, ?, ?, ?)",
-                        (edge["id"], edge["source"], edge["target"], edge["relation"], edge["status"], canonical(edge)))
-        for label, ids in graph["labels"].items():
-            con.executemany("INSERT INTO labels VALUES (?, ?)", [(label, node_id) for node_id in ids])
+
+        def node_rows():
+            for node in graph["nodes"]:
+                source = node.get("source") or {}
+                yield (node["id"], node["kind"], node["title"], node["review_status"],
+                       source.get("path"), source.get("line_start"), canonical(node))
+
+        con.executemany("INSERT INTO nodes VALUES (?, ?, ?, ?, ?, ?, ?)", node_rows())
+        con.executemany("INSERT INTO node_fts VALUES (?, ?, ?)", (
+            (node["id"], node["title"], " ".join(node["labels"]) + "\n" + node["latex"] + "\n" + canonical(node["data"]))
+            for node in graph["nodes"]
+        ))
+        con.executemany("INSERT INTO edges VALUES (?, ?, ?, ?, ?, ?)", (
+            (edge["id"], edge["source"], edge["target"], edge["relation"], edge["status"], canonical(edge))
+            for edge in graph["edges"]
+        ))
+        con.executemany("INSERT INTO labels VALUES (?, ?)", (
+            (label, node_id) for label, ids in graph["labels"].items() for node_id in ids
+        ))
+        con.execute("CREATE INDEX outgoing_edges ON edges(source, relation)")
+        con.execute("CREATE INDEX incoming_edges ON edges(target, relation)")
+        con.execute("CREATE INDEX label_lookup ON labels(label)")
         con.execute("INSERT INTO metadata VALUES ('snapshot_id', ?)", (graph["snapshot_id"],))
         con.commit()
     finally:
