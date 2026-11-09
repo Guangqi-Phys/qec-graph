@@ -2,9 +2,13 @@ from contextlib import redirect_stderr, redirect_stdout
 from hashlib import sha256
 import io
 import json
+import signal
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from textwrap import dedent
 from unittest.mock import patch
 
 from qecgraph.cli import main
@@ -251,20 +255,34 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(payload.read_bytes(), TEX)
 
     def test_kill_after_pointer_before_cleanup_recovers_exact_claim(self):
-        self.ws.init(no_ingest=True)
+        before = self.ws.init(no_ingest=True)['release_id']
         (self.inbox / 'good').write_bytes(TEX)
-        with patch('qecgraph.workspace.atomic_json', side_effect=RuntimeError('simulated termination')) as write:
-            from qecgraph.transactions import atomic_json
-            def interrupt(path, value):
+        child = dedent('''
+            import os
+            import signal
+            import sys
+            from qecgraph import workspace
+            from qecgraph.cli import main
+
+            atomic_json = workspace.atomic_json
+
+            def kill_before_cleanup(path, value):
                 if path.name == 'commit.json':
-                    raise RuntimeError('simulated termination')
+                    os.kill(os.getpid(), signal.SIGKILL)
                 return atomic_json(path, value)
-            write.side_effect = interrupt
-            with self.assertRaisesRegex(RuntimeError, 'simulated termination'):
-                self.ws.sync()
+
+            workspace.atomic_json = kill_before_cleanup
+            raise SystemExit(main(['sync', '--workspace', sys.argv[1], '--json']))
+        ''')
+        killed = subprocess.run([sys.executable, '-c', child, str(self.root)], capture_output=True, timeout=15)
+        self.assertEqual(killed.returncode, -signal.SIGKILL, killed.stderr.decode())
         fixed = self.ws.status()
+        self.assertNotEqual(fixed['release_id'], before)
         self.assertEqual(fixed['pending_claims'], 1)
         self.assertTrue(fixed['materials'][0]['processing_completed'])
+        payload, = (self.inbox / '.processing').glob('*/payload')
+        self.assertEqual(payload.read_bytes(), TEX)
+        self.assertFalse((payload.parent / 'commit.json').exists())
         resumed = self.ws.sync()
         self.assertTrue(resumed['inputs'][0]['input_consumed'])
         self.assertEqual(resumed['release_id'], fixed['release_id'])
