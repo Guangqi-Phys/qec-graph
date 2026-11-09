@@ -71,6 +71,7 @@ def build_graph(parsed: dict, project_id: str, project_source_hash: str,
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", project_id):
         raise ValueError("project-id must contain only letters, numbers, dot, dash or underscore")
     nodes, edges, diagnostics = {}, [], list(parsed.get("diagnostics", []))
+    edge_ids = set()
     labels = defaultdict(list)
     blocks = parsed["blocks"]
     key_to_id = {}
@@ -98,7 +99,8 @@ def build_graph(parsed: dict, project_id: str, project_source_hash: str,
         item = {"source": source, "target": target, "relation": relation, "status": status,
                 "evidence": evidence or {}}
         item["id"] = "edge:" + hash_text(canonical(item))[:24]
-        if not any(existing["id"] == item["id"] for existing in edges):
+        if item["id"] not in edge_ids:
+            edge_ids.add(item["id"])
             edges.append(item)
 
     def diag(code, message, source=None, severity="warning"):
