@@ -1,5 +1,8 @@
 # Codex 任务书：完善 LaTeX 切割工具与 QEC Graph
 
+> **Status: Historical.** Retained for provenance. For the current product start at [the project README](../../../README.md), [the documentation index](../../README.md), and [the system design](../../design/DESIGN.md). Links below may refer to the pre-consolidation layout.
+
+
 本文件保留原交接任务和验收约束。当前能力、依赖与命令以 [README](README.md)、
 [实施记录](docs/IMPLEMENTATION_LOG.md) 和 [验证报告](validation/REPORT.md) 为准。
 

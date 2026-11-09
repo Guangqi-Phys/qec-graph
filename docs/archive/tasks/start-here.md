@@ -1,9 +1,12 @@
 # 从这里开始：QEC Graph
 
+> **Status: Historical.** Retained for provenance. For the current product start at [the project README](../../../README.md), [the documentation index](../../README.md), and [the system design](../../design/DESIGN.md). Links below may refer to the pre-consolidation layout.
+
+
 这里包含 LaTeX 切割工具、三视图图谱、版本注册、审核、增量更新、只读 MCP 和 Lean 构建适配器。原任务书和验收规范保留供后续维护。
 
 日常操作从 [README](README.md) 和[工作区说明](docs/user/workspace.md)开始。
-开发时用[审计台账](docs/AUDIT_REMEDIATION.md)和[验证索引](validation/README.md)
+开发时用[审计台账](docs/operations/audit-remediation.md)和[验证索引](validation/README.md)
 核对当前能力和实测结果。[初始实施审计](IMPLEMENTATION_AUDIT.md)是 RFC 实施前的基线。
 本页下方的 P0–P5 文档说明原有三图、Lean 与旧 corpus。
 
@@ -59,7 +62,7 @@ python tools/reproduce.py --out build/reproduce
 
 - **已实现**：LaTeX 工程递归读取、结构块切割、来源坐标与哈希、标签和引用、三图视图、SQLite/FTS5 查询、依赖及影响查询、上下文导出、sidecar/catalog 导入、不可变快照、审核失效和诊断。
 - **带在包里的独立样例**：`knowledge_starter/` 中有结构化 QEC 记录、GF(2) 矩阵、一个普通 HGP `[[13,1,3]]` 示例及有限穷举检查器。图谱导入这些记录不会替代运行这个检查器。
-- **进一步使用**：[多论文注册与迁移](docs/09_CORPUS.md)、[审核](docs/10_VALIDATION_REVIEW.md)、[增量与恢复](docs/11_INCREMENTAL.md)、[只读 MCP](docs/12_AI_MCP.md)、[Lean 构建与证据](docs/13_LEAN_EXECUTION.md)。
+- **进一步使用**：[多论文注册与迁移](docs/operations/corpus.md)、[审核](docs/operations/review.md)、[增量与恢复](docs/design/DESIGN.md#73-incremental-and-watch)、[只读 MCP](docs/design/DESIGN.md#8-query-cli-and-mcp-contract)、[Lean 构建与证据](docs/design/DESIGN.md#10-lean-boundary)。
 - **当前边界**：AST 逐文件复用后仍重建语义投影；Lean 只覆盖 core-only Bool 示例。向量检索、PDF/OCR、HGP 距离形式化未实现。
 
 切割结果是完整语义环境及其子块，可能嵌套和重叠；原文件保存在 `sources/`。本工具不把所有片段重新拼成原文，也不保证每个片段能单独编译成 PDF。

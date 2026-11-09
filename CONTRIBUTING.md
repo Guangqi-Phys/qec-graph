@@ -14,8 +14,8 @@ python -m coverage report
 ```
 
 For an end-to-end check, run `python tools/reproduce.py --out build/reproduce`.
-The [development guide](START_HERE.md) points to workspace, MCP, and Lean
-checks that need separate setup. Mention which commands ran and which were
+The [documentation index](docs/README.md) and [system design](docs/design/DESIGN.md)
+point to workspace, MCP, and Lean checks that need separate setup. Mention which commands ran and which were
 not run when proposing a change.
 
 Keep source bytes, stable IDs, revisions, and evidence bindings intact.

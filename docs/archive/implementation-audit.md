@@ -1,5 +1,8 @@
 # RFC-QEC-002 实施审计
 
+> **Status: Historical.** Retained for provenance. For the current product start at [README](../../README.md), [the documentation index](../README.md), and [the system design](../design/DESIGN.md). Links below may refer to the pre-consolidation layout.
+
+
 本页记录实施前的历史基线。当前进度见[文档索引](docs/README.md)。
 
 基线：`main` / `origin/main`，`0fd1b23`，审计时工作树无未提交改动。

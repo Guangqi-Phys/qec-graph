@@ -1,5 +1,8 @@
 # 实施记录
 
+> **Status: Historical.** Retained for provenance. For the current product start at [README](../../README.md), [the documentation index](../README.md), and [the system design](../design/DESIGN.md). Links below may refer to the pre-consolidation layout.
+
+
 说明包 `qec_graph_codex_handoff/` 保留为本地只读参考，Git 忽略该目录。
 根目录是可独立安装、测试的工作项目；`validation/handoff/` 仅是交接时的历史证据。
 不将历史报告作为本次运行结果。P0–P5 的验收条款继续以 `08_ROADMAP_ACCEPTANCE.md` 为准。

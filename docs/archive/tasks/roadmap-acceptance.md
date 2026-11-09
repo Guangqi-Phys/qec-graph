@@ -1,5 +1,8 @@
 # 08｜Codex 实施阶段与验收规范
 
+> **Status: Historical.** Retained for provenance. For the current product start at [the project README](../../../README.md), [the documentation index](../../README.md), and [the system design](../../design/DESIGN.md). Links below may refer to the pre-consolidation layout.
+
+
 ## 1. 执行原则与统一阶段编号
 
 `CODEX_TASK.md` 引用本表。P0 固定原型，P1–P5 规定各阶段验收范围；完成状态与证据见
