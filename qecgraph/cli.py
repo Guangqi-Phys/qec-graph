@@ -87,6 +87,10 @@ def main(argv=None):
     cmd = sub.add_parser('human-build', help='Render Obsidian pages from the current fixed machine release')
     cmd.add_argument('--workspace')
     cmd.add_argument('--release')
+    cmd = sub.add_parser('workspace-migrate', help='Copy a legacy corpus into a new workspace; retain all exact revisions')
+    cmd.add_argument('--corpus', required=True)
+    cmd.add_argument('--workspace', required=True)
+    cmd.add_argument('--registry-revision')
     cmd = sub.add_parser('research-import', help='Validate and publish exact research records without evidence promotion')
     cmd.add_argument('input')
     cmd.add_argument('--workspace')
@@ -242,6 +246,11 @@ def main(argv=None):
             result = build_human(args.workspace, args.release)
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0 if result['status'] == 'current' else 2
+        if args.command == 'workspace-migrate':
+            from .workspace_migration import migrate_corpus
+            result = migrate_corpus(args.corpus, args.workspace, args.registry_revision)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0
         if args.command in {'research-import', 'review-list'}:
             from .workspace import Workspace
             from .research_store import load_records, publish_records

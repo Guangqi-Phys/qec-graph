@@ -45,3 +45,8 @@ U5：工作区 CLI 在机器发布后单独启动 human renderer；
 发布中失败报告 `human_stale`，不能承诺 vault 全局原子。没有读取或覆盖 notes。
 测试通过：重复渲染、旧 release 被拒绝、发布中断恢复、notes symlink 负例。
 `compose.mcp-isolated.yaml` 提供只读 machine 单挂载 profile；容器执行状态另记录。
+
+U6 迁移：`qec-graph workspace-migrate --corpus OLD --workspace NEW` 验证旧库后复制到
+新工作区。保留旧状态、记录、来源快照和审核证据的精确绑定，不在原库改写数据，也不制造旧库
+从未保留的下载包。报告记录身份映射、未决字段和审核警告；旧实验维持旧契约，
+不自动当成新版可比性能点。实测迁移后仍能从旧修订查询，空收件箱 rebuild 保持旧版本。
