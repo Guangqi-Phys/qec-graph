@@ -4,7 +4,7 @@ from __future__ import annotations
 from .graph import canonical, hash_text, read_json
 from .research import KINDS, key, prepare, ref, validate_bundle
 from .research_store import load_records, stage_records, validate_sources
-from .transactions import immutable_json, writer_lock
+from .transactions import ManagedDataError, immutable_json, writer_lock
 from .workspace import HEX, Workspace
 from .workspace_query import WorkspaceSession
 
@@ -23,9 +23,16 @@ def _path(ws, category, identifier):
 
 
 def _load(ws, category, identifier):
-    data = read_json(_path(ws, category, identifier))
+    path = _path(ws, category, identifier)
+    try:
+        data = read_json(path)
+    except ValueError as exc:
+        raise ManagedDataError(path, 'Semantic handoff contains invalid JSON') from exc
+    schema = REQUEST if category == 'extraction-requests' else PROPOSAL
+    if not isinstance(data, dict) or data.get('schema_version') != schema:
+        raise ManagedDataError(path, 'Unexpected semantic handoff format')
     if data.get('id') != identifier or hash_text(canonical({k: v for k, v in data.items() if k != 'id'})) != identifier:
-        raise ValueError('Semantic handoff hash mismatch')
+        raise ManagedDataError(path, 'Semantic handoff hash mismatch')
     return data
 
 

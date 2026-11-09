@@ -178,6 +178,15 @@ class SemanticTests(unittest.TestCase):
             self.assertEqual(after.invoke('qec_workspace_status', {})['data']['coverage']['excluded_stale_provider_reviews'], 1)
             self.assertTrue(session.invoke('qec_get_entity', query)['ok'])
             self.assertTrue(ws.validate()['passed'])
+            draft_path = root / '.qecgraph/extraction-proposals' / f"{queued['proposal_id']}.json"
+            fixed = ws.registry.read()[1]
+            draft_path.write_text('[]', encoding='utf-8')
+            invalid = subprocess.run([*show, '--json'], text=True, capture_output=True, timeout=10)
+            self.assertEqual(invalid.returncode, 1)
+            error = json.loads(invalid.stdout)['error']
+            self.assertEqual(error['code'], 'STORAGE_ERROR')
+            self.assertEqual(error['details']['path'], str(draft_path.resolve()))
+            self.assertEqual(ws.registry.read()[1], fixed)
             old_graph = ws.registry.root / state['versions'][identifier]['snapshot_path'] / 'graph.json'
             with old_graph.open('ab') as output:
                 output.write(b' ')
