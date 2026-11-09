@@ -3,7 +3,7 @@ graft examples
 graft knowledge_starter
 graft schemas
 graft tools
-include AGENTS.md CHANGELOG.md CITATION.cff CODEX_TASK.md CONTRIBUTING.md IMPLEMENTATION_AUDIT.md SECURITY.md START_HERE.md
+include AGENTS.md CHANGELOG.md CITATION.cff CODEX_TASK.md CONTRIBUTING.md IMPLEMENTATION_AUDIT.md SECURITY.md START_HERE.md install.sh
 recursive-include docs *.md
 exclude docs/CODEBASE_ASSESSMENT.md
 graft validation
