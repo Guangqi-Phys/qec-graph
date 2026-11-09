@@ -16,6 +16,36 @@ from qecgraph.workspace import Workspace
 
 
 class CLIContractTests(unittest.TestCase):
+    def test_renderer_failure_keeps_the_published_release_and_returns_partial(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Workspace(directory)
+            workspace.init(no_ingest=True)
+            (workspace.root / 'inputs/paper.tex').write_bytes(
+                b'\\documentclass{article}\n\\begin{document}A source.\\end{document}\n')
+
+            def renderer(args, **options):
+                release = args[args.index('--release') + 1]
+                if outcome == 'malformed':
+                    return subprocess.CompletedProcess(args, 0, '[]', '')
+                if outcome == 'nonzero':
+                    report = {'status': 'current', 'release_id': release}
+                    return subprocess.CompletedProcess(args, 1, json.dumps(report), '')
+                report = {'status': 'superseded', 'target_release_id': release, 'current_release_id': '1' * 64}
+                return subprocess.CompletedProcess(args, 2, json.dumps(report), '')
+
+            for outcome, status in (('malformed', 'human_stale'), ('nonzero', 'human_stale'),
+                                    ('superseded', 'superseded')):
+                with self.subTest(outcome=outcome), patch('qecgraph.cli.commands.workspace.subprocess.run', renderer):
+                    stdout, stderr = io.StringIO(), io.StringIO()
+                    with redirect_stdout(stdout), redirect_stderr(stderr):
+                        self.assertEqual(main(['sync', '--workspace', directory, '--json']), 2)
+                    self.assertEqual(stderr.getvalue(), '')
+                    report = json.loads(stdout.getvalue())
+                    self.assertEqual(report['human']['status'], status)
+                    self.assertEqual(report['release_id'], workspace.registry.read()[1])
+                    self.assertEqual(report['counts']['processed'], 1)
+            self.assertFalse((workspace.root / 'inputs/paper.tex').exists())
+
     def test_record_add_reports_wrong_json_shapes_as_input_errors(self):
         with tempfile.TemporaryDirectory() as directory:
             workspace = Workspace(directory)

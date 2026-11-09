@@ -1,11 +1,11 @@
 """CLI handlers for workspace commands."""
 from __future__ import annotations
 
-import json
 import os
+import subprocess
 import sys
 
-from ...graph import read_json
+from ...graph import read_json, strict_json_loads
 from ..process import cli_command
 from ..render import emit_report, print_doctor, workspace_summary
 
@@ -47,6 +47,26 @@ def inputs(args):
     return emit_report(result, quiet=args.quiet, exit_code=0)
 
 
+def _render_release(workspace, release):
+    fallback = {'status': 'human_stale', 'release_id': release}
+    try:
+        process = subprocess.run(cli_command('human', 'build', '--workspace', str(workspace), '--release', release),
+                                 capture_output=True, text=True, timeout=120, check=False)
+        report = strict_json_loads(process.stdout)
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return fallback
+    if not isinstance(report, dict):
+        return fallback
+    status = report.get('status')
+    if status == 'current' and process.returncode == 0 and report.get('release_id') == release:
+        return report
+    if status == 'human_stale' and process.returncode == 2 and report.get('release_id') == release:
+        return report
+    if status == 'superseded' and process.returncode == 2 and report.get('target_release_id') == release:
+        return report
+    return fallback
+
+
 def workspace_action(args, progress):
     if progress and not getattr(args, 'dry_run', False):
         progress.start()
@@ -74,16 +94,9 @@ def workspace_action(args, progress):
             progress.phase('Rendering Obsidian views')
         if args.verbose:
             print(f'qec-graph {args.command}: Rendering Obsidian views', file=sys.stderr, flush=True)
-        import subprocess
-        try:
-            render = subprocess.run(
-                cli_command('human', 'build', '--workspace', str(ws.root), '--release', result['release_id']),
-                capture_output=True, text=True, timeout=120, check=False)
-            result['human'] = json.loads(render.stdout)
-        except (OSError, ValueError, subprocess.TimeoutExpired):
-            result['human'] = {'status': 'human_stale', 'release_id': result['release_id']}
+        result['human'] = _render_release(ws.root, result['release_id'])
     code = 2 if (result['status'] in {'partial_batch', 'invalid'}
-                 or result.get('human', {}).get('status') == 'human_stale') else 0
+                 or result.get('human', {}).get('status') in ('human_stale', 'superseded')) else 0
     if progress:
         return progress.finish(*workspace_summary(args.command, result, code))
     return emit_report(result, exit_code=code)

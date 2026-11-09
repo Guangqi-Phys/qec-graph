@@ -138,6 +138,8 @@ def workspace_summary(action, result, code):
         inputs = result.get('sync', {}).get('inputs', []) + result.get('inputs', [])
         problem = next(filter(None, map(_input_problem, inputs)), None)
         human = result.get('human', {})
+        if not problem and human.get('status') == 'superseded':
+            return 'a newer release was published; run qec-graph human build to refresh the vault', code
         return (problem or human.get('error') or 'could not refresh workspace views'), code
     counts = result['counts']
     return f"{counts['processed']}/{counts['registered']} packages indexed", code
