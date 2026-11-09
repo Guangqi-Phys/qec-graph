@@ -148,6 +148,28 @@ class _TreeBuilder:
 
 _CHUNK_BYTES = 256 << 10
 _ZIP_DIRECTORY_ENTRY = struct.Struct('<4s24x3H12x')
+_TAR_EXTENSION_BYTES = 256 << 10
+_TAR_EXTENSIONS = (tarfile.XHDTYPE, tarfile.XGLTYPE, tarfile.SOLARIS_XHDTYPE,
+                   tarfile.GNUTYPE_LONGNAME, tarfile.GNUTYPE_LONGLINK)
+
+
+class _BoundedTarInfo(tarfile.TarInfo):
+    def _proc_member(self, archive):
+        if self.type not in _TAR_EXTENSIONS:
+            return super()._proc_member(archive)
+        # tarfile handles these records before yielding a logical member.
+        if self.size < 0:
+            raise PackageError('damaged_archive', 'Invalid tar extension size')
+        total = getattr(archive, '_qec_extension_bytes', 0) + self.size
+        depth = getattr(archive, '_qec_extension_depth', 0)
+        if self.size > _TAR_EXTENSION_BYTES or total > 4 << 20 or depth >= 32:
+            raise PackageError('limit_exceeded', 'Tar extension metadata exceeds limit')
+        archive._qec_extension_bytes = total
+        archive._qec_extension_depth = depth + 1
+        try:
+            return super()._proc_member(archive)
+        finally:
+            archive._qec_extension_depth = depth
 
 
 def _check_zip_members(stream, maximum):
@@ -200,7 +222,7 @@ def _unpack(stream, size, compressed, limits):
                 tree.add(item.orig_filename, item.is_dir(), item.file_size, lambda: archive.open(item))
         return SourceTree('gzip_zip' if compressed else 'zip', tree.files)
     try:
-        archive = tarfile.open(fileobj=stream, mode='r:')
+        archive = tarfile.open(fileobj=stream, mode='r:', tarinfo=_BoundedTarInfo)
     except tarfile.ReadError as exc:
         if prefix[257:262] == b'ustar':
             raise PackageError('damaged_archive', 'Invalid tar header') from exc

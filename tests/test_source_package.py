@@ -11,9 +11,9 @@ from qecgraph.source_package import Limits, PackageError, unpack
 TEX = b'\\documentclass{article}\r\n\\begin{document}Hello\\end{document}\r\n'
 
 
-def tar_bytes(files, *, mtime=0):
+def tar_bytes(files, *, mtime=0, format=tarfile.PAX_FORMAT):
     buffer = io.BytesIO()
-    with tarfile.open(fileobj=buffer, mode='w') as output:
+    with tarfile.open(fileobj=buffer, mode='w', format=format) as output:
         for name, value in files.items():
             item = tarfile.TarInfo(name)
             item.mtime = mtime
@@ -60,6 +60,31 @@ class SourcePackageTests(unittest.TestCase):
     def test_entrypoint_discovery_ignores_non_tex_examples(self):
         raw = tar_bytes({'main.TeX': TEX, 'README.txt': TEX, '.tex': TEX})
         self.assertEqual(unpack(raw).entrypoints(), ['main.TeX'])
+
+    def test_tar_extensions_preserve_long_names_and_reject_oversized_metadata(self):
+        name = 'n' * 128 + '.tex'
+        for format in (tarfile.PAX_FORMAT, tarfile.GNU_FORMAT):
+            raw = tar_bytes({name: TEX}, format=format)
+            self.assertEqual(unpack(raw, Limits(member_bytes=len(TEX), members=1)).files, {name: TEX})
+
+        buffer = io.BytesIO()
+        with tarfile.open(fileobj=buffer, mode='w', format=tarfile.PAX_FORMAT) as archive:
+            entry = tarfile.TarInfo('main.tex')
+            entry.size = len(TEX)
+            entry.pax_headers = {'comment': 'x' * (256 << 10)}
+            archive.addfile(entry, io.BytesIO(TEX))
+        for raw in (buffer.getvalue(), gzip.compress(buffer.getvalue())):
+            with self.assertRaises(PackageError) as error:
+                unpack(raw)
+            self.assertEqual(error.exception.status, 'limit_exceeded')
+
+    def test_tar_extension_chain_is_bounded_before_recursive_parsing(self):
+        header = tarfile.TarInfo('pax-header')
+        header.type = tarfile.XGLTYPE
+        raw = header.tobuf() * 33 + tar_bytes({'main.tex': TEX})
+        with self.assertRaises(PackageError) as error:
+            unpack(raw)
+        self.assertEqual(error.exception.status, 'limit_exceeded')
 
     def test_zip_member_limit_precedes_directory_allocation_even_with_forged_counts(self):
         buffer = io.BytesIO()
