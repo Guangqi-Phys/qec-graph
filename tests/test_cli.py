@@ -15,6 +15,17 @@ from qecgraph.workspace import Workspace
 
 
 class CLIContractTests(unittest.TestCase):
+    def test_unknown_commands_suggest_the_closest_help_topic(self):
+        for command, expected in ((['serach'], 'search'), (['workspace', 'stauts'], 'workspace status')):
+            with self.subTest(command=command):
+                process = subprocess.run([sys.executable, '-m', 'qecgraph', '--json', *command],
+                                         text=True, capture_output=True, timeout=10)
+                self.assertEqual(process.returncode, 64)
+                self.assertEqual(process.stderr, '')
+                error = json.loads(process.stdout)['error']
+                self.assertEqual(error['code'], 'USAGE')
+                self.assertEqual(error['hint'], f'Run qec-graph {expected} --help for usage.')
+
     def test_review_list_does_not_infer_a_write_from_the_corpus_option(self):
         with tempfile.TemporaryDirectory() as directory, chdir(directory):
             root = Path(directory).resolve()

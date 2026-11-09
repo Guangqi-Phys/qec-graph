@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from difflib import get_close_matches
 
 from .. import __version__
 from .errors import UsageError
@@ -484,7 +485,20 @@ def parse_command(argv: list[str], *, entrypoint: tuple[str, str] | None = None)
             name = 'review-propose'
     parser, topics = _build_parser(entrypoint)
     if name and not name.startswith('-') and (name,) not in topics:
-        raise UsageError(f'Unknown command {name!r}')
+        error = UsageError(f'Unknown command {name!r}')
+        matches = get_close_matches(name, [topic[0] for topic in topics if len(topic) == 1], n=1)
+        if matches:
+            error.hint = f'Run qec-graph {matches[0]} --help for usage.'
+        raise error
+    if name in _GROUPS and action_index < len(argv):
+        action = argv[action_index]
+        if not action.startswith('-') and (name, action) not in topics:
+            error = UsageError(f'Unknown action {action!r} for {name}')
+            error.command = name
+            matches = get_close_matches(action, _GROUPS[name][1], n=1)
+            error.hint = (f'Run qec-graph {name} {matches[0]} --help for usage.' if matches
+                          else f'Run qec-graph {name} --help for available actions.')
+            raise error
     try:
         args = parser.parse_args(argv)
     except UsageError as exc:
