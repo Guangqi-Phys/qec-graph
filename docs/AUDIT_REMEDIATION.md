@@ -7,7 +7,7 @@ Each entry is complete only when its acceptance evidence has been checked.
 | Item | Change | Status and evidence |
 | --- | --- | --- |
 | 1 | License and package metadata | Complete. Wheel and source distribution include the MIT license and PEP 639 metadata. Both passed strict Twine and source-content checks. |
-| 2 | CI on pull requests and pushes | In progress. Added Linux and macOS jobs for lint, mypy, coverage, distribution verification, and installed workspace checks. Local equivalents passed. Hosted runs await the scheduled push. |
+| 2 | CI on pull requests and pushes | In progress. Added Linux and macOS jobs for lint, mypy, coverage, distribution verification, and installed workspace checks. Local equivalents passed. The [first hosted run](https://github.com/Guangqi-Phys/qec-graph/actions/runs/42638636901) recorded a GitHub billing lock before the Ubuntu job started any steps. |
 | 3 | Consistent status and explicit JSON output | Complete for workspace maintenance. Explicit and implicit workspace selection produce the same text. The CLI contract tests check exit code 2 in text and JSON, and release verification requests JSON explicitly. |
 | 4 | Version, help, and usage exit code | Complete. CLI tests cover version, concise no-argument help, command help, and usage exit 64. The changelog documents the exit-code migration. |
 | 5 | Validate review, claim-link, and experiment inputs | Complete. CLI tests reject missing or malformed fields before writing. Review and QEC validation suites pass. |
@@ -16,7 +16,7 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 8 | Build and check fresh release artifacts | Complete for the source changes. A clean export of `ffdbb5e` passed strict Twine, exact metadata checks, wheel installation and workspace verification, and all 165 tests from the unpacked source distribution. Item 26 tracks publication automation. |
 | 9 | Ignore generated state and development caches | Complete. Git ignore checks cover local graph state, macOS metadata, and coverage, lint, and test caches. |
 | 10 | Documentation index and factual corrections | Complete. The README links to a current index. Corrected runtime requirements, locking, command entry points, MCP scope, and validation links, and marked historical reports. Checked Markdown link targets. Physical reorganization remains in item 18. |
-| 11 | Separate CLI parsing, rendering, and dispatch | Open. |
+| 11 | Separate CLI parsing, rendering, and dispatch | In progress. The CLI is a package with independent terminal and JSON rendering. Existing console scripts and both module entry points are preserved. Parser and handler extraction remain. |
 | 12 | Stable error taxonomy and JSON error contract | Open. |
 | 13 | Grouped help, examples, and alias migration | Open. |
 | 14 | Query workspaces directly through the MCP query layer | Complete in `4067e6e`. Five CLI queries matched their tool results at a pinned release after CURRENT advanced. The workspace query suite passed. |

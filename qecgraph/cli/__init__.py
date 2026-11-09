@@ -1,3 +1,4 @@
+"""Command-line entry point for QEC Graph."""
 from __future__ import annotations
 
 import argparse
@@ -5,15 +6,14 @@ import json
 import os
 import sqlite3
 import sys
-from threading import Event, Thread
-from time import monotonic
 
-from . import __version__
-from .query import context, dependencies, search, show
-from .splitter import split_project
-from .store import current_snapshot, ingest, snapshot_reference, validate_snapshot
-from .registry import Registry
-from .graph import read_json
+from .. import __version__
+from ..query import context, dependencies, search, show
+from ..splitter import split_project
+from ..store import current_snapshot, ingest, snapshot_reference, validate_snapshot
+from ..registry import Registry
+from ..graph import read_json
+from .render import WorkspaceProgress, print_doctor, print_json, workspace_summary
 
 
 _DAILY_WORKSPACE_COMMANDS = {'sync', 'status', 'validate'}
@@ -46,132 +46,6 @@ def _cli_command(*arguments):
     return [sys.executable, '-m', 'qecgraph', *arguments]
 
 
-class _WorkspaceProgress:
-    def __init__(self, action):
-        self.action = action
-        self.stderr = sys.stderr
-        self.live = sys.stdout.isatty() and self.stderr.isatty() and os.environ.get('TERM') != 'dumb'
-        self.color = self.live and not os.environ.get('NO_COLOR')
-        self.state = (0, 1, 'Opening workspace')
-        self.started = None
-        self.stopped = Event()
-        self.worker = None
-        self.spinner, self.full, self.empty, self.ok, self.error = '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏', '█', '░', '✓', '✗'
-        try:
-            (self.spinner + self.full + self.empty + self.ok + self.error).encode(self.stderr.encoding or 'ascii')
-        except UnicodeEncodeError:
-            self.spinner, self.full, self.empty, self.ok, self.error = '|/-\\', '#', '.', '+', '!'
-
-    def start(self):
-        if self.live:
-            self.started = monotonic()
-            self._draw(0)
-            self.worker = Thread(target=self._animate, daemon=True)
-            self.worker.start()
-
-    def _animate(self):
-        frame = 1
-        while not self.stopped.wait(0.1):
-            self._draw(frame)
-            frame += 1
-
-    def _paint(self, value, code):
-        return f'\x1b[{code}m{value}\x1b[0m' if self.color else value
-
-    def _draw(self, frame):
-        done, total, message = self.state
-        try:
-            columns = os.get_terminal_size(self.stderr.fileno()).columns or 80
-        except OSError:
-            columns = 80
-        spinner = self.spinner[frame % len(self.spinner)]
-        label = f' {self.action}: {message}'
-        elapsed = f'  {monotonic() - self.started:.1f}s'
-        filled = 12 * done // total
-        bar = self.full * filled + self.empty * (12 - filled)
-        width = max(0, columns - 2)  # Leave one column free to avoid terminal wrapping.
-        if total > 1 and len(label + elapsed) + len(bar) + 2 <= width:
-            label += '  ' + bar
-        if len(label + elapsed) <= width:
-            label += elapsed
-        print('\r\x1b[K' + self._paint(spinner, '36') + label[:width],
-              end='', file=self.stderr, flush=True)
-
-    def update(self, done, total, message):
-        self.state = (done, total, message)
-
-    def phase(self, message):
-        self.update(*self.state[:2], message)
-
-    def close(self):
-        if self.started is not None:
-            self.stopped.set()
-            if self.worker is not None and self.worker.is_alive():
-                self.worker.join()
-            self.started = None
-            print('\r\x1b[K', end='', file=self.stderr, flush=True)
-
-    def finish(self, message, code):
-        self.close()
-        message = ' '.join(''.join(char if char.isprintable() else ' ' for char in message).split())
-        if len(message) > 180:
-            message = message[:177] + '...'
-        if self.live:
-            marker = self._paint(self.error, '31') if code else self._paint(self.ok, '32')
-        else:
-            done, total, _ = self.state
-            filled = 16 * done // total if code else 16
-            marker = f"[{'#' * filled}{'.' * (16 - filled)}]"
-        outcome = 'ERROR: ' + message if code else 'OK' + (f' ({message})' if message else '')
-        print(f'{marker} {self.action}: {outcome}', file=self.stderr if code else sys.stdout)
-        return code
-
-
-def _input_problem(row):
-    if row.get('cleanup_error') or row.get('retained_claim'):
-        problem = row.get('cleanup_error') or 'input could not be restored'
-    elif row.get('source_version_conflict'):
-        problem = 'conflicting source version'
-    elif not row.get('processing_completed'):
-        problem = next((item['message'] for item in row.get('diagnostics', [])
-                        if item['severity'] == 'error'), None)
-        problem = problem or row.get('reason') or row['status'].replace('_', ' ')
-    else:
-        return None
-    name = row.get('input') or row.get('archive_sha256', '')[:12]
-    return f'{name}: {problem}' if name else problem
-
-
-def _workspace_summary(action, result, code):
-    if result['status'] == 'already_initialized':
-        return 'workspace already initialized', code
-    if result['status'] == 'planned':
-        return f"{len(result['inputs'])} inbox files, {result['pending_claims']} pending claims", code
-    if action == 'validate':
-        if not code:
-            return '', 0
-        issue = next((item for item in result.get('issues', []) if item.get('severity') != 'warning'), {})
-        return issue.get('message') or issue.get('code') or 'workspace validation failed', code
-    if action == 'status':
-        materials = result['materials']
-        count = len(materials)
-        ready = sum(row.get('processing_completed', False) for row in materials)
-        problem = next(filter(None, (_input_problem(row) for row in materials if not row.get('quarantined'))), None)
-        summary = f'{ready}/{count} packages indexed'
-        if held := result.get('quarantined_inputs'):
-            summary += f'; {len(held)} quarantined'
-        if problem:
-            summary += f'; {problem}'
-        return summary, code
-    if code:
-        inputs = result.get('sync', {}).get('inputs', []) + result.get('inputs', [])
-        problem = next(filter(None, map(_input_problem, inputs)), None)
-        human = result.get('human', {})
-        return (problem or human.get('error') or 'could not refresh workspace views'), code
-    counts = result['counts']
-    return f"{counts['processed']}/{counts['registered']} packages indexed", code
-
-
 def _add_query_scope(parser, *, workspace=False):
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--store')
@@ -194,8 +68,8 @@ def _add_ai_arguments(parser):
 
 
 def _workspace_session(args, **budgets):
-    from .workspace import Workspace
-    from .workspace_query import WorkspaceSession
+    from ..workspace import Workspace
+    from ..workspace_query import WorkspaceSession
     if args.snapshot or args.source_version_id or args.registry_revision:
         raise ValueError('Workspace tools use --release; store/corpus selectors are not applicable')
     machine = args.machine or Workspace(args.workspace).path('machine')
@@ -208,7 +82,7 @@ def _ai_session(args):
                                   max_chars=args.session_max_chars, max_results=args.session_max_results)
     if args.release:
         raise ValueError('--release requires --workspace or --machine')
-    from .ai_tools import ReadOnlySession
+    from ..ai_tools import ReadOnlySession
     return ReadOnlySession(store=args.store, corpus=args.corpus, snapshot_id=args.snapshot,
                            registry_revision=args.registry_revision, source_version_id=args.source_version_id,
                            max_nodes=args.session_max_nodes, max_depth=args.session_max_depth,
@@ -486,41 +360,35 @@ def main(argv=None):
         return 0
     workspace_command = (args.command in _WORKSPACE_WRITE_COMMANDS | {'status'}
                          or args.command == 'validate' and not args.store)
-    progress = _WorkspaceProgress(args.command) if workspace_command and not args.json else None
+    progress = WorkspaceProgress(args.command) if workspace_command and not args.json else None
     try:
         if args.command == 'doctor':
-            from .maintenance import doctor
-            from .workspace import locate
+            from ..maintenance import doctor
+            from ..workspace import locate
             result = doctor(locate(args.workspace, default=os.environ.get('QECGRAPH_WORKSPACE')))
             if args.json:
-                print(json.dumps(result, ensure_ascii=False, indent=2))
+                print_json(result)
             else:
-                print(f"QEC Graph {__version__} · {result['workspace']}")
-                for name, check in result['checks'].items():
-                    details = ', '.join(f'{key}={value}' for key, value in check.items()
-                                        if key not in {'status', 'message', 'release_id'})
-                    print(f"{name}: {check.get('message') or details or check['status']}")
-                if result['release_id']:
-                    print(f"Release: {result['release_id']}")
+                print_doctor(result)
             return result['suggested_exit_code']
         if args.command == 'snapshot':
-            from .maintenance import list_snapshots
-            from .workspace import locate
+            from ..maintenance import list_snapshots
+            from ..workspace import locate
             workspace = None if args.store or args.corpus else locate(args.workspace, default=os.environ.get('QECGRAPH_WORKSPACE'))
             result = list_snapshots(store=args.store, corpus=args.corpus, workspace=workspace)
-            print(json.dumps(result, ensure_ascii=False, indent=2))
+            print_json(result)
             return 0
         if args.command == 'inputs':
-            from .workspace import Workspace, locate
+            from ..workspace import Workspace, locate
             ws = Workspace(locate(args.workspace, default=os.environ.get('QECGRAPH_WORKSPACE')))
             result = (ws.list_inputs() if args.input_action == 'list'
                       else ws.move_quarantine(args.name, restore=args.input_action == 'restore'))
-            print(json.dumps(result, ensure_ascii=False, indent=2))
+            print_json(result)
             return 0
         if workspace_command:
             if progress and not getattr(args, 'dry_run', False):
                 progress.start()
-            from .workspace import CONFIG, Workspace, locate
+            from ..workspace import CONFIG, Workspace, locate
             if getattr(args, 'snapshot', None):
                 raise ValueError('--snapshot requires --store')
             options = {key: getattr(args, key) for key in ('no_ingest', 'dry_run', 'include_inputs', 'keep_inputs')
@@ -546,21 +414,21 @@ def main(argv=None):
             code = 2 if (result['status'] in {'partial_batch', 'invalid'}
                          or result.get('human', {}).get('status') == 'human_stale') else 0
             if progress:
-                return progress.finish(*_workspace_summary(args.command, result, code))
-            print(json.dumps(result, ensure_ascii=False, indent=2))
+                return progress.finish(*workspace_summary(args.command, result, code))
+            print_json(result)
             return code
         if args.command == 'human-build':
-            from .human import build_human
+            from ..human import build_human
             result = build_human(args.workspace, args.release)
-            print(json.dumps(result, ensure_ascii=False, indent=2))
+            print_json(result)
             return 0 if result['status'] == 'current' else 2
         if args.command == 'asset-add':
-            from .workspace_assets import add_asset
+            from ..workspace_assets import add_asset
             result = add_asset(args.workspace, args.input, media_type=args.media_type)
-            print(json.dumps(result, ensure_ascii=False, indent=2))
+            print_json(result)
             return 0
         if args.command in {'extract-request', 'extract-submit', 'extract-review'}:
-            from . import semantic
+            from .. import semantic
             if args.command == 'extract-request':
                 result = semantic.request_extraction(args.workspace, args.source_version, release=args.release,
                                                      max_chars=args.max_chars, offset=args.offset)
@@ -569,35 +437,35 @@ def main(argv=None):
             else:
                 result = semantic.review_extraction(args.workspace, args.proposal_id, reviewer=args.reviewer,
                                                     decision=args.decision, rationale=args.rationale)
-            print(json.dumps(result, ensure_ascii=False, indent=2))
+            print_json(result)
             return 0
         if args.command == 'workspace-migrate':
-            from .workspace_migration import migrate_corpus
+            from ..workspace_migration import migrate_corpus
             result = migrate_corpus(args.corpus, args.workspace, args.registry_revision)
-            print(json.dumps(result, ensure_ascii=False, indent=2))
+            print_json(result)
             return 0
         if args.command in {'research-import', 'review-list', 'software-import-seed', 'software-coverage', 'software-refresh'}:
-            from .workspace import Workspace
-            from .research_store import load_records, publish_records
+            from ..workspace import Workspace
+            from ..research_store import load_records, publish_records
             ws = Workspace(args.workspace)
             ws.config()
             if args.command == 'software-import-seed':
-                from .software import adapt_seed, bundled_seed
+                from ..software import adapt_seed, bundled_seed
                 result = publish_records(ws.registry, adapt_seed(bundled_seed()))
             elif args.command == 'software-refresh':
-                from .software import refresh
+                from ..software import refresh
                 result = refresh(ws.registry, project_id=args.project_id, limit=args.limit, timeout=args.timeout)
             elif args.command == 'software-coverage':
-                from .software import coverage
+                from ..software import coverage
                 state, release = ws.registry.read()
                 result = {'release_id': release, **coverage(r for r in load_records(ws.registry, state) if not r['is_synthetic'])}
             elif args.command == 'research-import':
                 payload = read_json(args.input)
                 if args.format == 'software-seed':
-                    from .software import adapt_seed
+                    from ..software import adapt_seed
                     payload = adapt_seed(payload)
                 elif args.format == 'synthetic-fixture':
-                    from .research import adapt_synthetic
+                    from ..research import adapt_synthetic
                     payload = adapt_synthetic(payload)
                 if not isinstance(payload, list):
                     raise ValueError('Research import expects a list of records')
@@ -606,9 +474,9 @@ def main(argv=None):
                 state, release = ws.registry.read()
                 rows = [row for row in load_records(ws.registry, state)
                         if not row['is_synthetic'] and row['data'].get('review_status') == 'proposed']
-                from .semantic import queued
+                from ..semantic import queued
                 result = {'release_id': release, 'proposals': rows, 'provider_drafts': queued(ws.root, state)}
-            print(json.dumps(result, ensure_ascii=False, indent=2))
+            print_json(result)
             return 2 if result.get('status') == 'partial' else 0
         workspace_query = args.command in _GRAPH_QUERY_COMMANDS and (args.workspace or args.machine)
         if not workspace_query and args.command in _GRAPH_QUERY_COMMANDS | {'validate', 'audit-dependencies'}:
@@ -624,18 +492,18 @@ def main(argv=None):
         if workspace_query:
             result = _workspace_query(args)
         elif args.command == 'lean-build':
-            from .lean import build_project
+            from ..lean import build_project
             result = build_project(args.project, args.out, lake=args.lake, export_declarations=not args.build_only)
         elif args.command == 'lean-import':
-            from .lean_integration import import_build
+            from ..lean_integration import import_build
             mappings = read_json(args.mapping) if args.mapping else None
             if mappings is not None and isinstance(mappings, dict):
                 mappings = [mappings]
             result = import_build(args.corpus, args.report, project_id=args.project_id, project=args.project,
                                   mappings=mappings, historical=args.historical)
         elif args.command == 'lean-status':
-            from .lean_integration import lean_record_states
-            from .status import review_states
+            from ..lean_integration import lean_record_states
+            from ..status import review_states
             registry = Registry(args.corpus)
             state, fixed = registry.read(args.registry_revision)
             records = registry.records_from_state(state)
@@ -658,67 +526,67 @@ def main(argv=None):
                 arguments += ['--session-max-' + name, str(getattr(args, 'session_max_' + name))]
             result = {'mcpServers': {'qecgraph': {'command': executable, 'args': arguments}}}
         elif args.command == 'serve-mcp':
-            from .mcp_server import serve_stdio
+            from ..mcp_server import serve_stdio
             return serve_stdio(_ai_session(args))
         elif args.command == 'query-tool':
             result = _ai_session(args).invoke(args.tool, read_json(args.arguments))
         elif args.command == 'watch':
-            from .watch import Watcher, run
+            from ..watch import Watcher, run
             watcher = Watcher(args.entry, args.project_id, args.out, args.project_root, args.config, args.annotations, args.catalog,
                               strict=args.strict, debounce=0 if args.once else args.debounce)
             result = run(watcher, interval=args.interval, max_polls=1 if args.once else args.max_polls,
-                         emit=lambda event: print(json.dumps(event, ensure_ascii=False), flush=True))
-            print(json.dumps(result, ensure_ascii=False), flush=True)
+                         emit=lambda event: print_json(event, compact=True, flush=True))
+            print_json(result, compact=True, flush=True)
             return result['suggested_exit_code']
         elif args.command == 'recover-store':
-            from .store import recover_store
+            from ..store import recover_store
             result = recover_store(args.store, remove_abandoned=args.remove_abandoned)
         elif args.command == 'validate-staged':
             from pathlib import Path
-            from .store import safe_relative
+            from ..store import safe_relative
             if len(args.snapshot) != 64 or any(c not in '0123456789abcdef' for c in args.snapshot):
                 raise ValueError('Invalid staged snapshot ID')
             result = validate_snapshot(safe_relative(Path(args.store).resolve(), 'staging/' + args.snapshot))
         elif args.command == 'audit-dependencies':
-            from .status import reviewed_cycles
+            from ..status import reviewed_cycles
             if args.corpus:
-                from .corpus import project
+                from ..corpus import project
                 graph_input, scope = project(args.corpus, args.registry_revision, args.source_version_id)
                 graph = graph_input.graph
             else:
-                from .store import load_graph
+                from ..store import load_graph
                 graph, _ = load_graph(args.store)
                 scope = {'snapshot_id': graph['snapshot_id']}
             result = {'scope': scope, 'issues': reviewed_cycles(graph), 'policy': 'Active reviewed logic only; citation cycles are retained'}
         elif args.command == 'apply':
-            from .review import apply
+            from ..review import apply
             result = apply(args.corpus, args.proposal_id, args.review_id)
         elif args.command == 'review':
-            from .review import create_proposal
+            from ..review import create_proposal
             payload = _command_object(args.input, ('changes', 'rationale'), ('expected_registry_revision',))
             result = create_proposal(args.corpus, actor={'id': args.actor_id, 'kind': args.actor_kind}, **payload)
         elif args.command == 'review-decide':
-            from .review import decide
+            from ..review import decide
             result = decide(args.corpus, args.proposal_id, actor={'id': args.actor_id, 'kind': args.actor_kind},
                             decision=args.decision, rationale=args.rationale, checked_scopes=args.checked_scope)
         elif args.command == 'check-css':
-            from .validators.qec import check_css
+            from ..validators.qec import check_css
             result = check_css(read_json(args.hx), read_json(args.hz), read_json(args.lx) if args.lx else None,
                                read_json(args.lz) if args.lz else None, enumerate_distance=args.enumerate_distance, max_n=args.max_n)
             result['suggested_exit_code'] = 0 if result['passed'] else 2
         elif args.command == 'check-experiment':
-            from .validators.qec import check_experiment
+            from ..validators.qec import check_experiment
             payload = _command_object(args.input, ('record', 'metric'))
             result = check_experiment(payload['record'], payload['metric'])
         elif args.command == 'codes':
-            from .domain_query import codes
+            from ..domain_query import codes
             result = codes(args.corpus, registry_revision=args.registry_revision, n_min=args.n_min, n_max=args.n_max,
                            distance_at_least=args.distance_at_least, metric_definition_id=args.metric_definition_id,
                            sector=args.sector, construction=args.construction, limit=args.limit)
         elif args.command == 'validate-corpus':
             result = Registry(args.corpus).validate(args.registry_revision)
         elif args.command == 'migrate':
-            from .migrations import migrate
+            from ..migrations import migrate
             result = migrate(args.input, args.out, source_root=args.source_root)
         elif args.command == 'migration-import':
             result = Registry(args.corpus).import_migration(args.input)
@@ -738,7 +606,7 @@ def main(argv=None):
             result = split_project(args.entry, args.project_id, args.out, args.project_root, args.config,
                                    strict=args.strict, incremental=args.incremental, force=args.force)
         elif getattr(args, 'corpus', None):
-            from .corpus import execute
+            from ..corpus import execute
             result = execute(args.corpus, args.command, getattr(args, 'id_or_label', None),
                              registry_revision=args.registry_revision, source_version_id=args.source_version_id,
                              text=getattr(args, 'query', None), kind=getattr(args, 'kind', None),
@@ -756,14 +624,14 @@ def main(argv=None):
         else:
             result = dependencies(args.store, args.id_or_label, args.depth, args.include_candidates,
                                   args.command == "impact", args.max_nodes)
-        print(json.dumps(result, ensure_ascii=False, indent=2))
+        print_json(result)
         if 'ok' in result:
             return 1 if not result['ok'] else 2 if result['data'].get('extraction_status') == 'partial' else 0
         return result.get('suggested_exit_code', 2 if result.get("extraction_status") == "partial" else 0)
     except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
         if progress:
             return progress.finish(str(exc), 1)
-        print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
+        print_json({"error": str(exc)}, compact=True, stream=sys.stderr)
         return 1
     except KeyboardInterrupt:
         if progress:
@@ -772,7 +640,3 @@ def main(argv=None):
     finally:
         if progress:
             progress.close()
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

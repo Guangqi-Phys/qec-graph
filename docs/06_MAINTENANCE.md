@@ -171,5 +171,5 @@ Docker 可写层随容器销毁而消失，volume 生命周期独立；永久成
 1. [SQLite Backup API](https://www.sqlite.org/backup.html)
 2. [Docker 存储](https://docs.docker.com/engine/storage/)
 3. [SQLite 适用场景](https://www.sqlite.org/whentouse.html)
-4. 本包实际实现：`qecgraph/store.py`、`qecgraph/cli.py`、`tests/`。
+4. 本包实际实现：`qecgraph/store.py`、`qecgraph/cli/`、`tests/`。
 5. 旧样例运行与证据：`knowledge_starter/tools/qec_kb.py`、`knowledge_starter/docs/VALIDATION.md`。

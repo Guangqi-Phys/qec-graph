@@ -53,7 +53,7 @@ python tools/reproduce.py --out build/reproduce
 | `qecgraph/graph.py` | 节点身份、标签消歧、关系、sidecar/catalog | 保留来源块与语义事实之间的边界 |
 | `qecgraph/store.py` | 快照、输入指纹、JSON/SQLite 投影与验证 | 当前单写者；并发支持需另外实现与测试 |
 | `qecgraph/query.py` | search/show/deps/impact/context | 保持状态过滤、截断提示与来源绑定 |
-| `qecgraph/cli.py` | 命令入口、JSON 输出与退出码 | 原命令保持可用；新命令先定义输入输出契约 |
+| `qecgraph/cli/` | 命令入口、JSON 输出与退出码 | 原命令保持可用；新命令先定义输入输出契约 |
 | `knowledge_starter/` | 旧 Schema 的完整 QEC 示例 | 用显式适配和迁移接入；不要直接覆盖证据 |
 
 当前运行依赖为 `pylatexenc==2.10` 与 `jsonschema==4.26.0`。SQLite 与 unittest 使用 Python 标准库。若升级解析器，必须记录兼容性、更新指纹与测试。
