@@ -69,6 +69,28 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.assertEqual(fresh['entity']['data']['source_snapshot_id'], original)
         self.assertEqual(fresh['scope']['release_id'], self.release)
 
+    def test_research_lookup_requires_revision_when_multiple_are_visible(self):
+        from qecgraph.research import make_record
+        state, _ = self.ws.registry.read()
+        version, = state['versions'].values()
+        source = {'id': version['id'], 'revision': version['snapshot_id']}
+        identifier = 'seed:multiple-revisions'
+        publish_records(self.ws.registry, [
+            make_record('classical_seed', identifier, revision, {'n_data': n},
+                        source=source, method='test_fixture')
+            for revision, n in [('r1', 3), ('r2', 5)]
+        ])
+        session = WorkspaceSession(self.ws.registry.root)
+        for tool in ('qec_get_entity', 'qec_get_context'):
+            with self.subTest(tool=tool):
+                response = session.invoke(tool, {'identifier': identifier})
+                self.assertEqual(response['error']['code'], 'AMBIGUOUS_REVISION')
+                self.assertEqual(response['error']['details']['revisions'], ['r1', 'r2'])
+        first = session.invoke('qec_get_entity', {'identifier': identifier, 'revision': 'r1'})
+        self.assertEqual(first['data']['entity']['data']['n_data'], 3)
+        missing = session.invoke('qec_get_entity', {'identifier': identifier, 'revision': 'missing'})
+        self.assertEqual(missing['error']['code'], 'NOT_FOUND')
+
     def test_real_stdio_does_not_return_human_files_or_synthetic_entities(self):
         publish_records(self.ws.registry, adapt_synthetic(read_json(DESIGN / 'examples/performance_context.synthetic.json')))
         lines = [initialization(), {'jsonrpc': '2.0', 'method': 'notifications/initialized'},

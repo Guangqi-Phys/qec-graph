@@ -76,6 +76,10 @@ class WorkspaceSession:
                         for identity, r in self.records.items() if not r['is_synthetic']
                         and (r['id'] not in generated or generated[r['id']] == r['revision'])
                         and self.review_states.get(identity, {}).get('status') != 'stale'}
+        self._research_ids = {identifier for identifier, _ in self.records}
+        self._visible_by_id = {}
+        for (identifier, _), record in self.visible.items():
+            self._visible_by_id.setdefault(identifier, []).append(record)
         self.scope = {'kind': 'workspace', 'workspace_id': self.state['workspace_id'], 'release_id': self.release}
         self.scope['registry_revision'] = self.release
         self.assets = {uri for r in self.visible.values() for uri in references(r)}
@@ -223,7 +227,9 @@ class WorkspaceSession:
                 'continuation': offset+limit if truncated else None, 'total_matches': len(rows)}
 
     def _research(self, identifier, revision):
-        rows = [r for (i, v), r in self.visible.items() if i == identifier and (revision is None or v == revision)]
+        if revision is not None:
+            return self.visible.get((identifier, revision))
+        rows = self._visible_by_id.get(identifier, ())
         if len(rows) > 1:
             raise ToolError('AMBIGUOUS_REVISION', 'Specify an exact research revision', {'revisions': [r['revision'] for r in rows]})
         return rows[0] if rows else None
@@ -415,7 +421,7 @@ class WorkspaceSession:
                 entity = self._research(identifier, args.get('revision'))
                 if entity:
                     data = self._research_context(entity, args.get('depth', min(2, self.graph.max_depth)))
-                elif args.get('revision') or any(i == identifier for i, _ in self.records):
+                elif args.get('revision') or identifier in self._research_ids:
                     raise ToolError('NOT_FOUND', 'No eligible revision in this release')
                 else:
                     response = self.graph.invoke('qecgraph_context', {**args, 'max_chars': maximum})
@@ -427,7 +433,7 @@ class WorkspaceSession:
                 entity = self._materials().get(identifier) or self._research(identifier, args.get('revision'))
                 if entity:
                     data = {'entity': entity}
-                elif args.get('revision') or any(i == identifier for i, _ in self.records):
+                elif args.get('revision') or identifier in self._research_ids:
                     raise ToolError('NOT_FOUND', 'No eligible revision in this release')
                 else:
                     response = self.graph.invoke('qecgraph_show', {'identifier': identifier, 'max_chars': maximum})
