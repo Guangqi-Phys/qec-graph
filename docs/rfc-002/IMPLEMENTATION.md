@@ -68,3 +68,9 @@ U6 迁移：`qec-graph workspace-migrate --corpus OLD --workspace NEW` 验证旧
 只接受本会话登记的 `qec://source/...` 标识，带代码点坐标、内容哈希和 release；
 不解析 file URI 或任意编码路径。协议固定为
 [MCP 2025-06-18 resources](https://modelcontextprotocol.io/specification/2025-06-18/server/resources)。
+
+可选语义提议采用本地文件交接：`extract-request` 导出有预算的完整原文块；
+使用者自行选择 provider；`extract-submit` 核对模型、处理器、提示哈希和字段所引的摘录，
+只登记草稿。`extract-review` 用显式人员决定发布特定草稿，来源投影变化后自动排除失效审核，
+历史快照仍可审计。无自动网络请求，也不要求论文经过批准。已通过合成 provider 合同回放；
+未连接外部模型或验证通用 LLM 抽取质量。

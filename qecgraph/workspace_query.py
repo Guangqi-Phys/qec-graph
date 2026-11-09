@@ -60,8 +60,20 @@ class WorkspaceSession:
         self.records = validate_bundle(load_records(self.registry, self.state))
         generated = {r['id']: r['revision'] for v in self.state.get('generated_research', {}).values()
                      for r in v['bindings']}
-        self.visible = {identity: r for identity, r in self.records.items()
-                        if not r['is_synthetic'] and (r['id'] not in generated or generated[r['id']] == r['revision'])}
+        self.review_states = {}
+        for decision in self.state.get('semantic_decisions', {}).values():
+            if decision['decision'] != 'approve':
+                continue
+            source = decision['source_ref']
+            current = self.state['versions'].get(source['id'], {}).get('snapshot_id') == source['revision']
+            for binding in decision['record_refs']:
+                self.review_states[key(binding)] = {'status': 'reviewed' if current else 'stale',
+                                                   'proposal_id': decision['proposal_id'],
+                                                   'reviewer': decision['reviewer']}
+        self.visible = {identity: {**r, **({'effective_review': self.review_states[identity]} if identity in self.review_states else {})}
+                        for identity, r in self.records.items() if not r['is_synthetic']
+                        and (r['id'] not in generated or generated[r['id']] == r['revision'])
+                        and self.review_states.get(identity, {}).get('status') != 'stale'}
         self.scope = {'kind': 'workspace', 'workspace_id': self.state['workspace_id'], 'release_id': self.release}
         self.scope['registry_revision'] = self.release
         self.resources = {self._resource_uri(n['id']): n['id'] for n in self.graph.source.graph['nodes']
@@ -152,7 +164,8 @@ class WorkspaceSession:
                 'semantic': 'pending',
                 'code_mention_proposals': sum(x['code_mentions'] for x in self.state.get('generated_research', {}).values()),
                 'source_version_conflicts': sum(bool(r['source_version_conflict']) for r in materials),
-                'excluded_synthetic': sum(r['is_synthetic'] for r in self.records.values())}
+                'excluded_synthetic': sum(r['is_synthetic'] for r in self.records.values()),
+                'excluded_stale_provider_reviews': sum(r['status'] == 'stale' for r in self.review_states.values())}
 
     def _operational(self):
         path = _managed(self.machine, 'operational/status.json')
@@ -223,7 +236,7 @@ class WorkspaceSession:
         for row in [*self._materials().values(), *self.visible.values()]:
             if (not kind or kind == row['kind']) and needle in canonical(row).casefold():
                 rows.append({k: row[k] for k in ('id', 'kind', 'revision', 'status', 'source_version_id',
-                                               'archive_sha256', 'field_evidence') if k in row})
+                                               'archive_sha256', 'field_evidence', 'effective_review') if k in row})
         return self._paginate(rows, args, min(20, self.graph.max_results))
 
     def _research_context(self, record, depth):

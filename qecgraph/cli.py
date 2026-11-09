@@ -89,6 +89,22 @@ def main(argv=None):
     cmd = sub.add_parser('human-build', help='Render Obsidian pages from the current fixed machine release')
     cmd.add_argument('--workspace')
     cmd.add_argument('--release')
+    cmd = sub.add_parser('extract-request', help='Export bounded, provenance-bound source excerpts for an optional provider')
+    cmd.add_argument('source_version')
+    cmd.add_argument('--workspace')
+    cmd.add_argument('--release')
+    cmd.add_argument('--max-chars', type=int, default=24000)
+    cmd.add_argument('--offset', type=int, default=0)
+    cmd = sub.add_parser('extract-submit', help='Validate a local provider response and queue a draft')
+    cmd.add_argument('request_id')
+    cmd.add_argument('response')
+    cmd.add_argument('--workspace')
+    cmd = sub.add_parser('extract-review', help='Record an explicit human decision on an exact provider draft')
+    cmd.add_argument('proposal_id')
+    cmd.add_argument('--workspace')
+    cmd.add_argument('--reviewer', required=True)
+    cmd.add_argument('--decision', choices=['approve', 'reject'], required=True)
+    cmd.add_argument('--rationale', required=True)
     cmd = sub.add_parser('workspace-migrate', help='Copy a legacy corpus into a new workspace; retain all exact revisions')
     cmd.add_argument('--corpus', required=True)
     cmd.add_argument('--workspace', required=True)
@@ -251,6 +267,18 @@ def main(argv=None):
             result = build_human(args.workspace, args.release)
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0 if result['status'] == 'current' else 2
+        if args.command in {'extract-request', 'extract-submit', 'extract-review'}:
+            from . import semantic
+            if args.command == 'extract-request':
+                result = semantic.request_extraction(args.workspace, args.source_version, release=args.release,
+                                                     max_chars=args.max_chars, offset=args.offset)
+            elif args.command == 'extract-submit':
+                result = semantic.submit_extraction(args.workspace, args.request_id, read_json(args.response))
+            else:
+                result = semantic.review_extraction(args.workspace, args.proposal_id, reviewer=args.reviewer,
+                                                    decision=args.decision, rationale=args.rationale)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0
         if args.command == 'workspace-migrate':
             from .workspace_migration import migrate_corpus
             result = migrate_corpus(args.corpus, args.workspace, args.registry_revision)
@@ -283,7 +311,8 @@ def main(argv=None):
                 state, release = ws.registry.read()
                 rows = [row for row in load_records(ws.registry, state)
                         if not row['is_synthetic'] and row['data'].get('review_status') == 'proposed']
-                result = {'release_id': release, 'proposals': rows}
+                from .semantic import queued
+                result = {'release_id': release, 'proposals': rows, 'provider_drafts': queued(ws.root, state)}
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0
         if args.command in {'search', 'show', 'deps', 'impact', 'context', 'validate', 'audit-dependencies'}:
