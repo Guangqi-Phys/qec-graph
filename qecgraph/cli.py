@@ -135,7 +135,7 @@ def _workspace_summary(action, result, code):
         ready = sum(row.get('processing_completed', False) for row in materials)
         problem = next(filter(None, map(_input_problem, materials)), None)
         if problem:
-            return f'{ready}/{count} packages indexed; {problem}', 2
+            return f'{ready}/{count} packages indexed; {problem}', code
         return f'{ready}/{count} packages indexed', code
     if code:
         inputs = result.get('sync', {}).get('inputs', []) + result.get('inputs', [])

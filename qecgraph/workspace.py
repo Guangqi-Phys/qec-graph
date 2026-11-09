@@ -507,8 +507,11 @@ class Workspace:
     def status(self):
         cfg = self.config()
         state, release = self.registry.read()
-        return {'status': 'ok', 'workspace_id': cfg['workspace_id'], 'release_id': release,
-                'materials': list(state.get('materials', {}).values()),
+        materials = list(state.get('materials', {}).values())
+        partial = any(not material.get('processing_completed') or material.get('source_version_conflict')
+                      for material in materials)
+        return {'status': 'partial_batch' if partial else 'ok',
+                'workspace_id': cfg['workspace_id'], 'release_id': release, 'materials': materials,
                 'pending_inputs': sum(1 for _ in self._inbox()),
                 'pending_claims': sum(1 for _ in self._pending_jobs())}
 
