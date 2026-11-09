@@ -52,7 +52,7 @@ def _link(path):
 
 def _render(session, previous):
     entities = {}
-    for row in [*session._materials().values(), *session.visible.values()]:
+    for row in [*session._materials.values(), *session.visible.values()]:
         entities.setdefault(row['id'], []).append(row)
     for node in session.graph.source.graph['nodes']:
         if node['origin'] == 'registry' or node['kind'] in {'theorem', 'lemma', 'definition', 'proposition', 'corollary'}:

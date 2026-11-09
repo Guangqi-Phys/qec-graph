@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import copy
 from datetime import datetime
+from functools import cached_property
 import os
 from pathlib import Path
 import stat
@@ -165,6 +166,7 @@ class WorkspaceSession:
                 props.update(limit=_integer(1, self.graph.max_results), offset=_integer(0))
         return descriptors
 
+    @cached_property
     def _materials(self):
         return {f"source-artifact:{digest}": {'id': f'source-artifact:{digest}', 'kind': 'source_artifact',
                  **{field: m.get(field) for field in ('archive_sha256', 'source_tree_hash', 'source_version_id',
@@ -172,8 +174,9 @@ class WorkspaceSession:
                     'processing_completed', 'source_version_conflict')}}
                 for digest, m in sorted(self.state.get('materials', {}).items())}
 
+    @cached_property
     def _coverage(self):
-        materials = self._materials().values()
+        materials = self._materials.values()
         return {'registered': len(materials),
                 'structure_complete': sum(bool(r['processing_completed']) for r in materials),
                 'semantic': 'pending',
@@ -252,7 +255,7 @@ class WorkspaceSession:
                     node['title'] + '\n' + node['latex'] + '\n' + canonical(node['data']) + '\n' + ' '.join(node['labels'])).casefold():
                 rows.append({k: node.get(k) for k in ('id', 'kind', 'title', 'source', 'provenance',
                                                      'review_status', 'verification_status')})
-        for row in [*self._materials().values(), *self.visible.values()]:
+        for row in [*self._materials.values(), *self.visible.values()]:
             if (not kind or kind == row['kind']) and needle in canonical(row).casefold():
                 rows.append({k: row[k] for k in ('id', 'kind', 'revision', 'status', 'source_version_id',
                                                'archive_sha256', 'field_evidence', 'effective_review') if k in row})
@@ -446,7 +449,7 @@ class WorkspaceSession:
                     data = response['data']
             elif name == 'qec_get_entity':
                 identifier = args['identifier']
-                entity = self._materials().get(identifier) or self._research(identifier, args.get('revision'))
+                entity = self._materials.get(identifier) or self._research(identifier, args.get('revision'))
                 if entity:
                     data = {'entity': entity}
                 elif args.get('revision') or identifier in self._research_ids:
@@ -499,7 +502,7 @@ class WorkspaceSession:
                 if not response['ok']:
                     return response
                 data = response['data']
-            data.update(scope=self.scope, knowledge_snapshot=self.release, coverage=self._coverage())
+            data.update(scope=self.scope, knowledge_snapshot=self.release, coverage=self._coverage)
             data.setdefault('truncated', False)
             data.setdefault('continuation', None)
             if len(canonical(data)) > maximum:

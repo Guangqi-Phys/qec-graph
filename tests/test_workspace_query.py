@@ -62,12 +62,14 @@ class WorkspaceQueryTests(unittest.TestCase):
         original = result['data']['entity']['data']['source_snapshot_id']
         result['data']['entity']['data']['source_snapshot_id'] = 'caller mutation'
         result['data']['scope']['release_id'] = 'caller mutation'
+        result['data']['coverage']['registered'] = -1
         failure = self.session.invoke('unknown', {})
         failure['error']['scope']['release_id'] = 'caller mutation'
 
         fresh = self.session.invoke('qec_get_entity', args)['data']
         self.assertEqual(fresh['entity']['data']['source_snapshot_id'], original)
         self.assertEqual(fresh['scope']['release_id'], self.release)
+        self.assertEqual(fresh['coverage']['registered'], 2)
 
     def test_research_lookup_requires_revision_when_multiple_are_visible(self):
         from qecgraph.research import make_record
