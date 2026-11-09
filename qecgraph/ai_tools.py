@@ -3,14 +3,14 @@ from __future__ import annotations
 
 import copy
 import json
-from pathlib import Path
 import sqlite3
 
 from jsonschema import Draft202012Validator
 
 from . import query
 from .corpus import project
-from .store import GraphInput, load_graph, pin_snapshot, safe_relative, validate_snapshot
+from .registry import Registry
+from .store import GraphInput, load_graph, pin_snapshot, validate_snapshot
 
 TOOL_NAMES = ('qecgraph_search', 'qecgraph_show', 'qecgraph_context', 'qecgraph_deps', 'qecgraph_impact')
 
@@ -70,12 +70,9 @@ class ReadOnlySession:
 
     @staticmethod
     def _check_corpus_sources(corpus, scope):
-        root = Path(corpus).resolve()
+        registry = Registry(corpus)
         for version in scope['source_versions'].values():
-            snapshot = safe_relative(root, version['snapshot_path'])
-            if snapshot.name != version['snapshot_id']:
-                raise ValueError('Registered snapshot identity mismatch')
-            validate_snapshot(snapshot)
+            registry.validate_source_snapshot(version)
 
     def tools(self):
         tools = []

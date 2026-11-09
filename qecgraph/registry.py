@@ -122,6 +122,13 @@ class Registry:
             raise ValueError('Registered snapshot identity mismatch')
         return graph, snapshot, version
 
+    def validate_source_snapshot(self, version):
+        """Validate the source snapshot bound by a verified registry state."""
+        snapshot = safe_relative(self.root, version['snapshot_path'])
+        if snapshot.name != version['snapshot_id']:
+            raise ValueError('Registered snapshot identity mismatch')
+        return validate_snapshot(snapshot)
+
     def _put_record(self, state, record):
         record = prepare_record(record)
         from .review import verify_record_review
@@ -255,9 +262,8 @@ class Registry:
         from .corpus import project
         state, fixed = self.read(registry_revision)
         issues = registry_issues(self, state, fixed)
-        for version_id in state['versions']:
-            _, snapshot, _ = self.source_graph(version_id, fixed)
-            validate_snapshot(snapshot)
+        for version in state['versions'].values():
+            self.validate_source_snapshot(version)
         graph, _ = project(self.root, fixed, check_live_lean=check_live_lean)
         from .validators import validate_graph_types
         validate_graph_types(graph.graph)
