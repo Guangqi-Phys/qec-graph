@@ -128,6 +128,11 @@ Use `--debug` to see a traceback for an unexpected CLI failure.
 For a damaged workspace configuration or CURRENT pointer, the error gives
 its path. Run `qec-graph doctor` for a read-only inspection.
 
+Set `QECGRAPH_LOG_LEVEL=DEBUG` in the MCP server environment to log request
+frame sizes on stderr. Internal error diagnostics include a numeric request
+ID or a short hash of a string ID. Request text, tool arguments, and source
+passages stay out of those diagnostics.
+
 Related commands also have grouped names. For example, `workspace sync`,
 `query search`, `lean build`, and `mcp serve` use the same options and
 handlers as `sync`, `search`, `lean-build`, and `serve-mcp`. Use

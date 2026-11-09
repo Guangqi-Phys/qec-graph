@@ -1,7 +1,10 @@
 """Bounded local MCP stdio server, fixed to protocol version 2025-06-18."""
 from __future__ import annotations
 
+from hashlib import sha256
 import json
+import logging
+import os
 import sys
 import time
 from collections import deque
@@ -132,6 +135,11 @@ def serve_stdio(session, *, input_stream=None, output_stream=None):
     incoming = sys.stdin.buffer if input_stream is None else input_stream
     outgoing = sys.stdout.buffer if output_stream is None else output_stream
     server = MCPServer(session)
+    level = logging.getLevelNamesMapping().get(os.environ.get('QECGRAPH_LOG_LEVEL', '').upper(), logging.WARNING)
+    logger = logging.Logger(__name__, level)
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter('qecgraph MCP %(levelname)s: %(message)s'))
+    logger.addHandler(handler)
 
     def send(message):
         if message is not None:
@@ -156,11 +164,19 @@ def serve_stdio(session, *, input_stream=None, output_stream=None):
             except (ValueError, UnicodeDecodeError, RecursionError):
                 send(rpc_error(None, -32700, 'Invalid UTF-8 JSON request'))
                 continue
+            logger.debug('received request frame (%d bytes)', len(raw))
             try:
                 send(server.handle(message))
+            except BrokenPipeError:
+                return 0
             except Exception:
-                print('qecgraph MCP: internal request failure', file=sys.stderr, flush=True)
                 identifier = message.get('id') if isinstance(message, dict) else None
+                reference = 'unavailable'
+                if isinstance(identifier, str):
+                    reference = 'sha256:' + sha256(identifier.encode('utf-8', errors='backslashreplace')).hexdigest()[:12]
+                elif type(identifier) is int and abs(identifier) < 2**53:
+                    reference = str(identifier)
+                logger.error('internal request failure (id %s)', reference)
                 if isinstance(message, dict) and 'id' in message:
                     send(rpc_error(identifier, -32603, 'Internal read-only server error'))
     except (BrokenPipeError, KeyboardInterrupt):

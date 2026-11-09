@@ -5,7 +5,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stderr
 from pathlib import Path
+from unittest.mock import patch
 
 from qecgraph.ai_tools import ReadOnlySession, TOOL_NAMES
 from qecgraph.mcp_server import MAX_REQUEST_BYTES, MCPServer, PROTOCOL_VERSION, serve_stdio
@@ -94,6 +96,24 @@ class MCPTests(unittest.TestCase):
         self.assertIsNone(invalid['id'])
         self.assertEqual(invalid['error']['code'], -32600)
         self.assertEqual(valid, {'jsonrpc': '2.0', 'id': '量子😀', 'result': {}})
+
+    def test_internal_request_diagnostics_are_correlated_and_stay_on_stderr(self):
+        identifier = 'private-id-canary\n'
+        messages = [initialization(), {'jsonrpc': '2.0', 'method': 'notifications/initialized'},
+                    request(identifier, 'tools/call', {'name': 'qecgraph_search', 'arguments': {'query': 'private-query-canary'}}),
+                    request(3, 'ping')]
+        incoming = io.BytesIO(''.join(json.dumps(message) + '\n' for message in messages).encode())
+        output, diagnostics = io.BytesIO(), io.StringIO()
+        with patch.object(self.session, 'invoke', side_effect=RuntimeError('private-error-canary')):
+            with patch.dict('os.environ', {'QECGRAPH_LOG_LEVEL': 'DEBUG'}), redirect_stderr(diagnostics):
+                self.assertEqual(serve_stdio(self.session, input_stream=incoming, output_stream=output), 0)
+        _, failure, ping = map(json.loads, output.getvalue().splitlines())
+        self.assertEqual((failure['id'], failure['error']['code']), (identifier, -32603))
+        self.assertEqual(ping['id'], 3)
+        self.assertIn('DEBUG: received request frame', diagnostics.getvalue())
+        digest = hashlib.sha256(identifier.encode()).hexdigest()[:12]
+        self.assertIn(f'ERROR: internal request failure (id sha256:{digest})', diagnostics.getvalue())
+        self.assertNotIn('private-', diagnostics.getvalue())
 
     def test_actual_stdio_process_is_read_only_and_never_executes_source(self):
         before = {str(p.relative_to(self.store)): hashlib.sha256(p.read_bytes()).hexdigest()
