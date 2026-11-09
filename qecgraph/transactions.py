@@ -8,6 +8,7 @@ from __future__ import annotations
 import fcntl
 import json
 import os
+import stat
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
@@ -38,22 +39,33 @@ def read_pointer(path, expected_format):
     return pointer
 
 
+def _check_lock_file(path, metadata):
+    if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+        raise ManagedDataError(path, 'Writer lock must be a regular local file with one link')
+
+
 @contextmanager
 def writer_lock(root):
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
     lock_path = root / '.writer.lock'
-    if lock_path.is_symlink():
-        raise ValueError('Writer lock must be a regular local file')
-    with lock_path.open('a+b') as handle:
+    try:
+        _check_lock_file(lock_path, lock_path.lstat())
+    except FileNotFoundError:
+        pass
+    fd = os.open(lock_path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK, 0o666)
+    try:
+        _check_lock_file(lock_path, os.fstat(fd))
         try:
-            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as exc:
             raise WriterBusy(root) from exc
         try:
             yield
         finally:
-            fcntl.flock(handle, fcntl.LOCK_UN)
+            fcntl.flock(fd, fcntl.LOCK_UN)
+    finally:
+        os.close(fd)
 
 
 @contextmanager

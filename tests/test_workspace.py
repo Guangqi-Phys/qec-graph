@@ -2,6 +2,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from hashlib import sha256
 import io
 import json
+import os
 import signal
 import subprocess
 import sys
@@ -16,7 +17,7 @@ from qecgraph.corpus import execute
 from qecgraph.research_store import stage_records
 from qecgraph.source_package import unpack
 from qecgraph.store import extraction_tool_identity, ingest
-from qecgraph.transactions import writer_lock
+from qecgraph.transactions import ManagedDataError, writer_lock
 from qecgraph.workspace import Workspace
 from test_source_package import TEX, tar_bytes
 
@@ -331,6 +332,28 @@ class WorkspaceTests(unittest.TestCase):
         with writer_lock(self.root / '.qecgraph'), self.assertRaisesRegex(ValueError, 'Another writer'):
             self.ws.sync()
         self.assertEqual((self.inbox / 'good').read_bytes(), TEX)
+
+    def test_writer_lock_rejects_linked_and_special_files_before_ingest(self):
+        release = self.ws.init(no_ingest=True)['release_id']
+        package = self.inbox / 'pending.tex'
+        package.write_bytes(TEX)
+        target = self.root / 'unmanaged.txt'
+        target.write_bytes(b'keep my data')
+        lock_path = self.ws.root / '.qecgraph/.writer.lock'
+        lock_path.unlink()
+        for create in (lambda: lock_path.symlink_to(target), lambda: lock_path.hardlink_to(target),
+                       lambda: os.mkfifo(lock_path)):
+            create()
+            try:
+                with self.assertRaises(ManagedDataError) as error:
+                    self.ws.sync()
+                self.assertEqual(error.exception.path, lock_path)
+                self.assertEqual(self.ws.registry.read()[1], release)
+                self.assertEqual(package.read_bytes(), TEX)
+                self.assertEqual(target.read_bytes(), b'keep my data')
+            finally:
+                lock_path.unlink()
+        self.assertNotEqual(self.ws.sync()['release_id'], release)
 
     def test_explicit_same_version_conflict_preserves_both(self):
         self.ws.init(no_ingest=True)
