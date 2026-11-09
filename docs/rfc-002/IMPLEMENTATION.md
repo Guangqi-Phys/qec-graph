@@ -37,3 +37,11 @@ U4：`qec-graph mcp serve --workspace PATH` 或严格部署使用 `--machine MOU
 source-reported 是显式、与数学验证分开的政策。工作区工具拒绝机器目录中的链接，
 不读取外部 Lean 工作树，保守报告其现场新鲜度未核查。现有独立 corpus/Lean 命令保留。
 实测包含 stdio 调用、固定旧 release、URL 编码路径、链接及合成记录隔离。
+
+U5：工作区 CLI 在机器发布后单独启动 human renderer；
+`qec-graph human build --workspace PATH` 可重试，`--no-human` 可跳过。
+生成稳定的 Obsidian 页面和分类索引，固定来源 release；旧链接保留 tombstone。
+仅替换自己的目标文件，写入目标目录内的临时文件后逐页原子替换；
+发布中失败报告 `human_stale`，不能承诺 vault 全局原子。没有读取或覆盖 notes。
+测试通过：重复渲染、旧 release 被拒绝、发布中断恢复、notes symlink 负例。
+`compose.mcp-isolated.yaml` 提供只读 machine 单挂载 profile；容器执行状态另记录。

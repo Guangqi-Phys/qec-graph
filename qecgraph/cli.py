@@ -66,6 +66,8 @@ def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv[:2] == ['mcp', 'serve']:
         argv[:2] = ['serve-mcp']
+    if argv[:2] == ['human', 'build']:
+        argv[:2] = ['human-build']
     if argv[:2] == ['review', 'list'] and '--corpus' not in argv:
         argv[:2] = ['review-list']
     parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graphs with explicit evidence checks")
@@ -75,12 +77,16 @@ def main(argv=None):
         workspace.add_argument('--workspace')
         if action != 'status':
             workspace.add_argument('--keep-inputs', action='store_true')
+            workspace.add_argument('--no-human', action='store_true', help='Skip the separate Obsidian renderer')
         if action == 'init':
             workspace.add_argument('--no-ingest', action='store_true')
         if action == 'sync':
             workspace.add_argument('--dry-run', action='store_true')
         if action == 'rebuild':
             workspace.add_argument('--include-inputs', action='store_true')
+    cmd = sub.add_parser('human-build', help='Render Obsidian pages from the current fixed machine release')
+    cmd.add_argument('--workspace')
+    cmd.add_argument('--release')
     cmd = sub.add_parser('research-import', help='Validate and publish exact research records without evidence promotion')
     cmd.add_argument('input')
     cmd.add_argument('--workspace')
@@ -217,9 +223,25 @@ def main(argv=None):
                 raise ValueError('--snapshot requires --store')
             options = {key: getattr(args, key) for key in ('no_ingest', 'dry_run', 'include_inputs', 'keep_inputs')
                        if hasattr(args, key)}
-            result = getattr(Workspace(args.workspace), args.command)(**options)
+            ws = Workspace(args.workspace)
+            result = getattr(ws, args.command)(**options)
+            if args.command in {'init', 'sync', 'rebuild'} and result.get('release_id') and not args.no_human:
+                import subprocess
+                try:
+                    render = subprocess.run(
+                        [sys.executable, '-m', 'qecgraph', 'human-build', '--workspace', str(ws.root),
+                         '--release', result['release_id']], capture_output=True, text=True, timeout=120, check=False)
+                    result['human'] = json.loads(render.stdout)
+                except (OSError, ValueError, subprocess.TimeoutExpired):
+                    result['human'] = {'status': 'human_stale', 'release_id': result['release_id']}
             print(json.dumps(result, ensure_ascii=False, indent=2))
-            return 2 if result['status'] in {'partial_batch', 'invalid'} else 0
+            return 2 if (result['status'] in {'partial_batch', 'invalid'}
+                         or result.get('human', {}).get('status') == 'human_stale') else 0
+        if args.command == 'human-build':
+            from .human import build_human
+            result = build_human(args.workspace, args.release)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0 if result['status'] == 'current' else 2
         if args.command in {'research-import', 'review-list'}:
             from .workspace import Workspace
             from .research_store import load_records, publish_records

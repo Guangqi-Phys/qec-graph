@@ -1,0 +1,23 @@
+# Mount only the validated machine publication. Never mount the workspace root.
+services:
+  qec-mcp:
+    build:
+      context: .
+    entrypoint: ["qec-graph", "mcp", "serve", "--machine", "/machine"]
+    command: []
+    stdin_open: true
+    tty: false
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    user: "${QEC_MCP_UID:?set QEC_MCP_UID to the machine directory owner's UID}:${QEC_MCP_GID:?set QEC_MCP_GID to the machine directory owner's GID}"
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      - type: bind
+        source: "${QEC_MACHINE_DIR:?set QEC_MACHINE_DIR to the absolute workspace machine directory}"
+        target: /machine
+        read_only: true
+        bind:
+          create_host_path: false
