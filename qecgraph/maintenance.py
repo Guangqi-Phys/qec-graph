@@ -2,6 +2,7 @@
 
 import platform
 import sqlite3
+import stat
 from contextlib import closing
 from pathlib import Path
 
@@ -34,9 +35,15 @@ def doctor(workspace):
     def inventory():
         blobs = ws.path('archive/blobs/sha256')
         receipts = ws.path('archive/receipts')
-        return {'blobs': sum(bool(HEX.fullmatch(path.name)) for path in blobs.iterdir()),
-                'receipts': sum(path.suffix == '.json' and bool(JOB.fullmatch(path.stem))
-                                for path in receipts.iterdir())}
+        paths = {'blobs': [path for path in blobs.iterdir() if HEX.fullmatch(path.name)],
+                 'receipts': [path for path in receipts.iterdir()
+                              if path.suffix == '.json' and JOB.fullmatch(path.stem)]}
+        for kind, entries in paths.items():
+            for entry in sorted(entries):
+                metadata = entry.lstat()
+                if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+                    raise ManagedDataError(entry, f'Expected a regular unlinked file in archive {kind}')
+        return {kind: len(entries) for kind, entries in paths.items()}
 
     def inbox():
         result = ws.list_inputs()
