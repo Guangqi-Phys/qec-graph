@@ -413,9 +413,6 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None):
                 raise ValueError("Fragment hash mismatch")
         if node["verification_status"] == "verified":
             raise ValueError("This extractor must not claim mathematical verification")
-    for edge in graph["edges"]:
-        if edge["source"] not in nodes or edge["target"] not in nodes:
-            raise ValueError("Dangling graph edge")
     for label, ids in graph["labels"].items():
         if any(label not in nodes[i]["labels"] for i in ids):
             raise ValueError("Label ownership mismatch")
