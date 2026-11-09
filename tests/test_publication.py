@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from qecgraph.registry import Registry
 from qecgraph.store import current_snapshot, ingest, recover_store, validate_snapshot
+from qecgraph.transactions import writer_lock
 from qecgraph.workspace import Workspace
 
 
@@ -89,6 +90,20 @@ class PublicationTests(unittest.TestCase):
         crashed = subprocess.run([sys.executable, '-c', code, str(self.store)])
         self.assertEqual(crashed.returncode, 7)
         self.assertTrue(ingest(self.entry, 'publish', self.store)['published'])
+
+    def test_first_ingest_retries_a_lock_only_directory(self):
+        with patch('qecgraph.store.atomic_json', side_effect=OSError('interrupted initial marker write')):
+            with self.assertRaisesRegex(OSError, 'interrupted initial marker write'):
+                ingest(self.entry, 'publish', self.store)
+        self.assertEqual({path.name for path in self.store.iterdir()}, {'.writer.lock'})
+        with writer_lock(self.store):
+            result = subprocess.run([sys.executable, '-m', 'qecgraph', 'ingest', str(self.entry), '--project-id',
+                                     'publish', '--out', str(self.store), '--json'], capture_output=True, text=True, timeout=10)
+            self.assertEqual((result.returncode, result.stderr), (5, ''))
+            self.assertEqual(json.loads(result.stdout)['error']['code'], 'CONFLICT')
+        retry = ingest(self.entry, 'publish', self.store)
+        self.assertTrue(retry['published'])
+        self.assertTrue(validate_snapshot(current_snapshot(self.store))['passed'])
 
     def test_recovery_only_removes_marked_tool_builds(self):
         ingest(self.entry, 'publish', self.store)

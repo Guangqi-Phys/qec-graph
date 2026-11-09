@@ -207,7 +207,7 @@ def check_output_directory(out, *, allow_lock=False):
 
 def ingest(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None,
            *, strict=False, incremental=False, _tool_identity=None, _split_policy=None):
-    out = check_output_directory(out)
+    out = check_output_directory(out, allow_lock=True)
     with writer_lock(out):
         check_output_directory(out, allow_lock=True)
         previous_enriched = None
