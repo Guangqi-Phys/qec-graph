@@ -103,6 +103,7 @@ def build_graph(parsed: dict, project_id: str, project_source_hash: str,
         if item["id"] not in edge_ids:
             edge_ids.add(item["id"])
             edges.append(item)
+            return item
 
     def diag(code, message, source=None, severity="warning"):
         diagnostics.append({"severity": severity, "code": code, "message": message, "source": source})
@@ -331,23 +332,30 @@ def build_graph(parsed: dict, project_id: str, project_source_hash: str,
             diag("stale_annotation", f"Edge {source} -> {target} needs review")
 
     # Lift references/uses from a proof to its proposed/declared statement.
-    proof_links = [e for e in edges if e["relation"] in {"proof_of", "proof_of_candidate"}
-                   and e["status"] not in {"stale", "unresolved", "unbound_review"}]
+    proof_links, containment, reference_edges = [], defaultdict(list), defaultdict(list)
+    for position, item in enumerate(edges):
+        if item["status"] in {"stale", "unbound_review", "unresolved"}:
+            continue
+        relation = item["relation"]
+        if relation in {"proof_of", "proof_of_candidate"}:
+            proof_links.append(item)
+        elif relation == "contains":
+            containment[item["source"]].append(item["target"])
+        elif relation in {"references", "depends_on_declared"}:
+            reference_edges[item["source"]].append((position, item))
     for link in proof_links:
         proof_id, statement_id = link["source"], link["target"]
         proof_children = {proof_id}
-        while True:
-            extended = proof_children | {e["target"] for e in edges
-                                         if e["relation"] == "contains" and e["source"] in proof_children
-                                         and e["status"] not in {"stale", "unbound_review", "unresolved"}}
-            if extended == proof_children:
-                break
-            proof_children = extended
-        for reference in list(edges):
-            if reference["source"] not in proof_children or reference["relation"] not in {"references", "depends_on_declared"}:
-                continue
+        pending = [proof_id]
+        while pending:
+            for child in containment.get(pending.pop(), ()):
+                if child not in proof_children:
+                    proof_children.add(child)
+                    pending.append(child)
+        references = sorted(pair for child in proof_children for pair in reference_edges.get(child, ()))
+        for _, reference in references:
             target = reference["target"]
-            if target == statement_id or reference["status"] in {"stale", "unbound_review", "unresolved"}:
+            if target == statement_id:
                 continue
             declared = reference["relation"] == "depends_on_declared" and link["relation"] == "proof_of"
             relation = "depends_on_declared" if declared else "depends_on_candidate"
@@ -355,8 +363,12 @@ def build_graph(parsed: dict, project_id: str, project_source_hash: str,
             # Keep ordinary source references without adding a dependency.
             if nodes[statement_id]["kind"] not in sources or nodes[target]["kind"] not in targets:
                 continue
-            edge(statement_id, target, relation, "declared" if declared else "candidate",
-                 {"method": "via_proof", "proof_id": proof_id, "proof_link_id": link["id"], "reference_id": reference["id"]})
+            lifted = edge(statement_id, target, relation, "declared" if declared else "candidate",
+                          {"method": "via_proof", "proof_id": proof_id, "proof_link_id": link["id"],
+                           "reference_id": reference["id"]})
+            if declared and lifted is not None:
+                # Later proof links can see newly declared edges in insertion order.
+                reference_edges[statement_id].append((len(edges) - 1, lifted))
 
     for node in nodes.values():
         node["revision"] = hash_text(canonical({"content": node["content_sha256"], "source": node["source"],
