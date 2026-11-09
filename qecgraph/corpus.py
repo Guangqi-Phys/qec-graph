@@ -1,7 +1,6 @@
 """Read-only corpus projection, fixed once per query and shared across transports."""
 from __future__ import annotations
 
-import copy
 from urllib.parse import quote
 
 from .graph import canonical, hash_text
@@ -27,23 +26,23 @@ def project(corpus, registry_revision=None, source_version_id=None, *, check_liv
         graph, _, version = registry.source_graph_from_state(state, version_id, fixed, verify=verify_sources)
         versions[version_id] = version
         partial |= graph['extraction_status'] == 'partial'
-        for original in graph['nodes']:
-            node = copy.deepcopy(original)
-            node['id'] = occurrence_id(version_id, original['id'])
-            node['original_node_id'] = original['id']
+        # The loader gives this projection its own freshly decoded graph.
+        for node in graph['nodes']:
+            original_id = node['id']
+            node['id'] = occurrence_id(version_id, original_id)
+            node['original_node_id'] = original_id
             node['provenance'] = {'source_version_id': version_id, 'work_id': version['work_id'],
                                   'snapshot_id': version['snapshot_id']}
             if node.get('source'):
                 node['source'].update(node['provenance'])
                 node['source']['archive_uri'] = 'qecgraph://source/' + quote(version_id, safe='') + '/' + quote(node['source']['path'])
-            node['labels'] = [version_id + '::' + label for label in original['labels']]
+            node['labels'] = [version_id + '::' + label for label in node['labels']]
             # Full original IDs are also version-qualified to disambiguate revisions.
-            for label in node['labels'] + [version_id + '::' + original['id']]:
+            for label in node['labels'] + [version_id + '::' + original_id]:
                 labels.setdefault(label, []).append(node['id'])
             nodes.append(node)
-        for original in graph['edges']:
-            edge = copy.deepcopy(original)
-            edge['id'] = occurrence_id(version_id, original['id'])
+        for edge in graph['edges']:
+            edge['id'] = occurrence_id(version_id, edge['id'])
             edge['source'] = occurrence_id(version_id, edge['source'])
             edge['target'] = occurrence_id(version_id, edge['target'])
             edges.append(edge)
