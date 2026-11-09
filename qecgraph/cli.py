@@ -10,7 +10,7 @@ from time import monotonic
 
 from .query import context, dependencies, search, show
 from .splitter import split_project
-from .store import current_snapshot, ingest, pin_snapshot, validate_snapshot
+from .store import current_snapshot, ingest, snapshot_reference, validate_snapshot
 from .registry import Registry
 from .graph import read_json
 
@@ -490,7 +490,7 @@ def main(argv=None):
             else:
                 if getattr(args, 'registry_revision', None) or getattr(args, 'source_version_id', None):
                     raise ValueError('Corpus scope arguments require --corpus')
-                args.store = pin_snapshot(args.store, args.snapshot)
+                args.store = snapshot_reference(args.store, args.snapshot)
         if args.command == 'lean-build':
             from .lean import build_project
             result = build_project(args.project, args.out, lake=args.lake, export_declarations=not args.build_only)

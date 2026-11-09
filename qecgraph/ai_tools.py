@@ -9,7 +9,7 @@ from jsonschema import Draft202012Validator
 
 from . import query
 from .corpus import project
-from .store import GraphInput, load_validated_snapshot, pin_snapshot
+from .store import GraphInput, load_validated_snapshot, snapshot_reference
 
 TOOL_NAMES = ('qecgraph_search', 'qecgraph_show', 'qecgraph_context', 'qecgraph_deps', 'qecgraph_impact')
 
@@ -49,7 +49,7 @@ class ReadOnlySession:
         else:
             if registry_revision or source_version_id:
                 raise ValueError('Corpus scope arguments require a corpus')
-            reference = pin_snapshot(store, snapshot_id)
+            reference = snapshot_reference(store, snapshot_id)
             self.reference = reference
             graph, _ = load_validated_snapshot(reference.path, reference.snapshot_id, manifest_hashes=self._manifest_hashes)
             self.source = GraphInput(graph, reference.path)

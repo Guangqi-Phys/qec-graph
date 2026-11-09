@@ -62,17 +62,23 @@ class GraphInput:
     snapshot: Path | None = None
 
 
-def pin_snapshot(store, snapshot_id=None):
+def snapshot_reference(store, snapshot_id=None):
+    """Resolve the snapshot location before a caller validates or loads its graph."""
     if snapshot_id is None:
         snapshot = current_snapshot(store)
     else:
         if len(snapshot_id) != 64 or any(c not in '0123456789abcdef' for c in snapshot_id):
             raise ValueError('Invalid snapshot ID')
         snapshot = Path(store).resolve() / 'snapshots' / snapshot_id
-    graph = read_json(snapshot / 'graph.json')
-    if graph['snapshot_id'] != snapshot.name:
+    return SnapshotReference(snapshot, snapshot.name)
+
+
+def pin_snapshot(store, snapshot_id=None):
+    reference = snapshot_reference(store, snapshot_id)
+    graph = read_json(reference.path / 'graph.json')
+    if graph['snapshot_id'] != reference.snapshot_id:
         raise ValueError('Snapshot identity mismatch')
-    return SnapshotReference(snapshot, graph['snapshot_id'])
+    return reference
 
 
 def current_snapshot(store):
