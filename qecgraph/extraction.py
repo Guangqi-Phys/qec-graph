@@ -4,17 +4,62 @@ from __future__ import annotations
 import re
 
 from .graph import canonical, hash_text
-from .research import make_record, ref
+from .research import make_record
 
-RULE_VERSION = 'code-mention-rules-v1'
-NOTATION = re.compile(r'\[\[\s*(\d{1,8})\s*,\s*(\d{1,8})\s*,\s*(\d{1,8})\s*\]\]')
-QUANTUM_CONTEXT = re.compile(r'\b(?:CSS|quantum|stabili[sz]er)\s+code\b', re.I)
-CLASSICAL_CONTEXT = re.compile(r'\bclassical\b', re.I)
-FRAGMENTS = {'paragraph', 'definition', 'lemma', 'theorem', 'proposition', 'corollary', 'remark'}
+RULE_VERSION = 'code-mention-rules-v2'
+TOKEN = r'(?:\d{1,8}|[nkdKrR](?:\s*>\s*0)?)'
+TUPLE = rf'{TOKEN}(?:\s*,\s*{TOKEN}){{2,3}}'
+NOTATION = re.compile(rf'\[\[\s*(?P<sq>{TUPLE})\s*\]\]|\(\(\s*(?P<round>{TUPLE})\s*\)\)'
+                      rf'|(?<!\[)\[\s*(?P<single>{TUPLE})\s*\](?!\])')
+QUANTUM_CONTEXT = re.compile(r'\b(?:CSS|quantum|stabili[sz]er)\s+codes?\b', re.I)
+SUBSYSTEM = re.compile(r'\bsubsystem\s+codes?\b', re.I)
+NONADDITIVE = re.compile(r'\bnon[- ]?additive\b', re.I)
+CLASSICAL_CONTEXT = re.compile(r'\b(?:classical|BCH)\s+(?:seed|codes?)\b', re.I)
+FRAGMENTS = {'paragraph', 'definition', 'lemma', 'theorem', 'proposition', 'corollary', 'remark', 'table'}
+FIELDS = ('reported_notation', 'coding_domain', 'parameter_semantics', 'n_data', 'k_logical', 'K', 'r_gauge', 'R')
+
+
+def _tuple_kind(node, match, arity):
+    body = node['latex']
+    line_start = body.rfind('\n', 0, match.start()) + 1
+    line_end = body.find('\n', match.end())
+    context = body[line_start:line_end if line_end != -1 else len(body)]
+    if node['kind'] == 'table':
+        # Narrow labeled-column rule. An unrelated table or ambiguous column is left untyped.
+        if all(re.search(cue, body, re.I) for cue in (r'Subsystem Code', r'Parent', r'BCH Code')):
+            col = body[line_start:match.start()].count('&')
+            if col == 0 and match.lastgroup in ('sq', 'round') and arity == 4:
+                return 'quantum', 'subsystem_log_dimensions' if match.lastgroup == 'sq' else 'subsystem_dimensions'
+            if col == 1 and match.lastgroup == 'single' and arity == 3:
+                return 'classical', 'classical_seed_parameters'
+        return None, None
+    if len(list(NOTATION.finditer(context))) != 1:
+        return None, None
+    classical = CLASSICAL_CONTEXT.search(context)
+    subsystem = SUBSYSTEM.search(context)
+    nonadditive = NONADDITIVE.search(context)
+    quantum = QUANTUM_CONTEXT.search(context) or subsystem or nonadditive
+    if classical and not quantum and match.lastgroup == 'single' and arity == 3:
+        return 'classical', 'classical_seed_parameters'
+    if not quantum or classical:
+        return None, None
+    if subsystem and arity == 4 and match.lastgroup != 'single':
+        return 'quantum', 'subsystem_log_dimensions' if match.lastgroup == 'sq' else 'subsystem_dimensions'
+    if nonadditive and arity == 3 and match.lastgroup == 'round':
+        return 'quantum', 'nonadditive_dimension'
+    if QUANTUM_CONTEXT.search(context) and arity == 3 and match.lastgroup == 'sq' and not nonadditive:
+        return 'quantum', 'quantum_logical_count'
+    return None, None
+
+
+def _locator(node, source_id, snapshot, start, end):
+    return {'source_version_id': source_id, 'snapshot_id': snapshot, 'node_id': node['id'],
+            'node_content_sha256': node['content_sha256'], 'path': node['source']['path'],
+            'char_start': start, 'char_end': end}
 
 
 def proposals(graph, version):
-    """Pass 1 locates mentions; pass 2 binds only values supported in the same clause."""
+    """Pass 1 locates tuples; pass 2 applies local wording or labeled column rules."""
     source_id, snapshot = version['id'], version['snapshot_id']
     origin = {'id': source_id, 'revision': snapshot}
     source = make_record('paper_version', source_id, snapshot,
@@ -26,35 +71,47 @@ def proposals(graph, version):
         if node['kind'] not in FRAGMENTS or not span or node['origin'] != 'parser':
             continue
         for match in NOTATION.finditer(node['latex']):
+            if match.lastgroup == 'single' and node['kind'] != 'table' and not CLASSICAL_CONTEXT.search(node['latex']):
+                continue  # Bracketed citations and optional TeX arguments are common.
             start = span['char_start'] + match.start()
             location = (span['path'], start, start + len(match[0]))
+            rank = (node['kind'] != 'table', len(node['latex']), node['id'])
             previous = candidates.get(location)
-            if previous is None or len(node['latex']) < len(previous[0]['latex']):
-                candidates[location] = (node, match)
+            if previous is None or rank < previous[0]:
+                candidates[location] = (rank, node, match)
     records = [source]
-    for (path, start, end), (node, match) in sorted(candidates.items()):
-        body = node['latex']
-        line_start = body.rfind('\n', 0, match.start()) + 1
-        line_end = body.find('\n', match.end())
-        context = body[line_start:line_end if line_end != -1 else len(body)]
-        explicit_quantum = bool(QUANTUM_CONTEXT.search(context) and not CLASSICAL_CONTEXT.search(context)
-                                and len(list(NOTATION.finditer(context))) == 1)
-        # Notation alone does not assign dimensions, establish a bound, or establish object identity.
+    for (path, start, end), (_, node, match) in sorted(candidates.items()):
+        terms = [v.strip() for v in match[match.lastgroup].split(',')]
+        domain, semantics = _tuple_kind(node, match, len(terms))
         data = {'source_ref': origin, 'code_ref': None, 'reported_notation': match[0],
-                'coding_domain': 'quantum' if explicit_quantum else None,
-                'n_data': int(match[1]) if explicit_quantum else None,
-                'k_logical': int(match[2]) if explicit_quantum else None,
+                'coding_domain': domain, 'parameter_semantics': semantics, 'n_data': None,
+                'k_logical': None, 'K': None, 'r_gauge': None, 'R': None,
                 'distance_interpretation': None, 'review_status': 'proposed'}
-        if data['n_data'] is not None and (data['n_data'] < 1 or data['k_logical'] > data['n_data']):
-            data.update(n_data=None, k_logical=None)
-        locator = {'source_version_id': source_id, 'snapshot_id': snapshot, 'node_id': node['id'],
-                   'node_content_sha256': node['content_sha256'], 'path': path, 'char_start': start, 'char_end': end}
-        evidence = {f'/data/{field}': {'status': 'known', 'source_ref': origin, 'source_locator': locator,
+        if semantics:
+            roles = {
+                'quantum_logical_count': ('n_data', 'k_logical'),
+                'subsystem_log_dimensions': ('n_data', 'k_logical', 'r_gauge'),
+                'subsystem_dimensions': ('n_data', 'K', 'R'),
+                'nonadditive_dimension': ('n_data', 'K'),
+                'classical_seed_parameters': ('n_data', 'k_classical'),
+            }[semantics]
+            if 'k_classical' in roles:
+                data['k_classical'] = None
+            for role, value in zip(roles, terms):
+                if value.isdecimal():
+                    data[role] = int(value)
+            n, k = data['n_data'], data['k_logical']
+            if n is not None and (n < 1 or (k is not None and k + (data['r_gauge'] or 0) > n)):
+                for role in roles:
+                    data[role] = None
+        locator = _locator(node, source_id, snapshot, start, end)
+        context = _locator(node, source_id, snapshot, node['source']['char_start'], node['source']['char_end'])
+        evidence = {f'/data/{field}': {'status': 'known', 'source_ref': origin,
+                                      'source_locator': locator if field == 'reported_notation' else context,
                                       'method': RULE_VERSION}
-                    for field in ('reported_notation', 'coding_domain', 'n_data', 'k_logical')
-                    if data[field] is not None}
+                    for field in (*FIELDS, 'k_classical') if data.get(field) is not None}
         identifier = 'mention:' + hash_text(canonical([source_id, path, start, end]))
-        revision = hash_text(canonical([snapshot, RULE_VERSION, data, locator]))
+        revision = hash_text(canonical([snapshot, RULE_VERSION, data, locator, context]))
         records.append(make_record('code_mention', identifier, revision, data, source=origin,
                                    method=RULE_VERSION, evidence=evidence))
     return records

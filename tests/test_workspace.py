@@ -107,3 +107,14 @@ class WorkspaceTests(unittest.TestCase):
         for mention in mentions:
             loc = mention['field_evidence']['/data/reported_notation']['source_locator']
             self.assertEqual(raw.decode()[loc['char_start']:loc['char_end']], mention['data']['reported_notation'])
+
+    def test_nonadditive_dimension_is_not_a_logical_qubit_count(self):
+        from qecgraph.research_store import load_records
+        raw = TEX.replace(b'Hello', b'\nA nonadditive quantum code has $((9,12,3))$.\n')
+        (self.inbox / 'example').write_bytes(raw)
+        self.ws.init()
+        state, _ = self.ws.registry.read()
+        row, = [r for r in load_records(self.ws.registry, state) if r['kind'] == 'code_mention']
+        self.assertEqual(row['data']['K'], 12)
+        self.assertIsNone(row['data']['k_logical'])
+        self.assertIsNone(row['data']['distance_interpretation'])
