@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -9,6 +9,23 @@ description = "Provenance-preserving LaTeX blocks and typed QEC knowledge graphs
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = ["pylatexenc==2.10", "jsonschema==4.26.0"]
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{name = "QEC Graph contributors"}]
+keywords = ["quantum error correction", "LaTeX", "knowledge graph", "MCP"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+[project.urls]
+Repository = "https://github.com/Guangqi-Phys/qec-graph"
+Documentation = "https://github.com/Guangqi-Phys/qec-graph/blob/main/docs/ADVANCED_USAGE.md"
+Issues = "https://github.com/Guangqi-Phys/qec-graph/issues"
 
 [project.scripts]
 qecgraph = "qecgraph.cli:main"
