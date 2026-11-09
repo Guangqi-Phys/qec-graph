@@ -3,9 +3,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+from functools import lru_cache
 from importlib.resources import files
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 
 STATEMENTS = {'lemma', 'theorem', 'proposition', 'corollary', 'conjecture', 'claim'}
 MATHEMATICS = STATEMENTS | {'definition', 'proof', 'equation'}
@@ -36,6 +37,12 @@ ENDPOINTS = {
     'lean_proof_depends_on_transitive': ({'lean_declaration'}, {'lean_declaration'}),
 }
 
+
+
+@lru_cache
+def packaged_validator(name):
+    schema = json.loads(files(__package__).joinpath('schemas/' + name + '.schema.json').read_text(encoding='utf-8'))
+    return Draft202012Validator(schema, format_checker=FormatChecker())
 
 def validate_record(record):
     name = 'record.v2.schema.json' if record['schema_version'] == 'qecgraph.record.v2' else 'record.v3.schema.json'

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qec-graph.local/schemas/research.v1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "revision", "kind", "data", "field_evidence", "is_synthetic"],
+  "properties": {
+    "schema_version": {"const": "qecgraph.research.v1"},
+    "id": {"type": "string", "minLength": 1},
+    "revision": {"type": "string", "minLength": 1},
+    "kind": {"type": "string", "minLength": 1},
+    "data": {"type": "object"},
+    "is_synthetic": {"type": "boolean"},
+    "field_evidence": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status"],
+        "properties": {
+          "status": {"enum": ["known", "not_extracted", "unresolved", "not_reported", "not_applicable", "conflicting"]},
+          "method": {"type": "string", "minLength": 1},
+          "source_ref": {"$ref": "#/$defs/ref"},
+          "source_locator": {"type": "object"},
+          "reason": {"type": "string", "minLength": 1},
+          "limitation": {"type": "string"},
+          "checked_scope": {"type": "string", "minLength": 1},
+          "checked_at": {"type": "string", "format": "date"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "revision"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "revision": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}
