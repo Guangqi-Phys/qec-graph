@@ -6,7 +6,7 @@
 
 - `graph.json`：`schema_version=qecgraph.graph.v1`，一份导入快照的完整图。
 - `annotations.json`：`schema_version=qecgraph.annotations.v1`，人工/AI 提议的独立补充输入。
-- `schemas/graph.schema.json`：给工具和 AI 使用的结构约束；跨文件位置、哈希与关系端点由程序额外检查。
+- [当前 graph schema](../../qecgraph/validators/schemas/graph.schema.json) 提供结构约束。程序另行检查跨文件位置、哈希与关系端点。
 
 图保存的是“对象的记录”，不是数学真理的自动认证。
 

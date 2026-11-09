@@ -29,7 +29,7 @@
 | 部署 | 本地 Python/Lean；research Compose 模板未运行验证 | 验证容器镜像 |
 
 `knowledge_starter/schemas/record.schema.json` 的 `0.1.0` 是旧样例格式。
-`schemas/graph.schema.json` 的 `qecgraph.graph.v1` 是当前抽取图格式。
+[包内 graph schema](../qecgraph/validators/schemas/graph.schema.json) 的 `qecgraph.graph.v1` 是当前抽取图格式。
 它们承担不同职责，都不是完整 QEC 领域模型；新规范不能通过改一个版本字符串伪装成兼容升级。
 
 ## 3. 四层存储，一字段一个权威所有者

@@ -14,6 +14,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import importlib.metadata
+from importlib.resources import files
 import importlib.util
 import json
 import os
@@ -131,7 +132,7 @@ def main(argv=None) -> int:
         if has_schema:
             from jsonschema import Draft202012Validator
             for filename in ("graph.schema.json", "annotations.schema.json"):
-                schema = json.loads((ROOT / "schemas" / filename).read_text(encoding="utf-8"))
+                schema = json.loads(files('qecgraph.validators').joinpath('schemas', filename).read_text(encoding="utf-8"))
                 Draft202012Validator.check_schema(schema)
                 validator = Draft202012Validator(schema)
                 if filename.startswith("graph"):

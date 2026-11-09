@@ -3,8 +3,8 @@
 ## 记录与 Schema 版本
 
 P2 新记录使用 `qecgraph.record.v3`。相对 P1 v2，新增逐 kind 必填字段、显式未知原因、
-严格引用和受管理资产结构。权威 Schema 随 Python 包发布于 `qecgraph/validators/schemas/`；
-根目录 `schemas/record.v2.schema.json`、`record.v3.schema.json` 只是引用入口。
+严格引用和受管理资产结构。权威 Schema 随 Python 包发布于
+[`qecgraph/validators/schemas/`](../qecgraph/validators/schemas/)。旧路径见[迁移说明](../schemas/README.md)。
 P5 在 v3 添加 `lean_declaration` kind 与专用关系，原有字段和旧记录哈希不变；
 包含新 kind 的记录需支持该扩展的读者。实际构建与语义审核见 [13](13_LEAN_EXECUTION.md)。
 

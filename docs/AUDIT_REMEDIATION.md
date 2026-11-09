@@ -21,7 +21,7 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 13 | Grouped help, examples, and alias migration | Open. |
 | 14 | Query workspaces directly through the MCP query layer | Complete in `4067e6e`. Five CLI queries matched their tool results at a pinned release after CURRENT advanced. The workspace query suite passed. |
 | 15 | Doctor, version command, and snapshot listing | Open. |
-| 16 | Package all current schemas and expand research contracts | Open. Preserve validation across revisions and runtime-only invariants. |
+| 16 | Package all current schemas and expand research contracts | In progress. Moved graph and annotations into the packaged schema directory and documented migration from checkout-only paths. Distribution checks compare all packaged schema bytes. Per-kind research contracts remain. |
 | 17 | Single packaged software seed and explicit test fixtures | Complete. The deleted seed matched the packaged resource byte for byte. The synthetic fixture kept its historical SHA-256. Research and workspace query tests load the canonical inputs. |
 | 18 | Organize documentation by purpose | Open. Preserve referenced entry points while migrating links. |
 | 19 | CLI, renderer, schema, and docs tests with coverage | In progress. The full suite recorded 78% branch-aware coverage and passes the 70% gate. CLI contracts now have dedicated tests. Renderer, schema, and docs coverage remains. |

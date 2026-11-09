@@ -28,6 +28,10 @@ def verify(source, wheel, sdist):
         license_path = metadata.removesuffix('METADATA') + 'licenses/LICENSE'
         if archive.read(license_path) != license_bytes:
             raise ValueError('Wheel license differs from the source license')
+        schemas = Path('qecgraph/validators/schemas')
+        for path in (source / schemas).glob('*.schema.json'):
+            if archive.read((schemas / path.name).as_posix()) != path.read_bytes():
+                raise ValueError(f'Packaged schema differs from its source: {path.name}')
     with tarfile.open(sdist, 'r:gz') as archive:
         prefix = sdist.name.removesuffix('.tar.gz')
         for name, expected in (('README.md', readme.encode('utf-8')), ('LICENSE', license_bytes)):
