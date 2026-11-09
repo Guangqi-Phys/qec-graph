@@ -263,7 +263,7 @@ class Registry:
         report = read_json(migration_root / 'migration-report.json')
         if report.get('schema_version') != 'qecgraph.migration.v1' or report.get('rejected'):
             raise ValueError('Import requires a migration report with no rejected inputs')
-        records = [read_json(safe_relative(migration_root, item['output_path'])) for item in report['accepted']
+        records = [prepare_record(read_json(safe_relative(migration_root, item['output_path']))) for item in report['accepted']
                    if item['output_schema'] == 'qecgraph.record.v3']
         with writer_lock(self.root):
             state = self._state_or_empty()
@@ -271,13 +271,9 @@ class Registry:
                 for asset in record['assets']:
                     source = safe_relative(migration_root, asset['path'])
                     raw = source.read_bytes()
-                    if hashlib.sha256(raw).hexdigest() != asset['sha256']:
-                        raise ValueError('Migrated asset hash mismatch')
-                    target = safe_relative(self.root, asset['path'])
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    if target.exists() and target.read_bytes() != raw:
-                        raise ValueError('Managed asset is corrupted')
-                    target.write_bytes(raw)
+                    if hashlib.sha256(raw).hexdigest() != asset['sha256'] or len(raw) != asset['size_bytes']:
+                        raise ValueError('Migrated asset hash or byte count mismatch')
+                    self._put_asset(raw, asset['media_type'])
                 self._put_record(state, record)
             revision = self._publish(state)
         return {'registry_revision': revision, 'imported_records': len(records), 'mathematical_recheck': 'not_performed'}

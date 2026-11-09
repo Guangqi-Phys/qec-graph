@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -25,10 +26,16 @@ class MigrationTests(unittest.TestCase):
         self.assertEqual(report['status'], 'passed')
         self.assertEqual(len(report['accepted']), 10)
         registry = Registry(self.root / 'corpus')
-        registry.import_migration(self.root / 'migration')
+        imported = registry.import_migration(self.root / 'migration')
         record = registry.record('presentation:rep3-hgp:standard')
         matrix_uri = record['data']['matrices']['HX']
         self.assertEqual(registry.asset_bytes(matrix_uri), (starter / 'assets/matrices/HX.gf2.json').read_bytes())
+        matrix_path = registry.root / 'assets' / matrix_uri.rsplit(':', 1)[-1]
+        os.utime(matrix_path, (1_000_000_000, 1_000_000_000))
+        before = matrix_path.stat()
+        self.assertEqual(registry.import_migration(self.root / 'migration'), imported)
+        self.assertEqual(matrix_path.stat().st_mtime_ns, before.st_mtime_ns)
+        self.assertEqual(matrix_path.stat().st_ino, before.st_ino)
         self.assertIn('legacy_canonical_sha256', record['assets'][0])
         self.assertEqual(record['extensions']['legacy_record'], read_json(starter / 'records/presentation_rep3_hgp.json'))
         claim = registry.record('claim:rep3-hgp:distance')
