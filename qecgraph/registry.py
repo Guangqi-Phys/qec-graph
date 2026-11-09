@@ -8,7 +8,7 @@ import uuid
 from pathlib import Path
 
 from .graph import canonical, hash_text, read_json
-from .store import current_snapshot, safe_relative, validate_snapshot
+from .store import current_snapshot, load_validated_snapshot, safe_relative, validate_snapshot
 from .transactions import atomic_bytes, atomic_json, immutable_json, writer_lock
 from .records import prepare_record
 from .query import resolve
@@ -83,8 +83,7 @@ class Registry:
         if not all(isinstance(x, str) and x.strip() for x in (work_id, source_version_id)):
             raise ValueError('work_id and source_version_id must be explicit nonempty IDs')
         source = current_snapshot(store)
-        validation = validate_snapshot(source)
-        graph = read_json(source / 'graph.json')
+        graph, validation = load_validated_snapshot(source)
         snapshot_id = validation['snapshot_id']
         version = {'id': source_version_id, 'work_id': work_id, 'project_id': graph['project_id'],
                    'snapshot_id': snapshot_id, 'project_source_hash': graph['project_source_hash'],

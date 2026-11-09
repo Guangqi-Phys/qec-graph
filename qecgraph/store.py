@@ -13,7 +13,7 @@ from pathlib import Path
 from dataclasses import dataclass
 
 from . import __version__
-from .graph import build_graph, canonical, hash_text, node_filename, read_json, views
+from .graph import build_graph, canonical, hash_text, node_filename, read_json, strict_json_loads, views
 from .parser import parse_project
 from .transactions import atomic_json, writer_lock
 
@@ -361,20 +361,29 @@ def recover_store(store, *, remove_abandoned=False):
 
 
 def validate_snapshot(snapshot, expected_snapshot_id=None):
+    _, report = load_validated_snapshot(snapshot, expected_snapshot_id)
+    return report
+
+
+def load_validated_snapshot(snapshot, expected_snapshot_id=None):
+    """Return the graph decoded from the bytes checked during validation."""
     from .validators import validate_graph_types
     snapshot = Path(snapshot)
     manifest = read_json(snapshot / "manifest.json")
-    graph = read_json(snapshot / "graph.json")
+    output_root = snapshot.resolve()
+    graph_path = _safe_relative_to_resolved(output_root, "graph.json")
+    graph_bytes = graph_path.read_bytes()
+    graph = strict_json_loads(graph_bytes.decode("utf-8"), source=str(graph_path))
     validate_graph_types(graph)
     expected = expected_snapshot_id or snapshot.name
     if graph["snapshot_id"] != expected or manifest["snapshot_id"] != expected:
         raise ValueError("Snapshot identity mismatch")
     if hash_text(canonical(manifest["fingerprint_inputs"])) != expected:
         raise ValueError("Snapshot fingerprint mismatch")
-    output_root = snapshot.resolve()
     for output in manifest["outputs"]:
-        path = _safe_relative_to_resolved(output_root, output["path"])
-        if hashlib.sha256(path.read_bytes()).hexdigest() != output["sha256"]:
+        relative = output["path"]
+        raw = graph_bytes if relative == "graph.json" else _safe_relative_to_resolved(output_root, relative).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != output["sha256"]:
             raise ValueError(f"Snapshot file changed: {output['path']}")
     sources = {}
     source_root = (snapshot / "sources").resolve()
@@ -420,6 +429,7 @@ def validate_snapshot(snapshot, expected_snapshot_id=None):
             raise ValueError("SQLite graph references are broken")
     finally:
         con.close()
-    return {"passed": True, "snapshot_id": expected, "nodes": len(nodes), "edges": len(graph["edges"]),
-            "source_slices_checked": sum(bool(n.get("source")) for n in nodes.values()),
-            "scope": "integrity, structure and provenance; no mathematical or Lean proof verification"}
+    report = {"passed": True, "snapshot_id": expected, "nodes": len(nodes), "edges": len(graph["edges"]),
+              "source_slices_checked": sum(bool(n.get("source")) for n in nodes.values()),
+              "scope": "integrity, structure and provenance; no mathematical or Lean proof verification"}
+    return graph, report
