@@ -65,6 +65,20 @@ def propose(args):
     return emit_report(result, quiet=args.quiet)
 
 
+def review_show(args):
+    if args.corpus:
+        from ...review import read_proposal
+        result = read_proposal(Registry(args.corpus), args.proposal_id)
+    else:
+        from ...semantic import get_draft
+        from ...workspace import Workspace
+        ws = Workspace(args.workspace)
+        ws.config()
+        state, release = ws.registry.read()
+        result = {'release_id': release, 'provider_draft': get_draft(ws, state, args.proposal_id)}
+    return emit_report(result, quiet=args.quiet)
+
+
 def decide(args):
     from ...review import decide
     result = decide(args.corpus, args.proposal_id, actor={'id': args.actor_id, 'kind': args.actor_kind},

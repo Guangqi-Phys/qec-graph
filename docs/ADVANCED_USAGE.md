@@ -170,8 +170,9 @@ links. Personal notes remain in place. If you need to run an older renderer,
 restore its generated pages and `.qecgraph/human-*.json` histories from the
 same vault backup; the machine database does not require a downgrade.
 
-Use `qec-graph review list` to inspect proposals, `qec-graph software import-seed`
-to load the bundled software catalog, and `qec-graph software coverage` to
+Use `qec-graph review list` to find proposal IDs and `qec-graph review show PROPOSAL_ID`
+to read a provider draft and its recorded decision. Use `qec-graph software import-seed`
+to load the bundled software catalog and `qec-graph software coverage` to
 inspect its coverage. The workspace guide covers explicit asset registration,
 software metadata refresh, and submitting and reviewing extraction proposals.
 [Research and review workflow](rfc-002/WORKSPACE.md#研究查询和审核)

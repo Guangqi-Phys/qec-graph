@@ -25,6 +25,7 @@ EXAMPLES = {
     'software-refresh': '--workspace ./qec --limit 3',
     'research-import': 'records.json --workspace ./qec',
     'review-list': '--workspace ./qec',
+    'review-show': 'PROPOSAL_ID --workspace ./qec',
     'lean-build': '--project ./lean --out ./build/lean',
     'lean-import': 'lean-report.json --corpus ./corpus --project-id demo --project ./lean',
     'lean-status': '--corpus ./corpus',

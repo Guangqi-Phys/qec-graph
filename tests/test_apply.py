@@ -1,4 +1,7 @@
+import json
 import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -40,6 +43,9 @@ class ApplyTests(unittest.TestCase):
 
     def test_apply_batch_is_atomic_and_repeated_apply_is_identical(self):
         proposal, review = self.proposal_and_review()
+        selected = subprocess.check_output([sys.executable, '-m', 'qecgraph', 'review', 'show', proposal['id'],
+                                            '--corpus', str(self.registry.root)], text=True, timeout=10)
+        self.assertEqual(json.loads(selected), proposal)
         first = apply(self.registry.root, proposal['id'], review['id'])
         again = apply(self.registry.root, proposal['id'], review['id'])
         self.assertEqual(first, again)

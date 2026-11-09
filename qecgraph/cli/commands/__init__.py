@@ -38,6 +38,7 @@ HANDLERS = {
     'split': source.split,
     'apply': records.apply,
     'review': records.propose,
+    'review-show': records.review_show,
     'review-decide': records.decide,
     'check-css': records.check_css,
     'check-experiment': records.check_experiment,

@@ -150,16 +150,14 @@ def review_extraction(workspace, proposal_id, *, reviewer, decision, rationale):
     return {**result, 'status': 'reviewed' if decision == 'approve' else 'rejected', 'release_id': release}
 
 
+def get_draft(ws, state, proposal_id):
+    row = _load(ws, 'extraction-proposals', proposal_id)
+    return {**row, 'decision': state.get('semantic_decisions', {}).get(proposal_id)}
+
+
 def queued(workspace, state):
     ws = Workspace(workspace)
     queue = ws.path('.qecgraph/extraction-proposals')
     if not queue.is_dir():
         return []
-    decisions = state.get('semantic_decisions', {})
-    result = []
-    for path in sorted(queue.glob('*.json')):
-        if not HEX.fullmatch(path.stem):
-            continue
-        row = _load(ws, 'extraction-proposals', path.stem)
-        result.append({**row, 'decision': decisions.get(row['id'])})
-    return result
+    return [get_draft(ws, state, path.stem) for path in sorted(queue.glob('*.json')) if HEX.fullmatch(path.stem)]

@@ -1,3 +1,6 @@
+import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -147,10 +150,17 @@ class SemanticTests(unittest.TestCase):
                 submit_extraction(root, req['id'], payload)
             submitted_locator['path'] = block['path']
             queued = submit_extraction(root, req['id'], payload)
+            show = [sys.executable, '-m', 'qecgraph', 'review', 'show', queued['proposal_id'], '--workspace', str(root)]
+            draft = json.loads(subprocess.check_output(show, text=True, timeout=10))
+            self.assertIsNone(draft['provider_draft']['decision'])
+            self.assertEqual(draft['provider_draft']['records'], [record])
             query = {'identifier': record['id']}
             self.assertFalse(WorkspaceSession(ws.registry.root).invoke('qec_get_entity', query)['ok'])
             result = review_extraction(root, queued['proposal_id'], reviewer='human:test', decision='approve',
                                        rationale='Checked fixture text')
+            reviewed = json.loads(subprocess.check_output(show, text=True, timeout=10))
+            self.assertEqual(reviewed['release_id'], result['release_id'])
+            self.assertEqual(reviewed['provider_draft']['decision']['decision'], 'approve')
             session = WorkspaceSession(ws.registry.root, result['release_id'])
             self.assertEqual(session.invoke('qec_get_entity', query)['data']['entity']['effective_review']['status'], 'reviewed')
             config.write_text(initial + settings + '"two.tex"\n')

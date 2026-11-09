@@ -96,8 +96,8 @@ _GROUPS = {
         'context': 'context', 'codes': 'codes', 'performance': 'query-performance',
         'software': 'query-software',
     }),
-    'review': ('Create and apply proposals or list workspace drafts', {
-        'propose': 'review', 'list': 'review-list', 'decide': 'review-decide', 'apply': 'apply',
+    'review': ('Create, inspect, or apply proposals', {
+        'propose': 'review', 'list': 'review-list', 'show': 'review-show', 'decide': 'review-decide', 'apply': 'apply',
     }),
     'lean': ('Build, import, or inspect Lean evidence', {
         'build': 'lean-build', 'import': 'lean-import', 'status': 'lean-status',
@@ -119,7 +119,7 @@ _GROUPS = {
 
 _SHORTCUTS = {'init', 'sync', 'rebuild', 'status', 'validate', 'search', 'show',
               'deps', 'impact', 'context', 'doctor', 'snapshot'}
-_GROUP_ONLY = {'query-performance', 'query-software'}
+_GROUP_ONLY = {'query-performance', 'query-software', 'review-show'}
 _LEGACY_PATHS = {command: f'{group} {verb}' for group, (_, actions) in _GROUPS.items()
                  for verb, command in actions.items() if command not in _SHORTCUTS | _GROUP_ONLY}
 
@@ -202,6 +202,11 @@ def _register_commands(add):
     cmd.add_argument('response', help='Path to the local provider response JSON')
     cmd.add_argument('--workspace',
         help='Path to the QEC workspace; omit to use local discovery where supported')
+    cmd = add('review-show', help='Read an exact provider draft or legacy corpus proposal')
+    cmd.add_argument('proposal_id', help='Exact draft or proposal ID')
+    scope = cmd.add_mutually_exclusive_group()
+    scope.add_argument('--workspace', help='Path to the QEC workspace; omit to discover it locally')
+    scope.add_argument('--corpus', help='Path to a legacy corpus containing the proposal')
     cmd = add('extract-review', help='Record an explicit human decision on an exact provider draft')
     cmd.add_argument('proposal_id', help='Exact proposal ID')
     cmd.add_argument('--workspace',
@@ -467,10 +472,12 @@ def parse_command(argv: list[str], *, entrypoint: tuple[str, str] | None = None)
     action_index = _command_index(argv, start + 1)
     if name == 'review' and action_index < len(argv):
         argument = argv[action_index]
-        # A legacy review took a JSON filename directly. Keep that path,
-        # including the old treatment of a literal input named 'list'.
+        # A legacy review took a JSON filename directly, which can also
+        # be a grouped action name. Actor options identify the old form.
+        legacy_actor = any(flag == '--actor-id' or flag.startswith('--actor-id=') for flag in argv[action_index + 1:])
         if (argument not in {*_GROUPS['review'][1], '--help', '-h'}
-                or argument == 'list' and '--corpus' in argv):
+                or argument == 'list' and '--corpus' in argv
+                or argument == 'show' and legacy_actor):
             argv[start] = 'review-propose'
             name = 'review-propose'
     parser, topics = _build_parser(entrypoint)
