@@ -1,7 +1,9 @@
 import gzip
 import io
+import struct
 import tarfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 from qecgraph.source_package import Limits, PackageError, unpack
@@ -58,6 +60,32 @@ class SourcePackageTests(unittest.TestCase):
     def test_entrypoint_discovery_ignores_non_tex_examples(self):
         raw = tar_bytes({'main.TeX': TEX, 'README.txt': TEX, '.tex': TEX})
         self.assertEqual(unpack(raw).entrypoints(), ['main.TeX'])
+
+    def test_zip_member_limit_precedes_directory_allocation_even_with_forged_counts(self):
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, 'w') as archive:
+            archive.writestr('first.tex', TEX)
+            archive.writestr('second.tex', TEX)
+        raw = bytearray(buffer.getvalue())
+        struct.pack_into('<HH', raw, raw.rindex(b'PK\x05\x06') + 8, 1, 1)
+        for payload in (bytes(raw), gzip.compress(raw)):
+            with patch('qecgraph.source_package.zipfile.ZipFile') as load:
+                with self.assertRaises(PackageError) as error:
+                    unpack(payload, Limits(members=1))
+                self.assertEqual(error.exception.status, 'limit_exceeded')
+                load.assert_not_called()
+
+    def test_zip64_directory_allows_large_variable_fields_under_member_limit(self):
+        buffer = io.BytesIO()
+        entry = zipfile.ZipInfo('main.tex')
+        entry.comment = b'member metadata' * 20
+        with patch.object(zipfile, 'ZIP64_LIMIT', 1):
+            with zipfile.ZipFile(buffer, 'w') as archive:
+                archive.comment = b'Archive comment'
+                archive.writestr(entry, TEX)
+        raw = buffer.getvalue()
+        self.assertIn(b'PK\x06\x06', raw)
+        self.assertEqual(unpack(raw, Limits(members=1)).files, {'main.tex': TEX})
 
     def test_package_detection_rejects_a_damaged_trailer_and_non_tex_prefixes(self):
         tar = tar_bytes({'main.tex': TEX})

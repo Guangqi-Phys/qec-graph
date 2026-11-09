@@ -8,6 +8,7 @@ import io
 from pathlib import Path, PurePosixPath
 import re
 import stat
+import struct
 import tarfile
 import tempfile
 import unicodedata
@@ -146,6 +147,41 @@ class _TreeBuilder:
 
 
 _CHUNK_BYTES = 256 << 10
+_ZIP_DIRECTORY_ENTRY = struct.Struct('<4s24x3H12x')
+
+
+def _check_zip_members(stream, maximum):
+    # Use the same ZIP/ZIP64 footer reader as ZipFile so both inspect the
+    # same directory. The footer's entry count is not authoritative.
+    footer = zipfile._EndRecData(stream)
+    if footer is None:
+        raise zipfile.BadZipFile('Missing ZIP end of central directory')
+    end = footer[zipfile._ECD_LOCATION]
+    if footer[zipfile._ECD_SIGNATURE] == zipfile.stringEndArchive64:
+        stream.seek(end)
+        if stream.read(4) == zipfile.stringEndArchive:
+            # Older Python releases return the ordinary footer's position.
+            end -= zipfile.sizeEndCentDir64 + zipfile.sizeEndCentDir64Locator
+    directory_size = footer[zipfile._ECD_SIZE]
+    position = end - directory_size
+    if position < 0:
+        raise zipfile.BadZipFile('Bad offset for ZIP central directory')
+    if directory_size < (maximum + 1) * _ZIP_DIRECTORY_ENTRY.size:
+        return
+    for _ in range(maximum):
+        stream.seek(position)
+        header = stream.read(_ZIP_DIRECTORY_ENTRY.size)
+        if len(header) != _ZIP_DIRECTORY_ENTRY.size:
+            raise zipfile.BadZipFile('Truncated ZIP central directory')
+        signature, name, extra, comment = _ZIP_DIRECTORY_ENTRY.unpack(header)
+        if signature != zipfile.stringCentralDir:
+            raise zipfile.BadZipFile('Invalid ZIP central directory header')
+        position += _ZIP_DIRECTORY_ENTRY.size + name + extra + comment
+        if position > end:
+            raise zipfile.BadZipFile('Truncated ZIP central directory entry')
+        if position == end:
+            return
+    raise PackageError('limit_exceeded', 'Too many archive members')
 
 
 def _unpack(stream, size, compressed, limits):
@@ -153,6 +189,7 @@ def _unpack(stream, size, compressed, limits):
     stream.seek(0)
     tree = _TreeBuilder(limits)
     if prefix.startswith((b'PK\x03\x04', b'PK\x05\x06', b'PK\x07\x08')):
+        _check_zip_members(stream, limits.members)
         with zipfile.ZipFile(stream) as archive:
             for item in archive.infolist():
                 mode = stat.S_IFMT(item.external_attr >> 16)
