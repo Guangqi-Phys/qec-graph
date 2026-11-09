@@ -128,6 +128,14 @@ Use `--debug` to see a traceback for an unexpected CLI failure.
 For a damaged workspace configuration or CURRENT pointer, the error gives
 its path. Run `qec-graph doctor` for a read-only inspection.
 
+Related commands also have grouped names. For example, `workspace sync`,
+`query search`, `lean build`, and `mcp serve` use the same options and
+handlers as `sync`, `search`, `lean-build`, and `serve-mcp`. Use
+`qec-graph help mcp serve` for options on a grouped command. The original
+`review <file>` still works; use `review propose <file>` for the grouped
+form. If a review file is named like an action, pass `./filename` to make
+the intent clear.
+
 ## Manage the Obsidian vault and research records
 
 Open the workspace's `human/` directory as an Obsidian vault. Start at

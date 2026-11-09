@@ -4,7 +4,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import chdir, redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -15,6 +15,35 @@ from qecgraph.workspace import Workspace
 
 
 class CLIContractTests(unittest.TestCase):
+    def test_grouped_commands_share_handlers_and_show_the_invoked_path(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            Workspace(root).init(no_ingest=True)
+
+            def run(*args):
+                return subprocess.run([sys.executable, '-m', 'qecgraph', *args],
+                                      capture_output=True, text=True, timeout=5)
+
+            scope = ('--workspace', str(root))
+            flat = run('status', '--json', *scope)
+            self.assertEqual(flat.returncode, 0, flat.stderr)
+            for args in (('workspace', 'status', '--json'), ('workspace', '--json', 'status')):
+                nested = run(*args, *scope)
+                self.assertEqual(nested.returncode, 0, nested.stderr)
+                self.assertEqual(json.loads(nested.stdout), json.loads(flat.stdout))
+
+            help_result = run('help', 'mcp', 'serve')
+            self.assertEqual(help_result.returncode, 0, help_result.stderr)
+            self.assertIn('usage: qec-graph mcp serve', help_result.stdout)
+            self.assertIn('--machine', help_result.stdout)
+
+            (root / 'list').write_text('{}', encoding='utf-8')
+            stderr = io.StringIO()
+            with chdir(root), redirect_stderr(stderr):
+                self.assertEqual(main(['review', 'list', '--corpus', 'example', '--actor-id', 'fixture']), 1)
+            self.assertIn('changes, rationale', stderr.getvalue())
+            self.assertFalse((root / 'example').exists())
+
     def test_structured_cli_errors_keep_status_and_stream_contract(self):
         with tempfile.TemporaryDirectory() as temporary:
             missing = str(Path(temporary) / 'missing.json')

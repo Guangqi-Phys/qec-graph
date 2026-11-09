@@ -62,24 +62,50 @@ def _add_source_arguments(parser):
     parser.add_argument('--incremental', action='store_true', help='Reuse content-checked per-file ASTs; rebuild semantic projections')
 
 
-def _build_parser():
-    parser = _ArgumentParser(prog="qec-graph", usage="%(prog)s <command> [options]",
-                             description="LaTeX source blocks and typed QEC graphs with explicit evidence checks")
-    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
-    sub = parser.add_subparsers(dest="command", required=True, metavar="<command>")
-    sub.add_parser('version', help='Show the installed QEC Graph version')
-    help_command = sub.add_parser('help', help='Show help for a specific command')
-    help_command.add_argument('topic', nargs='?')
-    doctor = sub.add_parser('doctor', help='Inspect workspace health without writing files')
+_GROUPS = {
+    'workspace': ('Manage a local QEC workspace', {
+        'init': 'init', 'sync': 'sync', 'rebuild': 'rebuild', 'status': 'status',
+        'validate': 'validate', 'migrate': 'workspace-migrate',
+    }),
+    'query': ('Search and trace evidence in a fixed scope', {
+        'search': 'search', 'show': 'show', 'deps': 'deps', 'impact': 'impact',
+        'context': 'context', 'codes': 'codes',
+    }),
+    'review': ('Create and apply proposals or list workspace drafts', {
+        'propose': 'review', 'list': 'review-list', 'decide': 'review-decide', 'apply': 'apply',
+    }),
+    'lean': ('Build, import, or inspect Lean evidence', {
+        'build': 'lean-build', 'import': 'lean-import', 'status': 'lean-status',
+    }),
+    'mcp': ('Configure or serve read-only MCP tools', {
+        'serve': 'serve-mcp', 'config': 'mcp-config',
+    }),
+    'human': ('Render human-readable views', {'build': 'human-build'}),
+    'software': ('Manage the software directory', {
+        'import-seed': 'software-import-seed', 'coverage': 'software-coverage',
+        'refresh': 'software-refresh',
+    }),
+    'maintain': ('Inspect, watch, or recover graph stores', {
+        'watch': 'watch', 'recover': 'recover-store', 'validate-staged': 'validate-staged',
+        'audit-dependencies': 'audit-dependencies', 'doctor': 'doctor', 'snapshot': 'snapshot',
+    }),
+}
+
+
+def _register_commands(add):
+    add('version', help='Show the installed QEC Graph version')
+    help_command = add('help', help='Show help for a specific command')
+    help_command.add_argument('topic', nargs='*', metavar='command')
+    doctor = add('doctor', help='Inspect workspace health without writing files')
     doctor.add_argument('--workspace')
-    snapshot = sub.add_parser('snapshot', help='Inspect local snapshots and stored registry states')
-    snapshot_list = snapshot.add_subparsers(dest='snapshot_action', required=True).add_parser(
+    snapshot = add('snapshot', help='Inspect local snapshots and stored registry states')
+    snapshot_list = snapshot.add_subparsers(dest='snapshot_action', required=True, parser_class=_ArgumentParser).add_parser(
         'list', help='List snapshot IDs and identify the current pointer')
     scope = snapshot_list.add_mutually_exclusive_group()
     for option in ('--workspace', '--store', '--corpus'):
         scope.add_argument(option)
-    inputs = sub.add_parser('inputs', help='List, quarantine, or restore inbox packages')
-    input_actions = inputs.add_subparsers(dest='input_action', required=True, metavar='<action>')
+    inputs = add('inputs', help='List, quarantine, or restore inbox packages')
+    input_actions = inputs.add_subparsers(dest='input_action', required=True, metavar='<action>', parser_class=_ArgumentParser)
     for name, description in (('list', 'List inbox and quarantined packages'),
                               ('quarantine', 'Move an inbox package aside'),
                               ('restore', 'Return a quarantined package to the inbox')):
@@ -88,7 +114,7 @@ def _build_parser():
         if name != 'list':
             cmd.add_argument('name', help='Exact inbox file name')
     for action in ('init', 'sync', 'rebuild', 'status'):
-        workspace = sub.add_parser(action, help=f'{action.capitalize()} a managed QEC workspace')
+        workspace = add(action, help=f'{action.capitalize()} a managed QEC workspace')
         workspace.add_argument('--workspace')
         if action != 'status':
             workspace.add_argument('--keep-inputs', action='store_true')
@@ -99,70 +125,70 @@ def _build_parser():
             workspace.add_argument('--dry-run', action='store_true')
         if action == 'rebuild':
             workspace.add_argument('--include-inputs', action='store_true')
-    cmd = sub.add_parser('human-build', help='Render Obsidian pages from the current fixed machine release')
+    cmd = add('human-build', help='Render Obsidian pages from the current fixed machine release')
     cmd.add_argument('--workspace')
     cmd.add_argument('--release')
-    cmd = sub.add_parser('asset-add', help='Copy one explicit non-human asset into the content-addressed machine store')
+    cmd = add('asset-add', help='Copy one explicit non-human asset into the content-addressed machine store')
     cmd.add_argument('input')
     cmd.add_argument('--workspace')
     cmd.add_argument('--media-type', default='application/octet-stream')
-    cmd = sub.add_parser('extract-request', help='Export bounded, provenance-bound source excerpts for an optional provider')
+    cmd = add('extract-request', help='Export bounded, provenance-bound source excerpts for an optional provider')
     cmd.add_argument('source_version')
     cmd.add_argument('--workspace')
     cmd.add_argument('--release')
     cmd.add_argument('--max-chars', type=int, default=24000)
     cmd.add_argument('--offset', type=int, default=0)
-    cmd = sub.add_parser('extract-submit', help='Validate a local provider response and queue a draft')
+    cmd = add('extract-submit', help='Validate a local provider response and queue a draft')
     cmd.add_argument('request_id')
     cmd.add_argument('response')
     cmd.add_argument('--workspace')
-    cmd = sub.add_parser('extract-review', help='Record an explicit human decision on an exact provider draft')
+    cmd = add('extract-review', help='Record an explicit human decision on an exact provider draft')
     cmd.add_argument('proposal_id')
     cmd.add_argument('--workspace')
     cmd.add_argument('--reviewer', required=True)
     cmd.add_argument('--decision', choices=['approve', 'reject'], required=True)
     cmd.add_argument('--rationale', required=True)
-    cmd = sub.add_parser('workspace-migrate', help='Copy a legacy corpus into a new workspace; retain all exact revisions')
+    cmd = add('workspace-migrate', help='Copy a legacy corpus into a new workspace; retain all exact revisions')
     cmd.add_argument('--corpus', required=True)
     cmd.add_argument('--workspace', required=True)
     cmd.add_argument('--registry-revision')
     for name in ('software-import-seed', 'software-coverage', 'software-refresh'):
-        cmd = sub.add_parser(name, help='Manage the bounded software directory')
+        cmd = add(name, help='Manage the bounded software directory')
         cmd.add_argument('--workspace')
         if name == 'software-refresh':
             cmd.add_argument('--project-id')
             cmd.add_argument('--limit', type=int, default=20)
             cmd.add_argument('--timeout', type=int, default=8)
-    cmd = sub.add_parser('research-import', help='Validate and publish exact research records without evidence promotion')
+    cmd = add('research-import', help='Validate and publish exact research records without evidence promotion')
     cmd.add_argument('input')
     cmd.add_argument('--workspace')
     cmd.add_argument('--format', choices=['records', 'software-seed', 'synthetic-fixture'], default='records')
-    cmd = sub.add_parser('review-list', help='List source-linked proposals without approving them')
+    cmd = add('review-list', help='List source-linked proposals without approving them')
     cmd.add_argument('--workspace')
-    cmd = sub.add_parser('lean-build', help='Explicitly build/export/audit a pinned Lean project; never invoked by read tools')
+    cmd = add('lean-build', help='Explicitly build/export/audit a pinned Lean project; never invoked by read tools')
     cmd.add_argument('--project', required=True)
     cmd.add_argument('--out', required=True)
     cmd.add_argument('--lake')
     cmd.add_argument('--build-only', action='store_true')
-    cmd = sub.add_parser('lean-import', help='Import an actual Lean export with current input or explicit historical bindings')
+    cmd = add('lean-import', help='Import an actual Lean export with current input or explicit historical bindings')
     cmd.add_argument('report')
     cmd.add_argument('--corpus', required=True)
     cmd.add_argument('--project-id', required=True)
     cmd.add_argument('--project')
     cmd.add_argument('--mapping')
     cmd.add_argument('--historical', action='store_true')
-    cmd = sub.add_parser('lean-status', help='Read Lean build freshness without executing Lean')
+    cmd = add('lean-status', help='Read Lean build freshness without executing Lean')
     cmd.add_argument('--corpus', required=True)
     cmd.add_argument('--registry-revision')
-    cmd = sub.add_parser('mcp-config', help='Print a reviewable fixed-scope client config without editing user settings')
+    cmd = add('mcp-config', help='Print a reviewable fixed-scope client config without editing user settings')
     _add_ai_arguments(cmd)
-    cmd = sub.add_parser('serve-mcp', help='Serve only fixed-scope read tools over local MCP stdio')
+    cmd = add('serve-mcp', help='Serve only fixed-scope read tools over local MCP stdio')
     _add_ai_arguments(cmd)
-    cmd = sub.add_parser('query-tool', help='Call the fixed-scope read-only AI contract from JSON')
+    cmd = add('query-tool', help='Call the fixed-scope read-only AI contract from JSON')
     cmd.add_argument('tool')
     cmd.add_argument('--arguments', required=True, help='JSON file of tool arguments')
     _add_ai_arguments(cmd)
-    cmd = sub.add_parser('watch', help='Debounced content polling; rebuild through the shared ingestion pipeline')
+    cmd = add('watch', help='Debounced content polling; rebuild through the shared ingestion pipeline')
     _add_source_arguments(cmd)
     cmd.add_argument('--annotations')
     cmd.add_argument('--catalog')
@@ -170,24 +196,24 @@ def _build_parser():
     cmd.add_argument('--debounce', type=float, default=0.25)
     cmd.add_argument('--max-polls', type=int)
     cmd.add_argument('--once', action='store_true')
-    cmd = sub.add_parser('recover-store', help='Validate CURRENT and inventory abandoned tool-owned builds')
+    cmd = add('recover-store', help='Validate CURRENT and inventory abandoned tool-owned builds')
     cmd.add_argument('--store', required=True)
     cmd.add_argument('--remove-abandoned', action='store_true')
-    cmd = sub.add_parser('validate-staged', help='Validate an explicitly selected staged snapshot')
+    cmd = add('validate-staged', help='Validate an explicitly selected staged snapshot')
     cmd.add_argument('--store', required=True)
     cmd.add_argument('--snapshot', required=True)
-    cmd = sub.add_parser('audit-dependencies', help='Report SCCs only in active reviewed logical dependencies')
+    cmd = add('audit-dependencies', help='Report SCCs only in active reviewed logical dependencies')
     _add_query_scope(cmd)
-    cmd = sub.add_parser('apply', help='Atomically publish a reviewed proposal with input conflict checks')
+    cmd = add('apply', help='Atomically publish a reviewed proposal with input conflict checks')
     cmd.add_argument('proposal_id')
     cmd.add_argument('--review-id', required=True)
     cmd.add_argument('--corpus', required=True)
-    cmd = sub.add_parser('review', help='Create an inspectable proposal, without applying changes')
+    cmd = add('review', help='Create an inspectable proposal, without applying changes')
     cmd.add_argument('input', help='JSON with changes and rationale')
     cmd.add_argument('--corpus', required=True)
     cmd.add_argument('--actor-id', required=True)
     cmd.add_argument('--actor-kind', choices=['ai', 'program', 'human'], default='ai')
-    cmd = sub.add_parser('review-decide', help='Bind an explicit decision to an exact proposal')
+    cmd = add('review-decide', help='Bind an explicit decision to an exact proposal')
     cmd.add_argument('proposal_id')
     cmd.add_argument('--corpus', required=True)
     cmd.add_argument('--actor-id', required=True)
@@ -195,16 +221,16 @@ def _build_parser():
     cmd.add_argument('--decision', choices=['approve', 'reject'], required=True)
     cmd.add_argument('--rationale', required=True)
     cmd.add_argument('--checked-scope', choices=['statement', 'hypotheses', 'dependencies'], action='append', default=[])
-    cmd = sub.add_parser('check-css', help='Validate binary check matrices; optionally enumerate a small distance')
+    cmd = add('check-css', help='Validate binary check matrices; optionally enumerate a small distance')
     cmd.add_argument('--hx', required=True)
     cmd.add_argument('--hz', required=True)
     cmd.add_argument('--lx')
     cmd.add_argument('--lz')
     cmd.add_argument('--enumerate-distance', action='store_true')
     cmd.add_argument('--max-n', type=int, default=20)
-    cmd = sub.add_parser('check-experiment', help='Check explicit experiment/metric JSON; no evidence promotion')
+    cmd = add('check-experiment', help='Check explicit experiment/metric JSON; no evidence promotion')
     cmd.add_argument('input')
-    cmd = sub.add_parser('codes', help='Exact code constraints, metric and currently bound distance evidence')
+    cmd = add('codes', help='Exact code constraints, metric and currently bound distance evidence')
     cmd.add_argument('--corpus', required=True)
     cmd.add_argument('--registry-revision')
     cmd.add_argument('--n-min', type=int)
@@ -214,90 +240,137 @@ def _build_parser():
     cmd.add_argument('--sector', choices=['X', 'Z', 'joint'], default='joint')
     cmd.add_argument('--construction')
     cmd.add_argument('--limit', type=int, default=100)
-    cmd = sub.add_parser('validate-corpus', help='Check typed records, references, sources and managed assets')
+    cmd = add('validate-corpus', help='Check typed records, references, sources and managed assets')
     cmd.add_argument('--corpus', required=True)
     cmd.add_argument('--registry-revision')
-    cmd = sub.add_parser('migrate', help='Adapt legacy inputs into a new location with a rejection report')
+    cmd = add('migrate', help='Adapt legacy inputs into a new location with a rejection report')
     cmd.add_argument('input')
     cmd.add_argument('--out', required=True)
     cmd.add_argument('--source-root')
-    cmd = sub.add_parser('migration-import', help='Import adapted records and managed assets atomically')
+    cmd = add('migration-import', help='Import adapted records and managed assets atomically')
     cmd.add_argument('input')
     cmd.add_argument('--corpus', required=True)
     for name in ('record-add', 'claim-link'):
-        cmd = sub.add_parser(name, help="Add an explicit record or provenance mapping from JSON")
+        cmd = add(name, help="Add an explicit record or provenance mapping from JSON")
         cmd.add_argument("input")
         cmd.add_argument("--corpus", required=True)
-    cmd = sub.add_parser("register", help="Archive a store as an explicit work/source version in a corpus")
+    cmd = add("register", help="Archive a store as an explicit work/source version in a corpus")
     cmd.add_argument("--corpus", required=True)
     cmd.add_argument("--store", required=True)
     cmd.add_argument("--work-id", required=True)
     cmd.add_argument("--source-version-id", required=True)
     cmd.add_argument("--title")
     cmd.add_argument("--upstream-version")
-    cmd = sub.add_parser("ingest", help="Parse a LaTeX project and write an immutable snapshot")
+    cmd = add("ingest", help="Parse a LaTeX project and write an immutable snapshot")
     _add_source_arguments(cmd)
     cmd.add_argument("--annotations")
     cmd.add_argument("--catalog", help="Directory of existing JSON records, such as the earlier starter records/")
-    cmd = sub.add_parser("split", help="Write source-only semantic fragments and return their exact file paths")
+    cmd = add("split", help="Write source-only semantic fragments and return their exact file paths")
     _add_source_arguments(cmd)
     cmd.add_argument("--force", action="store_true", help="Allow replacing CURRENT when it includes annotations or a catalog")
-    cmd = sub.add_parser("search", help="Search titles, labels and text")
+    cmd = add("search", help="Search titles, labels and text")
     cmd.add_argument("query")
     _add_query_scope(cmd, workspace=True)
     cmd.add_argument("--kind")
     cmd.add_argument("--limit", type=int, default=20)
-    cmd = sub.add_parser("show", help="Read one node with its incoming/outgoing edges")
+    cmd = add("show", help="Read one node with its incoming/outgoing edges")
     cmd.add_argument("id_or_label")
     _add_query_scope(cmd, workspace=True)
     for name, description in (("deps", "Trace active graph dependencies"),
                               ("impact", "Trace potential impact through graph dependencies"),
                               ("context", "Read bounded evidence and source context")):
-        cmd = sub.add_parser(name, help=description)
+        cmd = add(name, help=description)
         cmd.add_argument("id_or_label")
         _add_query_scope(cmd, workspace=True)
         cmd.add_argument("--depth", type=int, default=2)
         cmd.add_argument("--include-candidates", action="store_true")
         cmd.add_argument("--max-nodes", type=int, default=60)
-    cmd = sub.add_parser("validate", help="Validate hashes, source spans, endpoints and SQLite")
+    cmd = add("validate", help="Validate hashes, source spans, endpoints and SQLite")
     group = cmd.add_mutually_exclusive_group()
     group.add_argument("--store")
     group.add_argument("--workspace")
     cmd.add_argument('--snapshot')
+
+
+def _build_parser():
+    parser = _ArgumentParser(prog='qec-graph', usage='%(prog)s <command> [options]',
+                             description='LaTeX source blocks and typed QEC graphs with explicit evidence checks')
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
+    sub = parser.add_subparsers(dest='command', required=True, metavar='<command>')
+    topics = {}
+    groups = {}
+    for name, (description, _) in _GROUPS.items():
+        group = sub.add_parser(name, prog=f'qec-graph {name}', help=description, description=description)
+        groups[name] = group.add_subparsers(dest='action', required=True, metavar='<action>')
+        topics[name,] = group
+
+    definitions = {}
+
+    def add(name, *, help):
+        # Build options once. The public parents API reuses those definitions
+        # for the grouped command and any existing flat entry point.
+        options = argparse.ArgumentParser(prog=f'qec-graph {name}', add_help=False)
+        definitions[name] = options, help
+        return options
+
+    _register_commands(add)
+    for name, (options, description) in definitions.items():
+        if name == 'review':
+            legacy = sub.add_parser('review-propose', parents=[options], prog='qec-graph review',
+                                    description=description)
+            legacy.set_defaults(command='review')
+            topics['review-propose',] = legacy
+            continue
+        topics[name,] = sub.add_parser(name, parents=[options], prog=f'qec-graph {name}',
+                                       help=description, description=description)
+    for name, (_, actions) in _GROUPS.items():
+        for action, command in actions.items():
+            options, description = definitions[command]
+            nested = groups[name].add_parser(action, parents=[options], prog=f'qec-graph {name} {action}',
+                                              help=description, description=description)
+            nested.set_defaults(command=command)
+            topics[name, action] = nested
     parser.set_defaults(json=False, debug=False)
-    return parser, sub
+    return parser, topics
+
+
+def _command_index(argv: list[str], start=0) -> int:
+    return next((i for i in range(start, len(argv)) if argv[i] not in {'--json', '--debug'}), len(argv))
 
 
 def parse_command(argv: list[str]) -> argparse.Namespace | None:
     if not argv:
         print(_QUICK_HELP)
         return None
-    start = next((i for i, arg in enumerate(argv) if arg not in {'--json', '--debug'}), len(argv))
-    pair = argv[start:start + 2]
-    if pair == ['mcp', 'serve']:
-        argv[start:start + 2] = ['serve-mcp']
-    if pair == ['human', 'build']:
-        argv[start:start + 2] = ['human-build']
-    if pair in (['software', 'import-seed'], ['software', 'coverage'], ['software', 'refresh']):
-        argv[start:start + 2] = ['software-' + pair[1]]
-    if pair == ['review', 'list'] and '--corpus' not in argv:
-        argv[start:start + 2] = ['review-list']
-    parser, sub = _build_parser()
+    start = _command_index(argv)
     name = argv[start] if start < len(argv) else None
-    if name and not name.startswith('-') and name not in sub.choices:
+    action_index = _command_index(argv, start + 1)
+    if name == 'review' and action_index < len(argv):
+        argument = argv[action_index]
+        # A legacy review took a JSON filename directly. Keep that path,
+        # including the old treatment of a literal input named 'list'.
+        if (argument not in {*_GROUPS['review'][1], '--help', '-h'}
+                or argument == 'list' and '--corpus' in argv):
+            argv[start] = 'review-propose'
+            name = 'review-propose'
+    parser, topics = _build_parser()
+    if name and not name.startswith('-') and (name,) not in topics:
         raise UsageError(f'Unknown command {name!r}')
     try:
         args = parser.parse_args(argv)
     except UsageError as exc:
-        exc.command = name if name in sub.choices else None
+        exc.command = ('review' if name == 'review-propose' else name) if (name,) in topics else None
+        if name in _GROUPS and action_index < len(argv):
+            exc.command = _GROUPS[name][1].get(argv[action_index], exc.command)
         raise
     if args.command == 'help':
-        if args.topic is None:
+        topic = tuple(args.topic)
+        if not topic:
             parser.print_help()
-        elif args.topic in sub.choices:
-            sub.choices[args.topic].print_help()
+        elif topic in topics:
+            topics[topic].print_help()
         else:
-            error = UsageError(f'Unknown help topic {args.topic!r}')
+            error = UsageError(f'Unknown help topic {" ".join(topic)!r}')
             error.command = 'help'
             raise error
         return None
