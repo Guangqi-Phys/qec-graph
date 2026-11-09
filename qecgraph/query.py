@@ -119,6 +119,7 @@ def _dependency_adjacency(graph, include_candidates, reverse=False):
 
 def _walk_dependencies(adjacent, root, depth, max_nodes):
     visited, selected, queue, omitted = {root}, [], deque([(root, 0)]), set()
+    selected_by_id = {}
     while queue:
         current, level = queue.popleft()
         if level >= depth:
@@ -131,7 +132,13 @@ def _walk_dependencies(adjacent, root, depth, max_nodes):
                     continue
                 visited.add(target)
                 queue.append((target, level + 1))
-            if edge not in selected:
+            identifier = edge.get('id')
+            first = selected_by_id.get(identifier)
+            if first is None:
+                selected_by_id[identifier] = edge
+                selected.append(edge)
+            elif first != edge and edge not in selected:
+                # An audit graph can contain different evidence under a repeated ID.
                 selected.append(edge)
     return visited, selected, omitted - visited
 
