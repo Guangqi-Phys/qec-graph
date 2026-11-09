@@ -521,14 +521,16 @@ class _ProjectParser:
                     for name in sorted(_LITERAL_ENVIRONMENTS))
         context.add_context_category("qecgraph", macros=list(specs.values()),
                                      environments=envs, prepend=True)
+        self._applied_context = {'environments': dict(self.environment_map), 'macro_specs': dict(self.macro_specs)}
         return context
 
     def parse_nodes(self, path: str):
         text, aliases = self.structures[path]
         key = None
         if self.node_cache:
-            key = self.node_cache.key(path, text, {'environments': self.environment_map,
-                                                  'macro_specs': self.macro_specs, 'conditionals': sorted(self._conditional_names),
+            # Discovery can learn declarations while still using the original walker context.
+            key = self.node_cache.key(path, text, {**self._applied_context,
+                                                  'conditionals': sorted(self._conditional_names),
                                                   'aliases': sorted(aliases.items())})
             cached = self.node_cache.get(key, text)
             if cached is not None:

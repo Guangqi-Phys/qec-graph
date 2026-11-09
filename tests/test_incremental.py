@@ -51,6 +51,15 @@ class IncrementalTests(unittest.TestCase):
         self.assertGreater(changed['incremental']['ast_hits'], 0)
         self.assertGreater(changed['incremental']['ast_misses'], 0)
 
+    def test_learned_theorem_context_cannot_reuse_a_discovery_ast(self):
+        self.entry.write_text(r'\newtheorem{custom}{Theorem}\input{a}')
+        (self.paper / 'a.tex').write_text(r'\begin{custom}[An explicit title]\label{a}Alpha.\end{custom}')
+        result = self.equivalent()
+        graph = read_json(Path(result['snapshot']) / 'graph.json')
+        theorem = next(node for node in graph['nodes'] if 'a' in node['labels'])
+        self.assertEqual((theorem['kind'], theorem['title']), ('theorem', 'An explicit title'))
+        self.assertEqual(self.equivalent()['incremental']['ast_misses'], 0)
+
     def test_macro_config_include_add_delete_and_move_fall_back_safely(self):
         self.equivalent()
         self.entry.write_text(self.entry.read_text().replace('{Lemma}', '{Theorem}'))
