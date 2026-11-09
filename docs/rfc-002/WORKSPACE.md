@@ -62,7 +62,7 @@ qec-graph review list
 qec-graph software import-seed
 qec-graph software coverage
 qec-graph software refresh --project-id software:stim  # 显式联网，仅公开元数据
-qec-graph mcp-config --workspace ~/qec
+qec-graph mcp config --workspace ~/qec
 qec-graph mcp serve --workspace ~/qec
 ```
 
@@ -104,7 +104,7 @@ python tools/mcp_isolated_macos.py --python /path/to/installed-venv/bin/python -
 
 ```bash
 qec-graph validate-corpus --corpus /path/to/legacy-corpus
-qec-graph workspace-migrate --corpus /path/to/legacy-corpus --workspace /path/to/new-workspace
+qec-graph workspace migrate --corpus /path/to/legacy-corpus --workspace /path/to/new-workspace
 qec-graph rebuild --workspace /path/to/new-workspace
 ```
 
