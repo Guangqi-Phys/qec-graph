@@ -195,17 +195,22 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
         if hashlib.sha256(raw).hexdigest() != item["sha256"]:
             raise ValueError(f"Parser did not preserve original UTF-8 bytes: {item['path']}")
         source_bytes[item["path"]] = raw
-    resource_bytes = {}
+    resource_bytes, resource_digests = {}, {}
     for resource in parsed.get("resources", []):
         path = resource.get("path")
-        if path:
+        if not path:
+            continue
+        if path not in resource_bytes:
             resolved = safe_relative(root, path)
-            if resolved.is_file():
-                resource_bytes[path] = resolved.read_bytes()
-                resource["sha256"] = hashlib.sha256(resource_bytes[path]).hexdigest()
-                resource["size_bytes"] = len(resource_bytes[path])
+            if not resolved.is_file():
+                raise ValueError(f'Input changed during build: {path}; retry')
+            raw = resolved.read_bytes()
+            resource_bytes[path] = raw
+            resource_digests[path] = hashlib.sha256(raw).hexdigest()
+        resource["sha256"] = resource_digests[path]
+        resource["size_bytes"] = len(resource_bytes[path])
     source_manifest = [{"path": path, "sha256": hashlib.sha256(raw).hexdigest()} for path, raw in sorted(source_bytes.items())]
-    resource_manifest = [{"path": path, "sha256": hashlib.sha256(raw).hexdigest()} for path, raw in sorted(resource_bytes.items())]
+    resource_manifest = [{"path": path, "sha256": digest} for path, digest in sorted(resource_digests.items())]
     project_source_hash = hash_text(canonical({"entry": parsed["entry"], "sources": source_manifest,
                                               "resources": resource_manifest, "parser_config": config}))
     package_root = Path(__file__).parent

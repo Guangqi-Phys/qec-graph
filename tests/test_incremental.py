@@ -113,6 +113,29 @@ class IncrementalTests(unittest.TestCase):
         recovered = self.equivalent()
         self.assertIn('invalid_incremental_state', recovered['incremental']['fallback_reasons'])
 
+    def test_repeated_resource_edit_cannot_publish_mixed_input_state(self):
+        ingest(self.entry, 'incremental', self.full)
+        previous = current_snapshot(self.full)
+        leaf = self.paper / 'b.tex'
+        leaf.write_text(leaf.read_text() + r'\includegraphics{figure.svg}')
+        resource = self.paper / 'figure.svg'
+        read_bytes = Path.read_bytes
+        edited = False
+
+        def edit_after_capture(path):
+            nonlocal edited
+            raw = read_bytes(path)
+            if path == resource and not edited:
+                resource.write_text('<svg>changed</svg>')
+                edited = True
+            return raw
+
+        with patch.object(Path, 'read_bytes', edit_after_capture):
+            with self.assertRaisesRegex(ValueError, 'Input changed during build: figure.svg'):
+                ingest(self.entry, 'incremental', self.full)
+        self.assertEqual(current_snapshot(self.full), previous)
+        self.assertTrue(ingest(self.entry, 'incremental', self.full)['published'])
+
     def test_edit_during_build_cannot_publish_mixed_input_state(self):
         self.equivalent()
         previous = current_snapshot(self.incremental)
