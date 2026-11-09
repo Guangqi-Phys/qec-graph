@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import copy
+from collections import deque
 from datetime import datetime
 from functools import cached_property
 import os
@@ -271,17 +272,16 @@ class WorkspaceSession:
         return self._paginate(rows, args, min(20, self.graph.max_results))
 
     def _research_context(self, record, depth):
-        pending, seen, rows, edges, unresolved = [(record, 0)], set(), [], [], []
+        pending = deque([(record, 0)])
+        queued = {(record['id'], record['revision'])}
+        seen, rows, edges, unresolved = set(), [], [], []
         truncated = False
         while pending:
-            row, distance = pending.pop(0)
-            identity = (row['id'], row['revision'])
-            if identity in seen:
-                continue
             if len(rows) >= self.graph.max_nodes:
                 truncated = True
                 break
-            seen.add(identity)
+            row, distance = pending.popleft()
+            seen.add((row['id'], row['revision']))
             rows.append(row)
             for field in RELATIONS.get(row['kind'], {}):
                 value = row['data'].get(field)
@@ -289,14 +289,17 @@ class WorkspaceSession:
                     unresolved.append({'id': row['id'], 'revision': row['revision'], 'field': field})
                     continue
                 for binding in value if field.endswith('_refs') else [value]:
-                    target = self.visible.get(key(binding))
+                    target_identity = key(binding)
+                    target = self.visible.get(target_identity)
                     if not target:
                         unresolved.append({'id': row['id'], 'field': field, 'target': binding})
                     elif distance < depth:
                         edges.append({'source': {'id': row['id'], 'revision': row['revision']},
                                       'target': binding, 'relation': field})
-                        pending.append((target, distance + 1))
-                    elif key(binding) not in seen:
+                        if target_identity not in queued:
+                            queued.add(target_identity)
+                            pending.append((target, distance + 1))
+                    elif target_identity not in seen:
                         truncated = True
         return {'root_id': record['id'], 'root_revision': record['revision'], 'nodes': rows,
                 'edges': [e for e in edges if key(e['target']) in seen], 'unresolved': unresolved,
