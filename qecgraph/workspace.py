@@ -1,7 +1,6 @@
 """Local workspace, immutable archive receipts and one batch publication pointer."""
 from __future__ import annotations
 
-import copy
 from contextlib import contextmanager
 from datetime import datetime, timezone
 import hashlib
@@ -253,8 +252,7 @@ class Workspace:
         immutable_json(self.path('archive/receipts/' + job.name + '.json'), receipt)
         return digest
 
-    def _prepare(self, cfg, state, digest, prior, reused):
-        limits = Limits(**cfg.get('limits', {}))
+    def _prepare(self, cfg, state, digest, prior, reused, limits):
         result = {'archive_sha256': digest, 'status': 'archived_only', 'processing_completed': False,
                   'semantic_status': 'not_extracted', 'processor': PROCESSOR}
         try:
@@ -333,6 +331,7 @@ class Workspace:
 
     def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None):
         run_id = uuid.uuid4().hex
+        limits = Limits(**cfg.get('limits', {}))
         digests, rows, claims = set(), [], []
         if scan_inputs:
             if progress:
@@ -345,7 +344,7 @@ class Workspace:
             for job, meta in self._pending_jobs():
                 payload = job / 'payload'
                 try:
-                    digest = self._archive(job, meta, Limits(**cfg.get('limits', {})).input_bytes)
+                    digest = self._archive(job, meta, limits.input_bytes)
                 except (OSError, ValueError) as exc:
                     rows.append({'input': meta['name'], 'status': 'archive_failed', 'reason': str(exc),
                                  'input_consumed': False, 'restored': self._restore(job, payload, meta['name'])})
@@ -374,7 +373,6 @@ class Workspace:
             from .workspace_query import check_machine_tree
             check_machine_tree(self.registry.root)
             state, old = self.registry._state_and_revision()
-            previous = copy.deepcopy(state.get('materials', {}))
             materials = state.setdefault('materials', {})
             state['workspace_id'] = cfg['workspace_id']
             tool_identity = extraction_tool_identity() if digests else None
@@ -382,15 +380,15 @@ class Workspace:
                                                sys.implementation.name, sys.version, sqlite_version]))
             reused = {}
             if digests:
-                for prior in previous.values():
+                for prior in materials.values():
                     version = self._matching_extraction(state, prior, fingerprint)
                     if version is not None:
                         reused[(version['id'], prior['entrypoint'])] = version
             for index, digest in enumerate(sorted(digests), start=1):
-                prior = previous.get(digest, {})
+                prior = materials.get(digest, {})
                 version = self._matching_extraction(state, prior, fingerprint)
                 if rebuild or version is None:
-                    materials[digest] = self._prepare(cfg, state, digest, prior, reused)
+                    materials[digest] = self._prepare(cfg, state, digest, prior, reused, limits)
                     materials[digest]['config_fingerprint'] = fingerprint
                 if progress:
                     progress(index + 1, steps, f'{package_stage} {index}/{package_count}')
@@ -446,7 +444,7 @@ class Workspace:
             row = {'input': meta['name'], 'receipt_id': job.name, **material, **decision, 'input_consumed': False}
             try:
                 if finished and not material['source_version_conflict'] and not decision['keep_inputs']:
-                    if _hash_regular(payload, Limits(**cfg.get('limits', {})).input_bytes) != digest:
+                    if _hash_regular(payload, limits.input_bytes) != digest:
                         raise ValueError('Claim changed after archiving')
                     payload.unlink()
                     row['input_consumed'] = True
