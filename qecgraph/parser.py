@@ -22,7 +22,7 @@ try:
         get_default_latex_context_db,
     )
     from pylatexenc.macrospec import (
-        EnvironmentSpec, MacroSpec, MacroStandardArgsParser, ParsedMacroArgs,
+        EnvironmentSpec, LatexContextDb, MacroSpec, MacroStandardArgsParser, ParsedMacroArgs,
         ParsedVerbatimArgs,
     )
 except ImportError as exc:
@@ -290,6 +290,26 @@ class _StructuralWalker(LatexWalker):
         return token
 
 
+class _ProjectLatexContext(LatexContextDb):
+    """Avoid probing every special sequence for ordinary text characters."""
+
+    def __init__(self):
+        super().__init__()
+        default = get_default_latex_context_db()
+        for name in default.categories():
+            self.add_context_category(name, macros=default.iter_macro_specs([name]),
+                                      environments=default.iter_environment_specs([name]),
+                                      specials=default.iter_specials_specs([name]))
+        # Project-specific context additions supply macros and environments only.
+        self._special_starts = frozenset(spec.specials_chars[0] for spec in self.iter_specials_specs()
+                                         if spec.specials_chars)
+
+    def test_for_specials(self, s, pos, parsing_state=None):
+        if 0 <= pos < len(s) and s[pos] not in self._special_starts:
+            return None
+        return super().test_for_specials(s, pos, parsing_state)
+
+
 def _scan_structure(text, inherited, context, known_conditionals):
     """Find literal environment aliases and statically decidable branch ranges."""
     walker = LatexWalker(text, latex_context=context, tolerant_parsing=False)
@@ -475,7 +495,7 @@ class _ProjectParser:
                                      "message": message, "source": source})
 
     def _context(self):
-        context = get_default_latex_context_db()
+        context = _ProjectLatexContext()
         specs = {name: MacroSpec(name, args_parser=signature)
                  for name, signature in self.macro_specs.items()}
         for name in _SECTIONS:
