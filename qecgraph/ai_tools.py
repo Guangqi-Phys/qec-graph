@@ -4,6 +4,7 @@ from __future__ import annotations
 import copy
 import json
 import sqlite3
+from functools import cached_property
 
 from jsonschema import Draft202012Validator
 
@@ -22,6 +23,10 @@ class ToolError(ValueError):
 
 def _length(value):
     return len(json.dumps(value, ensure_ascii=False, separators=(',', ':'), allow_nan=False))
+
+
+def tool_validators(descriptors):
+    return {tool['name']: Draft202012Validator(tool['inputSchema']) for tool in descriptors}
 
 
 class ReadOnlySession:
@@ -66,7 +71,8 @@ class ReadOnlySession:
                                                manifest_hashes=self._manifest_hashes)
             self.source = GraphInput(graph, self.reference.path)
 
-    def tools(self):
+    @cached_property
+    def _tool_descriptors(self):
         tools = []
         for name in TOOL_NAMES:
             action = name.removeprefix('qecgraph_')
@@ -90,6 +96,13 @@ class ReadOnlySession:
                                             'data': {'type': 'object'}, 'error': {'type': 'object'}}},
                           'annotations': {'readOnlyHint': True, 'destructiveHint': False, 'idempotentHint': True, 'openWorldHint': False}})
         return tools
+
+    @cached_property
+    def _tool_validators(self):
+        return tool_validators(self._tool_descriptors)
+
+    def tools(self):
+        return copy.deepcopy(self._tool_descriptors)
 
     def _resolve(self, identifier):
         if self.scope['kind'] == 'corpus':
@@ -174,12 +187,12 @@ class ReadOnlySession:
 
     def invoke(self, name, arguments):
         try:
-            descriptor = next((tool for tool in self.tools() if tool['name'] == name), None)
-            if descriptor is None:
+            validator = self._tool_validators.get(name) if isinstance(name, str) else None
+            if validator is None:
                 raise ToolError('UNKNOWN_TOOL', 'Unknown read-only tool')
-            errors = list(Draft202012Validator(descriptor['inputSchema']).iter_errors(arguments))
-            if errors:
-                raise ToolError('INVALID_ARGUMENT', errors[0].message)
+            error = next(validator.iter_errors(arguments), None)
+            if error is not None:
+                raise ToolError('INVALID_ARGUMENT', error.message)
             self._refresh()
             action = name.removeprefix('qecgraph_')
             if action == 'search':

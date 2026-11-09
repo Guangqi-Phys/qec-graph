@@ -10,9 +10,7 @@ import os
 from pathlib import Path
 import stat
 
-from jsonschema import Draft202012Validator
-
-from .ai_tools import ReadOnlySession, ToolError
+from .ai_tools import ReadOnlySession, ToolError, tool_validators
 from .domain_query import codes
 from .graph import canonical, hash_text, read_json
 from .registry import Registry
@@ -133,8 +131,9 @@ class WorkspaceSession:
             raise ToolError('BUDGET_TOO_SMALL', 'Use qec_get_source with an exact source codepoint range')
         return result
 
-    def tools(self):
-        descriptors = copy.deepcopy(self.graph.tools())
+    @cached_property
+    def _tool_descriptors(self):
+        descriptors = self.graph.tools()
         extras = {
             'qec_workspace_status': ({}, []),
             'qec_get_entity': ({'identifier': _string(4096), 'revision': _string()}, ['identifier']),
@@ -166,6 +165,13 @@ class WorkspaceSession:
             if descriptor['name'] in ('qecgraph_search', 'qec_find_codes', 'qec_find_performance', 'qec_find_software'):
                 props.update(limit=_integer(1, self.graph.max_results), offset=_integer(0))
         return descriptors
+
+    @cached_property
+    def _tool_validators(self):
+        return tool_validators(self._tool_descriptors)
+
+    def tools(self):
+        return copy.deepcopy(self._tool_descriptors)
 
     @cached_property
     def _materials(self):
@@ -417,10 +423,10 @@ class WorkspaceSession:
 
     def invoke(self, name, arguments):
         try:
-            descriptor = next((tool for tool in self.tools() if tool['name'] == name), None)
-            if descriptor is None:
+            validator = self._tool_validators.get(name) if isinstance(name, str) else None
+            if validator is None:
                 raise ToolError('UNKNOWN_TOOL', 'Unknown read-only workspace tool')
-            error = next(Draft202012Validator(descriptor['inputSchema']).iter_errors(arguments), None)
+            error = next(validator.iter_errors(arguments), None)
             if error:
                 raise ToolError('INVALID_ARGUMENT', error.message)
             args = dict(arguments)

@@ -25,6 +25,7 @@ class MCPServer:
         if not 1 <= calls_per_second <= 1000:
             raise ValueError('calls_per_second must be 1..1000')
         self.session = session
+        self._tool_names = frozenset(tool['name'] for tool in session.tools())
         self.initialized = self.ready = False
         self.calls_per_second, self.clock = calls_per_second, clock
         self.calls = deque()
@@ -109,7 +110,7 @@ class MCPServer:
             if set(params) - {'name', 'arguments', '_meta'} or not isinstance(params.get('name'), str):
                 return rpc_error(identifier, -32602, 'tools/call requires a tool name and arguments')
             name = params['name']
-            if name not in {tool['name'] for tool in self.session.tools()}:
+            if name not in self._tool_names:
                 return rpc_error(identifier, -32602, 'Unknown read-only tool: ' + name)
             if not self._take_call():
                 return rpc_error(identifier, -32029, 'Local read tool rate limit exceeded')

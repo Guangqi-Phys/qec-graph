@@ -133,6 +133,8 @@ class AIToolTests(unittest.TestCase):
 
     def test_scope_budget_schema_ambiguity_and_empty_results(self):
         session = ReadOnlySession(store=self.store, max_nodes=5)
+        context_tool = next(tool for tool in session.tools() if tool['name'] == 'qecgraph_context')
+        context_tool['inputSchema']['properties']['max_nodes']['maximum'] = 100
         for arguments in ({'identifier': 'a', 'max_nodes': 6}, {'identifier': 'a', 'store': '/tmp/another'}, {'identifier': 'a', 'depth': -1}):
             self.assertEqual(session.invoke('qecgraph_context', arguments)['error']['code'], 'INVALID_ARGUMENT')
         self.assertEqual(session.invoke('qecgraph_search', {'query': 'no such text'})['data']['results'], [])
