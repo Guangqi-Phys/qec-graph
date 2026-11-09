@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 from . import __version__
 from .graph import build_graph, canonical, hash_text, node_filename, read_json, strict_json_loads, views
-from .parser import parse_project
+from .parser import SourceLines, parse_project
 from .transactions import atomic_json, writer_lock
 
 
@@ -406,19 +406,24 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None):
         if hashlib.sha256(raw).hexdigest() != source["sha256"]:
             raise ValueError("Source hash mismatch")
         sources[source["path"]] = raw.decode("utf-8")
+    source_lines = {}
     nodes = {n["id"]: n for n in graph["nodes"]}
     if len(nodes) != len(graph["nodes"]):
         raise ValueError("Duplicate node IDs")
     for node in nodes.values():
         span = node.get("source")
         if span:
-            text = sources[span["path"]]
+            path = span["path"]
+            text = sources[path]
             start, end = span["char_start"], span["char_end"]
             if not (0 <= start <= end <= len(text)) or text[start:end] != node["latex"]:
                 raise ValueError(f"Invalid source slice for {node['id']}")
-            if span["line_start"] != text.count("\n", 0, start) + 1:
+            if path not in source_lines:
+                source_lines[path] = SourceLines(text)
+            lines = source_lines[path]
+            if span["line_start"] != lines.line_at(start):
                 raise ValueError(f"Invalid start line for {node['id']}")
-            end_line = text.count("\n", 0, max(start, end - 1)) + 1
+            end_line = lines.line_at(max(start, end - 1))
             if span["line_end"] != end_line:
                 raise ValueError(f"Invalid end line for {node['id']}")
             if hash_text(node["latex"]) != node["content_sha256"]:

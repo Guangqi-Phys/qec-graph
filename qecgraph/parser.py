@@ -7,7 +7,6 @@ source.  File digests are SHA-256 of the original bytes, including CRLF/BOM.
 """
 from __future__ import annotations
 
-from bisect import bisect_right
 from hashlib import sha256
 from pathlib import Path
 import re
@@ -441,6 +440,23 @@ def _scan_structure(text, inherited, context, known_conditionals):
     return "".join(parts) + text[pos:], aliases, include_bindings, selected
 
 
+class SourceLines:
+    """Map codepoint offsets to 1-based lines using sparse LF counts."""
+
+    _STRIDE = 512
+
+    def __init__(self, text):
+        self.text = text
+        self.checkpoints = [1]
+        stride = self._STRIDE
+        for start in range(0, len(text) - stride + 1, stride):
+            self.checkpoints.append(self.checkpoints[-1] + text.count("\n", start, start + stride))
+
+    def line_at(self, offset):
+        checkpoint = offset // self._STRIDE
+        return self.checkpoints[checkpoint] + self.text.count("\n", checkpoint * self._STRIDE, offset)
+
+
 class _ProjectParser:
     def __init__(self, entry: Path, project_root: Path, config: dict[str, Any], node_cache=None):
         self.node_cache = node_cache
@@ -460,7 +476,7 @@ class _ProjectParser:
         self.macro_specs: dict[str, str] = {}
         self.files: dict[str, dict] = {}
         self.structures: dict[str, tuple] = {}
-        self.line_starts: dict[str, list[int]] = {}
+        self.source_lines: dict[str, SourceLines] = {}
         self.discovered: set[str] = set()
         self.discovery_stack: list[str] = []
         self.emitted: set[str] = set()
@@ -478,10 +494,10 @@ class _ProjectParser:
         return path.relative_to(self.root).as_posix()
 
     def span(self, path: str, start: int, end: int) -> dict:
-        starts = self.line_starts[path]
+        lines = self.source_lines[path]
         return {"path": path, "char_start": start, "char_end": end,
-                "line_start": bisect_right(starts, start),
-                "line_end": bisect_right(starts, max(start, end - 1))}
+                "line_start": lines.line_at(start),
+                "line_end": lines.line_at(max(start, end - 1))}
 
     def node_span(self, path: str, node) -> dict:
         return self.span(path, node.pos, node.pos + node.len)
@@ -628,7 +644,7 @@ class _ProjectParser:
             self.diagnostic("error", "source_read_error", f"Cannot read UTF-8 source {rel}: {exc}", source)
             return
         self.files[rel] = {"path": rel, "sha256": sha256(raw).hexdigest(), "text": text, "encoding": "utf-8"}
-        self.line_starts[rel] = [0] + [m.end() for m in re.finditer("\n", text)]
+        self.source_lines[rel] = SourceLines(text)
         try:
             projected, aliases, include_bindings, selected = _scan_structure(
                 text, inherited or {}, self.context, self._conditional_names
