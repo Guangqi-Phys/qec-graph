@@ -114,3 +114,31 @@ class WorkspaceQueryTests(unittest.TestCase):
         context = session.invoke('qec_get_context', {'identifier': code_ref['id'], 'depth': 2})
         self.assertTrue(context['ok'])
         self.assertIn(claim_ref['id'], {row['id'] for row in context['data']['nodes']})
+
+    def test_nearest_point_reports_actual_coordinate_and_never_fakes_exact_match(self):
+        from qecgraph.research import make_record, ref
+        state, _ = self.ws.registry.read()
+        version, = state['versions']
+        origin = {'id': version, 'revision': state['versions'][version]['snapshot_id']}
+        def make(kind, name, data):
+            return make_record(kind, name, 'r1', data, source=origin, method='reported_fixture')
+        exp = make('reported_experiment', 'exp:test', {'source_ref': origin, 'code_ref': None, 'presentation_ref': None,
+                                                       'circuit_ref': None, 'noise_model_ref': None, 'decoder_ref': None})
+        metric = make('metric_definition', 'metric:test', {'event': 'logical failure', 'denominator': 'block', 'unit': 'rate'})
+        series = make('performance_series', 'series:test', {'experiment_ref': ref(exp), 'metric_definition_ref': ref(metric)})
+        rows = [exp, metric, series]
+        for i, coordinate in enumerate((0.01, 0.03)):
+            noise = make('noise_instantiation', 'noise:' + str(i),
+                         {'model_ref': None, 'reported_coordinates': {'p': coordinate}, 'resolved_channel_parameters': None})
+            point = make('performance_point', 'point:' + str(i), {'experiment_ref': ref(exp), 'noise_instantiation_ref': ref(noise),
+                           'metric_definition_ref': ref(metric), 'curve_ref': ref(series), 'value': None})
+            rows.extend([noise, point])
+        publish_records(self.ws.registry, rows)
+        session = WorkspaceSession(self.ws.registry.root)
+        inputs = {'coordinate_name': 'p', 'coordinate': 0.011}
+        self.assertEqual(session.invoke('qec_find_performance', inputs)['data']['results'], [])
+        found, = session.invoke('qec_find_performance', {**inputs, 'selection': 'nearest_reported'})['data']['results']
+        self.assertEqual(found['selection']['reported'], 0.01)
+        self.assertEqual(found['selection']['requested'], 0.011)
+        self.assertFalse(found['selection']['is_interpolated'])
+        self.assertIn('resolved_channel_parameters', found['unresolved'])

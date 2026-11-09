@@ -147,6 +147,10 @@ def prepare(record):
         if not isinstance(relation, (str, type(None))) or not valid.get(relation):
             raise ValueError('Distance bound direction and values disagree')
     if kind == 'performance_point':
+        if not record['is_synthetic']:
+            for field in ('value', 'shots', 'failures', 'discards', 'confidence_interval'):
+                if data.get(field) is not None and not fields.get(_ptr(field), {}).get('source_locator'):
+                    raise ValueError(f'Reported performance {field} needs an exact source locator')
         count_fields = ('shots', 'failures', 'discards')
         shots, failures, discards = (data.get(field) for field in count_fields)
         if any(v is not None and (type(v) is not int or v < 0) for v in (shots, failures, discards)):
@@ -155,6 +159,8 @@ def prepare(record):
             raise ValueError('Failures plus discards exceed shots')
         if data['value'] is not None and (type(data['value']) not in {int, float} or not 0 <= data['value'] <= 1):
             raise ValueError('Performance rate must be in [0,1] or null')
+    if kind == 'software_release' and not all(data[field] for field in ('distribution_ref', 'version')):
+        raise ValueError('A software release needs the exact distribution and version')
     if kind == 'execution_run' and (not data['execution_evidence'] or not data['environment_ref']):
         raise ValueError('An execution run requires actual execution evidence and environment')
     if kind == 'software_usage':
@@ -198,6 +204,15 @@ def validate_bundle(records):
             if value is not None:
                 for binding in value if field.endswith('_refs') else [value]:
                     resolve(record, binding, (kinds,) if isinstance(kinds, str) else kinds)
+        if record['kind'] == 'software_usage' and data.get('release_ref'):
+            release = resolve(record, data['release_ref'], ('software_release',))
+            distribution = resolve(record, release['distribution_ref'], ('software_distribution',))
+            if not data.get('project_ref') or distribution['project_ref'] != data['project_ref']:
+                raise ValueError('Software use release belongs to a different project')
+        if record['kind'] == 'software_usage' and data.get('experiment_ref'):
+            experiment = resolve(record, data['experiment_ref'], ('reported_experiment',))
+            if data.get('source_ref') != experiment.get('source_ref'):
+                raise ValueError('Software use and experiment are bound to different sources')
         if record['kind'] == 'reported_experiment':
             chain = [('presentation_ref', 'code_ref', 'code_ref', 'code_presentation'),
                      ('circuit_ref', 'presentation_ref', 'presentation_ref', 'circuit_protocol')]

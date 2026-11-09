@@ -78,7 +78,9 @@ class WorkspaceSession:
                                 'evidence_policy': {'enum': ['verified', 'source_reported']},
                                 'sector': {'enum': ['X', 'Z', 'joint']}}, []),
             'qec_find_performance': ({'code_id': _string(), 'decoder_id': _string(), 'noise_model_id': _string(),
-                                      'metric_id': _string(), 'complete_only': {'type': 'boolean'}}, []),
+                                      'metric_id': _string(), 'complete_only': {'type': 'boolean'},
+                                      'coordinate_name': _string(), 'coordinate': {'type': 'number'},
+                                      'selection': {'enum': ['exact', 'nearest_reported']}}, []),
             'qec_find_software': ({'query': _string(), 'role': _string()}, []),
         }
         for name, (properties, required) in extras.items():
@@ -235,6 +237,12 @@ class WorkspaceSession:
 
     def _performance(self, args):
         rows = []
+        if ('coordinate' in args) != ('coordinate_name' in args) or ('selection' in args and 'coordinate' not in args):
+            raise ToolError('INVALID_ARGUMENT', 'Coordinate selection needs both name and value')
+        selection = args.get('selection', 'exact')
+        requested = args.get('coordinate')
+        axis = args.get('coordinate_name')
+        nearest = {}
         for record in self.visible.values():
             if record['kind'] != 'performance_point':
                 continue
@@ -263,10 +271,32 @@ class WorkspaceSession:
                 missing.append('metric_definition')
             if args.get('complete_only') and missing:
                 continue
-            rows.append({'point': record, 'context': bindings, 'unresolved': missing,
-                         'comparison_status': 'incomplete' if missing else 'conditions_bound',
-                         'verification_status': 'not_verified_by_query'})
-        return self._paginate(rows, args, min(20, self.graph.max_results))
+            row = {'point': record, 'context': bindings, 'unresolved': missing,
+                   'comparison_status': 'incomplete' if missing else 'conditions_bound',
+                   'verification_status': 'not_verified_by_query'}
+            if axis is None:
+                rows.append(row)
+                continue
+            coordinate = ((noise_instance or {}).get('data', {}).get('reported_coordinates') or {}).get(axis)
+            if type(coordinate) not in {int, float}:
+                continue
+            row['selection'] = {'policy': selection, 'coordinate_name': axis, 'requested': requested,
+                                'reported': coordinate, 'is_interpolated': False}
+            if selection == 'exact' and coordinate == requested:
+                rows.append(row)
+            elif selection == 'nearest_reported' and point.get('curve_ref') and get(point['curve_ref']):
+                curve = key(point['curve_ref'])
+                delta = abs(coordinate - requested)
+                best = nearest.get(curve)
+                if best is None or delta < best[0]:
+                    nearest[curve] = (delta, [row])
+                elif delta == best[0]:
+                    best[1].append(row)
+        if nearest:
+            rows = [row for _, group in sorted(nearest.items()) for row in group[1]]
+        result = self._paginate(rows, args, min(20, self.graph.max_results))
+        result['comparison_policy'] = 'Exact revision bindings; no cross-experiment ranking or interpolation'
+        return result
 
     def _software(self, args):
         rows = []

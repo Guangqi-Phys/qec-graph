@@ -54,3 +54,7 @@ U6 迁移：`qec-graph workspace-migrate --corpus OLD --workspace NEW` 验证旧
 发行候选 `0.4.0rc1` 的 wheel/sdist 包含工作区、MCP、human、研究 Schema 和附件软件种子，
 不含用户工作区。用 `qec-graph software import-seed` 显式导入 14 个项目；
 `qec-graph software coverage` 报告目录范围和未解析使用。导入不会安装软件或补全历史版本。
+
+性能点查询可按坐标精确筛选，或在各自固定曲线修订内选最近已报告点；
+结果同时记录请求坐标和实际坐标，不插值、不跨实验排序。已报告率值与计数
+必须绑定准确原文位置，缺少条件时返回缺项。软件发布版本还需验证确属该软件项目。
