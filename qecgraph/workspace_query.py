@@ -376,11 +376,19 @@ class WorkspaceSession:
                 continue
             if args.get('role') and args['role'] not in data.get('roles', []):
                 continue
-            uses = [r for r in self.visible.values() if r['kind'] in {'software_usage', 'software_catalog_observation'}
-                    and (r['data'].get('project_ref') or {}) == {'id': record['id'], 'revision': record['revision']}]
-            rows.append({**record, 'related_usage_or_observations': [
-                {'id': r['id'], 'revision': r['revision'], 'kind': r['kind']} for r in uses]})
+            rows.append(record)
         result = self._paginate(rows, args, min(20, self.graph.max_results))
+        page = result['results']
+        related = {(row['id'], row['revision']): [] for row in page}
+        if related:
+            for record in self.visible.values():
+                if record['kind'] not in {'software_usage', 'software_catalog_observation'}:
+                    continue
+                binding = record['data'].get('project_ref')
+                if binding and (matches := related.get(key(binding))) is not None:
+                    matches.append({field: record[field] for field in ('id', 'revision', 'kind')})
+        result['results'] = [{**row, 'related_usage_or_observations': related[(row['id'], row['revision'])]}
+                             for row in page]
         result['catalogue_scope'] = 'Non-exhaustive; catalogue entries do not establish use or a release version'
         return result
 

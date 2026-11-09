@@ -91,6 +91,33 @@ class WorkspaceQueryTests(unittest.TestCase):
         missing = session.invoke('qec_get_entity', {'identifier': identifier, 'revision': 'missing'})
         self.assertEqual(missing['error']['code'], 'NOT_FOUND')
 
+    def test_software_results_bind_usage_to_each_project_revision(self):
+        from qecgraph.research import make_record
+        state, _ = self.ws.registry.read()
+        version, = state['versions'].values()
+        source = {'id': version['id'], 'revision': version['snapshot_id']}
+        identifier = 'software:fixture'
+        records = [
+            make_record('software_project', identifier, revision, {'name': 'Fixture decoder'},
+                        source=source, method='test_fixture')
+            for revision in ('r1', 'r2')
+        ]
+        records.append(make_record('software_usage', 'usage:fixture', 'r1', {
+            'usage_kind': 'mention', 'project_ref': {'id': identifier, 'revision': 'r2'},
+            'release_ref': None, 'source_ref': source,
+        }, source=source, method='test_fixture'))
+        publish_records(self.ws.registry, records)
+        session = WorkspaceSession(self.ws.registry.root)
+        args = {'query': 'Fixture decoder', 'limit': 1}
+        first = session.invoke('qec_find_software', args)['data']
+        self.assertEqual(first['total_matches'], 2)
+        self.assertEqual(first['results'][0]['related_usage_or_observations'], [])
+        second = session.invoke('qec_find_software', {**args, 'offset': first['continuation']})['data']
+        self.assertEqual(second['results'][0]['revision'], 'r2')
+        self.assertEqual(second['results'][0]['related_usage_or_observations'], [
+            {'id': 'usage:fixture', 'revision': 'r1', 'kind': 'software_usage'},
+        ])
+
     def test_real_stdio_does_not_return_human_files_or_synthetic_entities(self):
         publish_records(self.ws.registry, adapt_synthetic(read_json(DESIGN / 'examples/performance_context.synthetic.json')))
         lines = [initialization(), {'jsonrpc': '2.0', 'method': 'notifications/initialized'},
