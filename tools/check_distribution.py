@@ -25,6 +25,8 @@ def verify(source, wheel, sdist):
     schema_root = 'qecgraph/validators/schemas/'
     schemas = {path.relative_to(source).as_posix(): path.read_bytes()
                for path in (source / schema_root).glob('*.schema.json')}
+    seed = 'qecgraph/catalog/software_catalog.seed.json'
+    seed_bytes = (source / seed).read_bytes()
     with ZipFile(wheel) as archive:
         metadata, = [name for name in archive.namelist() if name.endswith('.dist-info/METADATA')]
         _check_metadata(archive.read(metadata), version, readme)
@@ -37,6 +39,8 @@ def verify(source, wheel, sdist):
         for name, expected in schemas.items():
             if archive.read(name) != expected:
                 raise ValueError(f'Wheel schema differs from the checkout: {name}')
+        if archive.namelist().count(seed) != 1 or archive.read(seed) != seed_bytes:
+            raise ValueError('Wheel software catalog seed differs from the checkout')
     with tarfile.open(sdist, 'r:gz') as archive:
         prefix = sdist.name.removesuffix('.tar.gz')
         inventory = [name.removeprefix(prefix + '/') for name in archive.getnames()
@@ -44,9 +48,12 @@ def verify(source, wheel, sdist):
         if sorted(inventory) != sorted(schemas):
             raise ValueError('Source distribution schema inventory differs from the checkout')
         expected_files = {'README.md': readme.encode('utf-8'), 'LICENSE': license_bytes,
-                          'install.sh': (source / 'install.sh').read_bytes(), **schemas}
+                          'install.sh': (source / 'install.sh').read_bytes(), seed: seed_bytes, **schemas}
         for name, expected in expected_files.items():
-            with archive.extractfile(f'{prefix}/{name}') as stream:
+            matches = [item for item in archive.getmembers() if item.name == f'{prefix}/{name}']
+            if len(matches) != 1 or not matches[0].isfile():
+                raise ValueError(f'Source distribution must contain one regular file at {name}')
+            with archive.extractfile(matches[0]) as stream:
                 if stream.read() != expected:
                     raise ValueError(f'Source distribution {name} differs from the checkout')
         with archive.extractfile(f'{prefix}/PKG-INFO') as stream:
@@ -62,7 +69,7 @@ def main():
     wheel, = args.dist.glob('*.whl')
     sdist, = args.dist.glob('*.tar.gz')
     version = verify(args.source, wheel, sdist)
-    print(f'Verified {version}, README, license, and schemas in {wheel.name} and {sdist.name}')
+    print(f'Verified {version}, README, license, schemas, and catalog seed in {wheel.name} and {sdist.name}')
 
 
 if __name__ == '__main__':
