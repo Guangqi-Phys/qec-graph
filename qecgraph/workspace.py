@@ -228,10 +228,9 @@ class Workspace:
                     tree.materialize(expanded)
                     expanded.rename(saved)
                 else:
-                    for member in tree.manifest:
-                        raw_member = _read_regular(self.path('sources/' + tree_hash + '/' + member['path']),
-                                                   limits.member_bytes)
-                        if hashlib.sha256(raw_member).hexdigest() != member['sha256']:
+                    for path, original in sorted(tree.files.items()):
+                        raw_member = _read_regular(self.path('sources/' + tree_hash + '/' + path), limits.member_bytes)
+                        if raw_member != original:
                             raise ValueError('Preserved source tree does not match archive')
                 if version is None:
                     tree.materialize(temporary / 'project')

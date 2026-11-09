@@ -120,6 +120,21 @@ class WorkspaceTests(unittest.TestCase):
         payload, = (self.inbox / '.processing').glob('*/payload')
         self.assertEqual(payload.read_bytes(), rewrapped)
 
+    def test_rebuild_detects_a_changed_preserved_archive_member(self):
+        raw = tar_bytes({'paper.tex': TEX, 'unused.bin': b'original'})
+        (self.inbox / 'paper.tar').write_bytes(raw)
+        first = self.ws.init()
+        self.assertEqual(first['counts']['processed'], 1)
+        preserved = self.root / 'sources' / unpack(raw).digest
+        (preserved / 'unused.bin').write_bytes(b'modified')
+
+        result = self.ws.rebuild()
+        self.assertEqual(result['status'], 'partial_batch')
+        material, = result['inputs']
+        self.assertIn('Preserved source tree does not match archive', material['reason'])
+        self.assertTrue(material['retained_prior_extraction'])
+        self.assertEqual(material['source_snapshot_id'], first['inputs'][0]['source_snapshot_id'])
+
     def test_kill_after_pointer_before_cleanup_recovers_exact_claim(self):
         self.ws.init(no_ingest=True)
         (self.inbox / 'good').write_bytes(TEX)
