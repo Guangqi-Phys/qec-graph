@@ -1,5 +1,8 @@
 import hashlib
+import json
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -58,6 +61,32 @@ class ReviewTests(unittest.TestCase):
         final['data']['statement'] = 'Different, unreviewed statement'
         with self.assertRaisesRegex(ValueError, 'does not bind'):
             self.registry.add_record(final)
+
+    def test_corrupt_legacy_proposal_and_review_report_managed_paths(self):
+        proposal = self.proposal()
+        decision = decide(self.registry.root, proposal['id'], actor={'id': 'fixture:program', 'kind': 'program'},
+                          decision='approve', rationale='Fixture decision')
+        scope = ['--corpus', str(self.registry.root), '--json']
+        pointer = (self.registry.root / 'CURRENT.json').read_bytes()
+        for directory, obj, args, corrupt in (
+            ('proposals', proposal, ['review', 'show', proposal['id']], '['),
+            ('reviews', decision, ['review', 'apply', proposal['id'], '--review-id', decision['id']], '[]'),
+        ):
+            with self.subTest(directory=directory):
+                digest = hashlib.sha256(obj['id'].encode()).hexdigest()
+                path = self.registry.root / directory / f'{digest}.json'
+                original = path.read_bytes()
+                path.write_text(corrupt, encoding='utf-8')
+                try:
+                    result = subprocess.run([sys.executable, '-m', 'qecgraph', *args, *scope],
+                                            capture_output=True, text=True, timeout=10)
+                    self.assertEqual((result.returncode, result.stderr), (1, ''))
+                    error = json.loads(result.stdout)['error']
+                    self.assertEqual(error['code'], 'STORAGE_ERROR')
+                    self.assertEqual(error['details']['path'], str(path.resolve()))
+                    self.assertEqual((self.registry.root / 'CURRENT.json').read_bytes(), pointer)
+                finally:
+                    path.write_bytes(original)
 
     def test_stale_hash_and_revision_are_rejected(self):
         changed = claim()

@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from .graph import canonical, hash_text, read_json
 from .records import prepare_record
 from .registry import Registry
-from .transactions import immutable_json, writer_lock
+from .transactions import ManagedDataError, immutable_json, writer_lock
 from .validators import packaged_validator
 
 SCOPES = {'statement', 'hypotheses', 'dependencies'}
@@ -51,6 +51,15 @@ def _validate(value, schema_name):
     error = next(packaged_validator(schema_name, check_formats=False).iter_errors(value), None)
     if error is not None:
         raise ValueError('Review/proposal schema: ' + error.message)
+
+
+def _read_checked_review(path, schema_name):
+    try:
+        value = read_json(path)
+        _validate(value, schema_name)
+    except ValueError as exc:
+        raise ManagedDataError(path, 'Stored review or proposal has invalid JSON or schema') from exc
+    return value
 
 
 def input_bindings(registry, state, after_records=()):
@@ -114,11 +123,11 @@ def create_proposal(corpus, changes, *, actor, rationale, expected_registry_revi
 
 
 def read_proposal(registry, proposal_id):
-    proposal = read_json(_path(registry, 'proposals', proposal_id))
-    _validate(proposal, 'proposal.v1')
+    path = _path(registry, 'proposals', proposal_id)
+    proposal = _read_checked_review(path, 'proposal.v1')
     payload = {key: value for key, value in proposal.items() if key != 'id'}
     if proposal.get('schema_version') != 'qecgraph.proposal.v1' or proposal.get('id') != proposal_id or proposal_id != 'proposal:' + hash_text(canonical(payload)):
-        raise ValueError('Proposal identity/hash mismatch')
+        raise ManagedDataError(path, 'Proposal identity/hash mismatch')
     return proposal
 
 
@@ -178,10 +187,9 @@ def verify_record_review(registry, record, *, checked_reviews=None):
     review_hash = record['review'].get('review_sha256')
     checked = checked_reviews.get(review_id) if checked_reviews is not None else None
     if checked is None:
-        review = read_json(_path(registry, 'reviews', review_id))
-        _validate(review, 'review.v1')
+        review = read_review(registry, review_id)
         digest = hash_text(canonical(review))
-        if review['id'] != review_id or review_hash != digest:
+        if review_hash != digest:
             raise ValueError('Record human review hash/identity mismatch')
         proposal = read_proposal(registry, review['proposal_id'])
         expected = {}
@@ -198,10 +206,10 @@ def verify_record_review(registry, record, *, checked_reviews=None):
 
 
 def read_review(registry, review_id):
-    review = read_json(_path(registry, 'reviews', review_id))
-    _validate(review, 'review.v1')
+    path = _path(registry, 'reviews', review_id)
+    review = _read_checked_review(path, 'review.v1')
     if review['id'] != review_id:
-        raise ValueError('Review identity mismatch')
+        raise ManagedDataError(path, 'Review identity mismatch')
     return review
 
 
