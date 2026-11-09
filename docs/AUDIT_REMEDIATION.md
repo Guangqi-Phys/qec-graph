@@ -31,7 +31,7 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 23 | Share query logic across store, corpus, and workspace | Open. Preserve scope and evidence semantics. |
 | 24 | Stage graph construction and test parser boundaries | Open. |
 | 25 | Improve generated Obsidian pages and migration | Open. |
-| 26 | Verify release artifacts before publication | Open. |
+| 26 | Verify release artifacts before publication | In progress. Tag builds now verify Python distributions and the installed wheel before the GitHub Release can publish. The optional PyPI approval route and hosted verification remain. |
 | 27 | Verify Linux and MCP isolation | Open. |
 | 28 | Pin expected results for a real-paper corpus | Open. Check redistribution rights for any fixture committed to Git. |
 | 29 | Add reproducible performance benchmarks | Open. |
