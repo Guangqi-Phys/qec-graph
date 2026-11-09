@@ -103,7 +103,7 @@ def audit_dependencies(args):
 def mcp_config(args):
     from pathlib import Path
     session = _ai_session(args)
-    executable, *arguments = cli_command('serve-mcp')
+    executable, *arguments = cli_command('mcp', 'serve')
     if args.workspace or args.machine:
         arguments += ['--machine', str(session.machine), '--release', session.release]
     elif args.corpus:

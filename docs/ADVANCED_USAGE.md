@@ -137,6 +137,12 @@ The original `review <file>` still works; use `review propose <file>` for the gr
 form. If a review file is named like an action, pass `./filename` to make
 the intent clear.
 
+`qec-graph help aliases` lists older names and their replacements. Older
+names remain supported and emit a notice on an interactive stderr, or when
+`QECGRAPH_DEPRECATIONS=1`. Set `QECGRAPH_DEPRECATIONS=0` to turn notices off.
+Common shortcuts such as `sync`, `status`, `validate`, and `search` do not
+emit notices.
+
 ## Manage the Obsidian vault and research records
 
 Open the workspace's `human/` directory as an Obsidian vault. Start at

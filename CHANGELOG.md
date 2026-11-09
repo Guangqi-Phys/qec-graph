@@ -18,5 +18,8 @@
   envelope and keep the read tool's scope and error code.
 - `qec-graph --version` and `qec-graph help <command>` report the installed
   version and available command options.
+- Related commands have grouped names and examples. `qec-graph help aliases`
+  lists supported older spellings and their replacements. Daily shortcuts
+  remain supported without a notice.
 - Workspace queries support fixed releases. Splitting a store with annotations
   or a catalog requires explicit `--force` to replace CURRENT.

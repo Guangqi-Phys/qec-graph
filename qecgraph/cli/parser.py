@@ -99,11 +99,24 @@ _GROUPS = {
 }
 
 
+_SHORTCUTS = {'init', 'sync', 'rebuild', 'status', 'validate', 'search', 'show',
+              'deps', 'impact', 'context', 'doctor', 'snapshot'}
+_LEGACY_PATHS = {command: f'{group} {verb}' for group, (_, actions) in _GROUPS.items()
+                 for verb, command in actions.items() if command not in _SHORTCUTS}
+
+
+def _print_aliases():
+    print('Legacy commands remain available. These grouped names are preferred:\n')
+    for name, replacement in sorted(_LEGACY_PATHS.items()):
+        display = 'review FILE' if name == 'review' else name
+        print(f'  {display:22} {replacement}')
+
+
 def _register_commands(add):
     add('version', help='Show the installed QEC Graph version')
     help_command = add('help', help='Show help for a specific command')
     help_command.add_argument('topic', nargs='*', metavar='command',
-        help='Command path or topic, such as workspace sync, errors, or json')
+        help='Command path or topic: workspace sync, errors, json, or aliases')
     doctor = add('doctor', help='Inspect workspace health without writing files')
     doctor.add_argument('--workspace',
         help='Path to the QEC workspace; omit to use local discovery where supported')
@@ -350,8 +363,9 @@ def _register_commands(add):
 def _build_parser(entrypoint=None):
     parser = _ArgumentParser(prog='qec-graph', usage='%(prog)s <command> [options]',
                              description='LaTeX source blocks and typed QEC graphs with explicit evidence checks',
-                             epilog=f'Examples:\n  qec-graph init --workspace ./qec\n  qec-graph sync --dry-run\n'
-                                    f'  qec-graph query search HGP --workspace ./qec\n\nGuide: {GUIDE_URL}')
+                             epilog='Examples:\n  qec-graph init --workspace ./qec\n  qec-graph sync --dry-run\n'
+                                    '  qec-graph query search HGP --workspace ./qec\n\n'
+                                    f'Legacy commands: qec-graph help aliases\nGuide: {GUIDE_URL}')
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     sub = parser.add_subparsers(dest='command', required=True, metavar='<command>')
     topics = {}
@@ -380,7 +394,8 @@ def _build_parser(entrypoint=None):
             topics['review-propose',] = legacy
             continue
         prog = entrypoint[1] if entrypoint and entrypoint[0] == name else f'qec-graph {name}'
-        topics[name,] = sub.add_parser(name, parents=[options], prog=prog, help=description,
+        listing = {} if name in _LEGACY_PATHS else {'help': description}
+        topics[name,] = sub.add_parser(name, parents=[options], prog=prog, **listing,
                                        description=description, epilog=command_epilog(name, prog))
     for name, (_, actions) in _GROUPS.items():
         for action, command in actions.items():
@@ -433,9 +448,16 @@ def parse_command(argv: list[str], *, entrypoint: tuple[str, str] | None = None)
             topics[topic].print_help()
         elif len(topic) == 1 and topic[0] in TOPICS:
             print(f'{TOPICS[topic[0]]}\n\nGuide: {GUIDE_URL}')
+        elif topic == ('aliases',):
+            _print_aliases()
         else:
             error = UsageError(f'Unknown help topic {" ".join(topic)!r}')
             error.command = 'help'
             raise error
         return None
+    flat_name = 'review' if name == 'review-propose' else name
+    args.alias = None
+    if entrypoint is None and not hasattr(args, 'action') and flat_name in _LEGACY_PATHS:
+        display = 'review FILE' if flat_name == 'review' else flat_name
+        args.alias = (display, _LEGACY_PATHS[flat_name])
     return args

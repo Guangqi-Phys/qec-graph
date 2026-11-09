@@ -37,6 +37,24 @@ class CLIContractTests(unittest.TestCase):
             self.assertIn('usage: qec-graph mcp serve', help_result.stdout)
             self.assertIn('--machine', help_result.stdout)
 
+            with patch.dict('os.environ', {'QECGRAPH_DEPRECATIONS': '0'}):
+                quiet_alias = run('mcp-config', *scope)
+            with patch.dict('os.environ', {'QECGRAPH_DEPRECATIONS': '1'}):
+                warned_alias = run('mcp-config', *scope)
+                canonical = run('mcp', 'config', *scope)
+                shortcut = run('status', '--json', *scope)
+            self.assertEqual(quiet_alias.returncode, 0)
+            self.assertEqual(warned_alias.returncode, 0)
+            self.assertEqual(canonical.returncode, 0)
+            self.assertEqual(quiet_alias.stderr, '')
+            self.assertIn('use qec-graph mcp config', warned_alias.stderr)
+            self.assertEqual(canonical.stderr, '')
+            self.assertEqual(shortcut.stderr, '')
+            config = json.loads(canonical.stdout)
+            self.assertEqual(json.loads(warned_alias.stdout), config)
+            self.assertIn('serve', config['mcpServers']['qecgraph']['args'])
+            self.assertIn('mcp-config', run('help', 'aliases').stdout)
+
             (root / 'list').write_text('{}', encoding='utf-8')
             stderr = io.StringIO()
             with chdir(root), redirect_stderr(stderr):

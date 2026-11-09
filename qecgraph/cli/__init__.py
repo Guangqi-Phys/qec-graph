@@ -9,7 +9,7 @@ from .commands import HANDLERS
 from .commands.workspace import uses_workspace, workspace_action
 from .errors import InternalError, Interrupted, UsageError, classify
 from .parser import parse_command
-from .render import WorkspaceProgress, report_error
+from .render import WorkspaceProgress, report_alias, report_error
 
 
 def main(argv: Sequence[str] | None = None, *, entrypoint: tuple[str, str] | None = None) -> int:
@@ -24,6 +24,7 @@ def main(argv: Sequence[str] | None = None, *, entrypoint: tuple[str, str] | Non
     if args.command == 'version':
         print(f'qec-graph {__version__}')
         return 0
+    report_alias(args.alias)
     workspace_command = uses_workspace(args)
     progress = WorkspaceProgress(args.command) if workspace_command and not args.json else None
     try:

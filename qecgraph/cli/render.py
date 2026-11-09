@@ -174,3 +174,10 @@ def report_error(error: QecError, command: str | None, *, json_mode: bool,
         # commands without requesting the versioned CLI envelope.
         print_json({'error': str(error)}, compact=True, stream=sys.stderr)
     return error.exit_code
+
+
+def report_alias(alias: tuple[str, str] | None) -> None:
+    preference = os.environ.get('QECGRAPH_DEPRECATIONS')
+    if alias and (preference == '1' or preference != '0' and sys.stderr.isatty()):
+        old, current = alias
+        print(f'warning: qec-graph {old} is deprecated; use qec-graph {current}.', file=sys.stderr)

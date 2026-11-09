@@ -68,7 +68,7 @@ def workspace_action(args, progress):
         import subprocess
         try:
             render = subprocess.run(
-                cli_command('human-build', '--workspace', str(ws.root), '--release', result['release_id']),
+                cli_command('human', 'build', '--workspace', str(ws.root), '--release', result['release_id']),
                 capture_output=True, text=True, timeout=120, check=False)
             result['human'] = json.loads(render.stdout)
         except (OSError, ValueError, subprocess.TimeoutExpired):

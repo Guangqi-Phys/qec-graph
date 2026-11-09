@@ -18,7 +18,7 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 10 | Documentation index and factual corrections | Complete. The README links to a current index. Corrected runtime requirements, locking, command entry points, MCP scope, and validation links, and marked historical reports. Checked Markdown link targets. Physical reorganization remains in item 18. |
 | 11 | Separate CLI parsing, rendering, and dispatch | Complete. `main()` delegates parsing, rendering, and command workflows. All 50 registered names are covered by the dispatch paths, and both module entry points and console scripts are preserved. The extraction matched 114 help and usage transcripts and passed the full test suite. |
 | 12 | Stable error taxonomy and JSON error contract | Complete. The CLI uses versioned JSON errors on request, including fixed-scope query errors; MCP keeps its protocol. Tests cover missing paths and selectors, ambiguity, held writer locks, corrupt configuration and pointers, usage, stream isolation, and unexpected failures with `--debug`. Partial operations keep their actionable command reports. |
-| 13 | Grouped help, examples, and alias migration | In progress. Grouped commands share their options with the original forms. Each command has an example and documented options; the dedicated executable names have correct usage help. Alias notices remain. |
+| 13 | Grouped help, examples, and alias migration | Complete for existing commands. Grouped names share options, examples, and handlers with flat names. Legacy names get a controlled stderr notice; everyday shortcuts stay visible and silent. The audit's proposed additional query and review actions need their own scope and evidence contracts. |
 | 14 | Query workspaces directly through the MCP query layer | Complete in `4067e6e`. Five CLI queries matched their tool results at a pinned release after CURRENT advanced. The workspace query suite passed. |
 | 15 | Doctor, version command, and snapshot listing | Complete. CLI tests cover version, healthy and corrupt CURRENT diagnosis, an unchanged pointer, and listing both immutable store snapshots and unpublished registry candidates. |
 | 16 | Package all current schemas and expand research contracts | In progress. Moved graph and annotations into the packaged schema directory and documented migration from checkout-only paths. Distribution checks compare all packaged schema bytes. Per-kind research contracts remain. |
@@ -54,3 +54,6 @@ these alongside items 1, 8, 10, 12, and 13.
 - The split repair must protect CURRENT even if another writer is active.
   A preflight in the CLI alone would leave a race. Implement the check inside
   the store writer lock and preserve the previous immutable snapshot.
+- The proposed deprecation of every flat name conflicts with the requested
+  daily commands (`sync`, `status`, and `validate`). Keep those shortcuts
+  and the direct evidence queries, and deprecate only redundant spellings.
