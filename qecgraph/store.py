@@ -436,8 +436,11 @@ def _hash_snapshot_output(root, relative, directory_fd):
         # Older standalone stores may use links that resolve inside the snapshot.
         descriptor = os.open(_safe_relative_to_resolved(root, relative), flags)
     with os.fdopen(descriptor, "rb") as output:
-        if not stat.S_ISREG(os.fstat(output.fileno()).st_mode):
+        metadata = os.fstat(output.fileno())
+        if not stat.S_ISREG(metadata.st_mode):
             raise ValueError(f"Expected a regular snapshot output: {relative}")
+        if metadata.st_size > 1 << 20:
+            return hashlib.file_digest(output, "sha256").hexdigest()
         return hashlib.sha256(output.read()).hexdigest()
 
 
