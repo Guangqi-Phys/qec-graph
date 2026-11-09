@@ -58,7 +58,7 @@ def _validate(value, schema_name):
 
 
 def input_bindings(registry, state, fixed, after_records=()):
-    records = [registry.record(identifier, registry_revision=fixed) for identifier in sorted(state['records'])]
+    records = [registry.record_from_state(state, identifier) for identifier in sorted(state['records'])]
     assets = {}
     for record in records + list(after_records):
         for asset in record['assets']:
@@ -96,7 +96,7 @@ def create_proposal(corpus, changes, *, actor, rationale, expected_registry_revi
             seen.add(identifier)
             if after['review']['status'] not in {'proposed', 'draft'}:
                 raise ValueError('Proposed revisions must start draft/proposed; old review cannot be copied')
-            before = registry.record(identifier, registry_revision=fixed) if identifier in state['records'] else None
+            before = registry.record_from_state(state, identifier) if identifier in state['records'] else None
             expected = (change['expected_revision'], change['expected_content_sha256'])
             actual = (before['revision'], before['content_sha256']) if before else (None, None)
             if expected != actual:
@@ -230,7 +230,7 @@ def apply(corpus, proposal_id, review_id):
         for record in records:
             registry._put_record(state, record)
         after_records = {identifier: registry.record_from_state(state, identifier) for identifier in state['records']}
-        errors = [issue for issue in registry_issues(registry, state, fixed, after_records)
+        errors = [issue for issue in registry_issues(registry, state, after_records)
                   if issue.get('severity', 'error') == 'error']
         if errors:
             raise ValueError('Apply cross-record validation failed: ' + canonical(errors))

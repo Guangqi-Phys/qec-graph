@@ -16,10 +16,10 @@ DIRECTORIES = {'states', 'source_snapshots', 'assets', 'records', 'reviews', 'pr
 FILES = {'.qecgraph-registry.json'}
 
 
-def _unresolved(registry, state, fixed):
+def _unresolved(registry, state):
     rows = []
     for identifier in sorted(state['records']):
-        record = registry.record(identifier, registry_revision=fixed)
+        record = registry.record_from_state(state, identifier)
         data = record['data']
         candidates = {
             'untyped_distance': ('d' in data and not data.get('relation')) or (
@@ -61,7 +61,7 @@ def migrate_corpus(corpus, destination, revision=None):
             validation = source.validate(fixed)
             if not validation['passed']:
                 raise ValueError('Legacy corpus has validation errors; inspect validate-corpus before migrating')
-            unknown = _unresolved(source, state, fixed)
+            unknown = _unresolved(source, state)
             new_machine = staging / 'copied-machine'
             new_machine.mkdir()
             for name in sorted(DIRECTORIES | FILES):

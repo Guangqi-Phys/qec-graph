@@ -191,7 +191,7 @@ class Registry:
             node = next(n for n in graph['nodes'] if n['id'] == node_id)
             if node['origin'] != 'parser' or not node.get('source'):
                 raise ValueError('Claim provenance requires an actual source block')
-            claim = self.record(claim_id, claim_revision, fixed)
+            claim = self.record_from_state(state, claim_id, claim_revision)
             if claim['kind'] != 'claim':
                 raise ValueError('Source normalization target must be a claim')
             from .validators import validate_endpoint
@@ -264,7 +264,7 @@ class Registry:
         from .validators import registry_issues
         from .corpus import project
         state, fixed = self.read(registry_revision)
-        issues = registry_issues(self, state, fixed)
+        issues = registry_issues(self, state)
         for version in state['versions'].values():
             self.validate_source_snapshot(version)
         graph, _ = project(self.root, fixed, check_live_lean=check_live_lean)

@@ -107,10 +107,10 @@ def validate_graph_types(graph):
         validate_endpoint(lookup[edge['source']]['kind'], lookup[edge['target']]['kind'], edge['relation'])
 
 
-def registry_issues(registry, state, fixed, records=None):
+def registry_issues(registry, state, records=None):
     issues = []
     if records is None:
-        records = {identifier: registry.record(identifier, registry_revision=fixed) for identifier in state['records']}
+        records = {identifier: registry.record_from_state(state, identifier) for identifier in state['records']}
     for identifier, record in records.items():
         if record['schema_version'] != 'qecgraph.record.v3':
             issues.append({'code': 'legacy_record_requires_migration', 'record_id': identifier})
