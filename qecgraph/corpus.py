@@ -15,7 +15,7 @@ def occurrence_id(version_id, node_id):
     return 'occurrence:' + hash_text(version_id) + ':' + node_id
 
 
-def project(corpus, registry_revision=None, source_version_id=None, *, check_live_lean=True):
+def project(corpus, registry_revision=None, source_version_id=None, *, check_live_lean=True, verify_sources=False):
     registry = Registry(corpus)
     state, fixed = registry.read(registry_revision)
     if source_version_id and source_version_id not in state['versions']:
@@ -24,7 +24,7 @@ def project(corpus, registry_revision=None, source_version_id=None, *, check_liv
     nodes, edges, labels, versions = [], [], {}, {}
     partial = False
     for version_id in selected:
-        graph, _, version = registry.source_graph_from_state(state, version_id, fixed)
+        graph, _, version = registry.source_graph_from_state(state, version_id, fixed, verify=verify_sources)
         versions[version_id] = version
         partial |= graph['extraction_status'] == 'partial'
         for original in graph['nodes']:

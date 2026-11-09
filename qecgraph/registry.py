@@ -114,10 +114,13 @@ class Registry:
         state, fixed = self.read(revision)
         return self.source_graph_from_state(state, source_version_id, fixed)
 
-    def source_graph_from_state(self, state, source_version_id, registry_revision):
+    def source_graph_from_state(self, state, source_version_id, registry_revision, *, verify=False):
         if source_version_id not in state['versions']:
             raise ValueError(f'Unknown source version in registry {registry_revision}: {source_version_id}')
         version = state['versions'][source_version_id]
+        if verify:
+            graph, snapshot, _ = self._load_verified_source(version)
+            return graph, snapshot, version
         snapshot = safe_relative(self.root, version['snapshot_path'])
         graph = read_json(snapshot / 'graph.json')
         if graph['snapshot_id'] != version['snapshot_id']:
@@ -126,10 +129,15 @@ class Registry:
 
     def validate_source_snapshot(self, version):
         """Validate the source snapshot bound by a verified registry state."""
+        _, _, report = self._load_verified_source(version)
+        return report
+
+    def _load_verified_source(self, version):
         snapshot = safe_relative(self.root, version['snapshot_path'])
         if snapshot.name != version['snapshot_id']:
             raise ValueError('Registered snapshot identity mismatch')
-        return validate_snapshot(snapshot)
+        graph, report = load_validated_snapshot(snapshot)
+        return graph, snapshot, report
 
     def _put_record(self, state, record):
         record = prepare_record(record)
@@ -264,9 +272,7 @@ class Registry:
         from .corpus import project
         state, fixed = self.read(registry_revision)
         issues = registry_issues(self, state)
-        for version in state['versions'].values():
-            self.validate_source_snapshot(version)
-        graph, _ = project(self.root, fixed, check_live_lean=check_live_lean)
+        graph, _ = project(self.root, fixed, check_live_lean=check_live_lean, verify_sources=True)
         from .validators import validate_graph_types
         validate_graph_types(graph.graph)
         from .status import reviewed_cycles

@@ -9,7 +9,6 @@ from jsonschema import Draft202012Validator
 
 from . import query
 from .corpus import project
-from .registry import Registry
 from .store import GraphInput, load_validated_snapshot, pin_snapshot
 
 TOOL_NAMES = ('qecgraph_search', 'qecgraph_show', 'qecgraph_context', 'qecgraph_deps', 'qecgraph_impact')
@@ -39,9 +38,8 @@ class ReadOnlySession:
         if corpus:
             if snapshot_id:
                 raise ValueError('snapshot_id belongs to a store, not a corpus')
-            source, full_scope = project(corpus, registry_revision, source_version_id, check_live_lean=check_live_lean)
-            self._check_corpus_sources(corpus, full_scope)
-            self.source = source
+            self.source, full_scope = project(corpus, registry_revision, source_version_id,
+                                              check_live_lean=check_live_lean, verify_sources=True)
             self.scope = {'kind': 'corpus', 'registry_revision': full_scope['registry_revision'],
                           'source_version_id': source_version_id,
                           'sources': 'selected_version' if source_version_id else 'all_registered_versions',
@@ -58,19 +56,11 @@ class ReadOnlySession:
 
     def _refresh(self):
         if self.corpus:
-            source, full_scope = project(self.corpus, self.scope['registry_revision'], self.scope['source_version_id'],
-                                         check_live_lean=self.check_live_lean)
-            self._check_corpus_sources(self.corpus, full_scope)
-            self.source = source
+            self.source, _ = project(self.corpus, self.scope['registry_revision'], self.scope['source_version_id'],
+                                     check_live_lean=self.check_live_lean, verify_sources=True)
         else:
             graph, _ = load_validated_snapshot(self.reference.path, self.reference.snapshot_id)
             self.source = GraphInput(graph, self.reference.path)
-
-    @staticmethod
-    def _check_corpus_sources(corpus, scope):
-        registry = Registry(corpus)
-        for version in scope['source_versions'].values():
-            registry.validate_source_snapshot(version)
 
     def tools(self):
         tools = []
