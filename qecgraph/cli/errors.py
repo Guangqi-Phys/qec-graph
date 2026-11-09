@@ -93,7 +93,7 @@ def classify(exc: Exception) -> QecError:
     if isinstance(exc, WriterBusy):
         return Conflict(str(exc), details={'path': str(exc.root)})
     if isinstance(exc, WorkspaceConfigError):
-        return InvalidConfig(str(exc), details={'path': str(exc.path)})
+        return InvalidConfig(str(exc), details={'path': str(exc.path), **exc.location})
     if isinstance(exc, ManagedDataError):
         return StorageError(str(exc), details={'path': str(exc.path)})
     if isinstance(exc, FileNotFoundError):

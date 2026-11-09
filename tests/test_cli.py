@@ -176,6 +176,7 @@ class CLIContractTests(unittest.TestCase):
             self.assertEqual(result['code'], error_code)
             self.assertEqual(result['details']['path'], str(path))
             self.assertTrue(result['hint'])
+            return result
 
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
@@ -188,8 +189,12 @@ class CLIContractTests(unittest.TestCase):
             self.assertEqual(pointer.read_bytes(), original)
 
             config = root / 'qecgraph.toml'
-            config.write_text('[broken', encoding='utf-8')
-            report(['status', '--workspace', str(root)], 1, 'INVALID_CONFIG', config)
+            for text, line, column in (('[limits]\r\ninput_bytes = @\r\n', 2, 15),
+                                       ('# 量子\r\n[broken', 2, 8)):
+                config.write_bytes(text.encode('utf-8'))
+                invalid = report(['status', '--workspace', str(root)], 1, 'INVALID_CONFIG', config)
+                self.assertEqual(invalid['details'], {'path': str(config), 'line': line, 'column': column})
+                self.assertIn(f'line {line}, column {column}', invalid['message'])
 
             pointer.write_text('[]', encoding='utf-8')
             report(['snapshot', 'list', '--workspace', str(root)], 1, 'STORAGE_ERROR', pointer)

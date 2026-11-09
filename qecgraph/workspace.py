@@ -134,7 +134,27 @@ def locate(path=None, *, default=None):
 
 
 class WorkspaceConfigError(ManagedDataError):
-    pass
+    def __init__(self, path, message, *, location=None):
+        self.location = {}
+        if location is not None:
+            line, column = location
+            self.location = {'line': line, 'column': column}
+            message += f' at line {line}, column {column}'
+        super().__init__(path, message)
+
+
+def _toml_location(exc, text):
+    line, column = getattr(exc, 'lineno', None), getattr(exc, 'colno', None)
+    if line is not None and column is not None:
+        return line, column
+    # Before Python 3.14, tomllib reports the position in its message only.
+    message = str(exc)
+    if match := re.search(r'\(at line (\d+), column (\d+)\)$', message):
+        return int(match[1]), int(match[2])
+    if message.endswith('(at end of document)'):
+        lines = text.replace('\r\n', '\n').split('\n')
+        return len(lines), len(lines[-1]) + 1
+    return None
 
 
 class Workspace:
@@ -147,13 +167,14 @@ class Workspace:
 
     def config(self):
         path = self.path(CONFIG)
-        with path.open('rb') as source:
-            try:
-                cfg = tomllib.load(source)
-            except tomllib.TOMLDecodeError as exc:
-                raise WorkspaceConfigError(path, 'The workspace configuration is not valid TOML') from exc
-            except UnicodeDecodeError as exc:
-                raise WorkspaceConfigError(path, 'The workspace configuration is not valid UTF-8') from exc
+        try:
+            text = path.read_bytes().decode('utf-8')
+            cfg = tomllib.loads(text)
+        except tomllib.TOMLDecodeError as exc:
+            raise WorkspaceConfigError(path, 'The workspace configuration is not valid TOML',
+                                       location=_toml_location(exc, text)) from exc
+        except UnicodeDecodeError as exc:
+            raise WorkspaceConfigError(path, 'The workspace configuration is not valid UTF-8') from exc
         if cfg.get('format') != FORMAT or not isinstance(cfg.get('workspace_id'), str):
             raise WorkspaceConfigError(path, 'Invalid workspace configuration')
         if set(cfg) - {'format', 'workspace_id', 'limits', 'entrypoints', 'sources'}:
