@@ -254,4 +254,4 @@ From the repository root, with the Python environment installed, run
 `python tools/reproduce.py --out build/reproduce` to run the regression suite
 and bundled end-to-end examples. The release report covers installed-package,
 migration, real-source, MCP, and macOS isolation checks.
-[Release verification](../validation/rfc002/REPORT.md)
+[Release verification](../validation/README.md)

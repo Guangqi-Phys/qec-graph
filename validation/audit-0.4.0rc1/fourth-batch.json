@@ -1,0 +1,59 @@
+{
+  "source_test_commit": "bf400f047d08aec76e332eea8562d0fa26399880",
+  "artifact_verification_commit": "b3e8480fa7f322e322fa27079099e0ffead2060b",
+  "coverage_commands": [
+    "python -m coverage run -m unittest discover -s tests -v",
+    "python -m coverage report --fail-under=80"
+  ],
+  "macos": {
+    "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "python": "3.13.18",
+    "unit_tests_passed": 204,
+    "branch_aware_coverage_percent": 80.22
+  },
+  "linux": {
+    "platform": "Ubuntu 22.04.5 LTS arm64",
+    "python": "3.11.18",
+    "unit_tests_passed": 204,
+    "branch_aware_coverage_percent": 80.22,
+    "coverage_version": "7.17.2",
+    "container_image_id": "sha256:cba31f8e8e5055ee1420017e7c4d1cfb9b23e167893739ff41ab49ef0f7cb3e5",
+    "python_build_release": "https://github.com/astral-sh/python-build-standalone/releases/tag/20261026",
+    "python_archive_sha256": "a344c887b04a309f292cac1ef7c7a85e39e11932ec301d635258c569d830861b",
+    "test_scope": "Read-only Git export on PYTHONPATH, no network during tests"
+  },
+  "verified_python_distributions_sha256": {
+    "qec_graph-0.4.0rc1-py3-none-any.whl": "91f613d627dd62e09965466fe8a3530fdb51903af4bcec4206cee89f250e7673",
+    "qec_graph-0.4.0rc1.tar.gz": "6984b1f84b311be110e58ddf18a38a168e07fbdd4f367c067cfad9a48d1859b5"
+  },
+  "source_distribution_tests_passed": 204,
+  "modified_source_distribution_schema_rejected": true,
+  "installed_wheel_cli_steps_passed": 19,
+  "installed_wheel_workspace_steps_passed": 11,
+  "standalone_macos_arm64": {
+    "pyinstaller_version": "6.22.3",
+    "codesign_verified": true,
+    "sha256": "4eeddb43ce25d123ae7b44f7b25051e96d72102f85c1a55758b137ad5939772f",
+    "workspace_steps_passed": 21,
+    "real_source": {
+      "url": "https://arxiv.org/src/quant-ph/0610153v1",
+      "sha256": "103a027e1258298afbc5de782625eb3a30efd86c68c981adfc2b0b96821ce52f",
+      "entrypoint": "subsys.tex",
+      "scope": "structural and three notation golden checks, not mathematical verification"
+    },
+    "legacy_upgrade": {
+      "from_version": "0.3.0",
+      "legacy_release": "afe517ee8f7f608b4c7040850e392c8ad65323b885f81f25d622443eca76010d",
+      "migrated_release": "349788ec270c8704204a451faaee20dedf9652663278ce54539ba0199c4e906c",
+      "review_and_history_preserved": true,
+      "legacy_pointer_unchanged": true
+    }
+  },
+  "pinned_arxiv_workspace_sources_passed": 6,
+  "github_ci": {
+    "run": "https://github.com/Guangqi-Phys/qec-graph/actions/runs/42653380815",
+    "linux_steps_started": 0,
+    "macos_steps_started": 0,
+    "cause": "Account billing lock"
+  }
+}

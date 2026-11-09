@@ -75,5 +75,6 @@ branch = true
 source = ["qecgraph"]
 
 [tool.coverage.report]
-fail_under = 70
+fail_under = 80
+precision = 2
 show_missing = true
