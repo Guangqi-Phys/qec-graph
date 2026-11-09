@@ -452,30 +452,10 @@ class Workspace:
         atomic_json(operational, {'observed_at': now(), 'release_id': release, 'counts': counts,
                     'human': {'status': human_status, 'target_release_id': release, 'rendered_release_id': rendered}})
 
-    def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None):
-        if not self.path('machine/CURRENT.json').is_file() and (
-                self.path('machine/operational/status.json').exists()
-                or self.path('.qecgraph/migration.json').exists()):
-            raise ValueError('Published workspace is missing its release pointer')
-        run_id = uuid.uuid4().hex
-        limits = Limits(**cfg.get('limits', {}))
-        claims, rows = [], []
-        if scan_inputs:
-            if progress:
-                progress(0, 1, 'Archiving inbox packages')
-            claims, rows = self._archive_inbox(limits.input_bytes, keep_inputs)
-        digests = {digest for _, _, digest in claims}
-        if rebuild:
-            if progress:
-                progress(0, 1, 'Scanning the archive')
-            digests.update(self._archived_digests())
-
+    def _publish_archive(self, cfg, digests, limits, *, rebuild, update):
         package_count = len(digests)
-        # Stages are archiving, one check per distinct package, publication and final CLI work.
-        steps = package_count + 3
         package_stage = 'Checking archive packages' if rebuild else 'Checking inbox packages'
-        if progress:
-            progress(1, steps, f'{package_stage} 0/{package_count}' if package_count else 'Preparing workspace')
+        update(1, f'{package_stage} 0/{package_count}' if package_count else 'Preparing workspace')
         with writer_lock(self.registry.root):
             from .workspace_query import check_machine_tree
             check_machine_tree(self.registry.root)
@@ -517,10 +497,8 @@ class Workspace:
                         if needs_proposals(registered):
                             identity = (registered['id'], registered['snapshot_id'])
                             staged_proposals[identity] = generate(graph, snapshot, registered)
-                if progress:
-                    progress(index + 1, steps, f'{package_stage} {index}/{package_count}')
-            if progress:
-                progress(steps - 2, steps, 'Publishing workspace')
+                update(index + 1, f'{package_stage} {index}/{package_count}')
+            update(package_count + 1, 'Publishing workspace')
             # Explicit version metadata, never inferred from filenames.
             parsed_versions = {m['source_version_id'] for m in materials.values() if m.get('source_version_id')}
             generated = []
@@ -558,8 +536,35 @@ class Workspace:
             if tool_identity is not None and tool_identity != extraction_tool_identity():
                 raise ValueError('Extraction tools changed while preparing; retry')
             release = self.registry.publish_prepared(candidate)
-        if progress:
-            progress(steps - 1, steps, 'Finalizing workspace')
+        return old, release, materials, proposal_map
+
+    def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None):
+        if not self.path('machine/CURRENT.json').is_file() and (
+                self.path('machine/operational/status.json').exists()
+                or self.path('.qecgraph/migration.json').exists()):
+            raise ValueError('Published workspace is missing its release pointer')
+        run_id = uuid.uuid4().hex
+        limits = Limits(**cfg.get('limits', {}))
+        claims, rows = [], []
+        if scan_inputs:
+            if progress:
+                progress(0, 1, 'Archiving inbox packages')
+            claims, rows = self._archive_inbox(limits.input_bytes, keep_inputs)
+        digests = {digest for _, _, digest in claims}
+        if rebuild:
+            if progress:
+                progress(0, 1, 'Scanning the archive')
+            digests.update(self._archived_digests())
+
+        # Archiving, one check per distinct package, publication and final CLI work.
+        steps = len(digests) + 3
+
+        def update(done, message):
+            if progress:
+                progress(done, steps, message)
+
+        old, release, materials, proposal_map = self._publish_archive(cfg, digests, limits, rebuild=rebuild, update=update)
+        update(steps - 1, 'Finalizing workspace')
         rows.extend(self._finish_claims(claims, materials, release, limits.input_bytes, keep_inputs))
         if rebuild:
             rows.extend(materials[digest] for digest in sorted(digests))
