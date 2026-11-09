@@ -42,6 +42,8 @@ EXAMPLES = {
     'check-css': '--hx HX.json --hz HZ.json --enumerate-distance',
     'check-experiment': 'experiment-and-metric.json',
     'codes': '--corpus ./corpus --n-max 100 --limit 10',
+    'query-performance': '--workspace ./qec --metric-id METRIC_ID --complete-only',
+    'query-software': '--machine ./qec/machine --query Stim --limit 10',
     'validate-corpus': '--corpus ./corpus',
     'migrate': './legacy/records --source-root ./legacy --out ./adapted',
     'migration-import': './adapted --corpus ./corpus',

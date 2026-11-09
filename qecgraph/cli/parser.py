@@ -51,6 +51,19 @@ def _add_query_scope(parser, *, workspace=False):
     parser.add_argument('--source-version-id', help='Restrict corpus source scope')
 
 
+def _add_research_scope(parser, *, legacy_corpus=False):
+    scope = parser.add_mutually_exclusive_group(required=True)
+    scope.add_argument('--workspace', help='Path to the QEC workspace')
+    scope.add_argument('--machine', help='Path to the mounted machine directory')
+    if legacy_corpus:
+        scope.add_argument('--corpus', help='Path to a legacy multi-document corpus')
+        parser.add_argument('--registry-revision', help='Exact legacy corpus state ID; omit to use CURRENT')
+    parser.add_argument('--release', help='Exact workspace release ID; omit to use CURRENT')
+    parser.add_argument('--limit', type=int, help='Maximum rows to return')
+    parser.add_argument('--offset', type=int, help='Number of matching workspace rows to skip')
+    parser.add_argument('--max-chars', type=int, help='Maximum Unicode codepoints in the workspace response data')
+
+
 def _add_ai_arguments(parser):
     _add_query_scope(parser, workspace=True)
     parser.add_argument('--session-max-nodes', type=int, default=100,
@@ -80,7 +93,8 @@ _GROUPS = {
     }),
     'query': ('Search and trace evidence in a fixed scope', {
         'search': 'search', 'show': 'show', 'deps': 'deps', 'impact': 'impact',
-        'context': 'context', 'codes': 'codes',
+        'context': 'context', 'codes': 'codes', 'performance': 'query-performance',
+        'software': 'query-software',
     }),
     'review': ('Create and apply proposals or list workspace drafts', {
         'propose': 'review', 'list': 'review-list', 'decide': 'review-decide', 'apply': 'apply',
@@ -105,8 +119,9 @@ _GROUPS = {
 
 _SHORTCUTS = {'init', 'sync', 'rebuild', 'status', 'validate', 'search', 'show',
               'deps', 'impact', 'context', 'doctor', 'snapshot'}
+_GROUP_ONLY = {'query-performance', 'query-software'}
 _LEGACY_PATHS = {command: f'{group} {verb}' for group, (_, actions) in _GROUPS.items()
-                 for verb, command in actions.items() if command not in _SHORTCUTS}
+                 for verb, command in actions.items() if command not in _SHORTCUTS | _GROUP_ONLY}
 
 
 def _print_aliases():
@@ -296,17 +311,33 @@ def _register_commands(add):
     cmd = add('check-experiment', help='Check explicit experiment/metric JSON; no evidence promotion')
     cmd.add_argument('input', help='Path to the input file or directory described above')
     cmd = add('codes', help='Exact code constraints, metric and currently bound distance evidence')
-    cmd.add_argument('--corpus', required=True, help='Path to a legacy multi-document corpus')
-    cmd.add_argument('--registry-revision', help='Exact corpus state ID; omit to use CURRENT')
+    _add_research_scope(cmd, legacy_corpus=True)
     cmd.add_argument('--n-min', type=int, help='Minimum physical qubit count')
     cmd.add_argument('--n-max', type=int, help='Maximum physical qubit count')
     cmd.add_argument('--distance-at-least', type=int, help='Require current evidence for at least this distance')
     cmd.add_argument('--metric-definition-id', help='Exact metric ID for the distance filter')
-    cmd.add_argument('--sector', choices=['X', 'Z', 'joint'], default='joint',
-        help='Logical sector for the distance filter (default: %(default)s)')
-    cmd.add_argument('--construction', help='Exact construction ID or kind')
-    cmd.add_argument('--limit', type=int, default=100,
-        help='Maximum number of results or entries to process (default: %(default)s)')
+    cmd.add_argument('--metric-revision', help='Exact metric revision for source-reported distance bounds')
+    cmd.add_argument('--evidence-policy', choices=['verified', 'source_reported'],
+                     help='Workspace distance evidence policy (default: verified)')
+    cmd.add_argument('--sector', choices=['X', 'Z', 'joint'],
+        help='Logical sector for the distance filter (default: joint)')
+    cmd.add_argument('--construction', help='Exact construction ID or kind (legacy corpus only)')
+    cmd = add('query-performance', help='Find reported performance points with their experimental context')
+    _add_research_scope(cmd)
+    cmd.add_argument('--code-id', help='Exact code ID')
+    cmd.add_argument('--decoder-id', help='Exact decoder ID')
+    cmd.add_argument('--noise-model-id', help='Exact noise model ID')
+    cmd.add_argument('--metric-id', help='Exact metric ID')
+    cmd.add_argument('--complete-only', action='store_true', default=None,
+                     help='Require all comparison context to be bound')
+    cmd.add_argument('--coordinate-name', help='Name of the reported coordinate')
+    cmd.add_argument('--coordinate', type=float, help='Requested coordinate value')
+    cmd.add_argument('--selection', choices=['exact', 'nearest_reported'],
+                     help='Select reported coordinates (default: exact)')
+    cmd = add('query-software', help='Find software and its revision-bound catalogue evidence')
+    _add_research_scope(cmd)
+    cmd.add_argument('--query', help='Match a software name, alias, or ID')
+    cmd.add_argument('--role', help='Require an exact catalogue role')
     cmd = add('validate-corpus', help='Check typed records, references, sources and managed assets')
     cmd.add_argument('--corpus', required=True, help='Path to a legacy multi-document corpus')
     cmd.add_argument('--registry-revision', help='Exact corpus state ID; omit to use CURRENT')
@@ -391,6 +422,8 @@ def _build_parser(entrypoint=None):
 
     _register_commands(add)
     for name, (options, description) in definitions.items():
+        if name in _GROUP_ONLY:
+            continue
         if name == 'review':
             legacy = sub.add_parser('review-propose', parents=[options], prog='qec-graph review',
                                     description=description, epilog=command_epilog(name, 'qec-graph review'))

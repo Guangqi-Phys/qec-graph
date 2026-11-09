@@ -12,10 +12,26 @@ from ..render import emit_report, print_json, report_error
 def _workspace_session(args, **budgets):
     from ...workspace import Workspace
     from ...workspace_query import WorkspaceSession
-    if args.snapshot or args.source_version_id or args.registry_revision:
+    if any(getattr(args, flag, None) for flag in ('snapshot', 'source_version_id', 'registry_revision')):
         raise ValueError('Workspace tools use --release; store/corpus selectors are not applicable')
     machine = args.machine or Workspace(args.workspace).path('machine')
     return WorkspaceSession(machine, args.release, **budgets)
+
+
+def research_query(args):
+    fields = {
+        'codes': ('n_min', 'n_max', 'distance_at_least', 'metric_definition_id', 'metric_revision',
+                  'evidence_policy', 'sector'),
+        'performance': ('code_id', 'decoder_id', 'noise_model_id', 'metric_id', 'complete_only',
+                        'coordinate_name', 'coordinate', 'selection'),
+        'software': ('query', 'role'),
+    }
+    subject = args.command.removeprefix('query-')
+    if subject == 'codes' and args.construction is not None:
+        raise ValueError('--construction requires a legacy --corpus')
+    arguments = {name: getattr(args, name) for name in (*fields[subject], 'limit', 'offset', 'max_chars')
+                 if getattr(args, name) is not None}
+    return _emit_tool_result(args, _workspace_session(args).invoke('qec_find_' + subject, arguments))
 
 
 def _ai_session(args):

@@ -32,6 +32,14 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.release = self.ws.init()['release_id']
         self.session = WorkspaceSession(self.ws.registry.root)
 
+    def assert_research_cli_matches_tool(self, session, command, tool, arguments):
+        process = subprocess.run([sys.executable, '-m', 'qecgraph', 'query', *command,
+                                  '--machine', str(session.machine), '--release', session.release],
+                                 text=True, capture_output=True, check=True, timeout=5)
+        expected = session.invoke(tool, arguments)
+        self.assertTrue(expected['ok'], expected)
+        self.assertEqual(json.loads(process.stdout), expected)
+
     def test_graph_context_reserves_budget_for_workspace_metadata(self):
         root_statement = r'\begin{lemma}\label{lem:root}Root statement. \uses{lem:dep}\end{lemma}'
         source = '\\documentclass{article}\n\\begin{document}\n' + root_statement + '\n' + (
@@ -195,6 +203,8 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.assertEqual(second['results'][0]['related_usage_or_observations'], [
             {'id': 'usage:fixture', 'revision': 'r1', 'kind': 'software_usage'},
         ])
+        self.assert_research_cli_matches_tool(session, ['software', '--query', 'Fixture decoder', '--limit', '1', '--offset', '1'],
+                                              'qec_find_software', {**args, 'offset': 1})
 
     def test_real_stdio_does_not_return_human_files_or_synthetic_entities(self):
         publish_records(self.ws.registry, adapt_synthetic(read_json(FIXTURES / 'performance_context.synthetic.json')))
@@ -250,10 +260,14 @@ class WorkspaceQueryTests(unittest.TestCase):
                                           'source_locator': locator}}),
         ])
         session = WorkspaceSession(self.ws.registry.root)
-        response = session.invoke('qec_find_codes', {'distance_at_least': 12, 'metric_definition_id': metric['id'],
-                                                       'metric_revision': metric['revision'], 'evidence_policy': 'source_reported'})
+        filters = {'distance_at_least': 12, 'metric_definition_id': metric['id'],
+                   'metric_revision': metric['revision'], 'evidence_policy': 'source_reported'}
+        response = session.invoke('qec_find_codes', filters)
         self.assertTrue(response['ok'])
         self.assertEqual(response['data']['results'], [])
+        self.assert_research_cli_matches_tool(session, ['codes', '--distance-at-least', '12', '--metric-definition-id',
+                                                      metric['id'], '--metric-revision', metric['revision'],
+                                                      '--evidence-policy', 'source_reported'], 'qec_find_codes', filters)
         context = session.invoke('qec_get_context', {'identifier': code_ref['id'], 'depth': 2})
         self.assertTrue(context['ok'])
         self.assertIn(claim_ref['id'], {row['id'] for row in context['data']['nodes']})
@@ -285,6 +299,9 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.assertEqual(found['selection']['requested'], 0.011)
         self.assertFalse(found['selection']['is_interpolated'])
         self.assertIn('resolved_channel_parameters', found['unresolved'])
+        self.assert_research_cli_matches_tool(session, ['performance', '--coordinate-name', 'p', '--coordinate', '0.011',
+                                                      '--selection', 'nearest_reported'], 'qec_find_performance',
+                                              {**inputs, 'selection': 'nearest_reported'})
 
     def test_resources_are_fixed_uri_bindings_not_file_names(self):
         from qecgraph.mcp_server import MCPServer

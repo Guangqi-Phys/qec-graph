@@ -42,6 +42,8 @@ HANDLERS = {
     'check-css': records.check_css,
     'check-experiment': records.check_experiment,
     'codes': records.codes,
+    'query-performance': query.research_query,
+    'query-software': query.research_query,
     'validate-corpus': records.validate_corpus,
     'migrate': records.migrate,
     'migration-import': records.import_migration,

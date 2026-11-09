@@ -131,7 +131,7 @@ records agree.
 ## Search by keyword, source, or structured fields
 
 The CLI and MCP use the same read-only workspace tools. Use these names in
-your MCP client, or run `qec-graph query-tool` from the workspace root.
+your MCP client or pass them to `qec-graph query-tool` with JSON arguments.
 
 | Goal | Tools | How to start |
 | --- | --- | --- |
@@ -155,14 +155,16 @@ JSON
 Copy a result's `id` into `qec_get_entity`. For a graph hit with a source span,
 pass its occurrence ID to `qec_get_source` to retrieve the exact LaTeX. MCP
 clients can also list and read registered passages by their `qec://source/`
-resource URIs. To filter structured code instances by size, use the same
-command pattern.
+resource URIs. The CLI also offers direct commands for structured queries.
 
 ```sh
-qec-graph query-tool qec_find_codes --workspace . --arguments /dev/stdin <<'JSON'
-{"n_min":10,"n_max":100,"limit":5}
-JSON
+qec-graph query codes --workspace . --n-min 10 --n-max 100 --limit 5
+qec-graph query performance --workspace . --coordinate-name p --coordinate 0.01 --selection exact
+qec-graph query software --workspace . --query Stim --limit 5
 ```
+
+Pass `--release RELEASE_ID` to repeat a query against the same workspace release.
+Use `--machine` to query a mounted machine directory directly.
 
 A workspace populated only by paper imports can contain notation proposals
 and source passages while the structured instance or performance query comes
