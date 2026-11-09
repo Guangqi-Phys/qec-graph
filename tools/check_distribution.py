@@ -22,19 +22,30 @@ def verify(source, wheel, sdist):
     version = runpy.run_path(str(source / 'qecgraph' / '__init__.py'))['__version__']
     readme = (source / 'README.md').read_text(encoding='utf-8')
     license_bytes = (source / 'LICENSE').read_bytes()
+    schema_root = 'qecgraph/validators/schemas/'
+    schemas = {path.relative_to(source).as_posix(): path.read_bytes()
+               for path in (source / schema_root).glob('*.schema.json')}
     with ZipFile(wheel) as archive:
         metadata, = [name for name in archive.namelist() if name.endswith('.dist-info/METADATA')]
         _check_metadata(archive.read(metadata), version, readme)
         license_path = metadata.removesuffix('METADATA') + 'licenses/LICENSE'
         if archive.read(license_path) != license_bytes:
             raise ValueError('Wheel license differs from the source license')
-        schemas = Path('qecgraph/validators/schemas')
-        for path in (source / schemas).glob('*.schema.json'):
-            if archive.read((schemas / path.name).as_posix()) != path.read_bytes():
-                raise ValueError(f'Packaged schema differs from its source: {path.name}')
+        inventory = [name for name in archive.namelist() if name.startswith(schema_root) and name.endswith('.schema.json')]
+        if sorted(inventory) != sorted(schemas):
+            raise ValueError('Wheel schema inventory differs from the checkout')
+        for name, expected in schemas.items():
+            if archive.read(name) != expected:
+                raise ValueError(f'Wheel schema differs from the checkout: {name}')
     with tarfile.open(sdist, 'r:gz') as archive:
         prefix = sdist.name.removesuffix('.tar.gz')
-        for name, expected in (('README.md', readme.encode('utf-8')), ('LICENSE', license_bytes)):
+        inventory = [name.removeprefix(prefix + '/') for name in archive.getnames()
+                     if name.startswith(f'{prefix}/{schema_root}') and name.endswith('.schema.json')]
+        if sorted(inventory) != sorted(schemas):
+            raise ValueError('Source distribution schema inventory differs from the checkout')
+        expected_files = {'README.md': readme.encode('utf-8'), 'LICENSE': license_bytes,
+                          'install.sh': (source / 'install.sh').read_bytes(), **schemas}
+        for name, expected in expected_files.items():
             with archive.extractfile(f'{prefix}/{name}') as stream:
                 if stream.read() != expected:
                     raise ValueError(f'Source distribution {name} differs from the checkout')
@@ -51,7 +62,7 @@ def main():
     wheel, = args.dist.glob('*.whl')
     sdist, = args.dist.glob('*.tar.gz')
     version = verify(args.source, wheel, sdist)
-    print(f'Verified {version}, README, and license in {wheel.name} and {sdist.name}')
+    print(f'Verified {version}, README, license, and schemas in {wheel.name} and {sdist.name}')
 
 
 if __name__ == '__main__':
