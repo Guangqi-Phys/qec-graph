@@ -1,9 +1,13 @@
-prune tests
-prune docs
-prune validation
-prune examples
-prune knowledge_starter
+graft tests
+graft examples
+graft knowledge_starter
+graft schemas
+graft tools
+include docs/ADVANCED_USAGE.md docs/DATA_AND_SEARCH.md docs/rfc-002/WORKSPACE.md
+include lean/axiom-policy.json lean/targets.json
+graft validation/p5/step21
+include validation/p5/fixed-step20/report.json validation/p5/zero-axiom-policy/audit.json
 prune qec_graph_codex_handoff
-prune lean
 prune build
 prune dist
+global-exclude *.py[cod]

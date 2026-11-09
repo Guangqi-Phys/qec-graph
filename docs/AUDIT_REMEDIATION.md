@@ -6,14 +6,14 @@ Each entry is complete only when its acceptance evidence has been checked.
 
 | Item | Change | Status and evidence |
 | --- | --- | --- |
-| 1 | License and package metadata | In progress. Added the MIT notice for QEC Graph and PEP 639 metadata. A fresh wheel matched the source README and included the exact license. Twine and clean source-distribution verification are tracked in item 8. |
+| 1 | License and package metadata | Complete. Wheel and source distribution include the MIT license and PEP 639 metadata. Both passed strict Twine and source-content checks. |
 | 2 | CI on pull requests and pushes | Open. |
 | 3 | Consistent status and explicit JSON output | Complete for workspace maintenance. Explicit and implicit workspace selection produce the same text. The CLI contract tests check exit code 2 in text and JSON, and release verification requests JSON explicitly. |
 | 4 | Version, help, and usage exit code | Complete. CLI tests cover version, concise no-argument help, command help, and usage exit 64. The changelog documents the exit-code migration. |
 | 5 | Validate review, claim-link, and experiment inputs | Complete. CLI tests reject missing or malformed fields before writing. Review and QEC validation suites pass. |
 | 6 | Protect annotated stores from source-only split | Complete. The store checks the bound CURRENT manifest while holding the writer lock. The regression covers refusal, explicit replacement, and validation of the previous snapshot. |
 | 7 | List, quarantine, and restore inbox packages | Complete. The lifecycle test verifies preserved bytes and receipt, a clear daily status, and restoration that refuses to overwrite a replacement. Explicit rebuild still checks every archived package. |
-| 8 | Build and check fresh release artifacts | Open. |
+| 8 | Build and check fresh release artifacts | In progress. Added a distribution check for version, README, and license. Strict Twine passed for both formats. Clean checkout and installed lifecycle checks remain. |
 | 9 | Ignore generated state and development caches | Complete. Git ignore checks cover local graph state, macOS metadata, and coverage, lint, and test caches. |
 | 10 | Documentation index and factual corrections | Open. |
 | 11 | Separate CLI parsing, rendering, and dispatch | Open. |
