@@ -92,3 +92,18 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(result['counts']['conflicting'], 2)
         self.assertEqual(len(self.ws.registry.read()[0]['versions']), 2)
         self.assertTrue(all(row['source_version_conflict'] for row in result['inputs']))
+
+
+    def test_extraction_keeps_mentions_separate_and_pins_verbatim_source(self):
+        from qecgraph.research_store import load_records
+        raw = TEX.replace(b'Hello', b'\nA CSS code has $[[13,1,3]]$.\n\nA classical seed appears near $[[7,1,3]]$.\n')
+        (self.inbox / 'example').write_bytes(raw)
+        result = self.ws.init()
+        self.assertEqual(result['counts']['code_mention_proposals'], 2)
+        state, _ = self.ws.registry.read()
+        mentions = [r for r in load_records(self.ws.registry, state) if r['kind'] == 'code_mention']
+        self.assertEqual({r['data']['n_data'] for r in mentions}, {13, None})
+        self.assertTrue(all(r['data']['code_ref'] is None and r['data']['distance_interpretation'] is None for r in mentions))
+        for mention in mentions:
+            loc = mention['field_evidence']['/data/reported_notation']['source_locator']
+            self.assertEqual(raw.decode()[loc['char_start']:loc['char_end']], mention['data']['reported_notation'])

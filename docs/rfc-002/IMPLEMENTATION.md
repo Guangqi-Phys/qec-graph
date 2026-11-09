@@ -25,3 +25,8 @@ U2 工作区：`qec-graph init/sync/rebuild/status/validate --workspace PATH`。
 归档收据和内容库存。成功结构处理标记 `semantic_pending`，随后才清理认领文件。
 入口和来源身份可在 `qecgraph.toml` 中用来源树哈希显式配置。
 工作区测试已覆盖部分批次、重投、空箱重建、版本冲突、写锁及指针切换后故障。
+
+U3 第一段：已接入离线、两遍的码记法提议（定位记法后再检查局部语义），
+保存精确 TeX 位置、源快照和规则版本；不依据括号猜码类别、把 d 晋升为已知界、
+或按参数合并码实例。`review-list` 列出提议，`research-import` 可显式导入
+修订化研究记录、软件 seed 或隔离合成 fixture。未实现 LLM、曲线数字化或跨表格实验归属。

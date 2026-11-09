@@ -13,6 +13,8 @@ import tomllib
 import uuid
 
 from . import __version__
+from .extraction import RULE_VERSION, proposals
+from .research_store import load_records, stage_records
 from .graph import canonical, hash_text, read_json
 from .registry import Registry
 from .source_package import Limits, PackageError, read_bounded, unpack
@@ -21,7 +23,7 @@ from .transactions import atomic_bytes, atomic_json, immutable_json, writer_lock
 
 CONFIG = 'qecgraph.toml'
 FORMAT = 'qecgraph.workspace.v1'
-PROCESSOR = f'qecgraph-{__version__}:archive-structure-v1'
+PROCESSOR = f'qecgraph-{__version__}:archive-structure-v1:{RULE_VERSION}'
 HEX = re.compile(r'[0-9a-f]{64}')
 JOB = re.compile(r'[0-9a-f]{32}')
 
@@ -308,6 +310,23 @@ class Workspace:
                 materials[digest] = self._prepare(cfg, state, digest, prior, reused)
                 materials[digest]['config_fingerprint'] = fingerprint
             # Explicit version metadata, never inferred from filenames.
+            parsed_versions = {m['source_version_id'] for m in materials.values() if m.get('source_version_id')}
+            proposal_map = state.setdefault('generated_research', {})
+            generated = []
+            for identifier in sorted(parsed_versions):
+                version = state['versions'][identifier]
+                active = proposal_map.get(identifier)
+                if active and active['source_snapshot_id'] == version['snapshot_id'] and active['processor'] == PROCESSOR:
+                    continue
+                snapshot = self.path('machine/' + version['snapshot_path'])
+                graph = read_json(snapshot / 'graph.json')
+                records = proposals(graph, version)
+                generated.extend(records)
+                proposal_map[identifier] = {'source_snapshot_id': version['snapshot_id'], 'processor': PROCESSOR,
+                                            'bindings': [{'id': r['id'], 'revision': r['revision']} for r in records],
+                                            'code_mentions': len(records) - 1}
+            if generated:
+                stage_records(self.registry, state, generated)
             collisions = {}
             for material in materials.values():
                 if material.get('upstream_version') and material.get('source_tree_hash'):
@@ -346,7 +365,8 @@ class Workspace:
         if rebuild:
             rows.extend(materials[digest] for digest in sorted(digests))
         counts = {'registered': len(materials), 'processed': sum(x['processing_completed'] for x in materials.values()),
-                  'conflicting': sum(x['source_version_conflict'] for x in materials.values())}
+                  'conflicting': sum(x['source_version_conflict'] for x in materials.values()),
+                  'code_mention_proposals': sum(p['code_mentions'] for p in proposal_map.values())}
         self.path('machine/operational').mkdir(exist_ok=True)
         atomic_json(self.path('machine/operational/status.json'),
                     {'observed_at': now(), 'release_id': release, 'counts': counts})
@@ -369,6 +389,8 @@ class Workspace:
         result = self.registry.validate()
         state, fixed = self.registry.read(result['registry_revision'])
         issues = result.setdefault('issues', [])
+        from .research import validate_bundle
+        validate_bundle(load_records(self.registry, state))
         for digest in state.get('materials', {}):
             try:
                 if not HEX.fullmatch(digest):

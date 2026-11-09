@@ -61,6 +61,12 @@ def main(argv=None):
             workspace.add_argument('--dry-run', action='store_true')
         if action == 'rebuild':
             workspace.add_argument('--include-inputs', action='store_true')
+    cmd = sub.add_parser('research-import', help='Validate and publish exact research records without evidence promotion')
+    cmd.add_argument('input')
+    cmd.add_argument('--workspace')
+    cmd.add_argument('--format', choices=['records', 'software-seed', 'synthetic-fixture'], default='records')
+    cmd = sub.add_parser('review-list', help='List source-linked proposals without approving them')
+    cmd.add_argument('--workspace')
     cmd = sub.add_parser('lean-build', help='Explicitly build/export/audit a pinned Lean project; never invoked by read tools')
     cmd.add_argument('--project', required=True)
     cmd.add_argument('--out', required=True)
@@ -194,6 +200,29 @@ def main(argv=None):
             result = getattr(Workspace(args.workspace), args.command)(**options)
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 2 if result['status'] in {'partial_batch', 'invalid'} else 0
+        if args.command in {'research-import', 'review-list'}:
+            from .workspace import Workspace
+            from .research_store import load_records, publish_records
+            ws = Workspace(args.workspace)
+            ws.config()
+            if args.command == 'research-import':
+                payload = read_json(args.input)
+                if args.format == 'software-seed':
+                    from .software import adapt_seed
+                    payload = adapt_seed(payload)
+                elif args.format == 'synthetic-fixture':
+                    from .research import adapt_synthetic
+                    payload = adapt_synthetic(payload)
+                if not isinstance(payload, list):
+                    raise ValueError('Research import expects a list of records')
+                result = publish_records(ws.registry, payload)
+            else:
+                state, release = ws.registry.read()
+                rows = [row for row in load_records(ws.registry, state)
+                        if not row['is_synthetic'] and row['data'].get('review_status') == 'proposed']
+                result = {'release_id': release, 'proposals': rows}
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0
         if args.command in {'search', 'show', 'deps', 'impact', 'context', 'validate', 'audit-dependencies'}:
             if getattr(args, 'corpus', None):
                 if args.snapshot:

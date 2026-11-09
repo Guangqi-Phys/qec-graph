@@ -97,6 +97,8 @@ def prepare(record):
     data, kind = record['data'], record['kind']
     if kind not in KINDS or set(REQUIRED.get(kind, ())) - data.keys():
         raise ValueError(f'Unknown kind or missing required explicit fields: {kind}')
+    if data.get('review_status') not in (None, 'proposed', 'unreviewed'):
+        raise ValueError('Research import cannot declare a reviewed status without bound review evidence')
     fields = record['field_evidence']
     for field in data:
         path = _ptr(field)
