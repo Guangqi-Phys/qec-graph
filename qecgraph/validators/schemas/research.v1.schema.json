@@ -94,17 +94,30 @@
         "catalog_source": {},
         "circuit_protocol": {
           "properties": {
-            "presentation_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["code_presentation"]}
+            "presentation_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["code_presentation"]},
+            "depth_metrics": {"type": ["array", "null"], "items": {"$ref": "#/$defs/depth_metric"}}
           }
         },
-        "classical_seed": {},
+        "classical_seed": {
+          "properties": {
+            "n_data": {"$ref": "#/$defs/positive_integer"},
+            "K": {"$ref": "#/$defs/positive_integer"},
+            "k_logical": {"$ref": "#/$defs/nonnegative_integer"},
+            "r_gauge": {"$ref": "#/$defs/nonnegative_integer"}
+          }
+        },
         "code_family": {},
         "code_instance": {
           "required": ["coding_domain", "n_data", "k_logical"],
           "properties": {
             "construction_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["construction"]},
             "presentation_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["code_presentation"]},
-            "distance_claim_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["distance_claim"]}
+            "distance_claim_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["distance_claim"]},
+            "coding_domain": {"enum": ["quantum", null]},
+            "n_data": {"$ref": "#/$defs/positive_integer"},
+            "K": {"$ref": "#/$defs/positive_integer"},
+            "k_logical": {"$ref": "#/$defs/nonnegative_integer"},
+            "r_gauge": {"$ref": "#/$defs/nonnegative_integer"}
           }
         },
         "code_mention": {
@@ -117,7 +130,8 @@
           "required": ["code_ref", "check_weight_metrics"],
           "properties": {
             "code_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["code_instance"]},
-            "construction_recipe_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["construction"]}
+            "construction_recipe_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["construction"]},
+            "check_weight_metrics": {"type": ["array", "null"], "items": {"$ref": "#/$defs/weight_metric"}}
           }
         },
         "construction": {
@@ -136,15 +150,41 @@
               "$ref": "#/$defs/nullable_ref",
               "x-qec-target-kinds": ["code_instance", "code_presentation", "circuit_protocol"]
             },
-            "metric_definition_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["metric_definition"]}
-          }
+            "metric_definition_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["metric_definition"]},
+            "lower_bound": {"$ref": "#/$defs/positive_integer"},
+            "upper_bound": {"$ref": "#/$defs/positive_integer"},
+            "relation": {"enum": [null, "reported_unspecified", "exact", "lower_bound", "upper_bound", "interval"]}
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {"relation": {"enum": [null, "reported_unspecified"]}},
+                "required": ["relation"]
+              },
+              "then": {"properties": {"lower_bound": {"type": "null"}, "upper_bound": {"type": "null"}}}
+            },
+            {
+              "if": {"properties": {"relation": {"enum": ["exact", "interval"]}}, "required": ["relation"]},
+              "then": {
+                "properties": {"lower_bound": {"not": {"type": "null"}}, "upper_bound": {"not": {"type": "null"}}}
+              }
+            },
+            {
+              "if": {"properties": {"relation": {"enum": ["lower_bound"]}}, "required": ["relation"]},
+              "then": {"properties": {"lower_bound": {"not": {"type": "null"}}, "upper_bound": {"type": "null"}}}
+            },
+            {
+              "if": {"properties": {"relation": {"enum": ["upper_bound"]}}, "required": ["relation"]},
+              "then": {"properties": {"lower_bound": {"type": "null"}, "upper_bound": {"not": {"type": "null"}}}}
+            }
+          ]
         },
         "execution_environment": {},
         "execution_run": {
           "required": ["environment_ref", "execution_evidence"],
           "properties": {
             "reported_experiment_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["reported_experiment"]},
-            "environment_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["execution_environment"]},
+            "environment_ref": {"$ref": "#/$defs/ref", "x-qec-target-kinds": ["execution_environment"]},
             "software_usage_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["software_usage"]}
           }
         },
@@ -157,7 +197,15 @@
             "circuit_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["circuit_protocol"]}
           }
         },
-        "noise_model": {"required": ["idle", "loss", "erasure", "leakage"]},
+        "noise_model": {
+          "required": ["idle", "loss", "erasure", "leakage"],
+          "properties": {
+            "idle": {"$ref": "#/$defs/noise_consideration"},
+            "loss": {"$ref": "#/$defs/noise_consideration"},
+            "erasure": {"$ref": "#/$defs/noise_consideration"},
+            "leakage": {"$ref": "#/$defs/noise_consideration"}
+          }
+        },
         "paper_version": {},
         "performance_point": {
           "required": ["experiment_ref", "noise_instantiation_ref", "metric_definition_ref", "value"],
@@ -165,7 +213,12 @@
             "experiment_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["reported_experiment"]},
             "noise_instantiation_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["noise_instantiation"]},
             "metric_definition_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["metric_definition"]},
-            "curve_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["performance_series"]}
+            "curve_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["performance_series"]},
+            "value": {"$ref": "#/$defs/rate"},
+            "confidence_interval": {"$ref": "#/$defs/confidence_interval"},
+            "shots": {"$ref": "#/$defs/nonnegative_integer"},
+            "failures": {"$ref": "#/$defs/nonnegative_integer"},
+            "discards": {"$ref": "#/$defs/nonnegative_integer"}
           }
         },
         "performance_series": {
@@ -198,9 +251,7 @@
         "software_project": {},
         "software_release": {
           "required": ["distribution_ref", "version"],
-          "properties": {
-            "distribution_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["software_distribution"]}
-          }
+          "properties": {"distribution_ref": {"$ref": "#/$defs/ref", "x-qec-target-kinds": ["software_distribution"]}}
         },
         "software_usage": {
           "required": ["usage_kind", "project_ref", "release_ref"],
@@ -209,9 +260,71 @@
             "release_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["software_release"]},
             "source_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["paper_version"]},
             "experiment_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["reported_experiment"]},
-            "execution_run_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["execution_run"]}
+            "execution_run_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["execution_run"]},
+            "usage_kind": {"enum": ["mention", "citation", "source_reported_use", "locally_observed_use"]}
           }
         }
+      }
+    },
+    "nonnegative_integer": {"type": ["integer", "null"], "minimum": 0},
+    "positive_integer": {"type": ["integer", "null"], "minimum": 1},
+    "rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "noise_consideration": {
+      "type": ["object", "null"],
+      "required": ["consideration"],
+      "properties": {"consideration": {"enum": ["included", "excluded"]}}
+    },
+    "weight_metric": {
+      "type": "object",
+      "required": ["check_set_id", "sector", "scope"],
+      "properties": {
+        "check_set_id": {"type": "string", "pattern": "\\S"},
+        "sector": {"enum": ["X", "Z", "mixed"]},
+        "scope": {"enum": ["stabilizer", "gauge", "measured"]},
+        "min": {"$ref": "#/$defs/nonnegative_integer"},
+        "max": {"$ref": "#/$defs/nonnegative_integer"},
+        "mean": {"type": ["number", "null"], "minimum": 0},
+        "histogram": {
+          "type": ["object", "null"],
+          "propertyNames": {"pattern": "^(?:0|[1-9][0-9]*)(?![\\s\\S])"},
+          "additionalProperties": {"type": "integer", "minimum": 1}
+        }
+      }
+    },
+    "depth_metric": {
+      "type": "object",
+      "required": ["kind", "value", "unit", "definition"],
+      "properties": {
+        "kind": {"enum": ["tick_count", "two_qubit_layers", "operation_layers", "physical_duration"]},
+        "definition": {"type": "string", "pattern": "\\S"},
+        "value": {"type": "number", "minimum": 0}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"kind": {"enum": ["tick_count"]}}, "required": ["kind"]},
+          "then": {"properties": {"unit": {"const": "ticks"}, "value": {"type": "integer"}}}
+        },
+        {
+          "if": {
+            "properties": {"kind": {"enum": ["two_qubit_layers", "operation_layers"]}},
+            "required": ["kind"]
+          },
+          "then": {"properties": {"unit": {"const": "layers"}, "value": {"type": "integer"}}}
+        },
+        {
+          "if": {"properties": {"kind": {"enum": ["physical_duration"]}}, "required": ["kind"]},
+          "then": {"properties": {"unit": {"enum": ["s", "ms", "us", "ns", "ps"]}}}
+        }
+      ]
+    },
+    "confidence_interval": {
+      "type": ["object", "null"],
+      "required": ["method", "lower", "upper", "level"],
+      "properties": {
+        "method": {"type": "string", "pattern": "\\S"},
+        "lower": {"type": "number", "minimum": 0, "maximum": 1},
+        "upper": {"type": "number", "minimum": 0, "maximum": 1},
+        "level": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1}
       }
     }
   },
@@ -219,6 +332,10 @@
     {
       "if": {"properties": {"kind": {"const": "circuit_protocol"}}},
       "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/circuit_protocol"}}}
+    },
+    {
+      "if": {"properties": {"kind": {"const": "classical_seed"}}},
+      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/classical_seed"}}}
     },
     {
       "if": {"properties": {"kind": {"const": "code_instance"}}},

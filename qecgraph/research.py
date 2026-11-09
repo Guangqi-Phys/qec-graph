@@ -77,22 +77,16 @@ def prepare(record):
     if kind in {'code_instance', 'classical_seed'}:
         for field in ('n_data', 'k_logical', 'K', 'r_gauge'):
             value = data.get(field)
-            if value is not None and (type(value) is not int or value < (1 if field in {'n_data', 'K'} else 0)):
+            if value is not None and type(value) is not int:
                 raise ValueError(f'Invalid code parameter {field}')
-        if kind == 'code_instance' and data['coding_domain'] not in {None, 'quantum'}:
-            raise ValueError('Classical seeds are independent records')
         if data.get('n_data') is not None and data.get('k_logical') is not None and data['k_logical'] > data['n_data']:
             raise ValueError('k cannot exceed n')
     if kind == 'distance_claim':
         lower, upper, relation = (data[f] for f in ('lower_bound', 'upper_bound', 'relation'))
         for value in (lower, upper):
-            if value is not None and (type(value) is not int or value < 1):
+            if value is not None and type(value) is not int:
                 raise ValueError('Distance bounds must be positive integers or null')
-        valid = {None: lower is None and upper is None, 'reported_unspecified': lower is None and upper is None,
-                 'exact': lower is not None and lower == upper, 'lower_bound': lower is not None and upper is None,
-                 'upper_bound': upper is not None and lower is None,
-                 'interval': lower is not None and upper is not None and lower <= upper}
-        if not isinstance(relation, (str, type(None))) or not valid.get(relation):
+        if relation == 'exact' and lower != upper or relation == 'interval' and lower > upper:
             raise ValueError('Distance bound direction and values disagree')
     if kind == 'performance_point':
         if not record['is_synthetic']:
@@ -101,20 +95,16 @@ def prepare(record):
                     raise ValueError(f'Reported performance {field} needs an exact source locator')
         count_fields = ('shots', 'failures', 'discards')
         shots, failures, discards = (data.get(field) for field in count_fields)
-        if any(v is not None and (type(v) is not int or v < 0) for v in (shots, failures, discards)):
+        if any(v is not None and type(v) is not int for v in (shots, failures, discards)):
             raise ValueError('Observation counts must be nonnegative integers or null')
         if shots is not None and (failures or 0) + (discards or 0) > shots:
             raise ValueError('Failures plus discards exceed shots')
-        if data['value'] is not None and (type(data['value']) not in {int, float} or not 0 <= data['value'] <= 1):
-            raise ValueError('Performance rate must be in [0,1] or null')
-    if kind == 'software_release' and not all(data[field] for field in ('distribution_ref', 'version')):
+    if kind == 'software_release' and not data['version']:
         raise ValueError('A software release needs the exact distribution and version')
-    if kind == 'execution_run' and (not data['execution_evidence'] or not data['environment_ref']):
+    if kind == 'execution_run' and not data['execution_evidence']:
         raise ValueError('An execution run requires actual execution evidence and environment')
     if kind == 'software_usage':
         use = data['usage_kind']
-        if use not in ('mention', 'citation', 'source_reported_use', 'locally_observed_use'):
-            raise ValueError('Invalid software usage category')
         if use == 'source_reported_use' and not (data.get('source_ref') and data.get('experiment_ref')):
             raise ValueError('Reported use requires an exact source and experiment')
         if use == 'locally_observed_use' and not data.get('execution_run_ref'):

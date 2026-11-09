@@ -88,7 +88,7 @@ class ResearchTests(unittest.TestCase):
 
     def test_unknown_channels_and_counted_depth_are_independent(self):
         source = ref(self.rows[0])
-        with self.assertRaisesRegex(ValueError, 'must be included, excluded or null'):
+        with self.assertRaisesRegex(ValueError, r'\$\.data\.idle'):
             make_record('noise_model', 'noise:bad', 'r1',
                         {'idle': False, 'loss': None, 'erasure': None, 'leakage': None},
                         source=source, method='fixture')
@@ -96,7 +96,7 @@ class ResearchTests(unittest.TestCase):
             make_record('noise_model', 'noise:bad', 'r1',
                         {'idle': {'consideration': 'excluded'}, 'loss': None, 'erasure': None, 'leakage': None},
                         source=source, method='fixture')
-        with self.assertRaisesRegex(ValueError, 'Depth kind'):
+        with self.assertRaisesRegex(ValueError, r'\$\.data\.depth_metrics\[0\]\.unit'):
             make_record('circuit_protocol', 'circuit:bad', 'r1',
                         {'depth_metrics': [{'kind': 'tick_count', 'unit': 'ns', 'value': 4, 'definition': 'TICK'}]},
                         source=source, method='fixture')
@@ -107,6 +107,20 @@ class ResearchTests(unittest.TestCase):
             make_record('construction', 'construction:partial', 'r1',
                         {'reconstruction_status': 'reconstructable',
                          'matrix_recipe': {'formula': 'H from seeds', 'seed_refs': None}}, source=source, method='fixture')
+
+    def test_domain_shapes_do_not_replace_numeric_consistency_checks(self):
+        source = ref(self.rows[0])
+        with self.assertRaisesRegex(ValueError, r'\$\.data\.upper_bound'):
+            make_record('distance_claim', 'distance:fixture', 'r1',
+                        {'subject_ref': None, 'metric_definition_ref': None, 'relation': 'upper_bound',
+                         'lower_bound': None, 'upper_bound': 0}, source=source, method='fixture')
+        with self.assertRaisesRegex(ValueError, 'Distance bound direction and values disagree'):
+            make_record('distance_claim', 'distance:fixture', 'r1',
+                        {'subject_ref': None, 'metric_definition_ref': None, 'relation': 'exact',
+                         'lower_bound': 3, 'upper_bound': 5}, source=source, method='fixture')
+        with self.assertRaisesRegex(ValueError, 'Invalid code parameter n_data'):
+            make_record('code_instance', 'code:fixture', 'r1',
+                        {'coding_domain': 'quantum', 'n_data': 5.0, 'k_logical': 1}, source=source, method='fixture')
 
     def test_refresh_adds_observations_without_overwriting_project_or_inventing_release(self):
         from tempfile import TemporaryDirectory
