@@ -1,0 +1,116 @@
+"""CLI handlers for workspace commands."""
+from __future__ import annotations
+
+import json
+import os
+
+from ...graph import read_json
+from ..process import cli_command
+from ..render import print_doctor, print_json, workspace_summary
+
+
+_DAILY_WORKSPACE_COMMANDS = {'sync', 'status', 'validate'}
+_WORKSPACE_WRITE_COMMANDS = {'init', 'sync', 'rebuild'}
+
+
+def uses_workspace(args):
+    return (args.command in _WORKSPACE_WRITE_COMMANDS | {'status'}
+            or args.command == 'validate' and not args.store)
+
+
+def doctor(args):
+    from ...maintenance import doctor
+    from ...workspace import locate
+    result = doctor(locate(args.workspace, default=os.environ.get('QECGRAPH_WORKSPACE')))
+    if args.json:
+        print_json(result)
+    else:
+        print_doctor(result)
+    return result['suggested_exit_code']
+
+
+def snapshots(args):
+    from ...maintenance import list_snapshots
+    from ...workspace import locate
+    workspace = None if args.store or args.corpus else locate(args.workspace, default=os.environ.get('QECGRAPH_WORKSPACE'))
+    result = list_snapshots(store=args.store, corpus=args.corpus, workspace=workspace)
+    print_json(result)
+    return 0
+
+
+def inputs(args):
+    from ...workspace import Workspace, locate
+    ws = Workspace(locate(args.workspace, default=os.environ.get('QECGRAPH_WORKSPACE')))
+    result = (ws.list_inputs() if args.input_action == 'list'
+              else ws.move_quarantine(args.name, restore=args.input_action == 'restore'))
+    print_json(result)
+    return 0
+
+
+def workspace_action(args, progress):
+    if progress and not getattr(args, 'dry_run', False):
+        progress.start()
+    from ...workspace import CONFIG, Workspace, locate
+    if getattr(args, 'snapshot', None):
+        raise ValueError('--snapshot requires --store')
+    options = {key: getattr(args, key) for key in ('no_ingest', 'dry_run', 'include_inputs', 'keep_inputs')
+               if hasattr(args, key)}
+    default = os.environ.get('QECGRAPH_WORKSPACE') if args.command in _DAILY_WORKSPACE_COMMANDS else None
+    ws = Workspace(locate(args.workspace, default=default))
+    if args.command != 'init' and not ws.path(CONFIG).is_file():
+        raise ValueError('No initialized workspace found. Set QECGRAPH_WORKSPACE or use --workspace.')
+    if progress and args.command != 'status':
+        options['progress'] = progress.update
+    result = getattr(ws, args.command)(**options)
+    if args.command in _WORKSPACE_WRITE_COMMANDS and result.get('release_id') and not args.no_human:
+        if progress:
+            progress.phase('Rendering Obsidian views')
+        import subprocess
+        try:
+            render = subprocess.run(
+                cli_command('human-build', '--workspace', str(ws.root), '--release', result['release_id']),
+                capture_output=True, text=True, timeout=120, check=False)
+            result['human'] = json.loads(render.stdout)
+        except (OSError, ValueError, subprocess.TimeoutExpired):
+            result['human'] = {'status': 'human_stale', 'release_id': result['release_id']}
+    code = 2 if (result['status'] in {'partial_batch', 'invalid'}
+                 or result.get('human', {}).get('status') == 'human_stale') else 0
+    if progress:
+        return progress.finish(*workspace_summary(args.command, result, code))
+    print_json(result)
+    return code
+
+
+def human_build(args):
+    from ...human import build_human
+    result = build_human(args.workspace, args.release)
+    print_json(result)
+    return 0 if result['status'] == 'current' else 2
+
+
+def asset_add(args):
+    from ...workspace_assets import add_asset
+    result = add_asset(args.workspace, args.input, media_type=args.media_type)
+    print_json(result)
+    return 0
+
+
+def extract(args):
+    from ... import semantic
+    if args.command == 'extract-request':
+        result = semantic.request_extraction(args.workspace, args.source_version, release=args.release,
+                                             max_chars=args.max_chars, offset=args.offset)
+    elif args.command == 'extract-submit':
+        result = semantic.submit_extraction(args.workspace, args.request_id, read_json(args.response))
+    else:
+        result = semantic.review_extraction(args.workspace, args.proposal_id, reviewer=args.reviewer,
+                                            decision=args.decision, rationale=args.rationale)
+    print_json(result)
+    return 0
+
+
+def migrate(args):
+    from ...workspace_migration import migrate_corpus
+    result = migrate_corpus(args.corpus, args.workspace, args.registry_revision)
+    print_json(result)
+    return 0

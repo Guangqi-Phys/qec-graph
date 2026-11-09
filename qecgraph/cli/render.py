@@ -149,3 +149,11 @@ def print_doctor(result):
         print(f"{name}: {check.get('message') or details or check['status']}")
     if result['release_id']:
         print(f"Release: {result['release_id']}")
+
+
+def emit_report(result):
+    """Write the report and use its declared or legacy extraction exit code."""
+    print_json(result)
+    if 'ok' in result:
+        return 1 if not result['ok'] else 2 if result['data'].get('extraction_status') == 'partial' else 0
+    return result.get('suggested_exit_code', 2 if result.get("extraction_status") == "partial" else 0)

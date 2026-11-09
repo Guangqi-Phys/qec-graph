@@ -16,7 +16,7 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 8 | Build and check fresh release artifacts | Complete for the source changes. A clean export of `ffdbb5e` passed strict Twine, exact metadata checks, wheel installation and workspace verification, and all 165 tests from the unpacked source distribution. Item 26 tracks publication automation. |
 | 9 | Ignore generated state and development caches | Complete. Git ignore checks cover local graph state, macOS metadata, and coverage, lint, and test caches. |
 | 10 | Documentation index and factual corrections | Complete. The README links to a current index. Corrected runtime requirements, locking, command entry points, MCP scope, and validation links, and marked historical reports. Checked Markdown link targets. Physical reorganization remains in item 18. |
-| 11 | Separate CLI parsing, rendering, and dispatch | In progress. The CLI is a package with independent terminal and JSON rendering. Existing console scripts and both module entry points are preserved. Parser and handler extraction remain. |
+| 11 | Separate CLI parsing, rendering, and dispatch | Complete. `main()` delegates parsing, rendering, and command workflows. All 50 registered names are covered by the dispatch paths, and both module entry points and console scripts are preserved. The extraction matched 114 help and usage transcripts and passed the full test suite. |
 | 12 | Stable error taxonomy and JSON error contract | Open. |
 | 13 | Grouped help, examples, and alias migration | Open. |
 | 14 | Query workspaces directly through the MCP query layer | Complete in `4067e6e`. Five CLI queries matched their tool results at a pinned release after CURRENT advanced. The workspace query suite passed. |
