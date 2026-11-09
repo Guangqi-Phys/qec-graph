@@ -1,8 +1,13 @@
+from contextlib import redirect_stderr, redirect_stdout
+from hashlib import sha256
+import io
+import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from qecgraph.cli import main
 from qecgraph.corpus import execute
 from qecgraph.source_package import unpack
 from qecgraph.transactions import writer_lock
@@ -18,6 +23,50 @@ class WorkspaceTests(unittest.TestCase):
         self.inbox = self.root / 'inputs'
         self.inbox.mkdir()
         self.ws = Workspace(self.root)
+
+    def test_daily_cli_uses_default_workspace_and_consumes_only_successful_inputs(self):
+        self.ws.init(no_ingest=True)
+        package = self.inbox / 'paper.tex'
+        package.write_bytes(TEX)
+
+        def invoke(*args):
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                code = main(args)
+            return code, stdout.getvalue(), stderr.getvalue()
+
+        with tempfile.TemporaryDirectory() as outside, \
+                patch('qecgraph.workspace.Path.cwd', return_value=Path(outside)), \
+                patch.dict('os.environ', {'QECGRAPH_WORKSPACE': str(self.root)}):
+            for action in ('sync', 'status', 'validate'):
+                with self.subTest(action=action):
+                    code, stdout, stderr = invoke(action)
+                    self.assertEqual((code, stderr), (0, ''))
+                    self.assertEqual(len(stdout.splitlines()), 1)
+                    self.assertIn(f'{action}: OK', stdout)
+            archived = self.root / 'archive/blobs/sha256' / sha256(TEX).hexdigest()
+            self.assertFalse(package.exists())
+            self.assertEqual(archived.read_bytes(), TEX)
+
+            package.write_bytes(TEX)
+            code, stdout, stderr = invoke('sync', '--json')
+            self.assertEqual((code, stderr), (0, ''))
+            self.assertTrue(json.loads(stdout)['inputs'][0]['input_consumed'])
+            self.assertFalse(package.exists())
+
+            package.write_bytes(TEX)
+            broken = self.inbox / 'broken.zip'
+            broken.write_bytes(b'PK\x03\x04broken')
+            code, stdout, stderr = invoke('sync')
+            self.assertEqual((code, stdout), (2, ''))
+            self.assertEqual(len(stderr.splitlines()), 1)
+            self.assertIn('sync: ERROR: broken.zip', stderr)
+            self.assertFalse(package.exists())
+            self.assertEqual(broken.read_bytes(), b'PK\x03\x04broken')
+            self.assertEqual(archived.read_bytes(), TEX)
+            code, stdout, stderr = invoke('status')
+            self.assertEqual((code, stdout), (2, ''))
+            self.assertIn('status: ERROR: 1/2 packages indexed', stderr)
 
     def test_partial_batch_dedup_and_rebuild_from_full_inventory(self):
         (self.inbox / 'good.zip').write_bytes(TEX)
@@ -92,6 +141,9 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(result['counts']['conflicting'], 2)
         self.assertEqual(len(self.ws.registry.read()[0]['versions']), 2)
         self.assertTrue(all(row['source_version_conflict'] for row in result['inputs']))
+        self.assertTrue(all(not row['input_consumed'] for row in result['inputs']))
+        self.assertEqual((self.inbox / 'a').read_bytes(), TEX)
+        self.assertEqual((self.inbox / 'b').read_bytes(), second)
 
 
     def test_extraction_keeps_mentions_separate_and_pins_verbatim_source(self):

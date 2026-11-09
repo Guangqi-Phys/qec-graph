@@ -53,7 +53,7 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
     note = workspace / 'human/notes/private-validation-note.md'
     note.write_text('RFC002-PERSONAL-CANARY-9212', encoding='utf-8')
     (inbox / 'same-tree-new-compression').write_bytes(gzip.compress(TEX, mtime=2))
-    second = run('sync', ['sync'])
+    second = run('sync', ['sync', '--workspace', '.'])
     assert second['inputs'][0]['input_consumed']
     assert second['inputs'][0]['source_tree_hash'] == next(
         x['source_tree_hash'] for x in first['inputs'] if x['input'].startswith('format-'))
@@ -65,7 +65,7 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
     rebuild = run('rebuild_from_archive', ['rebuild'])
     assert rebuild['release_id'] == expected_release and rebuild['status'] == 'unchanged'
     assert all(p.name.startswith('.') for p in inbox.iterdir())
-    assert run('validate', ['validate'])['valid']
+    assert run('validate', ['validate', '--workspace', '.'])['valid']
     review = run('review_list', ['review', 'list'])
     assert len(review['proposals']) >= (3 if real_source else 1)
     if real_source:

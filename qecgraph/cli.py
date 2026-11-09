@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sqlite3
 import sys
 
@@ -10,6 +11,76 @@ from .splitter import split_project
 from .store import current_snapshot, ingest, pin_snapshot, validate_snapshot
 from .registry import Registry
 from .graph import read_json
+
+
+_DAILY_WORKSPACE_COMMANDS = {'sync', 'status', 'validate'}
+
+
+class _WorkspaceProgress:
+    def __init__(self, action):
+        self.action = action
+        self.filled = 0
+        self.previous_width = 0
+
+    def line(self, message):
+        return f"[{'#' * self.filled}{'.' * (16 - self.filled)}] {self.action}: {message}"
+
+    def update(self, done, total, message):
+        self.filled = 16 * done // total
+        if sys.stderr.isatty():
+            line = self.line(message)
+            print('\r' + line.ljust(self.previous_width), end='', file=sys.stderr, flush=True)
+            self.previous_width = len(line)
+
+    def finish(self, message, code):
+        if self.previous_width:
+            print('\r' + ' ' * self.previous_width + '\r', end='', file=sys.stderr, flush=True)
+        message = ' '.join(''.join(char if char.isprintable() else ' ' for char in message).split())
+        if len(message) > 180:
+            message = message[:177] + '...'
+        if code:
+            print(self.line('ERROR: ' + message), file=sys.stderr)
+        else:
+            self.filled = 16
+            print(self.line('OK' + (f' ({message})' if message else '')))
+        return code
+
+
+def _input_problem(row):
+    if row.get('cleanup_error') or row.get('retained_claim'):
+        problem = row.get('cleanup_error') or 'input could not be restored'
+    elif row.get('source_version_conflict'):
+        problem = 'conflicting source version'
+    elif not row.get('processing_completed'):
+        problem = next((item['message'] for item in row.get('diagnostics', [])
+                        if item['severity'] == 'error'), None)
+        problem = problem or row.get('reason') or row['status'].replace('_', ' ')
+    else:
+        return None
+    name = row.get('input') or row.get('archive_sha256', '')[:12]
+    return f'{name}: {problem}' if name else problem
+
+
+def _workspace_summary(action, result, code):
+    if action == 'validate':
+        if not code:
+            return '', 0
+        issue = next((item for item in result.get('issues', []) if item.get('severity') != 'warning'), {})
+        return issue.get('message') or issue.get('code') or 'workspace validation failed', code
+    if action == 'status':
+        materials = result['materials']
+        count = len(materials)
+        ready = sum(row.get('processing_completed', False) for row in materials)
+        problem = next(filter(None, map(_input_problem, materials)), None)
+        if problem:
+            return f'{ready}/{count} packages indexed; {problem}', 2
+        return f'{ready}/{count} packages indexed', code
+    if code:
+        problem = next(filter(None, map(_input_problem, result.get('inputs', []))), None)
+        human = result.get('human', {})
+        return (problem or human.get('error') or 'could not refresh workspace views'), code
+    counts = result['counts']
+    return f"{counts['processed']}/{counts['registered']} packages indexed", code
 
 
 def _add_query_scope(parser, *, workspace=False):
@@ -77,6 +148,8 @@ def main(argv=None):
     for action in ('init', 'sync', 'rebuild', 'status'):
         workspace = sub.add_parser(action, help=f'{action.capitalize()} a managed QEC workspace')
         workspace.add_argument('--workspace')
+        if action in _DAILY_WORKSPACE_COMMANDS:
+            workspace.add_argument('--json', action='store_true', help='Print the detailed workspace report')
         if action != 'status':
             workspace.add_argument('--keep-inputs', action='store_true')
             workspace.add_argument('--no-human', action='store_true', help='Skip the separate Obsidian renderer')
@@ -248,15 +321,25 @@ def main(argv=None):
     group.add_argument("--store")
     group.add_argument("--workspace")
     cmd.add_argument('--snapshot')
+    cmd.add_argument('--json', action='store_true', help='Print the detailed workspace report')
     args = parser.parse_args(argv)
+    daily = args.command in _DAILY_WORKSPACE_COMMANDS and argv[1:] in ([], ['--json'])
+    progress = _WorkspaceProgress(args.command) if daily and not args.json else None
     try:
         if args.command in {'init', 'sync', 'rebuild', 'status'} or (args.command == 'validate' and not args.store):
-            from .workspace import Workspace
+            from .workspace import CONFIG, Workspace, locate
             if getattr(args, 'snapshot', None):
                 raise ValueError('--snapshot requires --store')
             options = {key: getattr(args, key) for key in ('no_ingest', 'dry_run', 'include_inputs', 'keep_inputs')
                        if hasattr(args, key)}
-            ws = Workspace(args.workspace)
+            default = os.environ.get('QECGRAPH_WORKSPACE') if args.command in _DAILY_WORKSPACE_COMMANDS else None
+            ws = Workspace(locate(args.workspace, default=default))
+            if daily and not ws.path(CONFIG).is_file():
+                raise ValueError('No initialized workspace found. Set QECGRAPH_WORKSPACE or use --workspace.')
+            if progress:
+                progress.update(0, 1, 'Working')
+                if args.command in {'sync', 'validate'}:
+                    options['progress'] = progress.update
             result = getattr(ws, args.command)(**options)
             if args.command in {'init', 'sync', 'rebuild'} and result.get('release_id') and not args.no_human:
                 import subprocess
@@ -267,9 +350,12 @@ def main(argv=None):
                     result['human'] = json.loads(render.stdout)
                 except (OSError, ValueError, subprocess.TimeoutExpired):
                     result['human'] = {'status': 'human_stale', 'release_id': result['release_id']}
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-            return 2 if (result['status'] in {'partial_batch', 'invalid'}
+            code = 2 if (result['status'] in {'partial_batch', 'invalid'}
                          or result.get('human', {}).get('status') == 'human_stale') else 0
+            if progress:
+                return progress.finish(*_workspace_summary(args.command, result, code))
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return code
         if args.command == 'human-build':
             from .human import build_human
             result = build_human(args.workspace, args.release)
@@ -474,8 +560,14 @@ def main(argv=None):
             return 1 if not result['ok'] else 2 if result['data'].get('extraction_status') == 'partial' else 0
         return result.get('suggested_exit_code', 2 if result.get("extraction_status") == "partial" else 0)
     except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
+        if progress:
+            return progress.finish(str(exc), 1)
         print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
         return 1
+    except KeyboardInterrupt:
+        if progress:
+            return progress.finish('interrupted', 130)
+        raise
 
 
 if __name__ == "__main__":

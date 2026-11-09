@@ -38,8 +38,24 @@ qec-graph validate --workspace "$workspace"
 
 For your own collection, create an `inputs/` directory under your chosen
 workspace and place completed LaTeX source packages there before running
-`init`. Run commands from the workspace or pass its path with `--workspace`.
-The examples below reuse the `workspace` variable from the quick start.
+`init`.
+
+## Daily use
+
+Run these commands from the workspace or any of its subdirectories.
+
+```sh
+qec-graph sync
+qec-graph status
+qec-graph validate
+```
+
+These commands update one terminal progress line and finish with a short result.
+After successful import, `sync` clears the inbox copy and keeps the original in
+`archive/`. Failed packages remain available for retry. Add `--json` for the
+detailed report. From outside the workspace, set `QECGRAPH_WORKSPACE` to its
+path or pass `--workspace` explicitly. The examples below reuse the `workspace`
+variable from the quick start.
 
 `init` registers submitted sources regardless of publication or review status.
 It preserves the original package in `archive/` and removes the inbox copy only

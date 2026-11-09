@@ -58,11 +58,12 @@ def _read_regular(path, limit):
     return raw
 
 
-def locate(path=None):
+def locate(path=None, *, default=None):
     if path is not None:
         return Path(path).expanduser().resolve()
     start = Path.cwd()
-    return next((p for p in (start, *start.parents) if (p / CONFIG).is_file()), start)
+    local = next((p for p in (start, *start.parents) if (p / CONFIG).is_file()), None)
+    return local or (Path(default).expanduser().resolve() if default else start)
 
 
 class Workspace:
@@ -113,13 +114,14 @@ class Workspace:
                 return self._run(self.config(), scan_inputs=False, rebuild=False, keep_inputs=True)
             return self._run(self.config(), scan_inputs=True, rebuild=False, keep_inputs=keep_inputs)
 
-    def sync(self, *, dry_run=False, keep_inputs=False):
+    def sync(self, *, dry_run=False, keep_inputs=False, progress=None):
         if dry_run:
             self.config()
             return {'status': 'planned', 'inputs': [p.name for p in self._inbox()],
                     'pending_claims': sum(1 for _ in self._jobs())}
         with writer_lock(self.path('.qecgraph')):
-            return self._run(self.config(), scan_inputs=True, rebuild=False, keep_inputs=keep_inputs)
+            return self._run(self.config(), scan_inputs=True, rebuild=False, keep_inputs=keep_inputs,
+                             progress=progress)
 
     def rebuild(self, *, include_inputs=False, keep_inputs=False):
         self.config()
@@ -257,7 +259,7 @@ class Workspace:
                           retained_prior_extraction=True)
         return result
 
-    def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs):
+    def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None):
         run_id = uuid.uuid4().hex
         digests, rows, claims = set(), [], []
         if scan_inputs:
@@ -288,6 +290,11 @@ class Workspace:
                         raise ValueError('Invalid archive receipt hash')
                     digests.add(digest)
 
+        package_count = len(digests)
+        # Stages are archiving, one check per distinct package, publication and final CLI work.
+        steps = package_count + 3
+        if progress:
+            progress(1, steps, f'Checking {package_count} packages')
         with writer_lock(self.registry.root):
             from .workspace_query import check_machine_tree
             check_machine_tree(self.registry.root)
@@ -304,14 +311,18 @@ class Workspace:
                         version = state['versions'].get(prior['source_version_id'])
                         if version and version['snapshot_id'] == prior['source_snapshot_id']:
                             reused[(prior['source_version_id'], prior['entrypoint'])] = version
-            for digest in sorted(digests):
+            for index, digest in enumerate(sorted(digests), start=1):
                 prior = previous.get(digest, {})
                 if (not rebuild and prior.get('processing_completed') and prior.get('config_fingerprint') == fingerprint):
                     snapshot = self.path('machine/source_snapshots/' + prior['source_snapshot_id'])
                     validate_snapshot(snapshot, prior['source_snapshot_id'])
-                    continue
-                materials[digest] = self._prepare(cfg, state, digest, prior, reused)
-                materials[digest]['config_fingerprint'] = fingerprint
+                else:
+                    materials[digest] = self._prepare(cfg, state, digest, prior, reused)
+                    materials[digest]['config_fingerprint'] = fingerprint
+                if progress:
+                    progress(index + 1, steps, f'Checked {index}/{package_count} packages')
+            if progress:
+                progress(steps - 2, steps, 'Publishing workspace')
             # Explicit version metadata, never inferred from filenames.
             parsed_versions = {m['source_version_id'] for m in materials.values() if m.get('source_version_id')}
             proposal_map = state.setdefault('generated_research', {})
@@ -355,7 +366,7 @@ class Workspace:
             atomic_json(job / 'commit.json', decision)
             row = {'input': meta['name'], 'receipt_id': job.name, **material, **decision, 'input_consumed': False}
             try:
-                if finished and not decision['keep_inputs']:
+                if finished and not material['source_version_conflict'] and not decision['keep_inputs']:
                     raw = _read_regular(payload, Limits(**cfg.get('limits', {})).input_bytes)
                     if hashlib.sha256(raw).hexdigest() != digest:
                         raise ValueError('Claim changed after archiving')
@@ -384,6 +395,8 @@ class Workspace:
                     'human': {'status': human_status, 'target_release_id': release, 'rendered_release_id': rendered}})
         partial = any(not r.get('processing_completed') or r.get('cleanup_error') or r.get('retained_claim')
                       or r.get('source_version_conflict') for r in rows)
+        if progress:
+            progress(steps - 1, steps, 'Refreshing workspace views')
         return {'status': 'partial_batch' if partial else 'unchanged' if old == release else 'published',
                 'run_id': run_id, 'workspace_id': cfg['workspace_id'], 'previous_release_id': old,
                 'release_id': release, 'counts': counts, 'inputs': rows}
@@ -396,10 +409,12 @@ class Workspace:
                 'pending_inputs': len(list(self._inbox())), 'pending_claims': sum(
                     (job / 'payload').exists() for job, _ in self._jobs())}
 
-    def validate(self):
+    def validate(self, *, progress=None):
         cfg = self.config()
         from .workspace_query import check_machine_tree
         check_machine_tree(self.registry.root)
+        if progress:
+            progress(1, 3, 'Checking the current release')
         result = self.registry.validate(check_live_lean=False)
         state, fixed = self.registry.read(result['registry_revision'])
         issues = result.setdefault('issues', [])
@@ -407,6 +422,8 @@ class Workspace:
         records = load_records(self.registry, state)
         validate_bundle(records)
         validate_sources(self.registry, state, records)
+        if progress:
+            progress(2, 3, 'Verifying archived packages')
         for digest in state.get('materials', {}):
             try:
                 if not HEX.fullmatch(digest):

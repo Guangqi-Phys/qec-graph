@@ -22,8 +22,13 @@ qec-graph rebuild
 qec-graph validate
 ```
 
-可在其他目录传 `--workspace ~/qec`。再次 init 不覆盖配置；
-`--no-ingest` 只初始化，`--keep-inputs` 保留成功件，`--no-human` 跳过人类渲染。
+日常使用 `qec-graph sync`、`qec-graph status` 和 `qec-graph validate`。
+终端更新同一条进度行，结束时显示成功或错误。`sync` 在成功归档并发布后清理 `inputs/` 中的副本，失败件留待重试。
+加 `--json` 可查看详细报告。命令优先使用显式的 `--workspace`，其次查找当前目录及其父目录，
+最后使用环境变量 `QECGRAPH_WORKSPACE`。
+
+再次 init 不覆盖配置。`--no-ingest` 只初始化，带其他参数执行 `sync` 时可用
+`--keep-inputs` 保留成功件，`--no-human` 跳过人类渲染。
 `rebuild` 检查整个归档库存和收据，包括此前解析失败或入口未决的材料。
 `rebuild --include-inputs` 先做 sync，然后按归档重建。
 
@@ -31,7 +36,7 @@ qec-graph validate
 部分批次退出 2，失败件留在收件箱或可恢复认领处。语义未知不妨碍保留来源，
 但不会作为已知参数满足精确过滤。不要用仓库工作区替代用户数据的备份。
 
-如包内有多个入口，从 `status` 查 `source_tree_hash` 和候选。
+如包内有多个入口，从 `status --json` 查 `source_tree_hash` 和候选。
 只有上游身份确有证据时才填写 `[sources]`。例如：
 
 ```toml
