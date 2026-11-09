@@ -8,6 +8,8 @@ from importlib.resources import files
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+from ..graph import KNOWN_RELATIONS
+
 STATEMENTS = {'lemma', 'theorem', 'proposition', 'corollary', 'conjecture', 'claim'}
 MATHEMATICS = STATEMENTS | {'definition', 'proof', 'equation'}
 _SCHEMA = json.loads(files(__package__).joinpath('schemas/record.v3.schema.json').read_text(encoding='utf-8'))
@@ -84,27 +86,29 @@ def validate_record(record):
 
 
 def validate_endpoint(source_kind, target_kind, relation):
-    from ..graph import KNOWN_RELATIONS
     if relation.startswith('catalog:'):
         return  # Legacy semantics are retained, never upgraded to typed proof edges.
-    if relation not in KNOWN_RELATIONS | set(ENDPOINTS):
-        raise ValueError(f'Unknown typed relation: {relation}')
-    if relation in ENDPOINTS:
-        sources, targets = ENDPOINTS[relation]
+    endpoints = ENDPOINTS.get(relation)
+    if endpoints is not None:
+        sources, targets = endpoints
         if source_kind not in sources or target_kind not in targets:
             raise ValueError(f'Invalid {relation} endpoint types: {source_kind} -> {target_kind}')
+    elif relation not in KNOWN_RELATIONS:
+        raise ValueError(f'Unknown typed relation: {relation}')
 
 
 def validate_graph_types(graph):
     lookup = {node['id']: node for node in graph['nodes']}
     for edge in graph['edges']:
-        if edge['source'] not in lookup or edge['target'] not in lookup:
+        source, target = lookup.get(edge['source']), lookup.get(edge['target'])
+        if source is None or target is None:
             raise ValueError(f"Dangling edge {edge['id']}")
-        if edge['status'] == 'unresolved' and 'unresolved_reference' in {lookup[edge['source']]['kind'], lookup[edge['target']]['kind']}:
-            from ..graph import KNOWN_RELATIONS
-            if edge['relation'] in KNOWN_RELATIONS or edge['relation'].startswith('catalog:'):
+        source_kind, target_kind = source['kind'], target['kind']
+        relation = edge['relation']
+        if edge['status'] == 'unresolved' and (source_kind == 'unresolved_reference' or target_kind == 'unresolved_reference'):
+            if relation in KNOWN_RELATIONS or relation.startswith('catalog:'):
                 continue  # Explicit unknown endpoint, never a usable typed dependency.
-        validate_endpoint(lookup[edge['source']]['kind'], lookup[edge['target']]['kind'], edge['relation'])
+        validate_endpoint(source_kind, target_kind, relation)
 
 
 def registry_issues(registry, state, records=None):
