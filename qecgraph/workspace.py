@@ -389,6 +389,34 @@ class Workspace:
                 return version
         return None
 
+    def _archive_inbox(self, limit, keep_inputs):
+        claims, rows = [], []
+        for path in self._inbox():
+            if path.is_symlink() or not stat.S_ISREG(path.lstat().st_mode):
+                rows.append({'input': path.name, 'status': 'unsafe_input', 'input_consumed': False})
+                continue
+            self._claim(path, keep_inputs)
+        for job, meta in self._pending_jobs():
+            try:
+                digest = self._archive(job, meta, limit)
+            except (OSError, ValueError) as exc:
+                rows.append({'input': meta['name'], 'status': 'archive_failed', 'reason': str(exc),
+                             'input_consumed': False, 'restored': self._restore(job, job / 'payload', meta['name'])})
+                continue
+            claims.append((job, meta, digest))
+        return claims, rows
+
+    def _archived_digests(self):
+        digests = {p.name for p in self.path('archive/blobs/sha256').iterdir() if HEX.fullmatch(p.name)}
+        for receipt_path in self.path('archive/receipts').iterdir():
+            if JOB.fullmatch(receipt_path.stem) and receipt_path.suffix == '.json':
+                receipt = read_json(self.path('archive/receipts/' + receipt_path.name))
+                digest = receipt['archive_sha256']
+                if not HEX.fullmatch(digest):
+                    raise ValueError('Invalid archive receipt hash')
+                digests.add(digest)
+        return digests
+
     def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None):
         if not self.path('machine/CURRENT.json').is_file() and (
                 self.path('machine/operational/status.json').exists()
@@ -396,36 +424,16 @@ class Workspace:
             raise ValueError('Published workspace is missing its release pointer')
         run_id = uuid.uuid4().hex
         limits = Limits(**cfg.get('limits', {}))
-        digests, rows, claims = set(), [], []
+        claims, rows = [], []
         if scan_inputs:
             if progress:
                 progress(0, 1, 'Archiving inbox packages')
-            for path in self._inbox():
-                if path.is_symlink() or not stat.S_ISREG(path.lstat().st_mode):
-                    rows.append({'input': path.name, 'status': 'unsafe_input', 'input_consumed': False})
-                    continue
-                self._claim(path, keep_inputs)
-            for job, meta in self._pending_jobs():
-                payload = job / 'payload'
-                try:
-                    digest = self._archive(job, meta, limits.input_bytes)
-                except (OSError, ValueError) as exc:
-                    rows.append({'input': meta['name'], 'status': 'archive_failed', 'reason': str(exc),
-                                 'input_consumed': False, 'restored': self._restore(job, payload, meta['name'])})
-                    continue
-                digests.add(digest)
-                claims.append((job, meta, digest))
+            claims, rows = self._archive_inbox(limits.input_bytes, keep_inputs)
+        digests = {digest for _, _, digest in claims}
         if rebuild:
             if progress:
                 progress(0, 1, 'Scanning the archive')
-            digests.update(p.name for p in self.path('archive/blobs/sha256').iterdir() if HEX.fullmatch(p.name))
-            for receipt_path in self.path('archive/receipts').iterdir():
-                if JOB.fullmatch(receipt_path.stem) and receipt_path.suffix == '.json':
-                    receipt = read_json(self.path('archive/receipts/' + receipt_path.name))
-                    digest = receipt['archive_sha256']
-                    if not HEX.fullmatch(digest):
-                        raise ValueError('Invalid archive receipt hash')
-                    digests.add(digest)
+            digests.update(self._archived_digests())
 
         package_count = len(digests)
         # Stages are archiving, one check per distinct package, publication and final CLI work.
