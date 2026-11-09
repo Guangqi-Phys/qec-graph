@@ -8,12 +8,13 @@ from .graph import canonical, hash_text
 from .validators import packaged_validator
 
 SCHEMA = 'qecgraph.research.v1'
-UNKNOWN = {'not_extracted', 'unresolved', 'not_reported', 'not_applicable', 'conflicting'}
 # The packaged schema owns the portable record structure. Reference target
 # kinds also drive the runtime join and the published graph views.
 _VALIDATOR = packaged_validator('research.v1')
 _CONTRACTS = _VALIDATOR.schema['$defs']['record_data']['$defs']
 KINDS = frozenset(_VALIDATOR.schema['properties']['kind']['enum'])
+UNKNOWN = frozenset(_VALIDATOR.schema['properties']['field_evidence']['additionalProperties']
+                    ['properties']['status']['enum']) - {'known'}
 REQUIRED = {kind: tuple(contract['required']) for kind, contract in _CONTRACTS.items()
             if 'required' in contract}
 RELATIONS = {kind: {field: tuple(rule['x-qec-target-kinds']) for field, rule in contract['properties'].items()
@@ -61,8 +62,6 @@ def prepare(record):
         raise ValueError(f'Research record schema at {error.json_path}: {error.message}')
     key(ref(record))
     data, kind = record['data'], record['kind']
-    if data.get('review_status') not in (None, 'proposed', 'unreviewed'):
-        raise ValueError('Research import cannot declare a reviewed status without bound review evidence')
     fields = record['field_evidence']
     for field in data:
         path = _ptr(field)
@@ -71,14 +70,10 @@ def prepare(record):
     for path, evidence in fields.items():
         value = pointer_value(record, path)
         state = evidence['status']
-        if state == 'known' and (value is None or not evidence.get('source_ref') or not evidence.get('method')):
-            raise ValueError(f'Known value needs a source revision and method: {path}')
+        if state == 'known' and value is None:
+            raise ValueError(f'Known value cannot be null: {path}')
         if state in UNKNOWN and value is not None:
             raise ValueError(f'Unknown value must be null: {path}')
-        if state in {'not_reported', 'not_applicable', 'conflicting'} and not evidence.get('reason'):
-            raise ValueError(f'{state} requires an explanation: {path}')
-        if state == 'not_reported' and not all(evidence.get(f) for f in ('source_ref', 'checked_scope', 'checked_at')):
-            raise ValueError(f'not_reported requires a dated source scope: {path}')
     if kind in {'code_instance', 'classical_seed'}:
         for field in ('n_data', 'k_logical', 'K', 'r_gauge'):
             value = data.get(field)

@@ -3,7 +3,7 @@ from copy import deepcopy
 from pathlib import Path
 
 from qecgraph.graph import read_json
-from qecgraph.research import adapt_synthetic, make_record, pauli_weight, ref, validate_bundle
+from qecgraph.research import adapt_synthetic, make_record, pauli_weight, prepare, ref, validate_bundle
 from qecgraph.software import adapt_seed, bundled_seed
 from qecgraph.validators import packaged_validator
 
@@ -41,6 +41,26 @@ class ResearchTests(unittest.TestCase):
         self.assertFalse(validator.is_valid(code))
         code['kind'] = 'unknown_record_kind'
         self.assertEqual(next(validator.iter_errors(code)).json_path, '$.kind')
+
+    def test_field_evidence_requires_provenance_and_resolves_the_value(self):
+        validator = packaged_validator('research.v1')
+        point = deepcopy(next(row for row in self.rows if row['kind'] == 'performance_point'))
+        field = '/data/value'
+        source = ref(self.rows[0])
+        point['field_evidence'][field] = {'status': 'known', 'source_ref': source}
+        self.assertFalse(validator.is_valid(point))
+        point['field_evidence'][field]['method'] = 'fixture'
+        self.assertTrue(validator.is_valid(point))
+        with self.assertRaisesRegex(ValueError, 'Known value cannot be null'):
+            prepare(point)
+
+        point['field_evidence'][field] = {'status': 'not_reported', 'reason': 'Not stated in the checked scope',
+                                          'source_ref': source, 'checked_scope': 'Table 1'}
+        self.assertFalse(validator.is_valid(point))
+        point['field_evidence'][field]['checked_at'] = '2026-11-09'
+        self.assertEqual(prepare(point), point)
+        point['field_evidence']['/data/invalid~3'] = {'status': 'unresolved'}
+        self.assertFalse(validator.is_valid(point))
 
     def test_exact_revision_and_wrong_noise_are_not_interchangeable(self):
         rows = deepcopy(self.rows)

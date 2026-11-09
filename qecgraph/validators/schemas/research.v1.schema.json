@@ -38,10 +38,11 @@
         "software_usage"
       ]
     },
-    "data": {"type": "object"},
+    "data": {"type": "object", "properties": {"review_status": {"enum": [null, "proposed", "unreviewed"]}}},
     "is_synthetic": {"type": "boolean"},
     "field_evidence": {
       "type": "object",
+      "propertyNames": {"pattern": "^/data/(?:[^~]|~[01])*$"},
       "additionalProperties": {
         "type": "object",
         "additionalProperties": false,
@@ -57,7 +58,21 @@
           "limitation": {"type": "string"},
           "checked_scope": {"type": "string", "minLength": 1},
           "checked_at": {"type": "string", "format": "date"}
-        }
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"status": {"const": "known"}}},
+            "then": {"required": ["source_ref", "method"]}
+          },
+          {
+            "if": {"properties": {"status": {"enum": ["not_reported", "not_applicable", "conflicting"]}}},
+            "then": {"required": ["reason"]}
+          },
+          {
+            "if": {"properties": {"status": {"const": "not_reported"}}},
+            "then": {"required": ["source_ref", "checked_scope", "checked_at"]}
+          }
+        ]
       }
     }
   },
