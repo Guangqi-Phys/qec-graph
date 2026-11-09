@@ -61,7 +61,7 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
         raise ValueError('Unknown distance sector')
     registry = Registry(corpus)
     state, fixed = registry.read(registry_revision)
-    records = {identifier: registry.record(identifier, registry_revision=fixed) for identifier in state['records']}
+    records = {identifier: registry.record_from_state(state, identifier) for identifier in state['records']}
     reviews = review_states(registry, state, records, fixed)
     from .lean_integration import lean_record_states
     builds = lean_record_states(registry, state, records, reviews, check_live_inputs=check_live_lean)
