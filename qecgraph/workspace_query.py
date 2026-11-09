@@ -6,6 +6,7 @@ import copy
 from collections import deque
 from datetime import datetime
 from functools import cached_property
+from math import isfinite
 import os
 from pathlib import Path
 import stat
@@ -377,6 +378,8 @@ class WorkspaceSession:
             raise ToolError('INVALID_ARGUMENT', 'Coordinate selection needs both name and value')
         selection = args.get('selection', 'exact')
         requested = args.get('coordinate')
+        if isinstance(requested, float) and not isfinite(requested):
+            raise ToolError('INVALID_ARGUMENT', 'Coordinate must be a finite number')
         axis = args.get('coordinate_name')
         nearest = {}
         for record in self.visible.values():

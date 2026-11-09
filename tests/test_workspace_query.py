@@ -137,7 +137,9 @@ class WorkspaceQueryTests(unittest.TestCase):
                            ('qec_find_codes', {'distance_at_least': 3}),
                            ('qec_find_codes', {'metric_definition_id': 'metric:test', 'metric_revision': '1'}),
                            ('qec_find_codes', {'distance_at_least': 3, 'metric_definition_id': 'metric:test',
-                                               'evidence_policy': 'source_reported'})):
+                                               'evidence_policy': 'source_reported'}),
+                           ('qec_find_performance', {'coordinate_name': 'p', 'coordinate': float('nan')}),
+                           ('qec_find_performance', {'coordinate_name': 'p', 'coordinate': float('inf')})):
             with self.subTest(tool=tool, args=args):
                 result = self.session.invoke(tool, args)
                 self.assertEqual(result['error']['code'], 'INVALID_ARGUMENT')
