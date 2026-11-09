@@ -6,6 +6,12 @@
 
 项目名 `qec-graph`，Python 包名 `qecgraph`，当前版本 `0.3.0`。`qecgraph` 与 `qec-graph` 是同义 CLI；独立切割入口为 `qec-latex-split`，只读 MCP 入口为 `qecgraph-mcp`。
 
+RFC-QEC-002 的工作区发行候选提供 `qec-graph init / sync / rebuild`、
+固定发布的 MCP 查询和独立的 Obsidian vault。见
+[工作区使用说明](docs/rfc-002/WORKSPACE.md)、
+[基线审计](IMPLEMENTATION_AUDIT.md)和[候选版验收](validation/rfc002/REPORT.md)。
+下文仍适用于已有单论文、旧 corpus 与 Lean 命令。
+
 ## 安装
 
 需要 macOS/Linux 的本地 POSIX 文件系统、Python 3.11+ 和支持 FTS5 的 SQLite。

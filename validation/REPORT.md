@@ -1,5 +1,9 @@
 # 本仓库验证记录
 
+RFC-QEC-002 / 0.4.0rc1 的独立报告见 [候选版验收](rfc002/REPORT.md)；
+下方保留 0.3.0 的历史记录。
+
+
 0.3.0 的复现步骤见 [发布复现](../docs/14_RELEASE.md)，实施范围见 [实施记录](../docs/IMPLEMENTATION_LOG.md)。
 
 交接复核修正了距离论断证据绑定、实验未知配置的可比性、Lean 提议与有效审核状态区分。修正后的 Python、增量、MCP、Lean 构建和映射复验均已通过。[交接复核](release/recheck.json)

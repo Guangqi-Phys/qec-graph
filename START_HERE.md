@@ -2,6 +2,10 @@
 
 这里包含 LaTeX 切割工具、三视图图谱、版本注册、审核、增量更新、只读 MCP 和 Lean 构建适配器。原任务书和验收规范保留供后续维护。
 
+RFC-QEC-002 增量工作从[工作区说明](docs/rfc-002/WORKSPACE.md)开始；
+对照[实现审计](IMPLEMENTATION_AUDIT.md)和[验收](validation/rfc002/REPORT.md)核对真实能力。
+本页下方的 P0–P5 文档仍适用于原有三图、Lean 与旧 corpus。
+
 ## 先读哪几个文件
 
 | 顺序 | 文件 | 用途 |

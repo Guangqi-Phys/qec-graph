@@ -1,0 +1,13 @@
+{
+  "version": "0.4.0rc1",
+  "checks": {
+    "read_machine": true,
+    "read_note_denied": true,
+    "list_notes_denied": true,
+    "list_inbox_denied": true,
+    "write_machine_denied": true,
+    "network_bind_denied": true
+  },
+  "passed": true,
+  "isolated_mcp_search": true
+}
