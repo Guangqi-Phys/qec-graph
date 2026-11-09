@@ -17,13 +17,15 @@ def record_hash(record):
 
 
 def prepare_record(record, *, allow_legacy=False):
+    if not isinstance(record, dict):
+        raise ValueError('Record must be a JSON object')
     record = copy.deepcopy(record)
     if record.get('schema_version') != RECORD_SCHEMA and not (allow_legacy and record.get('schema_version') == 'qecgraph.record.v2'):
         raise ValueError('Expected qecgraph.record.v3; use explicit migration for older formats')
     for field in ('id', 'revision', 'title'):
         if not isinstance(record.get(field), str) or not record[field].strip():
             raise ValueError(f'Record needs nonempty {field}')
-    if record.get('kind') not in KINDS:
+    if not isinstance(record.get('kind'), str) or record['kind'] not in KINDS:
         raise ValueError('Unknown domain record kind')
     if not isinstance(record.get('data'), dict):
         raise ValueError('Record data must be an object')

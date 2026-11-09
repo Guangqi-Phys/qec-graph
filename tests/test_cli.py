@@ -16,6 +16,25 @@ from qecgraph.workspace import Workspace
 
 
 class CLIContractTests(unittest.TestCase):
+    def test_record_add_reports_wrong_json_shapes_as_input_errors(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Workspace(directory)
+            workspace.init(no_ingest=True)
+            pointer = workspace.registry.root / 'CURRENT.json'
+            before = pointer.read_bytes()
+            source = workspace.root / 'record.json'
+            base = {'schema_version': 'qecgraph.record.v3', 'id': 'record:example', 'revision': 'r1', 'title': 'Example'}
+            for payload, message in (([], 'Record must be a JSON object'),
+                                     ({**base, 'kind': []}, 'Unknown domain record kind')):
+                source.write_text(json.dumps(payload), encoding='utf-8')
+                stdout, stderr = io.StringIO(), io.StringIO()
+                with redirect_stdout(stdout), redirect_stderr(stderr):
+                    self.assertEqual(main(['record-add', str(source), '--corpus', str(workspace.registry.root), '--json']), 1)
+                self.assertEqual(stderr.getvalue(), '')
+                error = json.loads(stdout.getvalue())['error']
+                self.assertEqual((error['code'], error['message']), ('INVALID_INPUT', message))
+                self.assertEqual(pointer.read_bytes(), before)
+
     def test_unknown_commands_suggest_the_closest_help_topic(self):
         for command, expected in ((['serach'], 'search'), (['workspace', 'stauts'], 'workspace status')):
             with self.subTest(command=command):
