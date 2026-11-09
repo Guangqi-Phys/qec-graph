@@ -149,14 +149,17 @@ class Workspace:
         self.root.mkdir(parents=True, exist_ok=True)
         with writer_lock(self.path('.qecgraph')):
             target = self.path(CONFIG)
-            if target.exists():
-                cfg = self.config()
+            configured = target.exists()
+            cfg = self.config() if configured else None
+            if configured and self.path('machine/CURRENT.json').is_file():
                 return {'status': 'already_initialized', 'workspace_id': cfg['workspace_id'], 'next': 'qec-graph sync'}
             for path in ('inputs/.processing', 'archive/blobs/sha256', 'archive/receipts', 'sources', 'machine'):
                 self.path(path).mkdir(parents=True, exist_ok=True)
-            workspace_id = 'workspace:' + uuid.uuid4().hex
-            atomic_bytes(target, f'format = "{FORMAT}"\nworkspace_id = "{workspace_id}"\n'.encode())
-            return self._run(self.config(), scan_inputs=not no_ingest, rebuild=False,
+            if not configured:
+                workspace_id = 'workspace:' + uuid.uuid4().hex
+                atomic_bytes(target, f'format = "{FORMAT}"\nworkspace_id = "{workspace_id}"\n'.encode())
+                cfg = self.config()
+            return self._run(cfg, scan_inputs=not no_ingest, rebuild=False,
                              keep_inputs=no_ingest or keep_inputs, progress=progress)
 
     def sync(self, *, dry_run=False, keep_inputs=False, progress=None):

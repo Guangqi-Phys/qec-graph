@@ -193,6 +193,24 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(resumed['release_id'], fixed['release_id'])
         self.assertEqual(len(list((self.root / 'archive/receipts').glob('*.json'))), 1)
 
+    def test_init_retries_an_interruption_before_the_first_publication(self):
+        package = self.inbox / 'paper.tex'
+        package.write_bytes(TEX)
+        with patch.object(self.ws.registry, 'publish_prepared', side_effect=RuntimeError('interrupted init')):
+            with self.assertRaisesRegex(RuntimeError, 'interrupted init'):
+                self.ws.init()
+        config_path = self.root / 'qecgraph.toml'
+        original_config = config_path.read_bytes()
+        self.assertFalse((self.root / 'machine/CURRENT.json').exists())
+        self.assertEqual(self.ws.sync(dry_run=True)['pending_claims'], 1)
+
+        result = self.ws.init()
+        self.assertEqual(config_path.read_bytes(), original_config)
+        self.assertEqual(result['counts']['processed'], 1)
+        self.assertTrue(result['inputs'][0]['input_consumed'])
+        self.assertTrue(self.ws.validate()['valid'])
+        self.assertEqual(self.ws.init()['status'], 'already_initialized')
+
     def test_writer_lock_prevents_second_ingest(self):
         self.ws.init(no_ingest=True)
         (self.inbox / 'good').write_bytes(TEX)
