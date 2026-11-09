@@ -65,7 +65,12 @@ class WorkspaceQueryTests(unittest.TestCase):
     def test_registered_failed_artifact_and_fixed_source_occurrence(self):
         result = self.session.invoke('qecgraph_search', {'query': 'damaged_archive'})
         self.assertTrue(result['ok'])
-        self.assertEqual(result['data']['results'][0]['kind'], 'source_artifact')
+        artifact = result['data']['results'][0]
+        self.assertEqual(artifact['kind'], 'source_artifact')
+        selected = self.session.invoke('qec_get_entity', {'identifier': artifact['id']})
+        self.assertTrue(selected['ok'])
+        wrong_revision = self.session.invoke('qec_get_entity', {'identifier': artifact['id'], 'revision': 'other'})
+        self.assertEqual(wrong_revision['error']['code'], 'NOT_FOUND')
         state, _ = self.ws.registry.read()
         version, = state['versions']
         graph, _, _ = self.ws.registry.source_graph(version)

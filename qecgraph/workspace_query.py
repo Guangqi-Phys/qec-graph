@@ -498,10 +498,12 @@ class WorkspaceSession:
                     data = response['data']
             elif name == 'qec_get_entity':
                 identifier = args['identifier']
-                entity = self._materials.get(identifier) or self._research(identifier, args.get('revision'))
+                revision = args.get('revision')
+                entity = self._materials.get(identifier) if revision is None else None
+                entity = entity or self._research(identifier, revision)
                 if entity:
                     data = {'entity': entity}
-                elif args.get('revision') or identifier in self._research_ids:
+                elif revision is not None or identifier in self._research_ids:
                     raise ToolError('NOT_FOUND', 'No eligible revision in this release')
                 else:
                     response = self.graph.invoke('qecgraph_show', {'identifier': identifier, 'max_chars': maximum},
