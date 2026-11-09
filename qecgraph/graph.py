@@ -5,6 +5,7 @@ import hashlib
 import json
 import math
 import re
+from bisect import bisect_right
 from collections import Counter, defaultdict
 from pathlib import Path
 from urllib.parse import quote
@@ -206,19 +207,27 @@ def build_graph(parsed: dict, project_id: str, project_source_hash: str,
             edge(target, identifier, "formalizes", "declared", {"method": "latex_lean", "source": block["source"]})
 
     # A neighbouring proof is a candidate association, never a verified claim.
+    declared_proofs = {item["source"] for item in edges if item["relation"] == "proof_of"}
+    statement_ends = defaultdict(dict)
+    for block in blocks:
+        if block["kind"] in STATEMENTS:
+            source = block["source"]
+            statement_ends[source["path"], block.get("parent_key")].setdefault(source["char_end"], block)
+    ordered_ends = {scope: sorted(statements) for scope, statements in statement_ends.items()}
     for block in blocks:
         if block["kind"] != "proof":
             continue
         proof_id = key_to_id[block["key"]]
-        if any(e["source"] == proof_id and e["relation"] == "proof_of" for e in edges):
+        if proof_id in declared_proofs:
             continue
-        previous = [b for b in blocks if b["kind"] in STATEMENTS
-                    and b["source"]["path"] == block["source"]["path"]
-                    and b.get("parent_key") == block.get("parent_key")
-                    and b["source"]["char_end"] <= block["source"]["char_start"]]
-        if previous:
-            statement = max(previous, key=lambda b: b["source"]["char_end"])
-            gap = files[block["source"]["path"]]["text"][statement["source"]["char_end"]:block["source"]["char_start"]]
+        source = block["source"]
+        scope = (source["path"], block.get("parent_key"))
+        ends = ordered_ends.get(scope, ())
+        index = bisect_right(ends, source["char_start"])
+        if index:
+            end = ends[index - 1]
+            statement = statement_ends[scope][end]
+            gap = files[source["path"]]["text"][end:source["char_start"]]
             if not re.sub(r"(?m)(?<!\\)%[^\r\n]*", "", gap).strip():
                 edge(proof_id, key_to_id[statement["key"]], "proof_of_candidate", "candidate",
                      {"method": "adjacent_statement", "source": block["source"]})
