@@ -11,6 +11,7 @@ import stat
 import tempfile
 import time
 from collections import Counter
+from contextlib import contextmanager
 from importlib.metadata import version
 from itertools import groupby
 from pathlib import Path
@@ -398,6 +399,26 @@ def source_span_index(graph):
     }
 
 
+@contextmanager
+def snapshot_database(snapshot):
+    """Open only the standalone SQLite file belonging to a published snapshot."""
+    path = safe_relative(snapshot, "graph.sqlite")
+    for suffix in ("-wal", "-shm", "-journal"):
+        sidecar = path.with_name(path.name + suffix)
+        try:
+            sidecar.lstat()
+        except FileNotFoundError:
+            continue
+        raise ValueError(f"Unbound SQLite sidecar: {sidecar.name}")
+    connection = sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)
+    try:
+        if connection.execute("PRAGMA journal_mode").fetchone()[0] == "wal":
+            raise ValueError("Snapshot database cannot use WAL journal mode")
+        yield connection
+    finally:
+        connection.close()
+
+
 def _hash_snapshot_output(root, relative, directory_fd):
     name = relative.rpartition("/")[2]
     flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
@@ -515,9 +536,7 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_has
     for label, ids in graph["labels"].items():
         if any(label not in nodes[i]["labels"] for i in ids):
             raise ValueError("Label ownership mismatch")
-    sqlite_path = _safe_relative_to_resolved(output_root, "graph.sqlite")
-    con = sqlite3.connect(sqlite_path.as_uri() + "?mode=ro", uri=True)
-    try:
+    with snapshot_database(output_root) as con:
         if con.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
             raise ValueError("SQLite integrity check failed")
         if con.execute("SELECT value FROM metadata WHERE key='snapshot_id'").fetchone()[0] != expected:
@@ -526,8 +545,6 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_has
             raise ValueError("SQLite node count mismatch")
         if con.execute("PRAGMA foreign_key_check").fetchall():
             raise ValueError("SQLite graph references are broken")
-    finally:
-        con.close()
     report = {"passed": True, "snapshot_id": expected, "nodes": len(nodes), "edges": len(graph["edges"]),
               "source_slices_checked": sum(bool(n.get("source")) for n in nodes.values()),
               "scope": "integrity, structure and provenance; no mathematical or Lean proof verification"}

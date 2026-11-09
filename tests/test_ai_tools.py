@@ -1,5 +1,6 @@
 import hashlib
 import json
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -9,7 +10,7 @@ from pathlib import Path
 from jsonschema import Draft202012Validator
 
 from qecgraph.ai_tools import ReadOnlySession, TOOL_NAMES
-from qecgraph.query import context
+from qecgraph.query import context, search
 from qecgraph.registry import Registry
 from qecgraph.store import ingest
 
@@ -86,6 +87,31 @@ class AIToolTests(unittest.TestCase):
                 result = session.invoke('qecgraph_show', args)
                 self.assertFalse(result['ok'])
                 self.assertIn('Snapshot manifest changed', result['error']['message'])
+
+    def test_snapshot_queries_refuse_unbound_sqlite_journal_content(self):
+        snapshot = Path(self.result['snapshot'])
+        database = snapshot / 'graph.sqlite'
+        connection = sqlite3.connect(database)
+        try:
+            self.assertEqual(connection.execute('PRAGMA journal_mode=WAL').fetchone()[0], 'wal')
+            connection.execute('PRAGMA wal_autocheckpoint=0')
+            main_bytes = database.read_bytes()
+            manifest_path = snapshot / 'manifest.json'
+            manifest = json.loads(manifest_path.read_text())
+            checksum = next(o for o in manifest['outputs'] if o['path'] == 'graph.sqlite')
+            checksum['sha256'] = hashlib.sha256(main_bytes).hexdigest()
+            manifest_path.write_text(json.dumps(manifest))
+
+            connection.execute("UPDATE nodes SET title='Unbound SQLite title'")
+            connection.commit()
+            self.assertEqual(database.read_bytes(), main_bytes)
+            self.assertGreater((snapshot / 'graph.sqlite-wal').stat().st_size, 0)
+            with self.assertRaisesRegex(ValueError, 'Unbound SQLite sidecar'):
+                ReadOnlySession(store=self.store)
+            with self.assertRaisesRegex(ValueError, 'Unbound SQLite sidecar'):
+                search(self.store, 'full')
+        finally:
+            connection.close()
 
     def test_budget_refuses_partial_root_and_marks_missing_dependencies(self):
         huge = 'Assumption H. ' * 1000

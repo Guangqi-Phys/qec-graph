@@ -6,7 +6,7 @@ import sqlite3
 from collections import defaultdict, deque
 
 from .graph import CANDIDATES, DEPENDENCIES
-from .store import load_graph
+from .store import load_graph, snapshot_database
 from .status import annotation_eligible, eligible
 
 
@@ -58,9 +58,8 @@ def search(store, query, kind=None, limit=20):
                                            **({'build_binding': n['build_binding']} if 'build_binding' in n else {})}
                                           for n in matches[:limit]],
                 'truncated': len(matches) > limit, 'method': 'deterministic corpus substring; no embedding'}
-    con = sqlite3.connect((snapshot / "graph.sqlite").resolve().as_uri() + "?mode=ro", uri=True)
-    con.row_factory = sqlite3.Row
-    try:
+    with snapshot_database(snapshot) as con:
+        con.row_factory = sqlite3.Row
         literal = '"' + query.replace('"', '""') + '"'
         sql = "SELECT n.id,n.kind,n.title,n.source_path,n.line_start,bm25(node_fts) AS score FROM node_fts JOIN nodes n ON n.id=node_fts.id WHERE node_fts MATCH ?"
         params = [literal]
@@ -87,8 +86,6 @@ def search(store, query, kind=None, limit=20):
                     seen.add(row["id"])
                 if len(rows) >= limit + 1:
                     break
-    finally:
-        con.close()
     return {"snapshot_id": graph["snapshot_id"], "extraction_status": graph["extraction_status"],
             "query": query, "results": rows[:limit], 'truncated': len(rows) > limit,
             "method": "FTS5 literal phrase followed by substring fallback; no semantic embedding"}
