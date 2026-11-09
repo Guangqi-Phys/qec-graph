@@ -482,8 +482,10 @@ class WorkspaceSession:
             data.setdefault('continuation', None)
             if len(canonical(data)) > maximum:
                 raise ToolError('BUDGET_TOO_SMALL', 'Reduce result limit or request an exact source codepoint range')
-            return {'ok': True, 'data': data}
+            return {'ok': True, 'data': copy.deepcopy(data)}
         except ToolError as exc:
-            return {'ok': False, 'error': {'code': exc.code, 'message': str(exc), 'details': exc.details, 'scope': self.scope}}
+            return {'ok': False, 'error': {'code': exc.code, 'message': str(exc), 'details': exc.details,
+                                          'scope': self.scope.copy()}}
         except (OSError, ValueError, TypeError, KeyError):
-            return {'ok': False, 'error': {'code': 'QUERY_ERROR', 'message': 'Machine release could not be read', 'scope': self.scope}}
+            return {'ok': False, 'error': {'code': 'QUERY_ERROR', 'message': 'Machine release could not be read',
+                                          'scope': self.scope.copy()}}

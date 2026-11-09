@@ -53,6 +53,22 @@ class WorkspaceQueryTests(unittest.TestCase):
         status = self.session.invoke('qec_workspace_status', {})
         self.assertEqual(status['data']['operational_status']['release_id'], newer)
 
+    def test_python_responses_cannot_mutate_the_pinned_session(self):
+        state, _ = self.ws.registry.read()
+        version, = state['versions']
+        args = {'identifier': version}
+        result = self.session.invoke('qec_get_entity', args)
+        self.assertTrue(result['ok'])
+        original = result['data']['entity']['data']['source_snapshot_id']
+        result['data']['entity']['data']['source_snapshot_id'] = 'caller mutation'
+        result['data']['scope']['release_id'] = 'caller mutation'
+        failure = self.session.invoke('unknown', {})
+        failure['error']['scope']['release_id'] = 'caller mutation'
+
+        fresh = self.session.invoke('qec_get_entity', args)['data']
+        self.assertEqual(fresh['entity']['data']['source_snapshot_id'], original)
+        self.assertEqual(fresh['scope']['release_id'], self.release)
+
     def test_real_stdio_does_not_return_human_files_or_synthetic_entities(self):
         publish_records(self.ws.registry, adapt_synthetic(read_json(DESIGN / 'examples/performance_context.synthetic.json')))
         lines = [initialization(), {'jsonrpc': '2.0', 'method': 'notifications/initialized'},
