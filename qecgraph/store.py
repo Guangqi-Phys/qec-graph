@@ -26,6 +26,10 @@ from .transactions import ManagedDataError, atomic_json, publish_pointer, read_p
 CURRENT_FORMAT = 'qecgraph.current.v1'
 
 
+def _is_snapshot_id(value):
+    return isinstance(value, str) and len(value) == 64 and all(c in '0123456789abcdef' for c in value)
+
+
 def write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(_json_bytes(value))
@@ -90,7 +94,7 @@ def snapshot_reference(store, snapshot_id=None):
     if snapshot_id is None:
         snapshot = current_snapshot(store)
     else:
-        if len(snapshot_id) != 64 or any(c not in '0123456789abcdef' for c in snapshot_id):
+        if not _is_snapshot_id(snapshot_id):
             raise ValueError('Invalid snapshot ID')
         snapshot = safe_relative(Path(store), 'snapshots/' + snapshot_id)
         if snapshot.name != snapshot_id:
@@ -408,6 +412,26 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
     return result
 
 
+def _recoverable_build(path):
+    marker = path / '.qecgraph-building.json'
+    try:
+        with _open_regular_snapshot_file(marker) as stream:
+            if os.fstat(stream.fileno()).st_nlink != 1:
+                return False
+            raw = stream.read(4097)
+        if len(raw) > 4096:
+            return False
+        binding = strict_json_loads(raw.decode('utf-8'), source=str(marker))
+        return (isinstance(binding, dict) and binding.get('format') == 'qecgraph.building.v1'
+                and _is_snapshot_id(binding.get('snapshot_id')))
+    except FileNotFoundError:
+        if not (path / 'manifest.json').is_file():
+            return False
+        graph_path = path / 'graph.json'
+        graph = strict_json_loads(_read_snapshot_file(graph_path, None, 'graph.json').decode('utf-8'), source=str(graph_path))
+        return _is_snapshot_id(graph['snapshot_id']) and validate_snapshot(path, graph['snapshot_id'])['passed']
+
+
 def recover_store(store, *, remove_abandoned=False):
     store = check_output_directory(store)
     if not (store / '.qecgraph-store.json').exists():
@@ -421,16 +445,10 @@ def recover_store(store, *, remove_abandoned=False):
                 if path.is_symlink() or not path.is_dir():
                     result['unrecognized'].append(str(path))
                     continue
-                marker = path / '.qecgraph-building.json'
-                owned = False
                 try:
-                    if marker.exists():
-                        owned = read_json(marker).get('format') == 'qecgraph.building.v1'
-                    elif (path / 'manifest.json').exists():
-                        validate_snapshot(path, read_json(path / 'graph.json')['snapshot_id'])
-                        owned = True
-                except (OSError, ValueError, KeyError):
-                    pass
+                    owned = _recoverable_build(path)
+                except (OSError, ValueError, KeyError, TypeError, sqlite3.Error):
+                    owned = False
                 if not owned:
                     result['unrecognized'].append(str(path))
                     continue

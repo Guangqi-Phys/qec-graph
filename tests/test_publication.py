@@ -98,10 +98,23 @@ class PublicationTests(unittest.TestCase):
         unrelated = self.store / 'snapshots/.building-user-files'
         unrelated.mkdir()
         (unrelated / 'important.txt').write_text('keep')
+        external_marker = self.root / 'not-a-store-marker.json'
+        external_marker.write_bytes((owned / '.qecgraph-building.json').read_bytes())
+        copies = []
+        for name, marker in (('symlink', lambda p: p.symlink_to(external_marker)),
+                             ('hardlink', lambda p: p.hardlink_to(external_marker)),
+                             ('malformed', lambda p: p.write_text('[]', encoding='utf-8'))):
+            directory = self.store / 'snapshots' / ('.building-' + name)
+            directory.mkdir()
+            (directory / 'important.txt').write_text('keep', encoding='utf-8')
+            marker(directory / '.qecgraph-building.json')
+            copies.append(directory)
         report = recover_store(self.store, remove_abandoned=True)
         self.assertIn(str(owned), report['removed'])
-        self.assertIn(str(unrelated), report['unrecognized'])
-        self.assertTrue((unrelated / 'important.txt').exists())
+        self.assertEqual(set(report['unrecognized']), {str(path) for path in (unrelated, *copies)})
+        for path in (unrelated, *copies):
+            self.assertEqual((path / 'important.txt').read_text(), 'keep')
+        self.assertTrue(external_marker.exists())
         self.assertTrue(report['current']['passed'])
 
     def test_publication_retry_after_failed_current_replace(self):
