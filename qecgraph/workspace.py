@@ -218,6 +218,7 @@ class Workspace:
                 return self._keep_prior(result, prior)
             source_id = 'source:local:' + hash_text(canonical([tree_hash, work_id, upstream]))
             build_key = (source_id, entry)
+            version, verified = reused.get(build_key, (None, False))
             result['entrypoint'] = entry
             with tempfile.TemporaryDirectory(prefix='ingest-', dir=self.path('.qecgraph')) as temporary:
                 temporary = Path(temporary)
@@ -232,7 +233,7 @@ class Workspace:
                                                    limits.member_bytes)
                         if hashlib.sha256(raw_member).hexdigest() != member['sha256']:
                             raise ValueError('Preserved source tree does not match archive')
-                if build_key not in reused:
+                if version is None:
                     tree.materialize(temporary / 'project')
                     extraction = ingest(temporary / 'project' / entry, 'source-' + source_id.rsplit(':', 1)[-1],
                                         temporary / 'store',
@@ -241,11 +242,12 @@ class Workspace:
                         result.update(status='parse_failed', reason='Structural extraction is partial; see diagnostics',
                                       diagnostics=extraction.get('diagnostics', []))
                         return self._keep_prior(result, prior)
-                    reused[build_key] = self.registry.stage_source(
+                    version = self.registry.stage_source(
                         state, work_id, source_id, temporary / 'store', title=metadata.get('title'),
                         upstream_version=upstream, replace_projection=True)
-            version = reused[build_key]
-            validate_snapshot(self.path('machine/' + version['snapshot_path']), version['snapshot_id'])
+                elif not verified:
+                    self.registry.validate_source_snapshot(version)
+            reused[build_key] = (version, True)
             result.update(status='processing_completed', processing_completed=True, semantic_status='semantic_pending',
                           source_version_id=source_id, source_snapshot_id=version['snapshot_id'])
             return result
@@ -318,7 +320,7 @@ class Workspace:
                     if prior.get('processing_completed') and prior.get('config_fingerprint') == fingerprint:
                         version = state['versions'].get(prior['source_version_id'])
                         if version and version['snapshot_id'] == prior['source_snapshot_id']:
-                            reused[(prior['source_version_id'], prior['entrypoint'])] = version
+                            reused[(prior['source_version_id'], prior['entrypoint'])] = (version, False)
             for index, digest in enumerate(sorted(digests), start=1):
                 prior = previous.get(digest, {})
                 if (not rebuild and prior.get('processing_completed') and prior.get('config_fingerprint') == fingerprint):

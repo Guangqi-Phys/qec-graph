@@ -102,6 +102,24 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(rebuilt['counts']['processed'], 1)
         self.assertEqual(rebuilt['inputs'][0]['entrypoint'], 'b.tex')
 
+    def test_rewrapped_archive_does_not_consume_input_when_prior_snapshot_is_damaged(self):
+        (self.inbox / 'first.tar').write_bytes(tar_bytes({'paper.tex': TEX}, mtime=1))
+        self.assertEqual(self.ws.init()['counts']['processed'], 1)
+        state, fixed = self.ws.registry.read()
+        identifier, = state['versions']
+        _, snapshot, _ = self.ws.registry.source_graph(identifier)
+        with (snapshot / 'graph.json').open('ab') as output:
+            output.write(b' ')
+        rewrapped = tar_bytes({'paper.tex': TEX}, mtime=2)
+        path = self.inbox / 'rewrapped.tar'
+        path.write_bytes(rewrapped)
+
+        with self.assertRaisesRegex(ValueError, 'Snapshot file changed: graph.json'):
+            self.ws.sync()
+        self.assertEqual(self.ws.registry.read()[1], fixed)
+        payload, = (self.inbox / '.processing').glob('*/payload')
+        self.assertEqual(payload.read_bytes(), rewrapped)
+
     def test_kill_after_pointer_before_cleanup_recovers_exact_claim(self):
         self.ws.init(no_ingest=True)
         (self.inbox / 'good').write_bytes(TEX)
