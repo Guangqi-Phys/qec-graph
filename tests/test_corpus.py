@@ -83,6 +83,17 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(self.registry.read()[1], previous)
         self.assertEqual(sorted(registered.iterdir()), before)
 
+    def test_snapshot_must_match_the_registered_project_fingerprint(self):
+        state, fixed = self.registry.read()
+        original = state['versions']['version:a']
+        state['versions']['version:a'] = {**original, 'project_source_hash': '0' * 64}
+        candidate = self.registry.prepare_publication(state)
+        with self.assertRaisesRegex(ValueError, 'Registered snapshot project fingerprint mismatch'):
+            self.registry.source_graph('version:a', candidate)
+        with self.assertRaisesRegex(ValueError, 'Registered snapshot project fingerprint mismatch'):
+            self.registry.validate(candidate)
+        self.assertTrue(self.registry.validate(fixed)['passed'])
+
     def test_claim_mapping_is_candidate_and_bound_to_exact_revision(self):
         claim = {'schema_version': 'qecgraph.record.v3', 'id': 'claim:a', 'revision': '1',
                  'kind': 'claim', 'title': 'Claim', 'data': {'statement': 'First.', 'hypotheses': [], 'quantifiers': []}}

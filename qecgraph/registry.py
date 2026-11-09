@@ -20,6 +20,13 @@ def empty_state():
     return {'schema_version': FORMAT, 'works': {}, 'versions': {}, 'records': {}, 'links': []}
 
 
+def _check_source_binding(graph, version):
+    if graph['snapshot_id'] != version['snapshot_id']:
+        raise ValueError('Registered snapshot identity mismatch')
+    if any(graph[field] != version[field] for field in ('project_id', 'project_source_hash')):
+        raise ValueError('Registered snapshot project fingerprint mismatch')
+
+
 class Registry:
     def __init__(self, root):
         self.root = Path(root).resolve()
@@ -129,8 +136,7 @@ class Registry:
             return graph, snapshot, version
         snapshot = safe_relative(self.root, version['snapshot_path'])
         graph = read_json(snapshot / 'graph.json')
-        if graph['snapshot_id'] != version['snapshot_id']:
-            raise ValueError('Registered snapshot identity mismatch')
+        _check_source_binding(graph, version)
         return graph, snapshot, version
 
     def validate_source_snapshot(self, version):
@@ -143,6 +149,7 @@ class Registry:
         if snapshot.name != version['snapshot_id']:
             raise ValueError('Registered snapshot identity mismatch')
         graph, report = load_validated_snapshot(snapshot, manifest_hashes=manifest_hashes)
+        _check_source_binding(graph, version)
         return graph, snapshot, report
 
     def _put_record(self, state, record, *, checked_reviews=None):
