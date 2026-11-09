@@ -1,0 +1,846 @@
+{
+  "schema_version": "qecgraph.software_catalog.seed.v1",
+  "catalogue_id": "software-catalog:qec-core:2026-11-09",
+  "catalogue_scope": {
+    "subject": "公开 QEC 研究软件的起始索引：电路模拟、译码、采样、码构造、可视化与平台框架",
+    "included_roles": [
+      "binary_linear_algebra",
+      "circuit_generation",
+      "circuit_simulation",
+      "code_analysis",
+      "code_construction",
+      "decoder",
+      "dem_generation",
+      "experiment_orchestration",
+      "qec_framework",
+      "qec_platform",
+      "sampling",
+      "simulation_framework",
+      "visualization"
+    ],
+    "discovery_basis": "用户明确点名的软件及从其官方仓库、项目文档和维护者发行页核对的相关项目",
+    "excluded_from_current_seed": [
+      "未发现的项目",
+      "尚未核对身份的论文专用代码",
+      "通用科学计算库的完整依赖树",
+      "闭源软件",
+      "未检查的硬件 SDK"
+    ]
+  },
+  "completeness": "non_exhaustive",
+  "checked_at": "2026-11-09",
+  "verification_policy": {
+    "checked": "上游项目身份、公开描述与列出的来源页面",
+    "not_checked": [
+      "本地安装",
+      "功能复现",
+      "速度或 LER 宣传数字",
+      "全部依赖的许可证",
+      "每个发布版本",
+      "某篇论文是否实际使用"
+    ],
+    "version_policy": "本目录不填写最新版本；论文中的实际版本、commit 和配置必须从论文或复现证据另行绑定。",
+    "license_policy": "upstream_declared 仅表示官方页面声明；not_verified 的 SPDX 为 null。复用源码或分发前按准确提交重新核对许可证。",
+    "alias_policy": "算法名和码族名不是发行包唯一标识；BP-OSD 不自动等同于 bposd 包，LDPC/qLDPC/MWPF 等词需要上下文消歧。aliases 不是已核实的 Python 导入入口表。",
+    "network_policy": "此目录不是安装清单；导入论文不自动安装或执行目录中的项目。"
+  },
+  "entries": [
+    {
+      "id": "software:stim",
+      "name": "Stim",
+      "aliases": [
+        "stim"
+      ],
+      "repository_url": "https://github.com/quantumlib/Stim",
+      "documentation_url": "https://github.com/quantumlib/Stim/wiki",
+      "homepage_url": "https://github.com/quantumlib/Stim/wiki",
+      "distributions": [
+        {
+          "ecosystem": "pypi",
+          "name": "stim",
+          "registry_url": "https://pypi.org/project/stim/",
+          "source_url": "https://github.com/quantumlib/Stim"
+        }
+      ],
+      "roles": [
+        "circuit_simulation",
+        "dem_generation"
+      ],
+      "algorithms": [],
+      "license": {
+        "status": "upstream_declared",
+        "spdx": "Apache-2.0",
+        "source_url": "https://github.com/quantumlib/Stim",
+        "pinned_commit": null
+      },
+      "capabilities": [
+        {
+          "claim": "用于量子稳定子电路的模拟与分析；支持 Python、命令行和 C++ 接口。",
+          "verification_status": "upstream_documented_not_tested",
+          "evidence_urls": [
+            "https://github.com/quantumlib/Stim"
+          ]
+        }
+      ],
+      "maintenance": {
+        "status": "not_assessed",
+        "evidence_urls": []
+      },
+      "notes": [
+        "稳定子电路适用范围与具体噪声操作按所用版本检查；包名不证明论文包含 idling、loss 或任意量子通道。"
+      ],
+      "evidence_urls": [
+        "https://github.com/quantumlib/Stim"
+      ],
+      "last_checked": "2026-11-09",
+      "pinned_release": null,
+      "pinned_commit": null,
+      "local_test_status": "not_run"
+    },
+    {
+      "id": "software:sinter",
+      "name": "Sinter",
+      "aliases": [
+        "sinter"
+      ],
+      "repository_url": "https://github.com/quantumlib/Stim",
+      "documentation_url": "https://github.com/quantumlib/Stim/blob/main/glue/sample/README.md",
+      "homepage_url": "https://github.com/quantumlib/Stim/blob/main/glue/sample/README.md",
+      "distributions": [
+        {
+          "ecosystem": "pypi",
+          "name": "sinter",
+          "registry_url": "https://pypi.org/project/sinter/",
+          "source_url": "https://github.com/quantumlib/Stim/blob/main/glue/sample/README.md"
+        }
+      ],
+      "roles": [
+        "sampling",
+        "experiment_orchestration"
+      ],
+      "algorithms": [],
+      "license": {
+        "status": "upstream_declared",
+        "spdx": "Apache-2.0",
+        "source_url": "https://github.com/quantumlib/Stim",
+        "pinned_commit": null
+      },
+      "capabilities": [
+        {
+          "claim": "为 Stim 和译码器组织并行采样、停止条件与统计结果，提供 CSV 输出及绘图辅助。",
+          "verification_status": "upstream_documented_not_tested",
+          "evidence_urls": [
+            "https://github.com/quantumlib/Stim/blob/main/glue/sample/README.md"
+          ]
+        }
+      ],
+      "maintenance": {
+        "status": "not_assessed",
+        "evidence_urls": []
+      },
+      "notes": [
+        "与 Stim 共享仓库，但为独立发行包和软件角色；不能据使用 Stim 自动推断使用 Sinter。"
+      ],
+      "evidence_urls": [
+        "https://github.com/quantumlib/Stim/blob/main/glue/sample/README.md"
+      ],
+      "last_checked": "2026-11-09",
+      "pinned_release": null,
+      "pinned_commit": null,
+      "local_test_status": "not_run"
+    },
+    {
+      "id": "software:pymatching",
+      "name": "PyMatching",
+      "aliases": [
+        "pymatching",
+        "PyMatching"
+      ],
+      "repository_url": "https://github.com/oscarhiggott/PyMatching",
+      "documentation_url": "https://pymatching.readthedocs.io/",
+      "homepage_url": "https://pymatching.readthedocs.io/",
+      "distributions": [
+        {
+          "ecosystem": "pypi",
+          "name": "pymatching",
+          "registry_url": "https://pypi.org/project/PyMatching/",
+          "source_url": "https://pypi.org/project/PyMatching/"
+        }
+      ],
+      "roles": [
+        "decoder"
+      ],
+      "algorithms": [
+        "MWPM",
+        "sparse blossom",
+        "correlated matching"
+      ],
+      "license": {
+        "status": "upstream_declared",
+        "spdx": "Apache-2.0",
+        "source_url": "https://pypi.org/project/PyMatching/",
+        "pinned_commit": null
+      },
+      "capabilities": [
+        {
+          "claim": "基于匹配图的译码实现，可接入 Stim detector error model；相关匹配支持依赖版本及配置。",
+          "verification_status": "upstream_documented_not_tested",
+          "evidence_urls": [
+            "https://pypi.org/project/PyMatching/",
+            "https://pymatching.readthedocs.io/en/stable/"
+          ]
+        }
+      ],
+      "maintenance": {
+        "status": "not_assessed",
+        "evidence_urls": []
+      },
+      "notes": [
+        "MWPM、普通匹配和相关匹配不能作为同一 decoder setup；保存图构建、DEM 分解与 correlation 开关。"
+      ],
+      "evidence_urls": [
+        "https://pypi.org/project/PyMatching/",
+        "https://pymatching.readthedocs.io/en/stable/"
+      ],
+      "last_checked": "2026-11-09",
+      "pinned_release": null,
+      "pinned_commit": null,
+      "local_test_status": "not_run"
+    },
+    {
+      "id": "software:ldpc",
+      "name": "LDPC",
+      "aliases": [
+        "ldpc",
+        "LDPCv2",
+        "quantumgizmos/ldpc"
+      ],
+      "repository_url": "https://github.com/quantumgizmos/ldpc",
+      "documentation_url": "https://software.roffe.eu/ldpc/",
+      "homepage_url": "https://software.roffe.eu/ldpc/",
+      "distributions": [
+        {
+          "ecosystem": "pypi",
+          "name": "ldpc",
+          "registry_url": "https://pypi.org/project/ldpc/",
+          "source_url": "https://github.com/quantumgizmos/ldpc"
+        }
+      ],
+      "roles": [
+        "decoder",
+        "binary_linear_algebra"
+      ],
+      "algorithms": [
+        "BP",
+        "BP+OSD",
+        "BP+LSD",
+        "union-find matching"
+      ],
+      "license": {
+        "status": "upstream_declared",
+        "spdx": "MIT",
+        "source_url": "https://github.com/quantumgizmos/ldpc",
+        "pinned_commit": null
+      },
+      "capabilities": [
+        {
+          "claim": "提供经典及量子 LDPC 译码工具，官方说明列出 BP+OSD、BP+LSD 和 union-find matching 实现。",
+          "verification_status": "upstream_documented_not_tested",
+          "evidence_urls": [
+            "https://github.com/quantumgizmos/ldpc"
+          ]
+        }
+      ],
+      "maintenance": {
+        "status": "not_assessed",
+        "evidence_urls": []
+      },
+      "notes": [
+        "保存 BP 规则、迭代/停止条件、OSD/LSD 配置与版本；不能将算法名直接当包身份。"
+      ],
+      "evidence_urls": [
+        "https://github.com/quantumgizmos/ldpc"
+      ],
+      "last_checked": "2026-11-09",
+      "pinned_release": null,
+      "pinned_commit": null,
+      "local_test_status": "not_run"
+    },
+    {
+      "id": "software:bposd",
+      "name": "bposd",
+      "aliases": [
+        "bposd package",
+        "quantumgizmos/bposd"
+      ],
+      "repository_url": "https://github.com/quantumgizmos/bposd",
+      "documentation_url": "https://pypi.org/project/bposd/",
+      "homepage_url": "https://pypi.org/project/bposd/",
+      "distributions": [
+        {
+          "ecosystem": "pypi",
+          "name": "bposd",
+          "registry_url": "https://pypi.org/project/bposd/",
+          "source_url": "https://pypi.org/project/bposd/"
+        }
+      ],
+      "roles": [
+        "decoder",
+        "code_construction"
+      ],
+      "algorithms": [
+        "BP+OSD"
+      ],
+      "license": {
+        "status": "not_verified",
+        "spdx": null,
+        "source_url": null,
+        "pinned_commit": null
+      },
+      "capabilities": [
+        {
+          "claim": "BP+OSD 研究软件发行包；维护者发行页说明其主要实现代码位于 ldpc 仓库。",
+          "verification_status": "upstream_documented_not_tested",
+          "evidence_urls": [
+            "https://pypi.org/project/bposd/"
+          ]
+        }
+      ],
+      "maintenance": {
+        "status": "not_assessed",
+        "upstream_note": "主要实现代码位于 ldpc；原 C++ 实现在 cpp_version 分支。",
+        "evidence_urls": [
+          "https://pypi.org/project/bposd/"
+        ]
+      },
+      "notes": [
+        "此条保留发行包身份和历史论文引用；BP-OSD 算法别名不得无条件归到本条。",
+        "本次未完成该项目许可证核对；不能从依赖 ldpc 推断采用同一许可证。"
+      ],
+      "evidence_urls": [
+        "https://pypi.org/project/bposd/"
+      ],
+      "last_checked": "2026-11-09",
+      "pinned_release": null,
+      "pinned_commit": null,
+      "local_test_status": "not_run"
+    },
+    {
+      "id": "software:relay-bp",
+      "name": "Relay-BP",
+      "aliases": [
+        "relay-bp",
+        "relay_bp",
+        "trmue/relay"
+      ],
+      "repository_url": "https://github.com/trmue/relay",
+      "documentation_url": "https://github.com/trmue/relay",
+      "homepage_url": "https://github.com/trmue/relay",
+      "distributions": [
+        {
+          "ecosystem": "pypi",
+          "name": "relay-bp",
+          "registry_url": "https://pypi.org/project/relay-bp/",
+          "source_url": "https://github.com/trmue/relay"
+        }
+      ],
+      "roles": [
+        "decoder"
+      ],
+      "algorithms": [
+        "Relay-BP"
+      ],
+      "license": {
+        "status": "upstream_declared",
+        "spdx": "Apache-2.0",
+        "source_url": "https://github.com/trmue/relay",
+        "pinned_commit": null
+      },
+      "capabilities": [
+        {
+          "claim": "Relay-BP 的 Rust 实现和 Python 绑定，提供可选的 Stim/Sinter 集成。",
+          "verification_status": "upstream_documented_not_tested",
+          "evidence_urls": [
+            "https://github.com/trmue/relay",
+            "https://pypi.org/project/relay-bp/"
+          ]
+        }
+      ],
+      "maintenance": {
+        "status": "not_assessed",
+        "evidence_urls": []
+      },
+      "notes": [
+        "Relay-BP 论文、trmue 实现和其他平台中的 Relay-BP 实现分开登记。",
+        "记录 memory/gamma 分布、ensemble/relay 次数、收敛规则、精度和 XZ/XYZ 处理，不从默认参数推断论文设置。"
+      ],
+      "evidence_urls": [
+        "https://github.com/trmue/relay",
+        "https://pypi.org/project/relay-bp/"
+      ],
+      "last_checked": "2026-11-09",
+      "pinned_release": null,
+      "pinned_commit": null,
+      "local_test_status": "not_run"
+    },
+    {
+      "id": "software:qldpc",
+      "name": "qLDPC",
+      "aliases": [
+        "qldpc",
+        "qLDPC",
+        "qLDPCOrg/qLDPC"
+      ],
+      "repository_url": "https://github.com/qLDPCOrg/qLDPC",
+      "documentation_url": "https://qldpc.readthedocs.io/",
+      "homepage_url": "https://qldpc.readthedocs.io/",
+      "distributions": [
+        {
+          "ecosystem": "pypi",
+          "name": "qldpc",
+          "registry_url": "https://pypi.org/project/qldpc/",
+          "source_url": "https://github.com/qLDPCOrg/qLDPC"
+        }
+      ],
+      "roles": [
+        "code_construction",
+        "code_analysis",
+        "circuit_generation"
+      ],
+      "algorithms": [],
+      "license": {
+        "status": "upstream_declared",
+        "spdx": "Apache-2.0",
+        "source_url": "https://github.com/qLDPCOrg/qLDPC",
+        "pinned_commit": null
+      },
+      "capabilities": [
+        {
+          "claim": "构造和分析有限 qLDPC、稳定子与子系统码，并提供电路相关工具；电路工具的适用范围需按版本核对。",
+          "verification_status": "upstream_documented_not_tested",
+          "evidence_urls": [
+            "https://github.com/qLDPCOrg/qLDPC"
+          ]
+        }
+      ],
+      "maintenance": {
+        "status": "not_assessed",
+        "evidence_urls": []
+      },
+      "notes": [
+        "不要将包内某个估计或 bound 返回值当成精确码距；记录实际函数、版本、输入与保证类型。"
+      ],
+      "evidence_urls": [
+        "https://github.com/qLDPCOrg/qLDPC"
+      ],
+      "last_checked": "2026-11-09",
+      "pinned_release": null,
+      "pinned_commit": null,
+      "local_test_status": "not_run"
+    },
+    {
+      "id": "software:qecsim",
+      "name": "qecsim",
+      "aliases": [
+        "qecsim"
+      ],
+      "repository_url": "https://github.com/qecsim/qecsim",
+      "documentation_url": "https://qecsim.github.io/",
+      "homepage_url": "https://qecsim.github.io/",
+      "distributions": [
+        {
+          "ecosystem": "pypi",
+          "name": "qecsim",
+          "registry_url": "https://pypi.org/project/qecsim/",
+          "source_url": "https://qecsim.github.io/installation.html"
+        }
+      ],
+      "roles": [
+        "simulation_framework",
+        "decoder"
+      ],
+      "algorithms": [],
+      "license": {
+        "status": "upstream_declared",
+        "spdx": "BSD-3-Clause",
+        "source_url": "https://qecsim.github.io/license.html",
+        "pinned_commit": null
+      },
+      "capabilities": [
+        {
+          "claim": "基于稳定子码的 Python QEC 模拟框架，提供 code、error model、decoder 的接口与示例。",
+          "verification_status": "upstream_documented_not_tested",
+          "evidence_urls": [
+            "https://qecsim.github.io/",
+            "https://github.com/qecsim/qecsim"
+          ]
+        }
+      ],
+      "maintenance": {
+        "status": "not_assessed",
+        "evidence_urls": []
+      },
+      "notes": [
+        "记录具体模型和测量噪声设置；不凭 framework 名称自动判为 circuit-level 模拟。"
+      ],
+      "evidence_urls": [
+        "https://qecsim.github.io/",
+        "https://github.com/qecsim/qecsim"
+      ],
+      "last_checked": "2026-11-09",
+      "pinned_release": null,
+      "pinned_commit": null,
+      "local_test_status": "not_run"
+    },
+    {
+      "id": "software:panqec",
+      "name": "PanQEC",
+      "aliases": [
+        "panqec",
+        "PanQEC"
+      ],
+      "repository_url": "https://github.com/panqec/panqec",
+      "documentation_url": "https://panqec.readthedocs.io/",
+      "homepage_url": "https://panqec.readthedocs.io/",
+      "distributions": [
+        {
+          "ecosystem": "pypi",
+          "name": "panqec",
+          "registry_url": "https://pypi.org/project/panqec/",
+          "source_url": "https://github.com/panqec/panqec"
+        }
+      ],
+      "roles": [
+        "simulation_framework",
+        "visualization",
+        "code_construction"
+      ],
+      "algorithms": [
+        "BP+OSD adapter",
+        "MWPM adapter",
+        "MBP",
+        "SweepMatch",
+        "union-find"
+      ],
+      "license": {
+        "status": "upstream_declared",
+        "spdx": "MIT",
+        "source_url": "https://github.com/panqec/panqec",
+        "pinned_commit": null
+      },
+      "capabilities": [
+        {
+          "claim": "提供拓扑码构造、噪声/译码性能评估及二维/三维可视化，并接入若干外部译码器。",
+          "verification_status": "upstream_documented_not_tested",
+          "evidence_urls": [
+            "https://github.com/panqec/panqec",
+            "https://panqec.readthedocs.io/en/latest/"
+          ]
+        }
+      ],
+      "maintenance": {
+        "status": "not_assessed",
+        "evidence_urls": []
+      },
+      "notes": [
+        "框架与其实际调用的 ldpc/PyMatching 等后端分别记 SoftwareUsage；使用框架不表示使用全部后端。"
+      ],
+      "evidence_urls": [
+        "https://github.com/panqec/panqec",
+        "https://panqec.readthedocs.io/en/latest/"
+      ],
+      "last_checked": "2026-11-09",
+      "pinned_release": null,
+      "pinned_commit": null,
+      "local_test_status": "not_run"
+    },
+    {
+      "id": "software:fusion-blossom",
+      "name": "Fusion Blossom",
+      "aliases": [
+        "fusion-blossom",
+        "fusion_blossom"
+      ],
+      "repository_url": "https://github.com/yuewuo/fusion-blossom",
+      "documentation_url": "https://tutorial.fusionblossom.com/",
+      "homepage_url": "https://tutorial.fusionblossom.com/",
+      "distributions": [
+        {
+          "ecosystem": "pypi",
+          "name": "fusion-blossom",
+          "registry_url": "https://pypi.org/project/fusion-blossom/",
+          "source_url": "https://github.com/yuewuo/fusion-blossom"
+        }
+      ],
+      "roles": [
+        "decoder"
+      ],
+      "algorithms": [
+        "MWPM",
+        "Fusion Blossom"
+      ],
+      "license": {
+        "status": "upstream_declared",
+        "spdx": "MIT",
+        "source_url": "https://github.com/yuewuo/fusion-blossom",
+        "pinned_commit": null
+      },
+      "capabilities": [
+        {
+          "claim": "面向 QEC 的 MWPM 求解器，Rust 实现并提供 Python 绑定，支持并行分区及合并。",
+          "verification_status": "upstream_documented_not_tested",
+          "evidence_urls": [
+            "https://github.com/yuewuo/fusion-blossom"
+          ]
+        }
+      ],
+      "maintenance": {
+        "status": "not_assessed",
+        "evidence_urls": []
+      },
+      "notes": [
+        "保存求解器模式、线程/分区配置与图构建方式；本目录未复测上游速度或正确性宣传。",
+        "仓库包含的第三方组件可能有单独许可证，不能将仓库主许可证当成全部依赖许可证。"
+      ],
+      "evidence_urls": [
+        "https://github.com/yuewuo/fusion-blossom"
+      ],
+      "last_checked": "2026-11-09",
+      "pinned_release": null,
+      "pinned_commit": null,
+      "local_test_status": "not_run"
+    },
+    {
+      "id": "software:qsurface",
+      "name": "Qsurface",
+      "aliases": [
+        "qsurface",
+        "Qsurface"
+      ],
+      "repository_url": "https://github.com/watermarkhu/qsurface",
+      "documentation_url": "https://qsurface.readthedocs.io/en/latest/",
+      "homepage_url": "https://qsurface.readthedocs.io/en/latest/",
+      "distributions": [
+        {
+          "ecosystem": "pypi",
+          "name": "qsurface",
+          "registry_url": "https://pypi.org/project/qsurface/",
+          "source_url": "https://qsurface.readthedocs.io/en/latest/index.html"
+        }
+      ],
+      "roles": [
+        "simulation_framework",
+        "visualization"
+      ],
+      "algorithms": [
+        "MWPM",
+        "union-find",
+        "union-find node-suspension"
+      ],
+      "license": {
+        "status": "upstream_declared",
+        "spdx": "BSD-3-Clause",
+        "source_url": "https://github.com/watermarkhu/qsurface",
+        "pinned_commit": null
+      },
+      "capabilities": [
+        {
+          "claim": "围绕 surface code、噪声模型和译码器组织模拟与可视化，文档列出 MWPM 和 union-find 系列模块。",
+          "verification_status": "upstream_documented_not_tested",
+          "evidence_urls": [
+            "https://qsurface.readthedocs.io/en/latest/index.html",
+            "https://github.com/watermarkhu/qsurface"
+          ]
+        }
+      ],
+      "maintenance": {
+        "status": "not_assessed",
+        "evidence_urls": []
+      },
+      "notes": [
+        "具体模型能否表示某篇论文的门级噪声，需要单独核对；本条不声明通用电路噪声能力。"
+      ],
+      "evidence_urls": [
+        "https://qsurface.readthedocs.io/en/latest/index.html",
+        "https://github.com/watermarkhu/qsurface"
+      ],
+      "last_checked": "2026-11-09",
+      "pinned_release": null,
+      "pinned_commit": null,
+      "local_test_status": "not_run"
+    },
+    {
+      "id": "software:qiskit-qec",
+      "name": "Qiskit QEC",
+      "aliases": [
+        "Qiskit QEC",
+        "qiskit-qec",
+        "qiskit_qec"
+      ],
+      "repository_url": "https://github.com/qiskit-community/qiskit-qec",
+      "documentation_url": "https://qiskit-community.github.io/qiskit-qec/",
+      "homepage_url": "https://qiskit-community.github.io/qiskit-qec/",
+      "distributions": [],
+      "roles": [
+        "qec_framework"
+      ],
+      "algorithms": [],
+      "license": {
+        "status": "upstream_declared",
+        "spdx": "Apache-2.0",
+        "source_url": "https://github.com/qiskit-community/qiskit-qec",
+        "pinned_commit": null
+      },
+      "capabilities": [
+        {
+          "claim": "Qiskit 生态的 QEC 研究框架，官方文档提供代码构造、电路和译码接口。",
+          "verification_status": "upstream_documented_not_tested",
+          "evidence_urls": [
+            "https://qiskit-community.github.io/qiskit-qec/"
+          ]
+        }
+      ],
+      "maintenance": {
+        "status": "archived",
+        "observed_archive_date": "2026-09-15",
+        "evidence_urls": [
+          "https://github.com/qiskit-community/qiskit-qec",
+          "https://github.com/qiskit-community/qiskit-qec/discussions"
+        ]
+      },
+      "notes": [
+        "未在本次目录中确认发行注册表名称；qiskit_qec 出现在官方 API 文档中，但不能据此假定存在同名 PyPI 发行。",
+        "仓库页面声明 Apache-2.0；具体提交和第三方组件许可证仍需单独核对。",
+        "GitHub 官方 Discussions 页明确显示仓库于 2026-09-15 归档；保留历史可复现依赖，不标成当前维护推荐。"
+      ],
+      "evidence_urls": [
+        "https://qiskit-community.github.io/qiskit-qec/",
+        "https://github.com/qiskit-community/qiskit-qec",
+        "https://github.com/qiskit-community/qiskit-qec/discussions"
+      ],
+      "last_checked": "2026-11-09",
+      "pinned_release": null,
+      "pinned_commit": null,
+      "local_test_status": "not_run"
+    },
+    {
+      "id": "software:cudaq-qec",
+      "name": "CUDA-Q QEC",
+      "aliases": [
+        "cudaq-qec",
+        "CUDA-Q QEC"
+      ],
+      "repository_url": "https://github.com/NVIDIA/cudaq-qec",
+      "documentation_url": "https://nvidia.github.io/cudaq-qec/",
+      "homepage_url": "https://nvidia.github.io/cudaq-qec/",
+      "distributions": [
+        {
+          "ecosystem": "pypi",
+          "name": "cudaq-qec",
+          "registry_url": "https://pypi.org/project/cudaq-qec/",
+          "source_url": "https://nvidia.github.io/cudaq-qec/quickstart/installation.html"
+        }
+      ],
+      "roles": [
+        "qec_platform",
+        "decoder"
+      ],
+      "algorithms": [],
+      "license": {
+        "status": "not_verified",
+        "spdx": null,
+        "source_url": null,
+        "pinned_commit": null
+      },
+      "capabilities": [
+        {
+          "claim": "基于 CUDA-Q 的 QEC C++/Python 库，面向 CPU、GPU、QPU 工作流；具体译码器与设备支持按版本和组件核对。",
+          "verification_status": "upstream_documented_not_tested",
+          "evidence_urls": [
+            "https://nvidia.github.io/cudaq-qec/index.html",
+            "https://nvidia.github.io/cudaq-qec/quickstart/installation.html"
+          ]
+        }
+      ],
+      "maintenance": {
+        "status": "upstream_reports_active",
+        "evidence_urls": [
+          "https://nvidia.github.io/cudaq-qec/index.html"
+        ]
+      },
+      "notes": [
+        "CPU/GPU 运行条件与可选组件不相同；不从库名推断某篇论文真的在 GPU 上运行。",
+        "本次未完成主许可证与组件许可证核对；旧文献的 cudaqx 地址不应自动替换其 commit。"
+      ],
+      "evidence_urls": [
+        "https://nvidia.github.io/cudaq-qec/index.html",
+        "https://nvidia.github.io/cudaq-qec/quickstart/installation.html"
+      ],
+      "last_checked": "2026-11-09",
+      "pinned_release": null,
+      "pinned_commit": null,
+      "local_test_status": "not_run"
+    },
+    {
+      "id": "software:mwpf",
+      "name": "MWPF",
+      "aliases": [
+        "mwpf",
+        "yuewuo/mwpf"
+      ],
+      "repository_url": "https://github.com/yuewuo/mwpf",
+      "documentation_url": "https://mwpf.dev/",
+      "homepage_url": "https://mwpf.dev/",
+      "distributions": [
+        {
+          "ecosystem": "pypi",
+          "name": "mwpf",
+          "registry_url": "https://pypi.org/project/mwpf/",
+          "source_url": "https://github.com/yuewuo/mwpf"
+        }
+      ],
+      "roles": [
+        "decoder"
+      ],
+      "algorithms": [
+        "hypergraph minimum-weight parity factor"
+      ],
+      "license": {
+        "status": "upstream_declared",
+        "spdx": "MIT",
+        "source_url": "https://github.com/yuewuo/mwpf",
+        "pinned_commit": null
+      },
+      "capabilities": [
+        {
+          "claim": "超图 MWPF 译码实现，提供 Python 接口及 Stim/Sinter 适配路径。",
+          "verification_status": "upstream_documented_not_tested",
+          "evidence_urls": [
+            "https://github.com/yuewuo/mwpf"
+          ]
+        }
+      ],
+      "maintenance": {
+        "status": "not_assessed",
+        "evidence_urls": []
+      },
+      "notes": [
+        "保存 cluster limit、timeout、fallback 和 adapter 版本；不能据算法名称宣称每次运行达到全局最优。",
+        "某些 heralded error 工作流还需要实际 circuit 信息；仅有 DEM 或 package 名称不足以重现。"
+      ],
+      "evidence_urls": [
+        "https://github.com/yuewuo/mwpf"
+      ],
+      "last_checked": "2026-11-09",
+      "pinned_release": null,
+      "pinned_commit": null,
+      "local_test_status": "not_run"
+    }
+  ],
+  "coverage_summary": {
+    "seed_entries": 14,
+    "global_software_count": null,
+    "recall_estimate": null,
+    "statement": "14 条经指定官方来源核对的起始记录；不表示全网或某一领域已穷尽。"
+  }
+}

@@ -50,3 +50,7 @@ U6 迁移：`qec-graph workspace-migrate --corpus OLD --workspace NEW` 验证旧
 新工作区。保留旧状态、记录、来源快照和审核证据的精确绑定，不在原库改写数据，也不制造旧库
 从未保留的下载包。报告记录身份映射、未决字段和审核警告；旧实验维持旧契约，
 不自动当成新版可比性能点。实测迁移后仍能从旧修订查询，空收件箱 rebuild 保持旧版本。
+
+发行候选 `0.4.0rc1` 的 wheel/sdist 包含工作区、MCP、human、研究 Schema 和附件软件种子，
+不含用户工作区。用 `qec-graph software import-seed` 显式导入 14 个项目；
+`qec-graph software coverage` 报告目录范围和未解析使用。导入不会安装软件或补全历史版本。

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from qecgraph.graph import read_json
 from qecgraph.research import adapt_synthetic, make_record, pauli_weight, ref, validate_bundle
-from qecgraph.software import adapt_seed
+from qecgraph.software import adapt_seed, bundled_seed
 
 DESIGN = Path(__file__).resolve().parents[1] / 'docs/rfc-002'
 
@@ -36,7 +36,9 @@ class ResearchTests(unittest.TestCase):
             validate_bundle(rows)
 
     def test_no_usage_or_release_inferred_from_seed_algorithms(self):
-        rows = adapt_seed(read_json(DESIGN / 'software_catalog.seed.json'))
+        seed = read_json(DESIGN / 'software_catalog.seed.json')
+        self.assertEqual(bundled_seed(), seed)
+        rows = adapt_seed(seed)
         self.assertEqual(sum(r['kind'] == 'software_project' for r in rows), 14)
         self.assertFalse({'software_usage', 'software_release'} & {r['kind'] for r in rows})
         source = ref(self.rows[0])

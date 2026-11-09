@@ -1,7 +1,9 @@
 """Offline adapter for a bounded directory of upstream software identities."""
 from __future__ import annotations
 
-from .graph import canonical, hash_text
+from importlib.resources import files
+
+from .graph import canonical, hash_text, strict_json_loads
 from .research import make_record, ref, validate_bundle
 
 SEED_SCHEMA = 'qecgraph.software_catalog.seed.v1'
@@ -36,3 +38,18 @@ def adapt_seed(seed):
                                    data, source=source, method=method))
     validate_bundle(records)
     return records
+
+
+def bundled_seed():
+    """Byte-identical packaging copy of the design attachment seed."""
+    return strict_json_loads(files('qecgraph').joinpath('catalog/software_catalog.seed.json').read_text(encoding='utf-8'))
+
+
+def coverage(records):
+    records = list(records)
+    projects = [r for r in records if r['kind'] == 'software_project']
+    discovery = [r for r in records if r['kind'] == 'software_usage' and r['data'].get('project_ref') is None]
+    return {'projects': len({r['id'] for r in projects}),
+            'catalog_sources': [r['data'] for r in records if r['kind'] == 'catalog_source'],
+            'unresolved_usage_revisions': [ref(r) for r in discovery],
+            'coverage': 'non_exhaustive', 'installation_or_benchmarks_verified': False}

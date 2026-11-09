@@ -1,0 +1,9 @@
+prune tests
+prune docs
+prune validation
+prune examples
+prune knowledge_starter
+prune qec_graph_codex_handoff
+prune lean
+prune build
+prune dist

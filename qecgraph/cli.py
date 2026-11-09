@@ -68,6 +68,8 @@ def main(argv=None):
         argv[:2] = ['serve-mcp']
     if argv[:2] == ['human', 'build']:
         argv[:2] = ['human-build']
+    if argv[:2] in (['software', 'import-seed'], ['software', 'coverage']):
+        argv[:2] = ['software-' + argv[1]]
     if argv[:2] == ['review', 'list'] and '--corpus' not in argv:
         argv[:2] = ['review-list']
     parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graphs with explicit evidence checks")
@@ -91,6 +93,9 @@ def main(argv=None):
     cmd.add_argument('--corpus', required=True)
     cmd.add_argument('--workspace', required=True)
     cmd.add_argument('--registry-revision')
+    for name in ('software-import-seed', 'software-coverage'):
+        cmd = sub.add_parser(name, help='Import the bundled seed or report offline catalogue coverage')
+        cmd.add_argument('--workspace')
     cmd = sub.add_parser('research-import', help='Validate and publish exact research records without evidence promotion')
     cmd.add_argument('input')
     cmd.add_argument('--workspace')
@@ -251,12 +256,19 @@ def main(argv=None):
             result = migrate_corpus(args.corpus, args.workspace, args.registry_revision)
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0
-        if args.command in {'research-import', 'review-list'}:
+        if args.command in {'research-import', 'review-list', 'software-import-seed', 'software-coverage'}:
             from .workspace import Workspace
             from .research_store import load_records, publish_records
             ws = Workspace(args.workspace)
             ws.config()
-            if args.command == 'research-import':
+            if args.command == 'software-import-seed':
+                from .software import adapt_seed, bundled_seed
+                result = publish_records(ws.registry, adapt_seed(bundled_seed()))
+            elif args.command == 'software-coverage':
+                from .software import coverage
+                state, release = ws.registry.read()
+                result = {'release_id': release, **coverage(r for r in load_records(ws.registry, state) if not r['is_synthetic'])}
+            elif args.command == 'research-import':
                 payload = read_json(args.input)
                 if args.format == 'software-seed':
                     from .software import adapt_seed
