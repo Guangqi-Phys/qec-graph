@@ -1,15 +1,15 @@
 """Command-line entry point for QEC Graph."""
 from __future__ import annotations
 
-import sqlite3
 import sys
 from collections.abc import Sequence
 
 from .. import __version__
 from .commands import HANDLERS
 from .commands.workspace import uses_workspace, workspace_action
-from .parser import UsageError, parse_command
-from .render import WorkspaceProgress, print_json
+from .errors import InternalError, Interrupted, UsageError, classify
+from .parser import parse_command
+from .render import WorkspaceProgress, report_error
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -19,8 +19,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args is None:
             return 0
     except UsageError as exc:
-        print(f'error: {exc}. Run qec-graph --help for usage.', file=sys.stderr)
-        return 64
+        options = argv[:argv.index('--')] if '--' in argv else argv
+        return report_error(exc, exc.command, json_mode='--json' in options)
     if args.command == 'version':
         print(f'qec-graph {__version__}')
         return 0
@@ -30,15 +30,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         if workspace_command:
             return workspace_action(args, progress)
         return HANDLERS[args.command](args)
-    except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
-        if progress:
-            return progress.finish(str(exc), 1)
-        print_json({"error": str(exc)}, compact=True, stream=sys.stderr)
-        return 1
+    except Exception as exc:
+        error = classify(exc)
+        if isinstance(error, InternalError) and args.debug:
+            raise
+        return report_error(error, args.command, json_mode=args.json, progress=progress)
     except KeyboardInterrupt:
-        if progress:
-            return progress.finish('interrupted', 130)
-        raise
+        return report_error(Interrupted('interrupted'), args.command, json_mode=args.json, progress=progress)
     finally:
         if progress:
             progress.close()

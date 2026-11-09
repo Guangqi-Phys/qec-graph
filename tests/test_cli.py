@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 from qecgraph.cli import main
 from qecgraph.store import ingest
@@ -13,6 +14,44 @@ from qecgraph.workspace import Workspace
 
 
 class CLIContractTests(unittest.TestCase):
+    def test_structured_cli_errors_keep_status_and_stream_contract(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            missing = str(Path(temporary) / 'missing.json')
+            args = ['check-css', '--hx', missing, '--hz', missing]
+            for options in (['--json', *args], [*args, '--json']):
+                with self.subTest(options=options):
+                    stdout, stderr = io.StringIO(), io.StringIO()
+                    with redirect_stdout(stdout), redirect_stderr(stderr):
+                        self.assertEqual(main(options), 4)
+                    self.assertEqual(stderr.getvalue(), '')
+                    report = json.loads(stdout.getvalue())
+                    self.assertEqual(report['envelope_version'], 1)
+                    self.assertFalse(report['ok'])
+                    self.assertEqual(report['error']['code'], 'NOT_FOUND')
+                    self.assertEqual(report['error']['command'], 'check-css')
+                    self.assertEqual(report['error']['details'], {'path': missing})
+
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                self.assertEqual(main(['--json', 'mcp', 'serve']), 64)
+            self.assertEqual(stdout.getvalue(), '')
+            error = json.loads(stderr.getvalue())['error']
+            self.assertEqual(error['code'], 'USAGE')
+            self.assertEqual(error['command'], 'serve-mcp')
+
+    def test_unexpected_cli_failures_only_show_traceback_in_debug_mode(self):
+        with patch.dict('qecgraph.cli.HANDLERS', {'doctor': lambda _: {}['unexpected']}):
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                self.assertEqual(main(['doctor', '--json']), 1)
+            self.assertEqual(stderr.getvalue(), '')
+            report = json.loads(stdout.getvalue())['error']
+            self.assertEqual(report['code'], 'INTERNAL_ERROR')
+            self.assertNotIn('unexpected', report['message'])
+            self.assertIn('--debug', report['hint'])
+            with self.assertRaises(KeyError):
+                main(['--debug', 'doctor'])
+
     def test_doctor_and_snapshot_list_distinguish_current_and_prepared_states(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()

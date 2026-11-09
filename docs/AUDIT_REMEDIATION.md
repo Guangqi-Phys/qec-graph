@@ -17,7 +17,7 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 9 | Ignore generated state and development caches | Complete. Git ignore checks cover local graph state, macOS metadata, and coverage, lint, and test caches. |
 | 10 | Documentation index and factual corrections | Complete. The README links to a current index. Corrected runtime requirements, locking, command entry points, MCP scope, and validation links, and marked historical reports. Checked Markdown link targets. Physical reorganization remains in item 18. |
 | 11 | Separate CLI parsing, rendering, and dispatch | Complete. `main()` delegates parsing, rendering, and command workflows. All 50 registered names are covered by the dispatch paths, and both module entry points and console scripts are preserved. The extraction matched 114 help and usage transcripts and passed the full test suite. |
-| 12 | Stable error taxonomy and JSON error contract | Open. |
+| 12 | Stable error taxonomy and JSON error contract | In progress. The CLI uses versioned JSON errors on request, a documented exit table, and `--debug` for unexpected failures. Tests cover structured usage, missing paths, stream isolation, and internal failures. Typed conflicts and damaged store diagnostics remain. |
 | 13 | Grouped help, examples, and alias migration | Open. |
 | 14 | Query workspaces directly through the MCP query layer | Complete in `4067e6e`. Five CLI queries matched their tool results at a pinned release after CURRENT advanced. The workspace query suite passed. |
 | 15 | Doctor, version command, and snapshot listing | Complete. CLI tests cover version, healthy and corrupt CURRENT diagnosis, an unchanged pointer, and listing both immutable store snapshots and unpublished registry candidates. |

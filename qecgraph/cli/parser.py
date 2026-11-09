@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 
 from .. import __version__
+from .errors import UsageError
 
 
 _QUICK_HELP = """Usage: qec-graph <command> [options]
@@ -18,11 +19,14 @@ _QUICK_HELP = """Usage: qec-graph <command> [options]
 Run qec-graph --help for all commands or qec-graph help <command> for options."""
 
 
-class UsageError(ValueError):
-    pass
-
-
 class _ArgumentParser(argparse.ArgumentParser):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.add_argument('--json', action='store_true', default=argparse.SUPPRESS,
+                          help='Print detailed reports and structured errors')
+        self.add_argument('--debug', action='store_true', default=argparse.SUPPRESS,
+                          help='Show a traceback for unexpected failures')
+
     def error(self, message):
         raise UsageError(message)
 
@@ -68,7 +72,6 @@ def _build_parser():
     help_command.add_argument('topic', nargs='?')
     doctor = sub.add_parser('doctor', help='Inspect workspace health without writing files')
     doctor.add_argument('--workspace')
-    doctor.add_argument('--json', action='store_true', help='Print the full diagnostic report')
     snapshot = sub.add_parser('snapshot', help='Inspect local snapshots and stored registry states')
     snapshot_list = snapshot.add_subparsers(dest='snapshot_action', required=True).add_parser(
         'list', help='List snapshot IDs and identify the current pointer')
@@ -87,7 +90,6 @@ def _build_parser():
     for action in ('init', 'sync', 'rebuild', 'status'):
         workspace = sub.add_parser(action, help=f'{action.capitalize()} a managed QEC workspace')
         workspace.add_argument('--workspace')
-        workspace.add_argument('--json', action='store_true', help='Print the detailed workspace report')
         if action != 'status':
             workspace.add_argument('--keep-inputs', action='store_true')
             workspace.add_argument('--no-human', action='store_true', help='Skip the separate Obsidian renderer')
@@ -262,7 +264,7 @@ def _build_parser():
     group.add_argument("--store")
     group.add_argument("--workspace")
     cmd.add_argument('--snapshot')
-    cmd.add_argument('--json', action='store_true', help='Print the detailed workspace report')
+    parser.set_defaults(json=False, debug=False)
     return parser, sub
 
 
@@ -270,24 +272,33 @@ def parse_command(argv: list[str]) -> argparse.Namespace | None:
     if not argv:
         print(_QUICK_HELP)
         return None
-    if argv[:2] == ['mcp', 'serve']:
-        argv[:2] = ['serve-mcp']
-    if argv[:2] == ['human', 'build']:
-        argv[:2] = ['human-build']
-    if argv[:2] in (['software', 'import-seed'], ['software', 'coverage'], ['software', 'refresh']):
-        argv[:2] = ['software-' + argv[1]]
-    if argv[:2] == ['review', 'list'] and '--corpus' not in argv:
-        argv[:2] = ['review-list']
+    start = next((i for i, arg in enumerate(argv) if arg not in {'--json', '--debug'}), len(argv))
+    pair = argv[start:start + 2]
+    if pair == ['mcp', 'serve']:
+        argv[start:start + 2] = ['serve-mcp']
+    if pair == ['human', 'build']:
+        argv[start:start + 2] = ['human-build']
+    if pair in (['software', 'import-seed'], ['software', 'coverage'], ['software', 'refresh']):
+        argv[start:start + 2] = ['software-' + pair[1]]
+    if pair == ['review', 'list'] and '--corpus' not in argv:
+        argv[start:start + 2] = ['review-list']
     parser, sub = _build_parser()
-    if not argv[0].startswith('-') and argv[0] not in sub.choices:
-        raise UsageError(f'Unknown command {argv[0]!r}')
-    args = parser.parse_args(argv)
+    name = argv[start] if start < len(argv) else None
+    if name and not name.startswith('-') and name not in sub.choices:
+        raise UsageError(f'Unknown command {name!r}')
+    try:
+        args = parser.parse_args(argv)
+    except UsageError as exc:
+        exc.command = name if name in sub.choices else None
+        raise
     if args.command == 'help':
         if args.topic is None:
             parser.print_help()
         elif args.topic in sub.choices:
             sub.choices[args.topic].print_help()
         else:
-            raise UsageError(f'Unknown help topic {args.topic!r}')
+            error = UsageError(f'Unknown help topic {args.topic!r}')
+            error.command = 'help'
+            raise error
         return None
     return args

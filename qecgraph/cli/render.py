@@ -8,6 +8,7 @@ from threading import Event, Thread
 from time import monotonic
 
 from .. import __version__
+from .errors import QecError, UsageError
 
 
 class WorkspaceProgress:
@@ -157,3 +158,19 @@ def emit_report(result):
     if 'ok' in result:
         return 1 if not result['ok'] else 2 if result['data'].get('extraction_status') == 'partial' else 0
     return result.get('suggested_exit_code', 2 if result.get("extraction_status") == "partial" else 0)
+
+
+def report_error(error: QecError, command: str | None, *, json_mode: bool,
+                 progress: WorkspaceProgress | None = None) -> int:
+    if json_mode:
+        stream = sys.stderr if command == 'serve-mcp' else sys.stdout
+        print_json(error.envelope(command), compact=True, stream=stream)
+    elif progress:
+        return progress.finish(str(error), error.exit_code)
+    elif isinstance(error, UsageError):
+        print(f'error: {error}. {error.hint}', file=sys.stderr)
+    else:
+        # Preserve the existing error shape for scripts that use JSON-native
+        # commands without requesting the versioned CLI envelope.
+        print_json({'error': str(error)}, compact=True, stream=sys.stderr)
+    return error.exit_code

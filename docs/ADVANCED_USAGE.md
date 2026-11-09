@@ -99,6 +99,31 @@ Use `validate` to verify archive and snapshot hashes.
 registry states, including candidates that may never have been published.
 Use `--store` or `--corpus` to list snapshots or states for those scopes.
 
+## Exit codes and script output
+
+Pass `--json` before or after a command to request a detailed workspace
+report and versioned CLI errors. Successful JSON reports keep their command
+specific fields. Partial workspace operations still return their full report,
+including counts and individual failures, and exit with code 2.
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | Completed successfully |
+| `1` | Input, storage, validation, or internal error |
+| `2` | A partial operation or a validation report with failures |
+| `4` | A required file could not be found |
+| `5` | Reserved for a typed conflict |
+| `64` | Invalid command syntax |
+| `130` | Interrupted |
+
+For example, `qec-graph --json check-css --hx missing.json --hz hz.json`
+reports `envelope_version: 1` and `ok: false`. Its `error` contains `code`,
+`message`, `hint`, `details`, `command`, and `scope`. Optional fields can
+be `null`. These errors go to stdout so scripts can parse the same stream
+on success and failure. `mcp serve` reserves stdout for MCP frames; startup
+errors go to stderr. `query-tool` retains the response from the read tool.
+Use `--debug` to see a traceback for an unexpected CLI failure.
+
 ## Manage the Obsidian vault and research records
 
 Open the workspace's `human/` directory as an Obsidian vault. Start at

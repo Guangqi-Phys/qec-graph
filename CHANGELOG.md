@@ -7,6 +7,10 @@
   workspace with `--workspace`.
 - Argument and command usage errors exit with code 64. A partial operation
   continues to exit with code 2.
+- CLI errors returned with `--json` now have a versioned envelope on stdout
+  (`mcp serve` startup errors stay on stderr). A missing required file exits
+  with code 4. Successful JSON reports and partial workspace reports keep
+  their existing fields.
 - `qec-graph --version` and `qec-graph help <command>` report the installed
   version and available command options.
 - Workspace queries support fixed releases. Splitting a store with annotations
