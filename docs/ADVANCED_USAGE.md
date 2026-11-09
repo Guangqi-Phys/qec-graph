@@ -242,6 +242,8 @@ The migration preserves source snapshots, record revisions, and review bindings.
 
 For maintainers, a version tag builds standalone executables and checks the
 Python wheel and source distribution before publishing GitHub Release assets.
+The workflow runs the installer regression on each target and retains the
+installed executable and wheel check reports as workflow artifacts.
 The separate PyPI workflow accepts an already published tag and checks its
 distribution hashes before upload. To enable it, configure the repository's
 `pypi` environment with reviewers and register the same environment and
