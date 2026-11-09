@@ -412,9 +412,7 @@ def source_span_index(graph):
     }
 
 
-@contextmanager
-def snapshot_database(snapshot):
-    """Open only the standalone SQLite file belonging to a published snapshot."""
+def _snapshot_database_path(snapshot):
     path = safe_relative(snapshot, "graph.sqlite")
     if not path.is_file():
         raise ValueError("Expected a regular snapshot output: graph.sqlite")
@@ -425,6 +423,13 @@ def snapshot_database(snapshot):
         except FileNotFoundError:
             continue
         raise ValueError(f"Unbound SQLite sidecar: {sidecar.name}")
+    return path
+
+
+@contextmanager
+def snapshot_database(snapshot):
+    """Open only the standalone SQLite file belonging to a published snapshot."""
+    path = _snapshot_database_path(snapshot)
     connection = sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)
     try:
         if connection.execute("PRAGMA journal_mode").fetchone()[0] == "wal":
@@ -443,12 +448,25 @@ def _open_regular_snapshot_file(path, *, dir_fd=None):
     return output
 
 
-def _read_snapshot_file(path):
+def _snapshot_copy_path(root, relative):
+    path = Path(relative)
+    if not path.parts or path.is_absolute() or '..' in path.parts or path.as_posix() != relative:
+        raise ValueError(f"Expected a canonical snapshot output path: {relative}")
+    target = root / path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    return target
+
+
+def _read_snapshot_file(path, copy_to, relative):
     with _open_regular_snapshot_file(path) as output:
-        return output.read()
+        data = output.read()
+    if copy_to is not None:
+        with _snapshot_copy_path(copy_to, relative).open("xb") as destination:
+            destination.write(data)
+    return data
 
 
-def _hash_snapshot_output(root, relative, directory_fd):
+def _hash_snapshot_output(root, relative, directory_fd, copy_to):
     name = relative.rpartition("/")[2]
     try:
         output = _open_regular_snapshot_file(name, dir_fd=directory_fd)
@@ -458,12 +476,19 @@ def _hash_snapshot_output(root, relative, directory_fd):
         # Older standalone stores may use links that resolve inside the snapshot.
         output = _open_regular_snapshot_file(_safe_relative_to_resolved(root, relative))
     with output:
+        if copy_to is not None:
+            digest = hashlib.sha256()
+            with _snapshot_copy_path(copy_to, relative).open("xb") as destination:
+                while chunk := output.read(256 << 10):
+                    destination.write(chunk)
+                    digest.update(chunk)
+            return digest.hexdigest()
         if os.fstat(output.fileno()).st_size > 1 << 20:
             return hashlib.file_digest(output, "sha256").hexdigest()
         return hashlib.sha256(output.read()).hexdigest()
 
 
-def _validate_output_hashes(root, outputs, captured, resources):
+def _validate_output_hashes(root, outputs, captured, resources, copy_to):
     seen = set()
     for folder, group in groupby(outputs, key=lambda row: row["path"].rpartition("/")[0]):
         directory_fd = None
@@ -480,7 +505,7 @@ def _validate_output_hashes(root, outputs, captured, resources):
                     if directory_fd is None:
                         directory = _safe_relative_to_resolved(root, folder)
                         directory_fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
-                    digest = _hash_snapshot_output(root, relative, directory_fd)
+                    digest = _hash_snapshot_output(root, relative, directory_fd, copy_to)
                 if digest != output["sha256"]:
                     raise ValueError(f"Snapshot file changed: {relative}")
                 if digest != resources.get(relative, digest):
@@ -493,21 +518,21 @@ def _validate_output_hashes(root, outputs, captured, resources):
         raise ValueError(f"Required snapshot outputs missing: {', '.join(sorted(missing))}")
 
 
-def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_hashes=None):
-    """Return the graph decoded from the bytes checked during validation."""
+def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_hashes=None, copy_to=None):
+    """Validate captured bytes, optionally writing them to a private staging directory."""
     from .validators import validate_graph_types
     snapshot = Path(snapshot)
     expected = expected_snapshot_id or snapshot.name
     output_root = snapshot.resolve()
     manifest_path = _safe_relative_to_resolved(output_root, "manifest.json")
-    manifest_bytes = _read_snapshot_file(manifest_path)
+    manifest_bytes = _read_snapshot_file(manifest_path, copy_to, "manifest.json")
     if manifest_hashes is not None:
         manifest_hash = hashlib.sha256(manifest_bytes).hexdigest()
         if expected in manifest_hashes and manifest_hashes[expected] != manifest_hash:
             raise ValueError("Snapshot manifest changed within the pinned session")
     manifest = strict_json_loads(manifest_bytes.decode("utf-8"), source=str(manifest_path))
     graph_path = _safe_relative_to_resolved(output_root, "graph.json")
-    graph_bytes = _read_snapshot_file(graph_path)
+    graph_bytes = _read_snapshot_file(graph_path, copy_to, "graph.json")
     graph = strict_json_loads(graph_bytes.decode("utf-8"), source=str(graph_path))
     validate_graph_types(graph)
     if graph["snapshot_id"] != expected or manifest["snapshot_id"] != expected:
@@ -517,7 +542,7 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_has
         raise ValueError("Snapshot fingerprint mismatch")
     config_relative = "inputs/parser_config.json"
     config_path = _safe_relative_to_resolved(output_root, config_relative)
-    config_bytes = _read_snapshot_file(config_path)
+    config_bytes = _read_snapshot_file(config_path, copy_to, config_relative)
     config = strict_json_loads(config_bytes.decode("utf-8"), source=str(config_path))
     source_hash = _project_source_hash(graph["entry"], manifest["source_files"], manifest["resources"], config)
     if (source_hash != fingerprint["project_source_hash"] or source_hash != graph["project_source_hash"]
@@ -529,14 +554,15 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_has
     source_root = _safe_relative_to_resolved(output_root, "sources")
     for source in manifest["source_files"]:
         path = source["path"]
-        raw = _read_snapshot_file(_safe_relative_to_resolved(source_root, path))
+        relative = "sources/" + path
+        raw = _read_snapshot_file(_safe_relative_to_resolved(source_root, path), copy_to, relative)
         digest = hashlib.sha256(raw).hexdigest()
         if digest != source["sha256"]:
             raise ValueError("Source hash mismatch")
         sources[path] = raw.decode("utf-8")
-        captured["sources/" + path] = digest
+        captured[relative] = digest
     resources = {"assets/" + row["path"]: row["sha256"] for row in manifest["resources"]}
-    _validate_output_hashes(output_root, manifest["outputs"], captured, resources)
+    _validate_output_hashes(output_root, manifest["outputs"], captured, resources, copy_to)
     source_lines = {}
     nodes = {n["id"]: n for n in graph["nodes"]}
     if len(nodes) != len(graph["nodes"]):
@@ -564,7 +590,9 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_has
     for label, ids in graph["labels"].items():
         if any(label not in nodes[i]["labels"] for i in ids):
             raise ValueError("Label ownership mismatch")
-    with snapshot_database(output_root) as con:
+    if copy_to is not None:
+        _snapshot_database_path(output_root)
+    with snapshot_database(output_root if copy_to is None else copy_to) as con:
         if con.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
             raise ValueError("SQLite integrity check failed")
         if con.execute("SELECT value FROM metadata WHERE key='snapshot_id'").fetchone()[0] != expected:

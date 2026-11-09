@@ -3,8 +3,9 @@ import unittest
 from pathlib import Path
 
 from qecgraph.corpus import execute
+from qecgraph.graph import read_json
 from qecgraph.registry import Registry
-from qecgraph.store import ingest, pin_snapshot
+from qecgraph.store import current_snapshot, ingest, pin_snapshot
 from qecgraph.query import show
 from qecgraph.transactions import writer_lock
 
@@ -46,6 +47,41 @@ class CorpusTests(unittest.TestCase):
         self.assertNotIn('version:a:2', old['scope']['source_versions'])
         self.assertIn('First.', show(old_snapshot, 'same')['node']['latex'])
         self.assertIn('Changed.', show(self.root / 'a', 'same')['node']['latex'])
+
+    def test_registration_copies_only_verified_snapshot_files(self):
+        store = self.root / 'c'
+        ingest(self.entry, 'c', store)
+        snapshot = current_snapshot(store)
+        manifest = read_json(snapshot / 'manifest.json')
+        names = {row['path'] for row in manifest['outputs']}
+        graph = read_json(snapshot / 'graph.json')
+        relative = next(node['fragment_path'] for node in graph['nodes'] if node.get('fragment_path'))
+        fragment = snapshot / relative
+        retained = snapshot / 'unlisted-fragment.tex'
+        fragment.rename(retained)
+        fragment.symlink_to(retained)
+        (snapshot / 'unlisted-external.tex').symlink_to(self.entry)
+
+        self.registry.register_source('work:c', 'version:c', store)
+        _, registered, _ = self.registry.source_graph('version:c')
+        self.assertEqual({str(path.relative_to(registered)) for path in registered.rglob('*') if path.is_file()},
+                         names | {'manifest.json'})
+        self.assertFalse((registered / relative).is_symlink())
+        self.assertEqual((registered / relative).read_bytes(), retained.read_bytes())
+        self.assertTrue(self.registry.validate()['passed'])
+
+    def test_registration_discards_a_copy_with_a_damaged_output(self):
+        store = self.root / 'c'
+        ingest(self.entry, 'c', store)
+        snapshot = current_snapshot(store)
+        (snapshot / 'report.json').write_text('{}')
+        previous = self.registry.read()[1]
+        registered = self.registry.root / 'source_snapshots'
+        before = sorted(registered.iterdir())
+        with self.assertRaisesRegex(ValueError, 'Snapshot file changed: report.json'):
+            self.registry.register_source('work:c', 'version:c', store)
+        self.assertEqual(self.registry.read()[1], previous)
+        self.assertEqual(sorted(registered.iterdir()), before)
 
     def test_claim_mapping_is_candidate_and_bound_to_exact_revision(self):
         claim = {'schema_version': 'qecgraph.record.v3', 'id': 'claim:a', 'revision': '1',

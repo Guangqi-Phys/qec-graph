@@ -90,29 +90,28 @@ class Registry:
         if not all(isinstance(x, str) and x.strip() for x in (work_id, source_version_id)):
             raise ValueError('work_id and source_version_id must be explicit nonempty IDs')
         source = current_snapshot(store)
-        graph, validation = load_validated_snapshot(source)
-        snapshot_id = validation['snapshot_id']
-        version = {'id': source_version_id, 'work_id': work_id, 'project_id': graph['project_id'],
-                   'snapshot_id': snapshot_id, 'project_source_hash': graph['project_source_hash'],
-                   'snapshot_path': 'source_snapshots/' + snapshot_id, 'upstream_version': upstream_version}
-        existing = state['versions'].get(source_version_id)
-        if existing and existing != version:
-            if not replace_projection or any(existing[field] != version[field]
-                                             for field in ('work_id', 'project_id', 'upstream_version')):
-                raise ValueError('Source version ID already binds different inputs; create a new version ID')
-        target = safe_relative(self.root, version['snapshot_path'])
+        snapshot_id = source.name
+        snapshot_path = 'source_snapshots/' + snapshot_id
+        target = safe_relative(self.root, snapshot_path)
         target.parent.mkdir(parents=True, exist_ok=True)
-        if not target.exists():
-            temporary = Path(tempfile.mkdtemp(prefix='.register-', dir=target.parent))
-            try:
-                shutil.copytree(source, temporary, dirs_exist_ok=True)
-                validate_snapshot(temporary, expected_snapshot_id=snapshot_id)
+        temporary = None if target.exists() else Path(tempfile.mkdtemp(prefix='.register-', dir=target.parent))
+        try:
+            graph, _ = load_validated_snapshot(source, copy_to=temporary)
+            version = {'id': source_version_id, 'work_id': work_id, 'project_id': graph['project_id'],
+                       'snapshot_id': snapshot_id, 'project_source_hash': graph['project_source_hash'],
+                       'snapshot_path': snapshot_path, 'upstream_version': upstream_version}
+            existing = state['versions'].get(source_version_id)
+            if existing and existing != version:
+                if not replace_projection or any(existing[field] != version[field]
+                                                 for field in ('work_id', 'project_id', 'upstream_version')):
+                    raise ValueError('Source version ID already binds different inputs; create a new version ID')
+            if temporary is None:
+                validate_snapshot(target, expected_snapshot_id=snapshot_id)
+            else:
                 temporary.rename(target)
-            finally:
-                if temporary.exists():
-                    shutil.rmtree(temporary)
-        else:
-            validate_snapshot(target, expected_snapshot_id=snapshot_id)
+        finally:
+            if temporary is not None and temporary.exists():
+                shutil.rmtree(temporary)
         state['works'].setdefault(work_id, {'id': work_id, 'title': title or work_id})
         state['versions'][source_version_id] = version
         return version
