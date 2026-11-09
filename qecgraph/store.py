@@ -32,7 +32,9 @@ def _safe_relative_to_resolved(root, relative):
     if relative.is_absolute():
         raise ValueError("Expected a relative archive path")
     path = (root / relative).resolve()
-    if not path.is_relative_to(root):
+    # Both paths are resolved on a POSIX filesystem. Compare whole components.
+    root_parts = root.parts
+    if path.parts[:len(root_parts)] != root_parts:
         raise ValueError(f"Path escapes root: {relative}")
     return path
 
