@@ -75,6 +75,7 @@ _CONDITIONALS = {
 _CONDITIONAL_MACROS = {"ifthenelse", "ifboolexpr"}
 _CONTROL_WORD = re.compile(r"\\([A-Za-z@]+)")
 _ENVIRONMENT_ALIAS = re.compile(r"\\(begin|end)\s*\{([A-Za-z0-9* ._-]+)\}")
+_STRUCTURAL_TOKEN = re.compile(r"[\\%{}]")
 
 
 def _next_token(w, pos, parsing_state):
@@ -299,7 +300,12 @@ def _scan_structure(text, inherited, context, known_conditionals):
     aliases, include_bindings, masked, selected = {}, {}, [], []
     inactive_start = None
     pos = 0
-    while (token := _next_token(walker, pos, state)) is not None:
+    # Only control sequences, comments and grouping can affect this scan.
+    # Argument readers still consume the original token stream.
+    while (structural := _STRUCTURAL_TOKEN.search(text, pos)) is not None:
+        token = _next_token(walker, structural.start(), state)
+        if token is None:
+            break
         pos = token.pos + token.len
         bindings = scopes[-1][1]
         name = token.arg if token.tok == "macro" else None
