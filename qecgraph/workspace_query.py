@@ -91,6 +91,33 @@ class WorkspaceSession:
     def _resource_uri(self, occurrence):
         return f'qec://source/{self.release}/{hash_text(occurrence)}'
 
+    def material_records(self):
+        """Copy the registered material inventory for the fixed release."""
+        return copy.deepcopy(list(self._materials.values()))
+
+    def visible_research(self):
+        """Copy eligible research revisions and their effective review states."""
+        return copy.deepcopy(list(self.visible.values()))
+
+    def projected_graph(self, *, parser_kinds):
+        """Copy the selected graph projection, including relations within it."""
+        graph = self.graph.source.graph
+        nodes = [node for node in graph['nodes'] if node['origin'] == 'registry' or node['kind'] in parser_kinds]
+        visible = {node['id'] for node in nodes}
+        edges = [edge for edge in graph['edges'] if edge['source'] in visible and edge['target'] in visible]
+        return copy.deepcopy((nodes, edges))
+
+    def source_snapshot_id(self, source_version):
+        """Return the current source binding within this release, if present."""
+        return self.state['versions'].get(source_version, {}).get('snapshot_id')
+
+    def source_projection(self, source_version):
+        """Read the verified original graph for an exact registered source."""
+        if self.source_snapshot_id(source_version) is None:
+            raise ValueError('Unknown source version in this release')
+        graph, _, _ = self.registry.source_graph(source_version, self.release)
+        return graph
+
     def list_resources(self, cursor=None):
         check_machine_tree(self.machine)
         if cursor is None:
@@ -122,7 +149,7 @@ class WorkspaceSession:
         identifier = self.resources.get(uri)
         if identifier is None:
             raise ToolError('NOT_FOUND', 'Resource is not registered in this release')
-        source = self._source(identifier)
+        source = self.source_excerpt(identifier)
         resource = {'uri': uri, 'mimeType': 'text/plain', 'text': source['latex'],
                     '_meta': {'release_id': self.release, 'occurrence_id': identifier,
                               'content_sha256': source['content_sha256'], 'source': source['source']}}
@@ -219,7 +246,8 @@ class WorkspaceSession:
             result['human'] = {k: human.get(k) for k in ('status', 'target_release_id', 'rendered_release_id')}
         return result
 
-    def _source(self, identifier, start=None, end=None):
+    def source_excerpt(self, identifier, start=None, end=None):
+        """Read a verbatim range from one pinned source occurrence."""
         node = self._source_nodes.get(identifier)
         if node is None:
             raise ToolError('NOT_FOUND', 'Expected an exact registered source occurrence ID')
@@ -456,7 +484,7 @@ class WorkspaceSession:
                         'encoding': 'base64', 'content': base64.b64encode(raw[offset:end]).decode('ascii'),
                         'truncated': end < len(raw), 'continuation': end if end < len(raw) else None}
             elif name == 'qec_get_source':
-                data = self._source(args['identifier'], args.get('char_start'), args.get('char_end'))
+                data = self.source_excerpt(args['identifier'], args.get('char_start'), args.get('char_end'))
             elif name == 'qec_get_context':
                 identifier = args['identifier']
                 entity = self._research(identifier, args.get('revision'))

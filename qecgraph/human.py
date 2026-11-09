@@ -52,11 +52,11 @@ def _link(path):
 
 def _render(session, previous):
     entities = {}
-    for row in [*session._materials.values(), *session.visible.values()]:
+    for row in [*session.material_records(), *session.visible_research()]:
         entities.setdefault(row['id'], []).append(row)
-    for node in session.graph.source.graph['nodes']:
-        if node['origin'] == 'registry' or node['kind'] in {'theorem', 'lemma', 'definition', 'proposition', 'corollary'}:
-            entities.setdefault(node['id'], []).append(node)
+    nodes, _ = session.projected_graph(parser_kinds={'theorem', 'lemma', 'definition', 'proposition', 'corollary'})
+    for node in nodes:
+        entities.setdefault(node['id'], []).append(node)
     targets = {identifier: _page(rows[0]['kind'], identifier) for identifier, rows in entities.items()}
     pages, index = {}, {}
     for identifier, records in sorted(entities.items()):
@@ -93,13 +93,13 @@ def _render(session, previous):
             for field, evidence in sorted(record.get('field_evidence', {}).items()):
                 span = evidence.get('source_locator')
                 if span:
-                    if span['snapshot_id'] != session.state['versions'].get(span['source_version_id'], {}).get('snapshot_id'):
+                    if span['snapshot_id'] != session.source_snapshot_id(span['source_version_id']):
                         sections.append(f'{_inline(field)}: bound to a historical source snapshot.\n')
                         continue
                     from .corpus import occurrence_id
                     try:
-                        exact = session._source(occurrence_id(span['source_version_id'], span['node_id']),
-                                                span['char_start'], span['char_end'])
+                        exact = session.source_excerpt(occurrence_id(span['source_version_id'], span['node_id']),
+                                                       span['char_start'], span['char_end'])
                     except ValueError:
                         sections.append(f'{_inline(field)}: bound to a historical source snapshot.\n')
                     else:
