@@ -78,6 +78,7 @@ class SourceTree:
 _DOCUMENT_CLASS = re.compile(r'\\documentclass\s*(?:\[[^\]]*\]\s*)?\{')
 _BEGIN_DOCUMENT = re.compile(r'\\begin\s*\{document\}')
 _TEX = re.compile(r'\\(?:documentclass|documentstyle|begin|input|def|newcommand|section)\b')
+_NON_TEX_PREFIX = re.compile(br'\s*(?:<html|<!doctype|%pdf-)', re.I)
 _WINDOWS_RESERVED = re.compile(r'(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$', re.I)
 
 
@@ -174,11 +175,11 @@ def unpack(raw, limits=Limits()):
                     if item.type not in (tarfile.REGTYPE, tarfile.AREGTYPE, tarfile.DIRTYPE) or item.issparse():
                         raise PackageError('unsafe_archive', 'Linked or special tar member')
                     tree.add(item.name, item.isdir(), item.size, lambda: archive.extractfile(item))
-                trailer = raw[archive.offset:]
-                if len(trailer) < 1024 or trailer.count(0) != len(trailer):
+                trailer_size = len(raw) - archive.offset
+                if trailer_size < 1024 or raw.count(0, archive.offset) != trailer_size:
                     raise PackageError('damaged_archive', 'Tar missing a valid zero-block trailer')
             return SourceTree('tar.gz' if compressed else 'tar', tree.files)
-        if raw.lstrip().lower().startswith((b'<html', b'<!doctype', b'%pdf-')) or b'\x00' in raw:
+        if _NON_TEX_PREFIX.match(raw) or b'\x00' in raw:
             raise PackageError('unsupported_format', 'Expected TeX source, not PDF, HTML or binary data')
         try:
             text = _tex_body(raw)

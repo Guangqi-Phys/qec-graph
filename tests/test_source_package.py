@@ -58,3 +58,12 @@ class SourcePackageTests(unittest.TestCase):
     def test_entrypoint_discovery_ignores_non_tex_examples(self):
         raw = tar_bytes({'main.TeX': TEX, 'README.txt': TEX, '.tex': TEX})
         self.assertEqual(unpack(raw).entrypoints(), ['main.TeX'])
+
+    def test_package_detection_rejects_a_damaged_trailer_and_non_tex_prefixes(self):
+        tar = tar_bytes({'main.tex': TEX})
+        for raw, expected in ((tar[:-1] + b'x', 'damaged_archive'),
+                              (b' \t<!DoCtYpE HTML>\n' + TEX, 'unsupported_format'),
+                              (b'\r\n%PdF-1.7\n' + TEX, 'unsupported_format')):
+            with self.subTest(expected=expected), self.assertRaises(PackageError) as error:
+                unpack(raw)
+            self.assertEqual(error.exception.status, expected)
