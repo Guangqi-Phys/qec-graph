@@ -1,0 +1,304 @@
+{
+  "fixture_schema": "qecgraph.rfc002.linked-example",
+  "is_synthetic": true,
+  "exclude_from_default_queries": true,
+  "source_text": "Synthetic fixture: a CSS quantum code has n=13 and k=1. A selected horizontal-axis coordinate is p=0.005. No construction, distance, circuit, noise mapping, decoder, software use, hardware or LER value is asserted.",
+  "records": [
+    {
+      "id": "demo:source",
+      "revision": "r1",
+      "kind": "paper_version",
+      "data": {
+        "origin": "synthetic_fixture",
+        "arxiv_id": null,
+        "asset_refs": []
+      },
+      "is_synthetic": true,
+      "record_status": "synthetic_example",
+      "exclude_from_default_queries": true
+    },
+    {
+      "id": "demo:code",
+      "revision": "r1",
+      "kind": "code_instance",
+      "data": {
+        "n_data": 13,
+        "k_logical": 1,
+        "local_dimension": null,
+        "construction_ref": null,
+        "presentation_refs": [
+          {
+            "id": "demo:presentation",
+            "revision": "r1"
+          }
+        ],
+        "distance_claim_refs": [
+          {
+            "id": "demo:distance",
+            "revision": "r1"
+          }
+        ],
+        "coding_domain": "quantum",
+        "parameter_notation": null
+      },
+      "field_evidence": {
+        "/data/n_data": {
+          "status": "known",
+          "source_ref": {
+            "id": "demo:source",
+            "revision": "r1"
+          },
+          "method": "synthetic_fixture"
+        },
+        "/data/k_logical": {
+          "status": "known",
+          "source_ref": {
+            "id": "demo:source",
+            "revision": "r1"
+          },
+          "method": "synthetic_fixture"
+        },
+        "/data/construction_ref": {
+          "status": "not_extracted"
+        },
+        "/data/coding_domain": {
+          "status": "known",
+          "source_ref": {
+            "id": "demo:source",
+            "revision": "r1"
+          },
+          "method": "synthetic_fixture"
+        }
+      },
+      "is_synthetic": true,
+      "record_status": "synthetic_example",
+      "exclude_from_default_queries": true
+    },
+    {
+      "id": "demo:presentation",
+      "revision": "r1",
+      "kind": "code_presentation",
+      "data": {
+        "code_ref": {
+          "id": "demo:code",
+          "revision": "r1"
+        },
+        "css_structure": "css",
+        "generator_asset_refs": null,
+        "construction_recipe_ref": null,
+        "check_weight_metrics": null,
+        "reconstruction_status": "unresolved"
+      },
+      "is_synthetic": true,
+      "record_status": "synthetic_example",
+      "exclude_from_default_queries": true,
+      "field_evidence": {
+        "/data/css_structure": {
+          "status": "known",
+          "source_ref": {
+            "id": "demo:source",
+            "revision": "r1"
+          },
+          "method": "synthetic_fixture"
+        }
+      }
+    },
+    {
+      "id": "demo:distance",
+      "revision": "r1",
+      "kind": "distance_claim",
+      "data": {
+        "subject_ref": {
+          "id": "demo:code",
+          "revision": "r1"
+        },
+        "metric_definition_ref": null,
+        "relation": null,
+        "lower_bound": null,
+        "upper_bound": null,
+        "method": null,
+        "status": "not_extracted"
+      },
+      "is_synthetic": true,
+      "record_status": "synthetic_example",
+      "exclude_from_default_queries": true
+    },
+    {
+      "id": "demo:circuit",
+      "revision": "r1",
+      "kind": "circuit_protocol",
+      "data": {
+        "presentation_ref": {
+          "id": "demo:presentation",
+          "revision": "r1"
+        },
+        "circuit_asset_ref": null,
+        "depth_metrics": null,
+        "rounds": null,
+        "boundary_spec": null,
+        "status": "unresolved"
+      },
+      "is_synthetic": true,
+      "record_status": "synthetic_example",
+      "exclude_from_default_queries": true
+    },
+    {
+      "id": "demo:noise",
+      "revision": "r1",
+      "kind": "noise_model",
+      "data": {
+        "level": "unknown",
+        "channels": null,
+        "parameter_definitions": null,
+        "idle": {
+          "consideration": "unknown",
+          "reason": "not_extracted"
+        },
+        "loss": {
+          "consideration": "unknown",
+          "reason": "not_extracted"
+        },
+        "erasure": {
+          "consideration": "unknown",
+          "reason": "not_extracted"
+        },
+        "leakage": {
+          "consideration": "unknown",
+          "reason": "not_extracted"
+        },
+        "specification_status": "unresolved"
+      },
+      "is_synthetic": true,
+      "record_status": "synthetic_example",
+      "exclude_from_default_queries": true
+    },
+    {
+      "id": "demo:noise-point",
+      "revision": "r1",
+      "kind": "noise_instantiation",
+      "data": {
+        "model_ref": {
+          "id": "demo:noise",
+          "revision": "r1"
+        },
+        "reported_coordinates": {
+          "p": 0.005
+        },
+        "resolved_channel_parameters": null,
+        "axis_mapping_status": "unresolved"
+      },
+      "is_synthetic": true,
+      "record_status": "synthetic_example",
+      "exclude_from_default_queries": true,
+      "field_evidence": {
+        "/data/reported_coordinates/p": {
+          "status": "known",
+          "source_ref": {
+            "id": "demo:source",
+            "revision": "r1"
+          },
+          "method": "synthetic_fixture",
+          "limitation": "Coordinate is known; its mapping to channel probabilities is unresolved."
+        }
+      }
+    },
+    {
+      "id": "demo:decoder",
+      "revision": "r1",
+      "kind": "decoder_configuration",
+      "data": {
+        "algorithm_ref": null,
+        "parameters": null,
+        "software_usage_refs": null,
+        "status": "unresolved"
+      },
+      "is_synthetic": true,
+      "record_status": "synthetic_example",
+      "exclude_from_default_queries": true
+    },
+    {
+      "id": "demo:hardware",
+      "revision": "r1",
+      "kind": "hardware_assumptions",
+      "data": {
+        "platform": null,
+        "connectivity": null,
+        "operation_durations": null,
+        "status": "not_extracted"
+      },
+      "is_synthetic": true,
+      "record_status": "synthetic_example",
+      "exclude_from_default_queries": true
+    },
+    {
+      "id": "demo:experiment",
+      "revision": "r1",
+      "kind": "reported_experiment",
+      "data": {
+        "source_ref": {
+          "id": "demo:source",
+          "revision": "r1"
+        },
+        "code_ref": {
+          "id": "demo:code",
+          "revision": "r1"
+        },
+        "presentation_ref": {
+          "id": "demo:presentation",
+          "revision": "r1"
+        },
+        "circuit_ref": {
+          "id": "demo:circuit",
+          "revision": "r1"
+        },
+        "noise_model_ref": {
+          "id": "demo:noise",
+          "revision": "r1"
+        },
+        "decoder_ref": {
+          "id": "demo:decoder",
+          "revision": "r1"
+        },
+        "hardware_ref": {
+          "id": "demo:hardware",
+          "revision": "r1"
+        },
+        "software_usage_refs": null,
+        "execution_run_refs": [],
+        "comparability_status": "insufficient_information"
+      },
+      "is_synthetic": true,
+      "record_status": "synthetic_example",
+      "exclude_from_default_queries": true
+    },
+    {
+      "id": "demo:point",
+      "revision": "r1",
+      "kind": "performance_point",
+      "data": {
+        "experiment_ref": {
+          "id": "demo:experiment",
+          "revision": "r1"
+        },
+        "noise_instantiation_ref": {
+          "id": "demo:noise-point",
+          "revision": "r1"
+        },
+        "selection_reason": "synthetic_schema_fixture",
+        "curve_ref": null,
+        "metric_definition_ref": null,
+        "value": null,
+        "confidence_interval": null,
+        "shots": null,
+        "failures": null,
+        "discards": null,
+        "value_status": "not_extracted",
+        "value_origin": null,
+        "eligible_for_exact_performance_filter": false
+      },
+      "is_synthetic": true,
+      "record_status": "synthetic_example",
+      "exclude_from_default_queries": true
+    }
+  ]
+}

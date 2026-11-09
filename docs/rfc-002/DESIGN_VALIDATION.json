@@ -1,0 +1,53 @@
+{
+  "report_type": "design_artifact_validation",
+  "checked_at": "2026-11-09",
+  "design_id": "RFC-QEC-002",
+  "implementation_tested": false,
+  "user_current_repository_inspected": false,
+  "third_party_packages_installed_or_benchmarked": false,
+  "scope_note": "Only document, seed metadata structure, synthetic-reference consistency and packaging contents were checked. This is not an implementation or software capability test.",
+  "checks": {
+    "software_seed_unique_ids": 14,
+    "software_seed_non_exhaustive": true,
+    "software_role_scope_consistent": true,
+    "synthetic_records": 11,
+    "synthetic_internal_revision_references_resolved": 20,
+    "synthetic_flags_on_every_record": true,
+    "synthetic_field_evidence_pointers_resolved": true,
+    "no_invented_ler_distance_or_execution_run": true,
+    "embedded_json_blocks_parse": 3,
+    "embedded_fixture_matches_standalone": true,
+    "markdown_fences_balanced": true,
+    "single_document_title_outside_fences": true,
+    "terminology_normalized": true,
+    "latest_user_policy_all_archived_materials": true,
+    "human_recovery_and_operational_projection_defined": true
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 1527,
+      "sha256": "dd333924037956b8feff2fc3a1787d9a3d921c72a607ed34fc9cba30cd29c3a3"
+    },
+    {
+      "path": "QEC_GRAPH_DESIGN_UPDATE.md",
+      "bytes": 118812,
+      "sha256": "ba5cb2e77c1a4c8dc5a0c78320dc4d9601145db70a1270d8a21b529a1c6144b9"
+    },
+    {
+      "path": "CODEX_UPDATE_TASK.md",
+      "bytes": 10012,
+      "sha256": "29e27d376988c8f678e91443fcae69e5bf61e27e9b6fd3f5dbf19e372daad654"
+    },
+    {
+      "path": "software_catalog.seed.json",
+      "bytes": 27797,
+      "sha256": "64e930e72965cf9a756459593890e5ca5b37ceea95d32772f37b9296e1fd2ff8"
+    },
+    {
+      "path": "examples/performance_context.synthetic.json",
+      "bytes": 8173,
+      "sha256": "53bdfd6c13d129dd1c7a332e6473bc916c9b4bfe97429e2b585782446b745e5e"
+    }
+  ]
+}
