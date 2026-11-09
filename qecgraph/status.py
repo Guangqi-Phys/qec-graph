@@ -16,9 +16,10 @@ def annotation_eligible(annotation, include_candidates=False):
     return status not in INACTIVE and (include_candidates or status not in {'candidate', 'proposed'})
 
 
-def review_states(registry, state, records):
+def review_states(registry, state, records, *, verified_versions=()):
     from .review import final_records, read_proposal, read_review
-    result, assets, sources = {}, {}, {}
+    result, assets = {}, {}
+    sources = dict.fromkeys(verified_versions)
     for identifier, record in records.items():
         status = record['review']['status']
         reasons = []
