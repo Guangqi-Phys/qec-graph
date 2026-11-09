@@ -68,7 +68,7 @@ def main(argv=None):
         argv[:2] = ['serve-mcp']
     if argv[:2] == ['human', 'build']:
         argv[:2] = ['human-build']
-    if argv[:2] in (['software', 'import-seed'], ['software', 'coverage']):
+    if argv[:2] in (['software', 'import-seed'], ['software', 'coverage'], ['software', 'refresh']):
         argv[:2] = ['software-' + argv[1]]
     if argv[:2] == ['review', 'list'] and '--corpus' not in argv:
         argv[:2] = ['review-list']
@@ -109,9 +109,13 @@ def main(argv=None):
     cmd.add_argument('--corpus', required=True)
     cmd.add_argument('--workspace', required=True)
     cmd.add_argument('--registry-revision')
-    for name in ('software-import-seed', 'software-coverage'):
-        cmd = sub.add_parser(name, help='Import the bundled seed or report offline catalogue coverage')
+    for name in ('software-import-seed', 'software-coverage', 'software-refresh'):
+        cmd = sub.add_parser(name, help='Manage the bounded software directory')
         cmd.add_argument('--workspace')
+        if name == 'software-refresh':
+            cmd.add_argument('--project-id')
+            cmd.add_argument('--limit', type=int, default=20)
+            cmd.add_argument('--timeout', type=int, default=8)
     cmd = sub.add_parser('research-import', help='Validate and publish exact research records without evidence promotion')
     cmd.add_argument('input')
     cmd.add_argument('--workspace')
@@ -284,7 +288,7 @@ def main(argv=None):
             result = migrate_corpus(args.corpus, args.workspace, args.registry_revision)
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0
-        if args.command in {'research-import', 'review-list', 'software-import-seed', 'software-coverage'}:
+        if args.command in {'research-import', 'review-list', 'software-import-seed', 'software-coverage', 'software-refresh'}:
             from .workspace import Workspace
             from .research_store import load_records, publish_records
             ws = Workspace(args.workspace)
@@ -292,6 +296,9 @@ def main(argv=None):
             if args.command == 'software-import-seed':
                 from .software import adapt_seed, bundled_seed
                 result = publish_records(ws.registry, adapt_seed(bundled_seed()))
+            elif args.command == 'software-refresh':
+                from .software import refresh
+                result = refresh(ws.registry, project_id=args.project_id, limit=args.limit, timeout=args.timeout)
             elif args.command == 'software-coverage':
                 from .software import coverage
                 state, release = ws.registry.read()
@@ -314,7 +321,7 @@ def main(argv=None):
                 from .semantic import queued
                 result = {'release_id': release, 'proposals': rows, 'provider_drafts': queued(ws.root, state)}
             print(json.dumps(result, ensure_ascii=False, indent=2))
-            return 0
+            return 2 if result.get('status') == 'partial' else 0
         if args.command in {'search', 'show', 'deps', 'impact', 'context', 'validate', 'audit-dependencies'}:
             if getattr(args, 'corpus', None):
                 if args.snapshot:

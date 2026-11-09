@@ -87,3 +87,8 @@ macOS 严格运行配置：`tools/mcp_isolated_macos.py --python VENV/bin/python
 研究校验额外拒绝把未知噪声写成 false、无来源声明排除噪声、以 TICK 表示物理时间，
 或用不全的公式/种子宣称矩阵可重建。校验重量口径必须指定检查集合、sector 和 scope；
 现有辛重量例验证 Y 计一个位置。字段通过结构校验并不证明模型或数学正确。
+
+`qec-graph software refresh --project-id software:stim` 显式核对公开 GitHub 仓库元数据，
+只追加绑定项目修订的观察记录。不跟随重定向，不安装软件，也不修改项目、发行版本或论文使用记录。
+已用 [Stim 官方仓库](https://github.com/quantumlib/Stim) 实测成功。其他目录项未批量刷新；
+非 GitHub 来源保留待核对。

@@ -13,7 +13,7 @@ PROPOSAL = 'qecgraph.extraction_proposal.v1'
 SOURCE_KINDS = {'paragraph', 'definition', 'theorem', 'lemma', 'proposition', 'corollary',
                 'table', 'equation', 'figure', 'remark'}
 PROPOSABLE = KINDS - {'paper_version', 'catalog_source', 'software_project', 'software_distribution',
-                      'software_release', 'execution_run', 'execution_environment'}
+                      'software_release', 'software_catalog_observation', 'execution_run', 'execution_environment'}
 
 
 def _path(ws, category, identifier):

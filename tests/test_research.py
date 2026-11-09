@@ -68,3 +68,27 @@ class ResearchTests(unittest.TestCase):
             make_record('construction', 'construction:partial', 'r1',
                         {'reconstruction_status': 'reconstructable',
                          'matrix_recipe': {'formula': 'H from seeds', 'seed_refs': None}}, source=source, method='fixture')
+
+    def test_refresh_adds_observations_without_overwriting_project_or_inventing_release(self):
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+        from qecgraph.research_store import load_records, publish_records
+        from qecgraph.software import _official_repo_url, refresh
+        from qecgraph.workspace import Workspace
+        self.assertIsNone(_official_repo_url('https://github.com.evil.example/quantumlib/Stim'))
+        with TemporaryDirectory() as root:
+            ws = Workspace(root)
+            ws.init(no_ingest=True)
+            original = adapt_seed(bundled_seed())
+            publish_records(ws.registry, original)
+            body = b'{"full_name":"quantumlib/Stim","private":false,"archived":false,"disabled":false}'
+            with patch('qecgraph.software._fetch_metadata', return_value=body) as fetch:
+                result = refresh(ws.registry, project_id='software:stim')
+            fetch.assert_called_once_with('https://api.github.com/repos/quantumlib/Stim', 8)
+            self.assertEqual(result['status'], 'observed')
+            state, _ = ws.registry.read()
+            rows = load_records(ws.registry, state)
+            self.assertEqual(next(r for r in rows if r['id'] == 'software:stim'),
+                             next(r for r in original if r['id'] == 'software:stim'))
+            self.assertEqual(sum(r['kind'] == 'software_catalog_observation' for r in rows), 1)
+            self.assertFalse(any(r['kind'] in {'software_release', 'software_usage'} for r in rows))

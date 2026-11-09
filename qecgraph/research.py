@@ -31,6 +31,7 @@ RELATIONS = {
     'execution_run': {'reported_experiment_ref': 'reported_experiment', 'environment_ref': 'execution_environment',
                       'software_usage_refs': 'software_usage'},
     'software_distribution': {'project_ref': 'software_project'},
+    'software_catalog_observation': {'project_ref': 'software_project'},
     'software_release': {'distribution_ref': 'software_distribution'},
     'software_usage': {'project_ref': 'software_project', 'release_ref': 'software_release',
                        'source_ref': 'paper_version', 'experiment_ref': 'reported_experiment',
