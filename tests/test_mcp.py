@@ -85,6 +85,16 @@ class MCPTests(unittest.TestCase):
         self.assertEqual(MCPServer(self.session).handle([])['error']['code'], -32600)
         self.assertEqual(MCPServer(self.session).handle({'jsonrpc': '2.0', 'id': True, 'method': 'ping'})['error']['code'], -32600)
 
+    def test_invalid_unicode_request_id_does_not_stop_stdio(self):
+        messages = [request('\ud800', 'ping'), request('量子😀', 'ping')]
+        incoming = io.BytesIO(''.join(json.dumps(message) + '\n' for message in messages).encode('ascii'))
+        output = io.BytesIO()
+        self.assertEqual(serve_stdio(self.session, input_stream=incoming, output_stream=output), 0)
+        invalid, valid = map(json.loads, output.getvalue().splitlines())
+        self.assertIsNone(invalid['id'])
+        self.assertEqual(invalid['error']['code'], -32600)
+        self.assertEqual(valid, {'jsonrpc': '2.0', 'id': '量子😀', 'result': {}})
+
     def test_actual_stdio_process_is_read_only_and_never_executes_source(self):
         before = {str(p.relative_to(self.store)): hashlib.sha256(p.read_bytes()).hexdigest()
                   for p in self.store.rglob('*') if p.is_file()}

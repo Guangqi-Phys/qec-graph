@@ -53,6 +53,11 @@ class MCPServer:
         method, params = message.get('method'), message.get('params', {})
         if not isinstance(method, str) or not notification and type(identifier) not in {str, int}:
             return rpc_error(None, -32600, 'Invalid method or request ID')
+        if isinstance(identifier, str):
+            try:
+                identifier.encode('utf-8')
+            except UnicodeEncodeError:
+                return rpc_error(None, -32600, 'Request ID must be valid Unicode')
         if not isinstance(params, dict):
             return None if notification else rpc_error(identifier, -32602, 'MCP params must be an object')
         if notification:
@@ -130,7 +135,9 @@ def serve_stdio(session, *, input_stream=None, output_stream=None):
 
     def send(message):
         if message is not None:
-            outgoing.write((json.dumps(message, ensure_ascii=False, separators=(',', ':'), allow_nan=False) + '\n').encode('utf-8'))
+            frame = json.dumps(message, ensure_ascii=False, separators=(',', ':'), allow_nan=False) + '\n'
+            # Escape lone surrogates echoed in errors while retaining ordinary UTF-8.
+            outgoing.write(frame.encode('utf-8', errors='backslashreplace'))
             outgoing.flush()
 
     try:
