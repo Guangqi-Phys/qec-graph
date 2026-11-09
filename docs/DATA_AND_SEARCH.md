@@ -24,22 +24,98 @@ Mathematical checks, semantic review, and Lean builds carry separate evidence.
 
 ## Research record types
 
-| Category | Record kinds | What they describe |
-| --- | --- | --- |
-| Paper | `paper_version` | The registered work, upstream version, and source snapshot. |
-| Codes and constructions | `code_mention`, `classical_seed`, `code_family`, `construction`, `code_instance`, `code_presentation`, `distance_claim` | Reported notation, classical inputs, families and construction recipes, individual codes, check representations, and distance claims with their metrics, bounds, and assumptions. |
-| Circuits, noise, and decoders | `circuit_protocol`, `noise_model`, `noise_instantiation`, `decoder_configuration`, `hardware_assumptions` | Circuit or measurement protocol, noise model and concrete parameters, decoder settings, and hardware conditions. |
-| Experiments and results | `reported_experiment`, `metric_definition`, `performance_series`, `performance_point`, `execution_environment`, `execution_run` | What the source reports, what the metric measures, the observed values and coordinates, and the environment and evidence of a recorded run. |
-| Software and algorithms | `software_project`, `software_distribution`, `software_release`, `software_usage`, `software_catalog_observation`, `catalog_source`, `algorithm` | Projects and algorithms, packages and versions, observed metadata, and software usage tied to a paper, experiment, or run. |
+The code examples use the bundled 13-qubit hypergraph-product (HGP) example
+to illustrate `qecgraph.research.v1` records. The experiment below uses
+hypothetical settings and counts. [Bundled HGP example](../examples/paper/sections/hgp.tex)
+
+### Papers and codes
+
+| Record kind | Example |
+| --- | --- |
+| `paper_version` | Stores `work_id`, `upstream_version`, and `source_snapshot_id`. An arXiv paper's `v2` and `v3` can have distinct source snapshots under the same work ID. |
+| `code_mention` | In a supported paragraph such as “A CSS quantum code has parameters `[[13,1,3]]`”, import can propose `n_data: 13` and `k_logical: 1`, preserve the full notation and its source span, and leave `code_ref` and `distance_interpretation` unresolved. |
+| `classical_seed` | Describes a classical input, such as the binary length-three repetition code with a `2 × 3` parity-check matrix. |
+| `code_family` | Describes the class of ordinary hypergraph-product codes. A family can contain many instances with different seed choices. |
+| `construction` | Specifies the recipe for building HGP checks from two repetition seeds. A reconstructable `matrix_recipe` includes the field, shape, indexing, bit order, formula, recipe version, and exact seed revisions. |
+| `code_instance` | Identifies the particular quantum code constructed from those seeds, with `n_data: 13`, `k_logical: 1`, and links to its construction, presentations, and distance claims. |
+| `code_presentation` | Records a concrete representation of the instance, such as its `H_X` and `H_Z` check-matrix assets and qubit order. Check-weight statistics specify the check set, sector, and scope, such as X stabilizers. |
+| `distance_claim` | Binds a subject and a metric. For a joint CSS distance of 3, `relation: "exact"` has `lower_bound: 3` and `upper_bound: 3`. A weight-3 logical witness supports `relation: "upper_bound"` with `lower_bound: null`. |
+
+These records let you follow a paper's notation to a specific instance once
+`code_ref` is resolved, then inspect the matrices and the evidence for its
+distance. The historical HGP example includes a finite enumeration check.
+[Finite distance example](../knowledge_starter/records/claim_rep3_hgp_distance.json)
+
+### Circuits, experiments, and results
+
+Suppose a paper describes a simulation of that code with three syndrome
+rounds and reports a logical failure rate at `p = 0.005`.
+
+| Record kind | Example |
+| --- | --- |
+| `circuit_protocol` | Links the code presentation to the three-round syndrome circuit, with its circuit asset and boundary conditions when supplied. A depth measurement gives its counting rule and unit, such as `two_qubit_layers` in `layers`. |
+| `noise_model` | Describes where errors occur, such as two-qubit depolarizing noise after each CNOT. It records whether idle errors, loss, erasure, and leakage are included or excluded when the source establishes this. An unresolved channel field stays `null`. |
+| `noise_instantiation` | Binds the model to the circuit and stores `reported_coordinates`, such as `{"p": 0.005}`. Fill `resolved_channel_parameters` when the source establishes what that axis value means for the gates or other channels. |
+| `decoder_configuration` | Binds the decoding algorithm and the settings used for this experiment, such as minimum-weight perfect matching with a specified weighting rule. |
+| `hardware_assumptions` | Records assumptions such as which qubits can interact and whether all CNOTs have the same duration, when the paper specifies them. |
+| `reported_experiment` | Links the paper revision, code, presentation, circuit, noise model, and decoder. An exact link identifies which circuit and decoder the reported result belongs to. |
+| `metric_definition` | Defines the event, denominator, and unit, such as a wrong final logical parity per accepted shot, expressed as a fraction. A per-round rate has its own metric definition. |
+| `performance_series` | Groups points on the same curve, such as logical failure rate versus `p` for the three-round experiment. It links the exact experiment and metric revisions. |
+| `performance_point` | Links the experiment, noise instantiation, metric, and optionally the series. For 20 failures in 10,000 shots with zero discards, the value is `0.002`. In real records, the reported value, counts, and confidence interval each need an exact source locator when supplied. |
+| `execution_environment` | Describes the environment of an actual run, such as the operating system, CPU architecture, interpreter, and dependency versions. |
+| `execution_run` | Ties a specific execution to its environment and execution evidence, such as a saved log and output hash. A local reproduction can link back to the reported experiment through `reported_experiment_ref`. |
+
+The synthetic fixture shows how partial data is stored. `demo:noise-point`
+has the axis coordinate but leaves the channel mapping unresolved. The
+linked `demo:point` has `value: null` because the fixture supplies no logical
+failure rate. [Linked synthetic fixture](rfc-002/examples/performance_context.synthetic.json)
+
+### Software and algorithms
+
+| Record kind | Example |
+| --- | --- |
+| `algorithm` | Minimum-weight perfect matching (`MWPM`) identifies the method that a `decoder_configuration` can reference. |
+| `software_project` | `software:stim` identifies the Stim project and its repository. |
+| `software_distribution` | The `stim` package in the `pypi` ecosystem links back to the project through `project_ref`. |
+| `software_release` | Stores an exact package version, for example `version: "1.2.3"` when a manifest pins that version. Its `distribution_ref` identifies which package it belongs to. |
+| `software_usage` | A citation can use `usage_kind: "citation"`. If the methods section explicitly says Stim simulated a particular experiment, `source_reported_use` binds that paper and experiment. `locally_observed_use` binds a real run. Keep `release_ref: null` when the version is unknown. |
+| `software_catalog_observation` | Captures a dated observation such as the repository's `archived` and `disabled` flags from a metadata refresh. The field evidence links the catalog source that recorded the API URL and response hash. |
+| `catalog_source` | Identifies the catalog or upstream metadata source and its checked scope. For example, the bundled seed records that its coverage is non-exhaustive. |
+
+Importing the bundled catalog creates catalog, project, distribution, and
+algorithm records. A usage record needs evidence of what the paper or run
+actually used, including the version when available. [Bundled software catalog](../qecgraph/catalog/software_catalog.seed.json)
+
+### Fields, revisions, and evidence
 
 Each `qecgraph.research.v1` record has a `schema_version`, stable `id`, exact
-`revision`, `kind`, `data`, `field_evidence`, and `is_synthetic` flag. References
-bind both an `id` and a `revision`. Evidence for a data field can include the
-source revision, source location, method, and limits. An unknown field uses
-`null` with a state such as `not_extracted`, `unresolved`, `not_reported`,
-`not_applicable`, or `conflicting`. Default workspace queries filter synthetic
-records and stale provider approvals. Legacy `qecgraph.record.v3` records can
-also carry claims, evidence, and Lean mappings in a migrated workspace.
+`revision`, `kind`, `data`, `field_evidence`, and `is_synthetic` flag. A
+reference such as `{"id": "demo:source", "revision": "r1"}` names the exact
+source revision. Evidence can also specify the source location and the limits
+of the extraction or check. In this excerpt from the synthetic code example,
+the fixture supplies the qubit count, and the construction is still unknown.
+
+```json
+{
+  "data": {"n_data": 13, "construction_ref": null},
+  "field_evidence": {
+    "/data/n_data": {
+      "status": "known",
+      "source_ref": {"id": "demo:source", "revision": "r1"},
+      "method": "synthetic_fixture"
+    },
+    "/data/construction_ref": {"status": "not_extracted"}
+  }
+}
+```
+
+Use `null` for unknown fields. `not_extracted` indicates unfinished
+extraction. `unresolved` can indicate an ambiguous link. `not_reported`
+requires a dated check of a specified part of the source. `not_applicable`
+and `conflicting` record why the field has no single value. Default workspace
+queries filter synthetic records and stale provider approvals. Legacy
+`qecgraph.record.v3` records can also carry claims, evidence, and Lean mappings
+in a migrated workspace.
 [Research record schema](../qecgraph/validators/schemas/research.v1.schema.json) · [Legacy record schema](../qecgraph/validators/schemas/record.v3.schema.json)
 
 ## Search by keyword, source, or structured fields
