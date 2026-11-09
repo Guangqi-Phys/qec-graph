@@ -171,6 +171,21 @@ class QECValidationTests(unittest.TestCase):
             self.assertEqual(report['estimate'], .05)
             self.assertEqual(report['acceptance_rate'], .8)
 
+            malformed = copy.deepcopy(experiment)
+            malformed['data']['input_revisions']['circuit']['content_sha256'] = 'not-a-digest'
+            for record_, metric_, message in (
+                (malformed, metric, 'circuit binding needs a lowercase SHA-256'),
+                (experiment, {**metric, 'revision': 'different'}, 'metric input revision disagree'),
+                (experiment, {**metric, 'content_sha256': 'b' * 64}, 'metric input content_sha256 disagree'),
+            ):
+                with self.subTest(message=message):
+                    path.write_text(json.dumps({'record': record_, 'metric': metric_}), encoding='utf-8')
+                    rejected = subprocess.run(command, capture_output=True, text=True, timeout=10)
+                    self.assertEqual(rejected.returncode, 1)
+                    error = json.loads(rejected.stdout)['error']
+                    self.assertEqual(error['code'], 'INVALID_INPUT')
+                    self.assertIn(message, error['message'])
+
             metric['data']['denominator'] = 'all_shots'
             path.write_text(json.dumps({'record': experiment, 'metric': metric}), encoding='utf-8')
             rejected = subprocess.run(command, capture_output=True, text=True, timeout=10)

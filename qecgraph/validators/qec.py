@@ -1,6 +1,8 @@
 """Explicit mathematical checks; these never confer human or Lean review."""
 from __future__ import annotations
 
+import re
+
 from ..graph import canonical
 
 
@@ -149,15 +151,21 @@ def check_experiment(record, metric):
     bindings = data.get('input_revisions')
     if not isinstance(bindings, dict) or not {'code', 'presentation', 'circuit', 'noise', 'decoder', 'metric'} <= bindings.keys():
         raise ValueError('Experiment must bind code/presentation/circuit/noise/decoder/metric revisions')
-    for binding in bindings.values():
-        if not isinstance(binding, dict) or not all(binding.get(k) for k in ('id', 'revision', 'content_sha256')):
-            raise ValueError('Experiment input binding needs ID, revision and content hash')
+    for name, binding in bindings.items():
+        if not isinstance(binding, dict) or not all(isinstance(binding.get(k), str) and binding[k].strip()
+                                                    for k in ('id', 'revision', 'content_sha256')):
+            raise ValueError(f'Experiment {name} binding needs a nonempty ID, revision and SHA-256')
+        if not re.fullmatch('[0-9a-f]{64}', binding['content_sha256']):
+            raise ValueError(f'Experiment {name} binding needs a lowercase SHA-256 digest')
     method = sampling.get('method')
     result = {'checker': 'qecgraph.experiment.v1', 'sampling_method': method,
               'metric_definition_id': metric['id'], 'estimate': None, 'lean_status': 'not_performed',
               'input_binding_validation': 'structure_only; resolve referenced inputs separately'}
     if data.get('metric') != metric['id'] or bindings['metric']['id'] != metric['id']:
         raise ValueError('Experiment and metric input IDs disagree')
+    for key in ('revision', 'content_sha256'):
+        if key in metric and bindings['metric'][key] != metric[key]:
+            raise ValueError(f'Experiment and metric input {key} disagree')
     if method == 'iid':
         shots, discards, accepted, failures = [_integer(stats.get(k), k) for k in ('shots', 'discarded', 'accepted', 'failures')]
         if accepted != shots - discards or failures > accepted or discards > shots:
