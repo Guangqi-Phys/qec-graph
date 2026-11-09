@@ -245,18 +245,27 @@ class WorkspaceSession:
             raise ToolError('AMBIGUOUS_REVISION', 'Specify an exact research revision', {'revisions': [r['revision'] for r in rows]})
         return rows[0] if rows else None
 
+    @cached_property
+    def _search_nodes(self):
+        return [(node, canonical(node['data']))
+                for node in sorted(self.graph.source.graph['nodes'], key=lambda n: n['id'])]
+
+    @cached_property
+    def _search_records(self):
+        return [(row, canonical(row).casefold()) for row in (*self._materials.values(), *self.visible.values())]
+
     def _search(self, args):
         needle, kind = args['query'].casefold(), args.get('kind')
         rows = []
         # Page the combined space; legacy corpus search caps each call at 200.
         # Search the already validated fixed projection so there is no SQL or file input.
-        for node in sorted(self.graph.source.graph['nodes'], key=lambda n: n['id']):
+        for node, data in self._search_nodes:
             if (not kind or kind == node['kind']) and needle in (
-                    node['title'] + '\n' + node['latex'] + '\n' + canonical(node['data']) + '\n' + ' '.join(node['labels'])).casefold():
+                    node['title'] + '\n' + node['latex'] + '\n' + data + '\n' + ' '.join(node['labels'])).casefold():
                 rows.append({k: node.get(k) for k in ('id', 'kind', 'title', 'source', 'provenance',
                                                      'review_status', 'verification_status')})
-        for row in [*self._materials.values(), *self.visible.values()]:
-            if (not kind or kind == row['kind']) and needle in canonical(row).casefold():
+        for row, text in self._search_records:
+            if (not kind or kind == row['kind']) and needle in text:
                 rows.append({k: row[k] for k in ('id', 'kind', 'revision', 'status', 'source_version_id',
                                                'archive_sha256', 'field_evidence', 'effective_review') if k in row})
         return self._paginate(rows, args, min(20, self.graph.max_results))
