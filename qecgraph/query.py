@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from collections import deque
+from collections import defaultdict, deque
 
 from .graph import CANDIDATES, DEPENDENCIES
 from .store import load_graph
@@ -104,21 +104,27 @@ def show(store, identifier):
 
 
 def traverse(graph, root, depth, include_candidates=False, reverse=False, max_nodes=100):
-    relations = DEPENDENCIES | (CANDIDATES if include_candidates else set())
-    permitted = [e for e in graph["edges"] if e["relation"] in relations and eligible(e, include_candidates)]
+    return _walk_dependencies(_dependency_adjacency(graph, include_candidates, reverse), root, depth, max_nodes)
+
+
+def _dependency_adjacency(graph, include_candidates, reverse=False):
+    relations = DEPENDENCIES | CANDIDATES if include_candidates else DEPENDENCIES
+    source_key, target_key = ('target', 'source') if reverse else ('source', 'target')
+    adjacent = defaultdict(list)
+    for edge in graph["edges"]:
+        if edge["relation"] in relations and eligible(edge, include_candidates):
+            adjacent[edge[source_key]].append((edge[target_key], edge))
+    return adjacent
+
+
+def _walk_dependencies(adjacent, root, depth, max_nodes):
     visited, selected, queue, omitted = {root}, [], deque([(root, 0)]), set()
     while queue:
         current, level = queue.popleft()
         if level >= depth:
-            for edge in permitted:
-                source, target = (edge['target'], edge['source']) if reverse else (edge['source'], edge['target'])
-                if source == current and target not in visited:
-                    omitted.add(target)
+            omitted.update(target for target, _ in adjacent.get(current, ()) if target not in visited)
             continue
-        for edge in permitted:
-            source, target = (edge["target"], edge["source"]) if reverse else (edge["source"], edge["target"])
-            if source != current:
-                continue
+        for target, edge in adjacent.get(current, ()):
             if target not in visited:
                 if len(visited) >= max_nodes:
                     omitted.add(target)
@@ -150,7 +156,8 @@ def context(store, identifier, depth=2, include_candidates=False, max_nodes=60):
         raise ValueError("depth must be 0..20 and max_nodes 1..1000")
     graph, _ = load_graph(store)
     root = resolve(graph, identifier)
-    ids, _, omitted = traverse(graph, root, depth, include_candidates, False, max_nodes)
+    adjacent = _dependency_adjacency(graph, include_candidates)
+    ids, _, omitted = _walk_dependencies(adjacent, root, depth, max_nodes)
     candidates = list(sorted(ids - {root}))
     chosen = [root] + candidates
     # Include proof text and its dependencies even when no direct theorem edge exists.
@@ -159,7 +166,7 @@ def context(store, identifier, depth=2, include_candidates=False, max_nodes=60):
         if edge["target"] in ids and edge["relation"] in proof_relations and eligible(edge, include_candidates):
             if edge["source"] not in chosen:
                 chosen.append(edge["source"])
-                proof_ids, _, extra_omitted = traverse(graph, edge["source"], depth, include_candidates, False, max_nodes)
+                proof_ids, _, extra_omitted = _walk_dependencies(adjacent, edge["source"], depth, max_nodes)
                 chosen.extend(x for x in sorted(proof_ids) if x not in chosen)
                 omitted |= extra_omitted
     contextual = {"references", "cites", "uses_resource", "describes", "about", "supports", "formalizes",
