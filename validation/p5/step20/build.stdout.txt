@@ -1,3 +1,0 @@
-✔ [2/4] Built QEC.Binary
-✔ [3/4] Built QEC
-Build completed successfully.

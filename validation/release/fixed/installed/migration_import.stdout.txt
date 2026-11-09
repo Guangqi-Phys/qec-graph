@@ -1,5 +1,0 @@
-{
-  "registry_revision": "c2af79875d71258d75d7adb120914c21ae9d187896549f413ea693fab0310b05",
-  "imported_records": 10,
-  "mathematical_recheck": "not_performed"
-}

@@ -1,4 +1,0 @@
-✔ [2/5] Built QEC.Binary
-✔ [3/5] Built QEC.Export
-✔ [4/5] Built QEC
-Build completed successfully.

@@ -1,4 +1,0 @@
-{
-  "status": "passed",
-  "cases": 10
-}

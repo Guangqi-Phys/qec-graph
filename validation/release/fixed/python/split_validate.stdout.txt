@@ -1,8 +1,0 @@
-{
-  "passed": true,
-  "snapshot_id": "3526b713179efe1d35a9432d2c3e28ce455beae341226047d9891d85090c776e",
-  "nodes": 34,
-  "edges": 93,
-  "source_slices_checked": 26,
-  "scope": "integrity, structure and provenance; no mathematical or Lean proof verification"
-}

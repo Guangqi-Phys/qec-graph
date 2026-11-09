@@ -1,4 +1,0 @@
-{
-  "status": "passed",
-  "commands": 19
-}

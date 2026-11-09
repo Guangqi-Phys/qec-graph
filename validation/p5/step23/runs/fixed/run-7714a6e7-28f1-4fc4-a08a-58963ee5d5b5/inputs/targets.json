@@ -1,9 +1,0 @@
-{
-  "schema_version": "qecgraph.lean-targets.v1",
-  "driver": "ExportMain.lean",
-  "required_declarations": {
-    "QEC.Binary.dot_commutes": {"kind": "theorem", "module": "QEC.Binary"},
-    "QEC.Binary.css_example_commutes": {"kind": "theorem", "module": "QEC.Binary"}
-  },
-  "scope": "These are build/export expectations, not semantic approval of a paper mapping"
-}

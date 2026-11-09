@@ -6,11 +6,8 @@ graft tools
 include AGENTS.md CHANGELOG.md CITATION.cff CODEX_TASK.md CONTRIBUTING.md IMPLEMENTATION_AUDIT.md SECURITY.md START_HERE.md
 recursive-include docs *.md
 exclude docs/CODEBASE_ASSESSMENT.md
-include validation/README.md validation/REPORT.md validation/rfc002/REPORT.md
-graft validation/audit-0.4.0rc1
+graft validation
 include lean/axiom-policy.json lean/targets.json
-graft validation/p5/step21
-include validation/p5/fixed-step20/report.json validation/p5/zero-axiom-policy/audit.json
 prune qec_graph_codex_handoff
 prune build
 prune dist
