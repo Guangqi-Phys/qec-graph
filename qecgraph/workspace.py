@@ -74,7 +74,7 @@ def _read_regular(path, limit):
     return raw
 
 
-def _hash_regular(path, limit):
+def _hash_regular(path, limit, *, copy_to=None):
     digest = hashlib.sha256()
     size = 0
     with _regular_input(path, limit) as (stream, before):
@@ -83,6 +83,8 @@ def _hash_regular(path, limit):
             if size > limit:
                 raise PackageError('limit_exceeded', 'Source byte limit exceeded')
             digest.update(chunk)
+            if copy_to is not None:
+                copy_to.write(chunk)
         _check_input_read(stream, before, size)
     return digest.hexdigest()
 
@@ -228,15 +230,25 @@ class Workspace:
         return True
 
     def _archive(self, job, meta, limit):
-        raw = _read_regular(job / 'payload', limit)
-        digest = hashlib.sha256(raw).hexdigest()
-        blob = self.path('archive/blobs/sha256/' + digest)
-        if blob.exists():
-            if not _matches_regular(blob, limit, raw):
-                raise ValueError('Archived blob does not match claimed input')
-        else:
-            atomic_bytes(blob, raw)
-        receipt = {'id': job.name, 'archive_sha256': digest, 'size_bytes': len(raw),
+        directory = self.path('archive/blobs/sha256')
+        fd, temporary = tempfile.mkstemp(prefix='.archive-', dir=directory)
+        try:
+            with os.fdopen(fd, 'wb') as output:
+                digest = _hash_regular(job / 'payload', limit, copy_to=output)
+                size = output.tell()
+                blob = self.path('archive/blobs/sha256/' + digest)
+                exists = blob.exists()
+                if exists:
+                    if _hash_regular(blob, limit) != digest:
+                        raise ValueError('Archived blob does not match claimed input')
+                else:
+                    output.flush()
+                    os.fsync(output.fileno())
+            if not exists:
+                os.replace(temporary, blob)
+        finally:
+            Path(temporary).unlink(missing_ok=True)
+        receipt = {'id': job.name, 'archive_sha256': digest, 'size_bytes': size,
                    'original_name': meta['name'], 'claimed_at': meta['claimed_at']}
         immutable_json(self.path('archive/receipts/' + job.name + '.json'), receipt)
         return digest

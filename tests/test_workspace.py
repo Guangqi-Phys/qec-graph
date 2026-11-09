@@ -256,3 +256,16 @@ class WorkspaceTests(unittest.TestCase):
         self.assertTrue(result['inputs'][0]['input_consumed'])
         self.assertEqual(result['counts']['processed'], 1)
         self.assertEqual(len(list((self.root / 'archive/receipts').glob('*.json'))), 1)
+
+    def test_archive_write_failure_leaves_the_claim_for_retry(self):
+        self.ws.init(no_ingest=True)
+        package = self.inbox / 'paper.tex'
+        package.write_bytes(TEX)
+        job, meta = self.ws._claim(package, False)
+        with patch('qecgraph.workspace.os.fsync', side_effect=OSError('archive disk error')):
+            with self.assertRaisesRegex(OSError, 'archive disk error'):
+                self.ws._archive(job, meta, len(TEX))
+        self.assertEqual((job / 'payload').read_bytes(), TEX)
+        self.assertEqual(list((self.root / 'archive/blobs/sha256').iterdir()), [])
+        self.assertEqual(list((self.root / 'archive/receipts').iterdir()), [])
+        self.assertTrue(self.ws.sync()['inputs'][0]['input_consumed'])
