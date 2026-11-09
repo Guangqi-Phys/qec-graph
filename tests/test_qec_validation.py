@@ -149,6 +149,26 @@ class QECValidationTests(unittest.TestCase):
                         'sector': 'joint', 'rounds': 5, 'boundaries': 'specified', 'postselection': 'specified', 'timeout_policy': 'count_as_failure'})
         return experiment, metric
 
+    def test_check_experiment_cli_reports_bound_sampling_and_metric_errors(self):
+        experiment, metric = self.experiment_fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'experiment.json'
+            command = [sys.executable, '-m', 'qecgraph', 'check-experiment', str(path), '--json']
+            path.write_text(json.dumps({'record': experiment, 'metric': metric}), encoding='utf-8')
+            verified = subprocess.run(command, capture_output=True, text=True, timeout=10, check=True)
+            report = json.loads(verified.stdout)
+            self.assertTrue(report['passed'])
+            self.assertEqual(report['estimate'], .05)
+            self.assertEqual(report['acceptance_rate'], .8)
+
+            metric['data']['denominator'] = 'all_shots'
+            path.write_text(json.dumps({'record': experiment, 'metric': metric}), encoding='utf-8')
+            rejected = subprocess.run(command, capture_output=True, text=True, timeout=10)
+            self.assertEqual(rejected.returncode, 1)
+            error = json.loads(rejected.stdout)['error']
+            self.assertEqual(error['code'], 'INVALID_INPUT')
+            self.assertIn('accepted_shots metrics', error['message'])
+
     def test_experiment_postselection_and_sampling_are_not_interchangeable(self):
         experiment, metric = self.experiment_fixture()
         result = check_experiment(experiment, metric)
