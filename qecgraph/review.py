@@ -227,6 +227,10 @@ def apply(corpus, proposal_id, review_id):
         if fixed != proposal['base_registry_revision']:
             raise ValueError('Stale proposal: registry changed; inspect and propose a new revision')
         records = final_records(proposal, review)
+        review_sha256 = hash_text(canonical(review))
+        checked_reviews = {}
+        if review['status'] == 'human_approved':
+            checked_reviews[review_id] = (review_sha256, {record['id']: record for record in records})
         if input_bindings(registry, state, records) != proposal['input_bindings']:
             raise ValueError('Proposal input/asset bindings changed')
         for change in proposal['changes']:
@@ -235,13 +239,13 @@ def apply(corpus, proposal_id, review_id):
             if before != change['before']:
                 raise ValueError('Apply input revision/hash no longer matches the reviewed diff')
         for record in records:
-            registry._put_record(state, record)
-        after_records = registry.records_from_state(state)
+            registry._put_record(state, record, checked_reviews=checked_reviews)
+        after_records = registry.records_from_state(state, _checked_reviews=checked_reviews)
         errors = [issue for issue in registry_issues(registry, after_records)
                   if issue.get('severity', 'error') == 'error']
         if errors:
             raise ValueError('Apply cross-record validation failed: ' + canonical(errors))
-        binding = {'review_id': review_id, 'review_sha256': hash_text(canonical(review)),
+        binding = {'review_id': review_id, 'review_sha256': review_sha256,
                    'records': [{key: record[key] for key in ('id', 'revision', 'content_sha256')} for record in records]}
         state.setdefault('applications', {})[proposal_id] = binding
         target_revision = hash_text(canonical(state))

@@ -139,10 +139,10 @@ class Registry:
         graph, report = load_validated_snapshot(snapshot)
         return graph, snapshot, report
 
-    def _put_record(self, state, record):
+    def _put_record(self, state, record, *, checked_reviews=None):
         record = prepare_record(record)
         from .review import verify_record_review
-        verify_record_review(self, record)
+        verify_record_review(self, record, checked_reviews=checked_reviews)
         from .validators import validate_endpoint
         for ref in record['refs']:
             if ref['target'] in state['records']:
@@ -171,10 +171,10 @@ class Registry:
         state, _ = self.read(registry_revision)
         return self.record_from_state(state, identifier, record_revision)
 
-    def records_from_state(self, state, identifiers=None):
+    def records_from_state(self, state, identifiers=None, *, _checked_reviews=None):
         if identifiers is None:
             identifiers = state['records']
-        checked_reviews = {}
+        checked_reviews = {} if _checked_reviews is None else _checked_reviews
         return {identifier: self.record_from_state(state, identifier, _checked_reviews=checked_reviews)
                 for identifier in identifiers}
 
