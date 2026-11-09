@@ -114,16 +114,6 @@ class ReadOnlySession:
     def tools(self):
         return copy.deepcopy(self._tool_descriptors)
 
-    def _resolve(self, identifier):
-        if self.scope['kind'] == 'corpus':
-            ids = {node['id'] for node in self.source.graph['nodes']}
-            version_id = self.scope['source_version_id']
-            if version_id and identifier not in ids and '::' not in identifier:
-                identifier = version_id + '::' + identifier
-            if identifier not in ids and '::' not in identifier:
-                raise ToolError('SCOPE_REQUIRED', 'Cross-document selectors require source_version_id::selector')
-        return identifier
-
     def _budget(self, result, maximum):
         result = copy.deepcopy(result)
         result['scope'] = copy.deepcopy(self.scope)
@@ -207,24 +197,26 @@ class ReadOnlySession:
                 raise ToolError('INVALID_ARGUMENT', 'Search query must not be blank')
             self._refresh()
             action = name.removeprefix('qecgraph_')
+            session = query.QuerySession(self.source)
+            identifier = arguments.get('identifier')
+            if action != 'search' and self.scope['kind'] == 'corpus':
+                identifier = session.corpus_identifier(identifier, self.scope['source_version_id'])
+                if identifier is None:
+                    raise ToolError('SCOPE_REQUIRED', 'Cross-document selectors require source_version_id::selector')
+            result = session.execute(
+                action, identifier, text=arguments.get('query'), kind=arguments.get('kind'),
+                limit=arguments.get('limit', min(20, self.max_results)),
+                depth=arguments.get('depth', min(2, self.max_depth)),
+                max_nodes=arguments.get('max_nodes', min(60, self.max_nodes)),
+                include_candidates=arguments.get('include_candidates', False))
             if action == 'search':
-                result = query.search(self.source, arguments['query'], arguments.get('kind'), arguments.get('limit', min(20, self.max_results)))
                 lookup = {node['id']: node for node in self.source.graph['nodes']}
                 for row in result['results']:
                     node = lookup[row['id']]
                     row.update(source=copy.deepcopy(node.get('source')), provenance=copy.deepcopy(node.get('provenance')),
                                review_status=node['review_status'], verification_status=node['verification_status'])
-            else:
-                identifier = self._resolve(arguments['identifier'])
-                if action == 'show':
-                    result = query.show(self.source, identifier)
-                    result['audit_view'] = True
-                else:
-                    depth = arguments.get('depth', min(2, self.max_depth))
-                    nodes = arguments.get('max_nodes', min(60, self.max_nodes))
-                    candidates = arguments.get('include_candidates', False)
-                    result = query.context(self.source, identifier, depth, candidates, nodes) if action == 'context' else query.dependencies(
-                        self.source, identifier, depth, candidates, action == 'impact', nodes)
+            elif action == 'show':
+                result['audit_view'] = True
             result['operation'] = action
             return {'ok': True, 'data': self._budget(result, arguments.get('max_chars', self.max_chars))}
         except ToolError as exc:

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from ...graph import read_json
-from ...query import context, dependencies, search, show
+from ...query import QuerySession
 from ...store import current_snapshot, snapshot_reference, validate_snapshot
 from ..errors import QueryError
 from ..process import cli_command
@@ -60,23 +60,18 @@ def graph_query(args):
     if args.workspace or args.machine:
         return _emit_tool_result(args, _workspace_query(args))
     _select_store_snapshot(args)
+    selector = getattr(args, 'id_or_label', None)
+    options = {'text': getattr(args, 'query', None), 'kind': getattr(args, 'kind', None),
+               'limit': getattr(args, 'limit', 20), 'depth': getattr(args, 'depth', 2),
+               'include_candidates': getattr(args, 'include_candidates', False),
+               'max_nodes': getattr(args, 'max_nodes', 60)}
     if getattr(args, 'corpus', None):
         from ...corpus import execute
-        result = execute(args.corpus, args.command, getattr(args, 'id_or_label', None),
+        result = execute(args.corpus, args.command, selector,
                          registry_revision=args.registry_revision, source_version_id=args.source_version_id,
-                         text=getattr(args, 'query', None), kind=getattr(args, 'kind', None),
-                         limit=getattr(args, 'limit', 20), depth=getattr(args, 'depth', 2),
-                         include_candidates=getattr(args, 'include_candidates', False),
-                         max_nodes=getattr(args, 'max_nodes', 60))
-    elif args.command == "search":
-        result = search(args.store, args.query, args.kind, args.limit)
-    elif args.command == "show":
-        result = show(args.store, args.id_or_label)
-    elif args.command == "context":
-        result = context(args.store, args.id_or_label, args.depth, args.include_candidates, args.max_nodes)
+                         **options)
     else:
-        result = dependencies(args.store, args.id_or_label, args.depth, args.include_candidates,
-                              args.command == "impact", args.max_nodes)
+        result = QuerySession(args.store).execute(args.command, selector, **options)
     return emit_report(result, quiet=args.quiet)
 
 

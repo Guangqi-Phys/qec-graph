@@ -148,21 +148,13 @@ def _project_state(registry, state, fixed, source_version_id=None, *,
 def execute(corpus, action, identifier=None, *, registry_revision=None, source_version_id=None,
             text=None, kind=None, limit=20, depth=2, include_candidates=False, max_nodes=60):
     graph_input, scope = project(corpus, registry_revision, source_version_id)
+    session = query.QuerySession(graph_input)
     if action != 'search':
-        if source_version_id and identifier not in {n['id'] for n in graph_input.graph['nodes']} and '::' not in identifier:
-            identifier = source_version_id + '::' + identifier
-        if identifier not in {n['id'] for n in graph_input.graph['nodes']} and '::' not in identifier:
+        identifier = session.corpus_identifier(identifier, source_version_id)
+        if identifier is None:
             raise ValueError('Cross-document labels/IDs require source_version_id::selector or an exact entity/occurrence ID')
-    if action == 'search':
-        result = query.search(graph_input, text, kind, limit)
-    elif action == 'show':
-        result = query.show(graph_input, identifier)
-    elif action == 'context':
-        result = query.context(graph_input, identifier, depth, include_candidates, max_nodes)
-    elif action in {'deps', 'impact'}:
-        result = query.dependencies(graph_input, identifier, depth, include_candidates, action == 'impact', max_nodes)
-    else:
-        raise ValueError('Unknown read-only corpus action')
+    result = session.execute(action, identifier, text=text, kind=kind, limit=limit, depth=depth,
+                             include_candidates=include_candidates, max_nodes=max_nodes)
     result['scope'] = scope
     result['extraction_status'] = graph_input.graph['extraction_status']
     result['diagnostics'] = graph_input.graph['diagnostics']
