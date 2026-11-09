@@ -12,8 +12,10 @@ from qecgraph.cli.parser import _build_parser, parse_command
 ROOT = Path(__file__).resolve().parents[1]
 USER_DOCS = ('README.md', 'docs/README.md', 'docs/user/advanced-usage.md',
              'docs/user/data-and-search.md', 'docs/user/workspace.md', 'docs/user/splitter.md',
-             'docs/user/README.md', 'docs/user/quickstart.zh-CN.md', 'docs/design/README.md',
-             'docs/operations/README.md', 'docs/archive/README.md', 'CONTRIBUTING.md', 'SECURITY.md')
+             'docs/user/README.md', 'docs/user/quickstart.zh-CN.md',
+             'docs/design/DESIGN.md', 'docs/operations/README.md', 'docs/operations/maintenance.md',
+             'docs/operations/corpus.md', 'docs/operations/review.md', 'docs/operations/audit-remediation.md',
+             'docs/archive/README.md', 'CONTRIBUTING.md', 'SECURITY.md')
 LINK = re.compile(r'\[[^\]\n]+\]\(([^\s)]+)\)')
 INLINE_COMMAND = re.compile(r'`qec-graph ([^`\n]+)`')
 

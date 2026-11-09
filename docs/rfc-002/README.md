@@ -1,5 +1,8 @@
 # QEC Graph 设计更新交付包
 
+> **Status: Historical design input.** Current design is [docs/design/DESIGN.md](../design/DESIGN.md); current usage is [docs/user/](../user/README.md).
+
+
 日期：2026-11-09。编号：RFC-QEC-002。
 
 本页归档 RFC-QEC-002 的原始设计与实施任务。当前命令见[工作区说明](../user/workspace.md)，

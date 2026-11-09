@@ -1,5 +1,8 @@
 # RFC-QEC-002 工作区使用说明
 
+> **Status: Current (0.4.x).** Workspace configuration, Obsidian and provider handoff.
+
+
 `0.4.0rc1` 是可本地安装的发行候选。已有的 `qecgraph`、`qec-latex-split`、
 `qecgraph-mcp` 及 SourceGraph、LemmaGraph、DataGraph、Lean 命令继续可用。
 本说明描述已经接入的工作流；[原始设计](../rfc-002/QEC_GRAPH_DESIGN_UPDATE.md)包含更广的目标，

@@ -1,5 +1,8 @@
 # Corpus：注册、身份与查询
 
+> **Status: Current for the legacy corpus surface.** The workspace surface is the primary product; see the [workspace guide](../user/workspace.md).
+
+
 原有单工程 store 和 CLI 保持兼容。Corpus 用独立目录维护多文档身份：
 
 ```bash

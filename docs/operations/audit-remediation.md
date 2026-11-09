@@ -1,5 +1,8 @@
 # Codebase audit remediation
 
+> **Status: Current remediation ledger.** Acceptance evidence is indexed in [validation/README.md](../../validation/README.md).
+
+
 This ledger tracks section 9 of the 2026-11-09 codebase assessment, including
 the related proposals in sections 3–8. The work started from `cfdb783`.
 Each entry is complete only when its acceptance evidence has been checked.

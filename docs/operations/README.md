@@ -1,5 +1,9 @@
 # Operations and maintenance
 
+> **Status: Current.** Daily workspace usage lives in the [user guides](../user/README.md);
+> this section covers the legacy store/corpus compatibility surface, review,
+> remediation and validation evidence.
+
 - [Legacy store and corpus maintenance](maintenance.md): source changes, index rebuilds, backups, and recovery for the compatibility surface
 - [Corpus](corpus.md), [review](review.md), and [workspace migration](../user/workspace.md)
 - [Release build and verification](../user/advanced-usage.md#installation-options) and [changelog](../../CHANGELOG.md)

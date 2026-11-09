@@ -1,9 +1,12 @@
 # RFC-QEC-002 实施进度
 
+> **Status: Historical implementation report.** Current design is [docs/design/DESIGN.md](../design/DESIGN.md).
+
+
 本页记录 RFC-QEC-002 的阶段成果。当前命令见[工作区说明](../user/workspace.md)，
 后续修复和跨平台验证见[审计台账](../operations/audit-remediation.md)与[验证索引](../../validation/README.md)。
 
-[现有实现审计](../../IMPLEMENTATION_AUDIT.md)固定 0.3.0 基线；
+[现有实现审计](../archive/implementation-audit.md)固定 0.3.0 基线；
 [设计](QEC_GRAPH_DESIGN_UPDATE.md)定义目标，[任务说明](CODEX_UPDATE_TASK.md)列出验收。
 设计目录中的合成样例和目录核查记录不代表论文数据或本地实验。
 

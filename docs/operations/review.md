@@ -1,5 +1,8 @@
 # 类型验证、证据与审核
 
+> **Status: Current for the legacy corpus review surface.** Workspace review/apply semantics are in the [system design](../design/DESIGN.md#6-review-evidence-and-query-eligibility).
+
+
 ## 记录与 Schema 版本
 
 P2 新记录使用 `qecgraph.record.v3`。相对 P1 v2，新增逐 kind 必填字段、显式未知原因、

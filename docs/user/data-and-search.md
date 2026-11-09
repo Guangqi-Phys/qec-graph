@@ -1,5 +1,8 @@
 # Data and search
 
+> **Status: Current (0.4.x).** Research records, evidence policy and query contracts.
+
+
 QEC Graph keeps the original sources, the graph extracted from them, and
 versioned research records. Search results refer to the machine release that
 served the query, so you can trace a result back to the same data later.
@@ -20,7 +23,7 @@ its source location and any unresolved fields. Structured code parameters,
 distance bounds, experimental conditions, and performance points depend on
 explicit records and evidence. Source links preserve what the paper reports.
 Mathematical checks, semantic review, and Lean builds carry separate evidence.
-[Graph semantics](../02_QEC_GRAPH_SPEC.md) · [Field and evidence conventions](../04_DATA_FORMATS.md)
+[Graph semantics and data contracts](../design/DESIGN.md#4-data-contracts)
 
 ## Research record types
 

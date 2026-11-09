@@ -1,5 +1,8 @@
 # Advanced usage
 
+> **Status: Current (0.4.x).** Install, workspace, query and release instructions.
+
+
 For the install command, daily workflow, and MCP setup, start with the [README](../../README.md).
 
 ## Installation options
