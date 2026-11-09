@@ -6,16 +6,14 @@ acceptance never becomes a human review or a mathematical verification.
 from __future__ import annotations
 
 import copy
-import json
 import uuid
 from datetime import datetime, timezone
-from importlib.resources import files
-from jsonschema import Draft202012Validator
 
 from .graph import canonical, hash_text, read_json
 from .records import prepare_record
 from .registry import Registry
 from .transactions import immutable_json, writer_lock
+from .validators import packaged_validator
 
 SCOPES = {'statement', 'hypotheses', 'dependencies'}
 
@@ -50,10 +48,9 @@ def _path(registry, category, identifier):
 
 
 def _validate(value, schema_name):
-    schema = json.loads(files('qecgraph.validators').joinpath('schemas/' + schema_name + '.schema.json').read_text(encoding='utf-8'))
-    errors = list(Draft202012Validator(schema).iter_errors(value))
-    if errors:
-        raise ValueError('Review/proposal schema: ' + errors[0].message)
+    error = next(packaged_validator(schema_name, check_formats=False).iter_errors(value), None)
+    if error is not None:
+        raise ValueError('Review/proposal schema: ' + error.message)
 
 
 def input_bindings(registry, state, after_records=()):

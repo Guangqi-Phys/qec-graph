@@ -10,11 +10,16 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 from ..graph import KNOWN_RELATIONS
 
+
+@lru_cache
+def _packaged_schema(name):
+    return json.loads(files(__package__).joinpath('schemas/' + name + '.schema.json').read_text(encoding='utf-8'))
+
+
 STATEMENTS = {'lemma', 'theorem', 'proposition', 'corollary', 'conjecture', 'claim'}
 MATHEMATICS = STATEMENTS | {'definition', 'proof', 'equation'}
-_SCHEMA = json.loads(files(__package__).joinpath('schemas/record.v3.schema.json').read_text(encoding='utf-8'))
 DOMAIN_FIELDS = {entry['if']['properties']['kind']['const']: entry['then']['properties']['data']['required']
-                 for entry in _SCHEMA['allOf'] if 'data' not in entry['if']['properties']}
+                 for entry in _packaged_schema('record.v3')['allOf'] if 'data' not in entry['if']['properties']}
 ENDPOINTS = {
     'proof_of': ({'proof'}, STATEMENTS),
     'proof_of_candidate': ({'proof'}, STATEMENTS),
@@ -39,17 +44,14 @@ ENDPOINTS = {
     'lean_proof_depends_on_transitive': ({'lean_declaration'}, {'lean_declaration'}),
 }
 
-
-
 @lru_cache
-def packaged_validator(name):
-    schema = json.loads(files(__package__).joinpath('schemas/' + name + '.schema.json').read_text(encoding='utf-8'))
-    return Draft202012Validator(schema, format_checker=FormatChecker())
+def packaged_validator(name, *, check_formats=True):
+    return Draft202012Validator(_packaged_schema(name), format_checker=FormatChecker() if check_formats else None)
+
 
 def validate_record(record):
-    name = 'record.v2.schema.json' if record['schema_version'] == 'qecgraph.record.v2' else 'record.v3.schema.json'
-    schema = json.loads(files(__package__).joinpath('schemas/' + name).read_text(encoding='utf-8'))
-    errors = sorted(Draft202012Validator(schema).iter_errors(record), key=lambda e: str(list(e.path)))
+    name = 'record.v2' if record['schema_version'] == 'qecgraph.record.v2' else 'record.v3'
+    errors = sorted(packaged_validator(name, check_formats=False).iter_errors(record), key=lambda e: str(list(e.path)))
     if errors:
         error = errors[0]
         raise ValueError('Record schema at ' + '/'.join(map(str, error.path)) + ': ' + error.message)
