@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import platform
 import subprocess
 import tempfile
 
@@ -36,9 +37,11 @@ def verify(python, root):
     inbox = root / 'inputs'
     inbox.mkdir()
     (inbox / 'fixture').write_bytes(b'\\documentclass{article}\n\\begin{document}\nIsolation fixture\n\\end{document}\n')
-    initial = subprocess.check_output([str(python), '-I', '-B', '-m', 'qecgraph', 'init'],
+    initial = subprocess.check_output([str(python), '-I', '-B', '-m', 'qecgraph', 'init', '--json'],
                                       cwd=root, text=True, timeout=30)
-    assert json.loads(initial)['human']['status'] == 'current'
+    initialized = json.loads(initial)
+    assert initialized['human']['status'] == 'current'
+    release = initialized['release_id']
     private = root / 'human/notes/private.md'
     private.write_text('ISOLATION-PROBE-43af', encoding='utf-8')
     machine = root / 'machine'
@@ -52,13 +55,15 @@ def verify(python, root):
         {'method': 'notifications/initialized'},
         {'id': 2, 'method': 'tools/call', 'params': {'name': 'qecgraph_search', 'arguments': {'query': 'Isolation fixture'}}},
     ]
-    result = subprocess.run([*cmd, '-m', 'qecgraph', 'mcp', 'serve', '--machine', str(machine)], cwd=root,
+    result = subprocess.run([*cmd, '-m', 'qecgraph', 'mcp', 'serve', '--machine', str(machine), '--release', release], cwd=root,
                             input=''.join(json.dumps({'jsonrpc': '2.0', **r}) + '\n' for r in requests),
                             text=True, capture_output=True, timeout=30, check=True)
     responses = [json.loads(line) for line in result.stdout.splitlines()]
-    assert responses[-1]['result']['structuredContent']['data']['results']
+    data = responses[-1]['result']['structuredContent']['data']
+    assert data['results'] and data['scope']['release_id'] == release
     assert 'ISOLATION-PROBE-43af' not in result.stdout + result.stderr
-    return {**report, 'passed': True, 'isolated_mcp_search': True}
+    return {**report, 'passed': True, 'isolated_mcp_search': True, 'release_id': release,
+            'environment': {'os': 'macOS', 'version': platform.mac_ver()[0], 'architecture': platform.machine()}}
 
 
 def main():
