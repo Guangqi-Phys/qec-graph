@@ -54,3 +54,7 @@ class SourcePackageTests(unittest.TestCase):
         with self.assertRaises(PackageError) as caught:
             unpack(raw, Limits(member_bytes=len(TEX)))
         self.assertEqual(caught.exception.status, 'limit_exceeded')
+
+    def test_entrypoint_discovery_ignores_non_tex_examples(self):
+        raw = tar_bytes({'main.TeX': TEX, 'README.txt': TEX, '.tex': TEX})
+        self.assertEqual(unpack(raw).entrypoints(), ['main.TeX'])

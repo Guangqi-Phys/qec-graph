@@ -64,6 +64,8 @@ class SourceTree:
     def entrypoints(self):
         candidates = []
         for name, raw in self.files.items():
+            if PurePosixPath(name).suffix.lower() != '.tex':
+                continue
             try:
                 body = _tex_body(raw)
             except UnicodeDecodeError:
