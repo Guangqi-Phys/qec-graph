@@ -93,9 +93,9 @@ jobs:
             prerelease=()
             if [[ "$tag" =~ (a|b|rc)[0-9]+$ ]]; then prerelease=(--prerelease); fi
             {
-              printf '%s\n\n' 'Standalone builds tested on macOS 15 for Apple Silicon and Intel. Sign in to GitHub CLI with an account that can read this repository.'
+              printf '%s\n\n' 'Standalone builds tested on macOS 15 for Apple Silicon and Intel.'
               printf '%s\n' '```sh'
-              printf 'installer=$(gh release download %s --repo %s --pattern install.sh --output -) && printf "%%s\\n" "$installer" | sh -s -- %s\n' "$tag" "$repo" "$tag"
+              printf 'curl -fsSL https://raw.githubusercontent.com/%s/%s/install.sh | sh -s -- %s\n' "$repo" "$tag" "$tag"
               printf '%s\n\n' '```'
               printf '%s\n' 'Open a new terminal if the installer added the command to your PATH. In each new workspace, run `qec-graph init --workspace .` once, then place paper archives in `inputs/` and run `qec-graph sync`.'
             } > release-notes.md

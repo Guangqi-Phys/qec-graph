@@ -20,7 +20,6 @@ case "$(uname -s)-$(uname -m)" in
     *) die 'this release supports Apple Silicon and Intel Macs' ;;
 esac
 
-command -v gh >/dev/null 2>&1 || die 'install GitHub CLI and sign in with gh auth login'
 bin_dir="${QECGRAPH_BIN_DIR:-$HOME/.local/bin}"
 case "$bin_dir" in /*) ;; *) die 'QECGRAPH_BIN_DIR must be an absolute path' ;; esac
 destination="$bin_dir/qec-graph"
@@ -35,9 +34,12 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 1' HUP INT TERM
 
-gh release download "$version" --repo "$repository" --dir "$download" \
-    --pattern "$asset" --pattern "$asset.sha256" \
-    || die "could not download $version. Check gh auth status and repository access"
+release_url="https://github.com/$repository/releases/download/$version"
+for file in "$asset.sha256" "$asset"; do
+    curl -fsSL --proto '=https' --proto-redir '=https' --retry 2 \
+        --output "$download/$file" "$release_url/$file" \
+        || die "could not download $file for $version"
+done
 
 IFS=' ' read -r expected filename < "$download/$asset.sha256" || die 'invalid SHA-256 manifest'
 case "$expected" in ''|*[!0-9a-f]*) die 'invalid SHA-256 manifest' ;; esac

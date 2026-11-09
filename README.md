@@ -23,11 +23,8 @@ Local ingestion and queries run without an API key.
 
 ## Install from GitHub Release on macOS
 
-Sign in with `gh auth login` using a GitHub account that can read this private
-repository, then run:
-
 ```sh
-installer=$(gh release download v0.4.0rc1 --repo Guangqi-Phys/qec-graph --pattern install.sh --output -) && printf '%s\n' "$installer" | sh
+curl -fsSL https://raw.githubusercontent.com/Guangqi-Phys/qec-graph/main/install.sh | sh
 ```
 
 Release `v0.4.0rc1` includes a standalone Apple Silicon (arm64) build. The
