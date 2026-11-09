@@ -1,5 +1,6 @@
 import io
 import json
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -237,6 +238,10 @@ class CLIContractTests(unittest.TestCase):
             health = report('doctor', '--workspace', str(root), '--json')
             self.assertEqual(health['release_id'], current)
             self.assertEqual(health['checks']['archive_inventory']['blobs'], 0)
+            self.assertEqual(health['checks']['sqlite_fts5'], {'status': 'ok', 'available': True})
+            with patch('qecgraph.maintenance.sqlite3.connect', side_effect=sqlite3.OperationalError('no such module: fts5')):
+                unavailable = report('doctor', '--workspace', str(root), '--json', expected=1)
+            self.assertIn('runtime with FTS5', unavailable['checks']['sqlite_fts5']['message'])
             rows = report('snapshot', 'list', '--workspace', str(root))
             self.assertEqual(rows['current'], current)
             self.assertEqual(set(rows['stored_states']), {current, candidate})

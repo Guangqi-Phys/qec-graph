@@ -2,6 +2,7 @@
 
 import platform
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 from . import __version__
@@ -41,10 +42,19 @@ def doctor(workspace):
         return {'pending': len(result['inputs']), 'pending_claims': result['pending_claims'],
                 'quarantined': len(result['quarantined_inputs'])}
 
+    def sqlite_fts5():
+        try:
+            with closing(sqlite3.connect(':memory:')) as connection:
+                connection.execute('CREATE VIRTUAL TABLE qec_probe USING fts5(content)')
+        except sqlite3.Error as exc:
+            raise ValueError('SQLite cannot create an FTS5 index. Use a QEC Graph runtime with FTS5.') from exc
+        return {'available': True}
+
     probe('config', lambda: {'workspace_id': ws.config()['workspace_id']})
     probe('machine/CURRENT.json', pointer)
     probe('archive_inventory', inventory)
     probe('inbox', inbox)
+    probe('sqlite_fts5', sqlite_fts5)
     release = checks['machine/CURRENT.json'].get('release_id')
     human = None
     if release is not None:
