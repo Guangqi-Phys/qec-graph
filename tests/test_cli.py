@@ -1,5 +1,7 @@
 import io
 import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -9,6 +11,30 @@ from qecgraph.cli import main
 
 
 class CLIContractTests(unittest.TestCase):
+    def test_installed_entry_point_help_version_and_usage_status(self):
+        from qecgraph import __version__
+
+        def run(*args):
+            return subprocess.run([sys.executable, '-m', 'qecgraph', *args], text=True,
+                                  capture_output=True, timeout=5)
+
+        quick = run()
+        self.assertEqual(quick.returncode, 0, quick.stderr)
+        self.assertIn('mcp serve', quick.stdout)
+        version = run('--version')
+        self.assertEqual(version.returncode, 0, version.stderr)
+        self.assertEqual(version.stdout.strip(), f'qec-graph {__version__}')
+        self.assertEqual(run('version').stdout, version.stdout)
+        self.assertIn('--include-candidates', run('help', 'context').stdout)
+        help_text = run('--help').stdout
+        for name in ('deps', 'impact', 'context'):
+            self.assertIn(f'    {name} ', help_text)
+        for args in [('unknown',), ('help', 'unknown'), ('ingest',)]:
+            result = run(*args)
+            self.assertEqual(result.returncode, 64, result.stderr)
+            self.assertEqual(result.stdout, '')
+            self.assertIn('--help', result.stderr)
+
     def test_bad_json_command_fields_report_input_errors_before_writing(self):
         cases = [
             (['review', '--actor-id', 'test'], {}, 'changes, rationale'),

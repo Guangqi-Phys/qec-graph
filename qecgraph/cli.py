@@ -8,6 +8,7 @@ import sys
 from threading import Event, Thread
 from time import monotonic
 
+from . import __version__
 from .query import context, dependencies, search, show
 from .splitter import split_project
 from .store import current_snapshot, ingest, snapshot_reference, validate_snapshot
@@ -18,6 +19,25 @@ from .graph import read_json
 _DAILY_WORKSPACE_COMMANDS = {'sync', 'status', 'validate'}
 _WORKSPACE_WRITE_COMMANDS = {'init', 'sync', 'rebuild'}
 _GRAPH_QUERY_COMMANDS = {'search', 'show', 'deps', 'impact', 'context'}
+_QUICK_HELP = """Usage: qec-graph <command> [options]
+
+  init       Create a workspace
+  sync       Import source packages from inputs/
+  status     Report import progress and failures
+  validate   Check the current release
+  search     Find source blocks and records
+  mcp serve  Start the read-only MCP server
+
+Run qec-graph --help for all commands or qec-graph help <command> for options."""
+
+
+class _UsageError(ValueError):
+    pass
+
+
+class _ArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        raise _UsageError(message)
 
 
 def _cli_command(*arguments):
@@ -228,6 +248,9 @@ def _add_source_arguments(parser):
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
+    if not argv:
+        print(_QUICK_HELP)
+        return 0
     if argv[:2] == ['mcp', 'serve']:
         argv[:2] = ['serve-mcp']
     if argv[:2] == ['human', 'build']:
@@ -236,8 +259,13 @@ def main(argv=None):
         argv[:2] = ['software-' + argv[1]]
     if argv[:2] == ['review', 'list'] and '--corpus' not in argv:
         argv[:2] = ['review-list']
-    parser = argparse.ArgumentParser(prog="qecgraph", description="LaTeX source blocks and typed QEC graphs with explicit evidence checks")
-    sub = parser.add_subparsers(dest="command", required=True)
+    parser = _ArgumentParser(prog="qec-graph", usage="%(prog)s <command> [options]",
+                             description="LaTeX source blocks and typed QEC graphs with explicit evidence checks")
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
+    sub = parser.add_subparsers(dest="command", required=True, metavar="<command>")
+    sub.add_parser('version', help='Show the installed QEC Graph version')
+    help_command = sub.add_parser('help', help='Show help for a specific command')
+    help_command.add_argument('topic', nargs='?')
     for action in ('init', 'sync', 'rebuild', 'status'):
         workspace = sub.add_parser(action, help=f'{action.capitalize()} a managed QEC workspace')
         workspace.add_argument('--workspace')
@@ -417,7 +445,24 @@ def main(argv=None):
     group.add_argument("--workspace")
     cmd.add_argument('--snapshot')
     cmd.add_argument('--json', action='store_true', help='Print the detailed workspace report')
-    args = parser.parse_args(argv)
+    try:
+        if not argv[0].startswith('-') and argv[0] not in sub.choices:
+            raise _UsageError(f'Unknown command {argv[0]!r}')
+        args = parser.parse_args(argv)
+        if args.command == 'help':
+            if args.topic is None:
+                parser.print_help()
+            elif args.topic in sub.choices:
+                sub.choices[args.topic].print_help()
+            else:
+                raise _UsageError(f'Unknown help topic {args.topic!r}')
+            return 0
+    except _UsageError as exc:
+        print(f'error: {exc}. Run qec-graph --help for usage.', file=sys.stderr)
+        return 64
+    if args.command == 'version':
+        print(f'qec-graph {__version__}')
+        return 0
     workspace_command = (args.command in _WORKSPACE_WRITE_COMMANDS | {'status'}
                          or args.command == 'validate' and not args.store)
     progress = _WorkspaceProgress(args.command) if workspace_command and not args.json else None

@@ -66,6 +66,8 @@ Workspace maintenance commands print one outcome line by default. In a
 terminal, longer operations also show their progress on that line. Pass
 `--json` for the full report in scripts, including when using `--workspace`
 or redirecting output. A partial status exits with code 2 in either mode.
+Invalid command syntax exits with code 64. Run `qec-graph help <command>`
+for command options or `qec-graph --version` for the installed version.
 
 | Task | Command from the workspace root |
 | --- | --- |
