@@ -311,15 +311,63 @@ class _ProjectLatexContext(LatexContextDb):
         return super().test_for_specials(s, pos, parsing_state)
 
 
+class _StructuralConditionals:
+    def __init__(self):
+        self.stack = []
+        self.masked = []
+        self.selected = []
+        self.inactive_start = None
+
+    def uncertain(self):
+        return any(value is None for value, _ in self.stack)
+
+    def scan(self, token, pos, walker, state, bindings, *, opens):
+        name = token.arg
+        was_inactive = self.inactive_start is not None
+        if opens:
+            decidable = not was_inactive and not self.uncertain()
+            decision = {"iftrue": True, "iffalse": False}.get(name) if decidable else None
+            if name == "ifdefined" and not was_inactive:
+                operand = _next_token(walker, pos, state)
+                if operand is not None:
+                    pos = operand.pos + operand.len
+                    if decidable and operand.tok == "macro" and operand.arg in bindings:
+                        decision = True
+            elif name == "ifx" and not was_inactive:
+                # The compared control tokens are read without expanding them.
+                for _ in range(2):
+                    operand = _next_token(walker, pos, state)
+                    if operand is None:
+                        break
+                    pos = operand.pos + operand.len
+            self.stack.append((decision, False))
+            if decision is not None and not was_inactive:
+                self.selected.append((token.pos, pos))
+        else:
+            decision, in_else = self.stack.pop()
+            if name == "else":
+                if in_else and decision is not None:
+                    raise LatexWalkerParseError(s=walker.s, pos=token.pos, msg="Repeated conditional else")
+                self.stack.append((None if decision is None else not decision, True))
+        inactive = any(value is False for value, _ in self.stack)
+        if was_inactive and not inactive:
+            self.masked.append((self.inactive_start, pos))
+            self.inactive_start = None
+        elif inactive and not was_inactive:
+            self.inactive_start = token.pos
+        elif not inactive and decision is not None:
+            self.masked.append((token.pos, pos))
+        return pos
+
+
 def _scan_structure(text, inherited, context, known_conditionals):
     """Find literal environment aliases and statically decidable branch ranges."""
     walker = LatexWalker(text, latex_context=context, tolerant_parsing=False)
     state = walker.make_parsing_state()
     scopes = [(None, dict(inherited))]
-    conditionals = []
+    conditionals = _StructuralConditionals()
     conditional_names = known_conditionals - _CONDITIONAL_MACROS
-    aliases, include_bindings, masked, selected = {}, {}, [], []
-    inactive_start = None
+    aliases, include_bindings = {}, {}
     pos = 0
     # Only control sequences, comments and grouping can affect this scan.
     # Argument readers still consume the original token stream.
@@ -330,46 +378,14 @@ def _scan_structure(text, inherited, context, known_conditionals):
         pos = token.pos + token.len
         bindings = scopes[-1][1]
         name = token.arg if token.tok == "macro" else None
-        if name in conditional_names or (conditionals and name in {"else", "fi"}):
-            was_inactive = inactive_start is not None
-            if name in conditional_names:
-                decidable = not was_inactive and all(value is not None for value, _ in conditionals)
-                decision = {"iftrue": True, "iffalse": False}.get(name) if decidable else None
-                if name == "ifdefined" and not was_inactive:
-                    operand = _next_token(walker, pos, state)
-                    if operand is not None:
-                        pos = operand.pos + operand.len
-                        if decidable and operand.tok == "macro" and operand.arg in bindings:
-                            decision = True
-                elif name == "ifx" and not was_inactive:
-                    # The compared control tokens are read without expanding them.
-                    for _ in range(2):
-                        operand = _next_token(walker, pos, state)
-                        if operand is None:
-                            break
-                        pos = operand.pos + operand.len
-                conditionals.append((decision, False))
-                if decision is not None and not was_inactive:
-                    selected.append((token.pos, pos))
-            else:
-                decision, in_else = conditionals.pop()
-                if name == "else":
-                    if in_else and decision is not None:
-                        raise LatexWalkerParseError(s=text, pos=token.pos, msg="Repeated conditional else")
-                    conditionals.append((None if decision is None else not decision, True))
-            inactive = any(value is False for value, _ in conditionals)
-            if was_inactive and not inactive:
-                masked.append((inactive_start, pos))
-                inactive_start = None
-            elif inactive and not was_inactive:
-                inactive_start = token.pos
-            elif not inactive and decision is not None:
-                masked.append((token.pos, pos))
+        opens = name in conditional_names
+        if opens or (conditionals.stack and name in {"else", "fi"}):
+            pos = conditionals.scan(token, pos, walker, state, bindings, opens=opens)
             continue
-        if inactive_start is not None:
+        if conditionals.inactive_start is not None:
             continue
 
-        uncertain = any(value is None for value, _ in conditionals)
+        uncertain = conditionals.uncertain()
         if name == "let":
             target = _next_token(walker, pos, state)
             if target is not None and target.tok == "macro":
@@ -430,16 +446,16 @@ def _scan_structure(text, inherited, context, known_conditionals):
               or (token.tok == "brace_close" and scopes[-1][0] == ("brace_close", "{"))):
             scopes.pop()
 
-    if any(value is not None for value, _ in conditionals):
+    if any(value is not None for value, _ in conditionals.stack):
         raise LatexWalkerParseError(s=text, pos=len(text), msg="Unclosed statically recognized conditional")
-    if not masked:
-        return text, aliases, include_bindings, selected
+    if not conditionals.masked:
+        return text, aliases, include_bindings, conditionals.selected
     parts = []
     pos = 0
-    for start, end in masked:
+    for start, end in conditionals.masked:
         parts.extend((text[pos:start], re.sub(r"[^\r\n]", " ", text[start:end])))
         pos = end
-    return "".join(parts) + text[pos:], aliases, include_bindings, selected
+    return "".join(parts) + text[pos:], aliases, include_bindings, conditionals.selected
 
 
 class _ProjectParser:
