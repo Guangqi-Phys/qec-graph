@@ -17,6 +17,7 @@ from .graph import read_json
 
 _DAILY_WORKSPACE_COMMANDS = {'sync', 'status', 'validate'}
 _WORKSPACE_WRITE_COMMANDS = {'init', 'sync', 'rebuild'}
+_GRAPH_QUERY_COMMANDS = {'search', 'show', 'deps', 'impact', 'context'}
 
 
 def _cli_command(*arguments):
@@ -167,16 +168,19 @@ def _add_ai_arguments(parser):
     parser.add_argument('--session-max-results', type=int, default=50)
 
 
+def _workspace_session(args, **budgets):
+    from .workspace import Workspace
+    from .workspace_query import WorkspaceSession
+    if args.snapshot or args.source_version_id or args.registry_revision:
+        raise ValueError('Workspace tools use --release; store/corpus selectors are not applicable')
+    machine = args.machine or Workspace(args.workspace).path('machine')
+    return WorkspaceSession(machine, args.release, **budgets)
+
+
 def _ai_session(args):
     if args.workspace or args.machine:
-        from .workspace import Workspace
-        from .workspace_query import WorkspaceSession
-        if args.snapshot or args.source_version_id or args.registry_revision:
-            raise ValueError('Workspace tools use --release; store/corpus selectors are not applicable')
-        machine = args.machine or Workspace(args.workspace).path('machine')
-        return WorkspaceSession(machine, args.release, max_nodes=args.session_max_nodes,
-                                max_depth=args.session_max_depth, max_chars=args.session_max_chars,
-                                max_results=args.session_max_results)
+        return _workspace_session(args, max_nodes=args.session_max_nodes, max_depth=args.session_max_depth,
+                                  max_chars=args.session_max_chars, max_results=args.session_max_results)
     if args.release:
         raise ValueError('--release requires --workspace or --machine')
     from .ai_tools import ReadOnlySession
@@ -184,6 +188,19 @@ def _ai_session(args):
                            registry_revision=args.registry_revision, source_version_id=args.source_version_id,
                            max_nodes=args.session_max_nodes, max_depth=args.session_max_depth,
                            max_chars=args.session_max_chars, max_results=args.session_max_results)
+
+
+def _workspace_query(args):
+    if args.command == 'search':
+        session = _workspace_session(args, max_results=args.limit)
+        return session.invoke('qecgraph_search', {'query': args.query, 'kind': args.kind, 'limit': args.limit})
+    if args.command == 'show':
+        return _workspace_session(args).invoke('qec_get_entity', {'identifier': args.id_or_label})
+    session = _workspace_session(args, max_nodes=args.max_nodes, max_depth=args.depth)
+    tool = 'qec_get_context' if args.command == 'context' else 'qecgraph_' + args.command
+    return session.invoke(tool, {'identifier': args.id_or_label, 'depth': args.depth,
+                                 'max_nodes': args.max_nodes,
+                                 'include_candidates': args.include_candidates})
 
 
 def _add_source_arguments(parser):
@@ -365,16 +382,18 @@ def main(argv=None):
     _add_source_arguments(cmd)
     cmd = sub.add_parser("search", help="Search titles, labels and text")
     cmd.add_argument("query")
-    _add_query_scope(cmd)
+    _add_query_scope(cmd, workspace=True)
     cmd.add_argument("--kind")
     cmd.add_argument("--limit", type=int, default=20)
     cmd = sub.add_parser("show", help="Read one node with its incoming/outgoing edges")
     cmd.add_argument("id_or_label")
-    _add_query_scope(cmd)
-    for name in ("deps", "impact", "context"):
-        cmd = sub.add_parser(name)
+    _add_query_scope(cmd, workspace=True)
+    for name, description in (("deps", "Trace active graph dependencies"),
+                              ("impact", "Trace potential impact through graph dependencies"),
+                              ("context", "Read bounded evidence and source context")):
+        cmd = sub.add_parser(name, help=description)
         cmd.add_argument("id_or_label")
-        _add_query_scope(cmd)
+        _add_query_scope(cmd, workspace=True)
         cmd.add_argument("--depth", type=int, default=2)
         cmd.add_argument("--include-candidates", action="store_true")
         cmd.add_argument("--max-nodes", type=int, default=60)
@@ -483,7 +502,10 @@ def main(argv=None):
                 result = {'release_id': release, 'proposals': rows, 'provider_drafts': queued(ws.root, state)}
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 2 if result.get('status') == 'partial' else 0
-        if args.command in {'search', 'show', 'deps', 'impact', 'context', 'validate', 'audit-dependencies'}:
+        workspace_query = args.command in _GRAPH_QUERY_COMMANDS and (args.workspace or args.machine)
+        if not workspace_query and args.command in _GRAPH_QUERY_COMMANDS | {'validate', 'audit-dependencies'}:
+            if getattr(args, 'release', None):
+                raise ValueError('--release requires --workspace or --machine')
             if getattr(args, 'corpus', None):
                 if args.snapshot:
                     raise ValueError('--snapshot belongs to store queries; use --registry-revision for a corpus')
@@ -491,7 +513,9 @@ def main(argv=None):
                 if getattr(args, 'registry_revision', None) or getattr(args, 'source_version_id', None):
                     raise ValueError('Corpus scope arguments require --corpus')
                 args.store = snapshot_reference(args.store, args.snapshot)
-        if args.command == 'lean-build':
+        if workspace_query:
+            result = _workspace_query(args)
+        elif args.command == 'lean-build':
             from .lean import build_project
             result = build_project(args.project, args.out, lake=args.lake, export_declarations=not args.build_only)
         elif args.command == 'lean-import':

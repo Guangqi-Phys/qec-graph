@@ -95,6 +95,19 @@ inspect its coverage. The workspace guide covers explicit asset registration,
 software metadata refresh, and submitting and reviewing extraction proposals.
 [Research and review workflow](rfc-002/WORKSPACE.md#研究查询和审核)
 
+## Query a workspace from the CLI
+
+```sh
+qec-graph search 'hypergraph product' --workspace "$workspace" --limit 10
+qec-graph show "$identifier" --workspace "$workspace"
+qec-graph context "$identifier" --workspace "$workspace" --depth 2
+```
+
+Use an exact result ID for `show` and `context`. `deps` and `impact` traverse
+registered graph dependencies. Pass `--release` to pin the query to a particular
+workspace release. These commands return the same JSON envelope and evidence
+scope as the workspace MCP tools.
+
 ## Work with individual papers and older corpora
 
 Run these examples from the repository root. The commands write to the paths

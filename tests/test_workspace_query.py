@@ -53,6 +53,32 @@ class WorkspaceQueryTests(unittest.TestCase):
         status = self.session.invoke('qec_workspace_status', {})
         self.assertEqual(status['data']['operational_status']['release_id'], newer)
 
+    def test_direct_cli_queries_share_the_fixed_workspace_mcp_scope(self):
+        state, _ = self.ws.registry.read()
+        version, = state['versions']
+        graph, _, _ = self.ws.registry.source_graph(version)
+        node = next(n for n in graph['nodes'] if n['latex'] == 'Hello')
+        identifier = occurrence_id(version, node['id'])
+        (self.root / 'inputs/second').write_bytes(TEX.replace(b'Hello', b'Later source'))
+        self.assertNotEqual(self.ws.sync()['release_id'], self.release)
+        cases = [
+            (['search', 'Later source'], 'qecgraph_search', {'query': 'Later source'}),
+            (['show', version], 'qec_get_entity', {'identifier': version}),
+            (['context', version], 'qec_get_context', {'identifier': version}),
+            (['deps', identifier], 'qecgraph_deps', {'identifier': identifier, 'depth': 2, 'max_nodes': 60}),
+            (['impact', identifier], 'qecgraph_impact', {'identifier': identifier, 'depth': 2, 'max_nodes': 60}),
+        ]
+        for command, tool, arguments in cases:
+            with self.subTest(command=command[0]):
+                process = subprocess.run([sys.executable, '-m', 'qecgraph', *command,
+                                          '--workspace', str(self.root), '--release', self.release],
+                                         text=True, capture_output=True, check=True, timeout=5)
+                result = json.loads(process.stdout)
+                expected = self.session.invoke(tool, arguments)
+                self.assertTrue(result['ok'], result)
+                self.assertTrue(expected['ok'], expected)
+                self.assertEqual(result['data'], expected['data'])
+
     def test_python_responses_cannot_mutate_the_pinned_session(self):
         state, _ = self.ws.registry.read()
         version, = state['versions']

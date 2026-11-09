@@ -138,7 +138,9 @@ class WorkspaceSession:
             'qec_workspace_status': ({}, []),
             'qec_get_entity': ({'identifier': _string(4096), 'revision': _string()}, ['identifier']),
             'qec_get_context': ({'identifier': _string(4096), 'revision': _string(),
-                                 'depth': _integer(0, self.graph.max_depth)}, ['identifier']),
+                                 'depth': _integer(0, self.graph.max_depth),
+                                 'max_nodes': _integer(1, self.graph.max_nodes),
+                                 'include_candidates': {'type': 'boolean'}}, ['identifier']),
             'qec_get_asset': ({'identifier': _string(80), 'offset': _integer(),
                                'length': _integer(1, 32768)}, ['identifier']),
             'qec_get_source': ({'identifier': _string(4096), 'char_start': _integer(), 'char_end': _integer()}, ['identifier']),
@@ -277,13 +279,13 @@ class WorkspaceSession:
                                                'archive_sha256', 'field_evidence', 'effective_review') if k in row})
         return self._paginate(rows, args, min(20, self.graph.max_results))
 
-    def _research_context(self, record, depth):
+    def _research_context(self, record, depth, max_nodes):
         pending = deque([(record, 0)])
         queued = {(record['id'], record['revision'])}
         seen, rows, edges, unresolved = set(), [], [], []
         truncated = False
         while pending:
-            if len(rows) >= self.graph.max_nodes:
+            if len(rows) >= max_nodes:
                 truncated = True
                 break
             row, distance = pending.popleft()
@@ -457,7 +459,8 @@ class WorkspaceSession:
                 identifier = args['identifier']
                 entity = self._research(identifier, args.get('revision'))
                 if entity:
-                    data = self._research_context(entity, args.get('depth', min(2, self.graph.max_depth)))
+                    data = self._research_context(entity, args.get('depth', min(2, self.graph.max_depth)),
+                                                  args.get('max_nodes', self.graph.max_nodes))
                 elif args.get('revision') or identifier in self._research_ids:
                     raise ToolError('NOT_FOUND', 'No eligible revision in this release')
                 else:
