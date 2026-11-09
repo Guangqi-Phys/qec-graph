@@ -9,7 +9,6 @@ from pathlib import Path
 
 from qecgraph.domain_query import codes
 from qecgraph.graph import read_json
-from qecgraph.registry import Registry
 from qecgraph.validators import DOMAIN_FIELDS
 from qecgraph.validators.qec import basis, check_css, check_experiment, comparable_experiments, distance_issues, matrix_rows
 
@@ -76,8 +75,13 @@ class QECValidationTests(unittest.TestCase):
         self.assertEqual(zero['distance_status'], 'out_of_domain_k_zero')
 
     def test_upper_bound_never_satisfies_lower_bound_and_current_inputs_required(self):
+        from qecgraph.workspace import Workspace
+        from qecgraph.workspace_query import WorkspaceSession
+
         with tempfile.TemporaryDirectory() as folder:
-            registry = Registry(Path(folder) / 'corpus')
+            workspace = Workspace(folder)
+            workspace.init(no_ingest=True)
+            registry = workspace.registry
             raw = b'explicit synthetic matrix asset'
             digest = hashlib.sha256(raw).hexdigest()
             asset = {'asset_id': 'asset:sha256:' + digest, 'uri': 'qecasset:sha256:' + digest,
@@ -124,6 +128,12 @@ class QECValidationTests(unittest.TestCase):
             self.assertEqual(len(result['results']), 1)
             self.assertEqual(result['results'][0]['distance_claims'][0]['evidence'][0]['kind'], 'computed_exact')
             self.assertEqual(codes(registry.root, distance_at_least=3, metric_definition_id='another:metric')['results'], [])
+            session = WorkspaceSession(registry.root, bound_revision)
+            arguments = {'distance_at_least': 3, 'metric_definition_id': 'metric:distance'}
+            for metric_revision, expected in (('1', 1), ('other', 0)):
+                response = session.invoke('qec_find_codes', {**arguments, 'metric_revision': metric_revision})
+                self.assertTrue(response['ok'], response)
+                self.assertEqual(len(response['data']['results']), expected)
             distance['revision'] = '3'
             distance['data']['lower_bound'] = 12
             registry.add_record(distance)

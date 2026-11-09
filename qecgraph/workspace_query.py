@@ -519,13 +519,14 @@ class WorkspaceSession:
                     raise ToolError('INVALID_ARGUMENT', 'n_min exceeds n_max')
                 if 'distance_at_least' in args and 'metric_definition_id' not in args:
                     raise ToolError('INVALID_ARGUMENT', 'A distance hard condition needs an exact metric_definition_id')
+                if 'metric_revision' in args and 'distance_at_least' not in args:
+                    raise ToolError('INVALID_ARGUMENT', 'metric_revision requires a distance hard condition')
                 if policy == 'source_reported':
                     if 'distance_at_least' in args and 'metric_revision' not in args:
                         raise ToolError('INVALID_ARGUMENT', 'Source-reported hard bounds require exact metric ID and revision')
                     legacy = {'results': [], 'truncated': False,
                               'evidence_policy': 'Source-reported bound, exact metric and source locator; not mathematical verification'}
                 else:
-                    args.pop('metric_revision', None)
                     legacy = codes(self.machine, registry_revision=self.release, check_live_lean=False, limit=200, **args)
                 rows = legacy['results']
                 for record in self.visible.values():

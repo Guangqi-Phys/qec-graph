@@ -135,6 +135,7 @@ class WorkspaceQueryTests(unittest.TestCase):
     def test_query_arguments_are_distinct_from_a_failed_release_read(self):
         for tool, args in (('qecgraph_search', {'query': '  '}),
                            ('qec_find_codes', {'distance_at_least': 3}),
+                           ('qec_find_codes', {'metric_definition_id': 'metric:test', 'metric_revision': '1'}),
                            ('qec_find_codes', {'distance_at_least': 3, 'metric_definition_id': 'metric:test',
                                                'evidence_policy': 'source_reported'})):
             with self.subTest(tool=tool, args=args):
