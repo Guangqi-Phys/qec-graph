@@ -18,6 +18,7 @@ paper, and connect an MCP client.
 | [Lean verification](13_LEAN_EXECUTION.md) | Builds, provenance, and trust boundaries |
 | [Development entry point](../START_HERE.md) | Local setup, reproduction, and project conventions |
 | [Audit remediation](AUDIT_REMEDIATION.md) | Recommendation status and verification evidence |
+| [Contributing](../CONTRIBUTING.md), [security](../SECURITY.md), and [citation](../CITATION.cff) | Development checks, vulnerability reports, and citing the project |
 
 The [initial implementation audit](../IMPLEMENTATION_AUDIT.md),
 [RFC design pack](rfc-002/README.md), [prototype references](reference/EXAMPLE_EXPECTATIONS.md),

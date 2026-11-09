@@ -37,10 +37,10 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 29 | Add reproducible performance benchmarks | Open. |
 | 30 | Single-source the version and evaluate the optional source layout | Complete. The CLI, package metadata, and standalone build use the same version. A wheel installed in a fresh environment and ran its lifecycle from a separate workspace. The optional source move would disrupt supported checkout-based commands without fixing a demonstrated packaging failure. |
 
-The assessment also proposes contribution, security, citation, and change
-history files, packaging the useful source distribution fixtures, documenting
-all command contracts, and adding output and accessibility controls. Track
-these alongside items 1, 8, 10, 12, and 13.
+The contribution and security guides and citation metadata are indexed and
+included in source distributions. The changelog records command and output
+migrations. Command contracts and accessibility controls are tracked in
+items 12, 13, and 19.
 
 ## Decisions requiring a different treatment
 

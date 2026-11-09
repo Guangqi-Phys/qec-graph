@@ -1,0 +1,8 @@
+cff-version: 1.2.0
+message: If you use QEC Graph in your research, please cite the software version or commit you used.
+title: QEC Graph
+type: software
+authors:
+  - name: QEC Graph contributors
+repository-code: https://github.com/Guangqi-Phys/qec-graph
+license: MIT
