@@ -30,10 +30,10 @@ repository, then run:
 installer=$(gh release download v0.4.0rc1 --repo Guangqi-Phys/qec-graph --pattern install.sh --output -) && printf '%s\n' "$installer" | sh
 ```
 
-The installer selects the Apple Silicon or Intel build, checks its SHA-256,
-and installs `qec-graph` into `~/.local/bin`. Open a new terminal if the
-installer adds that directory to your PATH. The release builds are tested on
-macOS 15 and carry their own Python runtime.
+Release `v0.4.0rc1` includes a standalone Apple Silicon (arm64) build. The
+installer checks its SHA-256 and installs `qec-graph` into `~/.local/bin`.
+Open a new terminal if the installer adds that directory to your PATH.
+The executable carries its own Python runtime.
 
 ## Single-file executable
 
