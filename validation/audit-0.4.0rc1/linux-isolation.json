@@ -1,0 +1,24 @@
+{
+  "checks": {
+    "read_machine": true,
+    "write_machine_denied": true,
+    "write_root_denied": true,
+    "no_network_interface": true,
+    "no_capabilities": true,
+    "no_new_privileges": true,
+    "nonroot": true,
+    "single_machine_mount": true,
+    "mcp_search": true,
+    "mcp_pinned_release": true,
+    "mcp_notes_hidden": true,
+    "mcp_file_uri_denied": true
+  },
+  "platform": "Linux-7.2.12-orbstack-00394-gbecdd6130068-aarch64-with-glibc2.35",
+  "python": "3.13.18",
+  "passed": true,
+  "release_id": "56952270bf17672e185ef2ec5f9bc55195e27ddd1465838d7990595286634d5b",
+  "base_image": "qec-audit-python:3.13-arm64",
+  "base_image_id": "sha256:afecc572e6aa59beebf9274cce200935cf5831c03ad30ecc5c50ee6824c8763a",
+  "base_description": "Ubuntu 22.04 arm64 with cached CPython 3.13.18",
+  "default_base_attempt": "Docker Hub metadata request timed out"
+}

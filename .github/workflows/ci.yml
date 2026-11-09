@@ -55,8 +55,11 @@ jobs:
         run: |
           python -m pip install --force-reinstall --no-deps dist/*.whl
           python tools/reproduce_workspace.py --bin-dir "$(dirname "$(command -v python)")" --out build/ci/workspace.json
+      - name: Verify the Linux MCP isolation profile
+        if: runner.os == 'Linux'
+        run: python tools/reproduce_linux_isolation.py --out build/ci/linux-isolation.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: workspace-verification-${{ matrix.os }}-${{ matrix.python }}
-          path: build/ci/workspace.json
+          path: build/ci/*.json
           if-no-files-found: error

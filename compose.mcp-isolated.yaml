@@ -3,6 +3,8 @@ services:
   qec-mcp:
     build:
       context: .
+      args:
+        PYTHON_IMAGE: "${QEC_PYTHON_IMAGE:-python:3.12-slim}"
     entrypoint: ["qec-graph", "mcp", "serve", "--machine", "/machine"]
     command: []
     stdin_open: true

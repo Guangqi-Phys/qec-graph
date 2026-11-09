@@ -90,6 +90,9 @@ CLI 可用 `query-tool TOOL --workspace ~/qec --arguments request.json` 调用�
 中途失败显示 `human_stale`，可运行 `qec-graph human build`，不会回滚机器发布。
 
 单独授予 agent 和 MCP 机器发布目录，避免授予整个工作区。
+Linux 可用仓库的 `compose.mcp-isolated.yaml`。从已安装 QEC Graph 的 Python 环境
+运行 `python tools/reproduce_linux_isolation.py --out build/linux-isolation.json`
+可用临时工作区复验只读挂载、网络隔离和实际 MCP 查询。
 macOS 可用仓库中的实测隔离启动器：
 
 ```bash
