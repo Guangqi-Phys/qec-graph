@@ -546,7 +546,7 @@ class WorkspaceSession:
                     legacy = {'results': [], 'truncated': False,
                               'evidence_policy': 'Source-reported bound, exact metric and source locator; not mathematical verification'}
                 else:
-                    legacy = codes(self.machine, registry_revision=self.release, check_live_lean=False, limit=200, **args)
+                    legacy = codes(self.machine, registry_revision=self.release, check_live_lean=False, limit=None, **args)
                 rows = legacy['results']
                 for record in self.visible.values():
                     if record['kind'] != 'code_instance':

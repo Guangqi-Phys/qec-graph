@@ -48,7 +48,8 @@ def evidence_current(registry, evidence, records, required_ids, reviews=None, bu
 
 def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at_least=None,
           metric_definition_id=None, metric_revision=None, sector='joint', construction=None, limit=100, check_live_lean=True):
-    if not 1 <= limit <= 200:
+    """Read qualifying legacy codes. Workspace paging merges results with no internal limit."""
+    if limit is not None and not 1 <= limit <= 200:
         raise ValueError('limit must be 1..200')
     for value in (n_min, n_max, distance_at_least):
         if value is not None and (type(value) is not int or value < 0):
@@ -116,6 +117,6 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
     if metric_revision is not None:
         scope['metric_revision'] = metric_revision
     return {'scope': scope,
-            'results': results[:limit], 'truncated': len(results) > limit,
+            'results': results[:limit], 'truncated': limit is not None and len(results) > limit,
             'evidence_policy': 'Known lower bound with evidence bound to the current claim, instance, presentation and metric revisions',
             'absence_note': 'No qualifying record in this fixed scope; not a nonexistence result'}

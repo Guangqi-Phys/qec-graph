@@ -298,6 +298,30 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.assertTrue(context['ok'])
         self.assertIn(claim_ref['id'], {row['id'] for row in context['data']['nodes']})
 
+    def test_workspace_codes_pages_past_the_legacy_cli_limit(self):
+        from qecgraph.domain_query import codes
+        from qecgraph.transactions import writer_lock
+        from test_qec_validation import record
+
+        registry = self.ws.registry
+        with writer_lock(registry.root):
+            state, _ = registry.read()
+            for i in range(201):
+                registry._put_record(state, record(f'legacy:code-{i:03d}', 'code_instance',
+                                                   {'parameters': {'n': i + 1, 'k': 1}}))
+            release = registry._publish(state)
+        legacy = codes(registry.root, registry_revision=release, limit=200)
+        self.assertTrue(legacy['truncated'])
+        self.assertEqual(len(legacy['results']), 200)
+        session = WorkspaceSession(registry.root, release)
+        response = session.invoke('qec_find_codes', {'offset': 199, 'limit': 2})
+        self.assertTrue(response['ok'], response)
+        data = response['data']
+        self.assertEqual(data['total_matches'], 201)
+        self.assertEqual([row['id'] for row in data['results']], ['legacy:code-199', 'legacy:code-200'])
+        self.assertFalse(data['truncated'])
+        self.assertFalse(data['legacy_scan_truncated'])
+
     def test_nearest_point_reports_actual_coordinate_and_never_fakes_exact_match(self):
         from qecgraph.research import make_record, ref
         state, _ = self.ws.registry.read()
