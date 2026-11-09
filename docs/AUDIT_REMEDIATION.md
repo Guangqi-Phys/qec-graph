@@ -14,7 +14,7 @@ Each entry is complete only when its acceptance evidence has been checked.
 | 6 | Protect annotated stores from source-only split | Open. |
 | 7 | List, quarantine, and restore inbox packages | Open. |
 | 8 | Build and check fresh release artifacts | Open. |
-| 9 | Ignore generated state and development caches | Open. |
+| 9 | Ignore generated state and development caches | Complete. Git ignore checks cover local graph state, macOS metadata, and coverage, lint, and test caches. |
 | 10 | Documentation index and factual corrections | Open. |
 | 11 | Separate CLI parsing, rendering, and dispatch | Open. |
 | 12 | Stable error taxonomy and JSON error contract | Open. |

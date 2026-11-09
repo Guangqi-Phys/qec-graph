@@ -7,3 +7,12 @@ build/
 dist/
 .tools/
 lean/.lake/
+.qecgraph/
+.codegraph/
+.DS_Store
+.coverage
+.coverage.*
+htmlcov/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
