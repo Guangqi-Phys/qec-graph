@@ -23,10 +23,26 @@
 |---|---|---|
 | 原文抽取 | 受支持的 LaTeX 结构、来源位置、版本注册、跨文档固定查询 | 根据实际资料增加语法适配器 |
 | 知识图 | 三视图、独立 claim、严格领域校验、显式迁移与审核事务 | 继续补有来源的 QEC 领域记录 |
-| 查询 | 单 store FTS5、corpus 子串查询、证据过滤、只读 MCP | 向量索引与常驻服务未实现 |
+| 查询 | 单 store FTS5、corpus 和 workspace 关键词查询、结构化证据筛选、只读 MCP | 向量索引与常驻服务未实现 |
 | 数学检查 | CSS 对易/秩/有限距离、实验结构及可比性检查 | 大码距离求解、证书桥接未实现 |
 | Lean | 固定工具链，实际 Bool 例的类型、常量和公理导出 | 原文语义需独立审核；HGP 距离未形式化 |
-| 部署 | 本地 Python/Lean；research Compose 模板未运行验证 | 验证容器镜像 |
+| 部署 | 本地 Python 和独立可执行文件，Linux Compose 与 macOS MCP 隔离回放 | GitHub 托管运行状态见验收记录 |
+
+工作区按下图登记来源并发布。`sync` 发布成功后按认领记录清理 inbox 副本，`rebuild` 从归档重查。
+
+```mermaid
+flowchart LR
+    Inputs["inputs/ 源包"] --> Archive["archive/ 原始字节和收据"]
+    Archive --> Extract["解析 LaTeX 和登记来源"]
+    Extract --> Validate["验证候选发布和来源绑定"]
+    Validate --> Release["machine/ 固定发布"]
+    Release --> Query["CLI 查询与只读 MCP"]
+    Release --> Render["Obsidian 生成器"]
+    Render --> Generated["human/generated/ 页面"]
+```
+
+Obsidian 的私人笔记位于 `human/notes/`。MCP 隔离回放验证了进程只能读取机器资料，生成器按固定发布重建页面。
+[Linux 和 macOS 验收记录](../../validation/README.md)
 
 `knowledge_starter/schemas/record.schema.json` 的 `0.1.0` 是旧样例格式。
 [包内 graph schema](../../qecgraph/validators/schemas/graph.schema.json) 的 `qecgraph.graph.v1` 是当前抽取图格式。
