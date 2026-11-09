@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from qecgraph import store
 from qecgraph.graph import canonical, read_json
 from qecgraph.research import make_record
 from qecgraph.research_store import publish_records, validate_sources
@@ -65,17 +66,18 @@ class SemanticTests(unittest.TestCase):
             record = {'kind': 'noise_model', 'data': {}, 'is_synthetic': False, 'field_evidence': {
                 '/data/source_label': {'source_ref': {'id': identifier, 'revision': version['snapshot_id']},
                                        'source_locator': locator}}}
-            read_bytes = Path.read_bytes
+            read_snapshot_file = store._read_snapshot_file
 
-            def replace_after_capture(path):
-                raw = read_bytes(path)
+            def replace_after_capture(path, copy_to, relative):
+                raw = read_snapshot_file(path, copy_to, relative)
                 if path == graph_path:
                     path.write_text(canonical(replacement), encoding='utf-8')
                 return raw
 
-            with patch.object(Path, 'read_bytes', replace_after_capture):
+            with patch.object(store, '_read_snapshot_file', replace_after_capture):
                 with self.assertRaisesRegex(ValueError, 'does not resolve to a verbatim registered span'):
                     validate_sources(ws.registry, state, [record])
+            self.assertEqual(read_json(graph_path), replacement)
 
     def test_provider_draft_is_bound_reviewed_and_stale_on_projection_change(self):
         with tempfile.TemporaryDirectory() as directory:
