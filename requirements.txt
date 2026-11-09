@@ -1,2 +1,0 @@
-pylatexenc==2.10
-jsonschema==4.26.0

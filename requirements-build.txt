@@ -1,2 +1,0 @@
-# Build backend used for the RFC-QEC-002 release candidate.
-setuptools==84.0.0
