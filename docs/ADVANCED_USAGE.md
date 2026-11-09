@@ -124,6 +124,7 @@ including counts and individual failures, and exit with code 2.
 `status --json` includes inventory counts and the Obsidian view status for the
 selected release. The view is `unknown` if no matching observation is available.
 View freshness is reported separately from the package status and exit code.
+Use `qec-graph version --json` to read the installed version as JSON.
 
 | Exit code | Meaning |
 | --- | --- |

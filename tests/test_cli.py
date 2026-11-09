@@ -337,6 +337,10 @@ class CLIContractTests(unittest.TestCase):
         self.assertEqual(version.returncode, 0, version.stderr)
         self.assertEqual(version.stdout.strip(), f'qec-graph {__version__}')
         self.assertEqual(run('version').stdout, version.stdout)
+        for args in (('--json', 'version'), ('version', '--json', '--quiet')):
+            result = run(*args)
+            self.assertEqual((result.returncode, result.stderr), (0, ''))
+            self.assertEqual(json.loads(result.stdout), {'name': 'qec-graph', 'version': __version__})
         self.assertIn('--include-candidates', run('help', 'context').stdout)
         self.assertIn('qec-graph query search HGP', run('help', 'query', 'search').stdout)
         self.assertIn('130  interrupted', run('help', 'errors').stdout)

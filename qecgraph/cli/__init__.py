@@ -9,7 +9,7 @@ from .commands import HANDLERS
 from .commands.workspace import uses_workspace, workspace_action
 from .errors import InternalError, Interrupted, UsageError, classify
 from .parser import parse_command
-from .render import WorkspaceProgress, report_alias, report_error
+from .render import WorkspaceProgress, print_json, report_alias, report_error
 
 
 def main(argv: Sequence[str] | None = None, *, entrypoint: tuple[str, str] | None = None) -> int:
@@ -22,7 +22,9 @@ def main(argv: Sequence[str] | None = None, *, entrypoint: tuple[str, str] | Non
         options = argv[:argv.index('--')] if '--' in argv else argv
         return report_error(exc, exc.command, json_mode='--json' in options)
     if args.command == 'version':
-        if not args.quiet:
+        if args.json:
+            print_json({'name': 'qec-graph', 'version': __version__}, compact=True)
+        elif not args.quiet:
             print(f'qec-graph {__version__}')
         return 0
     report_alias(args.alias)
