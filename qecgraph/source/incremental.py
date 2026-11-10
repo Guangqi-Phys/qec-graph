@@ -13,8 +13,8 @@ from pylatexenc import __version__ as PYLATEXENC_VERSION
 from pylatexenc import latexwalker
 from pylatexenc.macrospec import ParsedMacroArgs, ParsedVerbatimArgs
 
-from .graph import canonical, hash_text, read_json
-from .transactions import atomic_json
+from ..core.graph import canonical, hash_text, read_json
+from ..core.transactions import atomic_json
 
 _NODE_TYPES = {name: getattr(latexwalker, name) for name in (
     'LatexCharsNode', 'LatexCommentNode', 'LatexGroupNode', 'LatexMacroNode',

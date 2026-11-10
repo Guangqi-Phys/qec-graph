@@ -1,8 +1,8 @@
 """Exact QEC filtering with explicit bounds, metric and current evidence bindings."""
 from __future__ import annotations
 
-from .registry import Registry
-from .validators.qec import distance_issues
+from ..registry import Registry
+from ..validators.qec import distance_issues
 from .status import review_states
 
 
@@ -66,7 +66,7 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
     state, fixed = registry.read(registry_revision)
     records = registry.records_from_state(state)
     reviews = review_states(registry, state, records)
-    from .lean_integration import lean_record_states
+    from ..lean.integration import lean_record_states
     builds = lean_record_states(registry, state, records, reviews, check_live_inputs=check_live_lean)
     results = []
     metric = records.get(metric_definition_id) or {}

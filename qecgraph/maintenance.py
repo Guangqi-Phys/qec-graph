@@ -7,10 +7,10 @@ from contextlib import closing
 from pathlib import Path
 
 from . import __version__
-from .graph import read_json
+from .core.graph import read_json
 from .registry import Registry
 from .store import current_snapshot
-from .transactions import ManagedDataError
+from .core.transactions import ManagedDataError
 from .workspace import HEX, JOB, Workspace
 from .workspace_query import check_machine_tree
 

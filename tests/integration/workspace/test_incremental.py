@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from qecgraph.graph import build_graph, read_json
+from qecgraph.core.graph import build_graph, read_json
 from qecgraph.query import context
 from qecgraph.store import SnapshotReference, current_snapshot, ingest
 

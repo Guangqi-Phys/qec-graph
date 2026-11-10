@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 
-from ..graph import canonical
+from ..core.graph import canonical
 
 
 def _integer(value, name, minimum=0):

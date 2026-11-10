@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import re
 
-from .graph import canonical, hash_text
-from .research import make_record
+from ..core.graph import canonical, hash_text
+from ..domain.research import make_record
 
 RULE_VERSION = 'code-mention-rules-v2'
 TOKEN = r'(?:\d{1,8}|[nkdKrR](?:\s*>\s*0)?)'

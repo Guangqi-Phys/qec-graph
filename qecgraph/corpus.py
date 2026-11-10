@@ -3,11 +3,11 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
-from .graph import canonical, hash_text
+from .core.graph import canonical, hash_text
 from .registry import Registry
 from .store import GraphInput, source_span_index
 from . import query
-from .status import review_states
+from .domain.status import review_states
 from .validators import ENDPOINTS
 
 
@@ -63,7 +63,7 @@ def _project_state(registry, state, fixed, source_version_id=None, *,
     if records is None:
         records = registry.records_from_state(state, sorted(state['records']))
     reviews = review_states(registry, state, records, verified_versions=versions if verify_sources else ())
-    from .lean_integration import lean_record_states
+    from .lean.integration import lean_record_states
     builds = lean_record_states(registry, state, records, reviews, check_live_inputs=check_live_lean)
     for identifier in sorted(records):
         record = records[identifier]

@@ -1,12 +1,12 @@
 """Bounded offline handoff for optional LLM providers; only explicit review can publish drafts."""
 from __future__ import annotations
 
-from .graph import canonical, hash_text, read_json
+from ..core.graph import canonical, hash_text, read_json
 from .research import KINDS, key, prepare, ref, validate_bundle
 from .research_store import load_records, stage_records, validate_sources
-from .transactions import ManagedDataError, immutable_json, writer_lock
-from .workspace import HEX, Workspace
-from .workspace_query import WorkspaceSession
+from ..core.transactions import ManagedDataError, immutable_json, writer_lock
+from ..workspace import HEX, Workspace
+from ..workspace_query import WorkspaceSession
 
 REQUEST = 'qecgraph.extraction_request.v1'
 PROPOSAL = 'qecgraph.extraction_proposal.v1'

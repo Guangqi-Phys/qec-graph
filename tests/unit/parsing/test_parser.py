@@ -2,7 +2,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from qecgraph.parser import parse_project
+from qecgraph.source.parser import parse_project
 
 
 class ParserTests(unittest.TestCase):

@@ -7,7 +7,7 @@ from qecgraph.corpus import execute
 from qecgraph.query import context, dependencies
 from qecgraph.registry import Registry
 from qecgraph.review import apply, create_proposal, decide
-from qecgraph.status import reviewed_cycles
+from qecgraph.domain.status import reviewed_cycles
 from qecgraph.store import GraphInput, ingest
 
 

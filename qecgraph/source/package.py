@@ -15,7 +15,7 @@ import unicodedata
 import zipfile
 import zlib
 
-from .graph import canonical, hash_text
+from ..core.graph import canonical, hash_text
 
 
 class PackageError(ValueError):

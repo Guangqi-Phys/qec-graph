@@ -5,10 +5,10 @@ import hashlib
 import json
 from pathlib import Path
 
-from .graph import hash_text, read_json
-from .records import RECORD_SCHEMA, prepare_record
+from .core.graph import hash_text, read_json
+from .domain.records import RECORD_SCHEMA, prepare_record
 from .store import safe_relative
-from .transactions import atomic_json, immutable_json
+from .core.transactions import atomic_json, immutable_json
 from .validators import DOMAIN_FIELDS
 
 

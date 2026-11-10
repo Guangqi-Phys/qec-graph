@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import copy
 
-from .graph import canonical, hash_text
+from ..core.graph import canonical, hash_text
 
 RECORD_SCHEMA = 'qecgraph.record.v3'
 HASH_PROTOCOL = 'sha256:json-sort-utf8-v1:record-excluding-content_sha256'
@@ -41,6 +41,6 @@ def prepare_record(record, *, allow_legacy=False):
     if record.get('content_sha256', expected) != expected:
         raise ValueError('Record content hash mismatch')
     record['content_sha256'] = expected
-    from .validators import validate_record
+    from ..validators import validate_record
     validate_record(record)
     return record

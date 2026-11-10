@@ -6,9 +6,9 @@ import tempfile
 import unittest
 
 from qecgraph.corpus import occurrence_id
-from qecgraph.graph import canonical, read_json
-from qecgraph.research import adapt_synthetic
-from qecgraph.research_store import publish_records
+from qecgraph.core.graph import canonical, read_json
+from qecgraph.domain.research import adapt_synthetic
+from qecgraph.domain.research_store import publish_records
 from qecgraph.workspace import Workspace
 from qecgraph.workspace_query import WorkspaceSession
 from tests.integration.mcp.test_mcp import initialization, request
@@ -182,7 +182,7 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.assertEqual(fresh['coverage']['registered'], 2)
 
     def test_research_lookup_requires_revision_when_multiple_are_visible(self):
-        from qecgraph.research import make_record
+        from qecgraph.domain.research import make_record
         state, _ = self.ws.registry.read()
         version, = state['versions'].values()
         source = {'id': version['id'], 'revision': version['snapshot_id']}
@@ -208,7 +208,7 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.assertEqual(missing['error']['code'], 'NOT_FOUND')
 
     def test_software_results_bind_usage_to_each_project_revision(self):
-        from qecgraph.research import make_record
+        from qecgraph.domain.research import make_record
         state, _ = self.ws.registry.read()
         version, = state['versions'].values()
         source = {'id': version['id'], 'revision': version['snapshot_id']}
@@ -279,7 +279,7 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.assertNotIn('private-only-name', str(failure))
 
     def test_source_reported_upper_bound_is_not_a_lower_bound(self):
-        from qecgraph.research import make_record
+        from qecgraph.domain.research import make_record
         state, fixed = self.ws.registry.read()
         version, = state['versions']
         graph, _, meta = self.ws.registry.source_graph(version, fixed)
@@ -317,8 +317,8 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.assertIn(claim_ref['id'], {row['id'] for row in context['data']['nodes']})
 
     def test_workspace_codes_pages_past_the_legacy_cli_limit(self):
-        from qecgraph.domain_query import codes
-        from qecgraph.transactions import writer_lock
+        from qecgraph.domain.domain_query import codes
+        from qecgraph.core.transactions import writer_lock
         from tests.unit.domain.test_qec_validation import record
 
         registry = self.ws.registry
@@ -341,7 +341,7 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.assertFalse(data['legacy_scan_truncated'])
 
     def test_nearest_point_reports_actual_coordinate_and_never_fakes_exact_match(self):
-        from qecgraph.research import make_record, ref
+        from qecgraph.domain.research import make_record, ref
         state, _ = self.ws.registry.read()
         version, = state['versions']
         origin = {'id': version, 'revision': state['versions'][version]['snapshot_id']}
@@ -401,7 +401,7 @@ class WorkspaceQueryTests(unittest.TestCase):
             self.assertNotIn(uri, str(failure))
 
     def test_assets_need_an_exact_record_binding_and_cannot_import_notes(self):
-        from qecgraph.research import make_record
+        from qecgraph.domain.research import make_record
         from qecgraph.workspace_assets import add_asset
         path = self.root / 'matrix.bin'
         path.write_bytes(b'\x00\x01\x10\x11')

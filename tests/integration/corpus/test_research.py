@@ -1,9 +1,9 @@
 import unittest
 from copy import deepcopy
 
-from qecgraph.graph import read_json
-from qecgraph.research import adapt_synthetic, make_record, pauli_weight, prepare, ref, validate_bundle
-from qecgraph.software import adapt_seed, bundled_seed
+from qecgraph.core.graph import read_json
+from qecgraph.domain.research import adapt_synthetic, make_record, pauli_weight, prepare, ref, validate_bundle
+from qecgraph.domain.software import adapt_seed, bundled_seed
 from qecgraph.validators import packaged_validator
 
 from tests.support import FIXTURES
@@ -170,8 +170,8 @@ class ResearchTests(unittest.TestCase):
     def test_refresh_adds_observations_without_overwriting_project_or_inventing_release(self):
         from tempfile import TemporaryDirectory
         from unittest.mock import patch
-        from qecgraph.research_store import load_records, publish_records
-        from qecgraph.software import _official_repo_url, refresh
+        from qecgraph.domain.research_store import load_records, publish_records
+        from qecgraph.domain.software import _official_repo_url, refresh
         from qecgraph.workspace import Workspace
         self.assertIsNone(_official_repo_url('https://github.com.evil.example/quantumlib/Stim'))
         with TemporaryDirectory() as root:
@@ -180,7 +180,7 @@ class ResearchTests(unittest.TestCase):
             original = adapt_seed(bundled_seed())
             publish_records(ws.registry, original)
             body = b'{"full_name":"quantumlib/Stim","private":false,"archived":false,"disabled":false}'
-            with patch('qecgraph.software._fetch_metadata', return_value=body) as fetch:
+            with patch('qecgraph.domain.software._fetch_metadata', return_value=body) as fetch:
                 result = refresh(ws.registry, project_id='software:stim')
             fetch.assert_called_once_with('https://api.github.com/repos/quantumlib/Stim', 8)
             self.assertEqual(result['status'], 'observed')

@@ -14,15 +14,23 @@ from importlib.resources import files
 from importlib.metadata import version
 from jsonschema import Draft202012Validator
 
-from . import __version__
-from .graph import canonical, hash_text, read_json, strict_json_loads
-from .transactions import atomic_json, writer_lock
+from .. import __version__
+from ..core.graph import canonical, hash_text, read_json, strict_json_loads
+from ..core.transactions import atomic_json, writer_lock
 
 
 def producer_manifest():
-    package = Path(__file__).parent
-    names = ('lean.py', 'graph.py', 'transactions.py', '__init__.py', 'validators/schemas/lean-export.v1.schema.json')
-    return {name: hashlib.sha256((package / name).read_bytes()).hexdigest() for name in names}
+    package = Path(__file__).resolve().parents[1]
+    sources = {
+        'lean.py': package / 'lean' / 'core.py',
+        'graph.py': package / 'core' / 'graph.py',
+        'transactions.py': package / 'core' / 'transactions.py',
+        '__init__.py': package / '__init__.py',
+        'validators/schemas/lean-export.v1.schema.json':
+            package / 'validators' / 'schemas' / 'lean-export.v1.schema.json',
+    }
+    return {name: hashlib.sha256(path.read_bytes()).hexdigest()
+            for name, path in sources.items()}
 
 
 def source_manifest(project):

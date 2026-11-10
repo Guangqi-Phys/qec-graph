@@ -4,8 +4,8 @@ from __future__ import annotations
 import copy
 import re
 
-from .graph import canonical, hash_text
-from .validators import packaged_validator
+from ..core.graph import canonical, hash_text
+from ..validators import packaged_validator
 
 SCHEMA = 'qecgraph.research.v1'
 # The packaged schema owns the portable record structure. Reference target
@@ -115,7 +115,7 @@ def prepare(record):
             raise ValueError('Observed use requires a real execution run')
         if use in ('mention', 'citation') and (data.get('experiment_ref') or data.get('execution_run_ref')):
             raise ValueError('Mentions/citations do not establish use by an experiment')
-    from .validators.research import validate_details
+    from ..validators.research import validate_details
     validate_details(record)
     canonical(record)  # Reject non-serializable values; readers also use strict JSON.
     return record

@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from qecgraph.registry import Registry
 from qecgraph.store import current_snapshot, ingest, recover_store, validate_snapshot
-from qecgraph.transactions import ManagedDataError, writer_lock
+from qecgraph.core.transactions import ManagedDataError, writer_lock
 from qecgraph.workspace import Workspace
 
 
@@ -86,7 +86,7 @@ class PublicationTests(unittest.TestCase):
                     first.kill()
         self.assertNotEqual(current_snapshot(self.store), original)
         # os._exit bypasses Python cleanup; the kernel must still release flock.
-        code = 'import os,sys; from qecgraph.transactions import writer_lock\nwith writer_lock(sys.argv[1]): os._exit(7)'
+        code = 'import os,sys; from qecgraph.core.transactions import writer_lock\nwith writer_lock(sys.argv[1]): os._exit(7)'
         crashed = subprocess.run([sys.executable, '-c', code, str(self.store)])
         self.assertEqual(crashed.returncode, 7)
         self.assertTrue(ingest(self.entry, 'publish', self.store)['published'])
@@ -173,7 +173,7 @@ class PublicationTests(unittest.TestCase):
                 return replace(source, target)
 
             with self.subTest(root=root.name):
-                with patch('qecgraph.transactions.os.replace', side_effect=reject_current):
+                with patch('qecgraph.core.transactions.os.replace', side_effect=reject_current):
                     with self.assertRaisesRegex(OSError, 'Interrupted CURRENT'):
                         publish()
                 self.assertEqual(current.read_bytes(), before)

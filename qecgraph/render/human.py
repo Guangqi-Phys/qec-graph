@@ -6,12 +6,12 @@ from pathlib import Path
 import re
 import tempfile
 
-from .graph import canonical, hash_text, read_json
-from .research import RELATIONS
-from .status import eligible
-from .transactions import atomic_bytes, atomic_json, writer_lock
-from .workspace import HEX, Workspace, _read_regular, now, read_operational_status
-from .workspace_query import WorkspaceSession
+from ..core.graph import canonical, hash_text, read_json
+from ..domain.research import RELATIONS
+from ..domain.status import eligible
+from ..core.transactions import atomic_bytes, atomic_json, writer_lock
+from ..workspace import HEX, Workspace, _read_regular, now, read_operational_status
+from ..workspace_query import WorkspaceSession
 
 FORMAT_V1 = 'qecgraph.human.v1'
 FORMAT = 'qecgraph.human.v2'
@@ -145,7 +145,7 @@ def _relation_index(edges):
 
 
 def _evidence_sections(record, session):
-    from .corpus import occurrence_id
+    from ..corpus import occurrence_id
 
     sections = []
     for field, evidence in sorted(record.get('field_evidence', {}).items()):

@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 import zipfile
 
-from qecgraph.source_package import Limits, PackageError, unpack
+from qecgraph.source.package import Limits, PackageError, unpack
 
 TEX = b'\\documentclass{article}\r\n\\begin{document}Hello\\end{document}\r\n'
 
@@ -131,7 +131,7 @@ class SourcePackageTests(unittest.TestCase):
         raw = bytearray(buffer.getvalue())
         struct.pack_into('<HH', raw, raw.rindex(b'PK\x05\x06') + 8, 1, 1)
         for payload in (bytes(raw), gzip.compress(raw)):
-            with patch('qecgraph.source_package.zipfile.ZipFile') as load:
+            with patch('qecgraph.source.package.zipfile.ZipFile') as load:
                 with self.assertRaises(PackageError) as error:
                     unpack(payload, Limits(members=1))
                 self.assertEqual(error.exception.status, 'limit_exceeded')
@@ -160,7 +160,7 @@ class SourcePackageTests(unittest.TestCase):
 
     def test_oversized_standalone_tex_is_rejected_before_decoding(self):
         for package in (TEX, gzip.compress(TEX)):
-            with patch('qecgraph.source_package._tex_body') as decode:
+            with patch('qecgraph.source.package._tex_body') as decode:
                 with self.assertRaises(PackageError) as error:
                     unpack(package, Limits(member_bytes=len(TEX) - 1))
                 self.assertEqual(error.exception.status, 'limit_exceeded')

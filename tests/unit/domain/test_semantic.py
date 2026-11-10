@@ -7,11 +7,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 from qecgraph import store, workspace_assets
-from qecgraph.graph import canonical, read_json
-from qecgraph.research import make_record
-from qecgraph.research_store import publish_records, validate_sources
-from qecgraph.semantic import request_extraction, review_extraction, submit_extraction
-from qecgraph.source_package import unpack
+from qecgraph.core.graph import canonical, read_json
+from qecgraph.domain.research import make_record
+from qecgraph.domain.research_store import publish_records, validate_sources
+from qecgraph.domain.semantic import request_extraction, review_extraction, submit_extraction
+from qecgraph.source.package import unpack
 from qecgraph.workspace import Workspace
 from qecgraph.workspace_query import WorkspaceSession
 from tests.unit.parsing.test_source_package import TEX, tar_bytes
@@ -152,9 +152,10 @@ class SemanticTests(unittest.TestCase):
             response = root / 'response.json'
             response.write_text(canonical(payload), encoding='utf-8')
             before_import = ws.registry.read()[1]
-            imported = subprocess.check_output([sys.executable, '-m', 'qecgraph', 'review', 'import', req['id'], str(response),
-                                                '--workspace', str(root)], text=True, timeout=10)
-            queued = json.loads(imported)
+            imported = subprocess.run([sys.executable, '-m', 'qecgraph', 'review', 'import', req['id'], str(response),
+                                       '--workspace', str(root)], text=True, capture_output=True, timeout=10)
+            self.assertEqual(imported.returncode, 0, imported.stderr)
+            queued = json.loads(imported.stdout)
             self.assertEqual(queued['status'], 'proposed')
             self.assertEqual(queued, submit_extraction(root, req['id'], payload))
             self.assertEqual(ws.registry.read()[1], before_import)

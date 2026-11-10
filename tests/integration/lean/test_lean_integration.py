@@ -5,8 +5,8 @@ from pathlib import Path
 
 from qecgraph import query
 from qecgraph.corpus import project
-from qecgraph.graph import read_json
-from qecgraph.lean_integration import import_build, inspect_build
+from qecgraph.core.graph import read_json
+from qecgraph.lean.integration import import_build, inspect_build
 from qecgraph.registry import Registry
 from qecgraph.review import apply, create_proposal, decide
 

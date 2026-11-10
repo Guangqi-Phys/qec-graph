@@ -9,7 +9,7 @@ from contextlib import redirect_stderr
 from pathlib import Path
 from unittest.mock import patch
 
-from qecgraph.ai_tools import ReadOnlySession, TOOL_NAMES
+from qecgraph.mcp.ai_tools import ReadOnlySession, TOOL_NAMES
 from qecgraph.mcp_server import MAX_REQUEST_BYTES, MCPServer, PROTOCOL_VERSION, serve_stdio
 from qecgraph.store import ingest
 from tests.support import ROOT

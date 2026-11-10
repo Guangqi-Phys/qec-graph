@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from qecgraph.graph import read_json
+from qecgraph.core.graph import read_json
 from qecgraph.migrations import migrate
 from qecgraph.registry import Registry
 from qecgraph.store import ingest

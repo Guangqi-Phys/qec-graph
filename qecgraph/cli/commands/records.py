@@ -1,7 +1,7 @@
 """CLI handlers for records commands."""
 from __future__ import annotations
 
-from ...graph import read_json
+from ...core.graph import read_json
 from ...registry import Registry
 from ..render import emit_report
 
@@ -19,26 +19,26 @@ def _command_object(path, required, optional=()):
 
 def workspace_records(args):
     from ...workspace import Workspace
-    from ...research_store import load_records, publish_records
+    from ...domain.research_store import load_records, publish_records
     ws = Workspace(args.workspace)
     ws.config()
     if args.command == 'software-import-seed':
-        from ...software import adapt_seed, bundled_seed
+        from ...domain.software import adapt_seed, bundled_seed
         result = publish_records(ws.registry, adapt_seed(bundled_seed()))
     elif args.command == 'software-refresh':
-        from ...software import refresh
+        from ...domain.software import refresh
         result = refresh(ws.registry, project_id=args.project_id, limit=args.limit, timeout=args.timeout)
     elif args.command == 'software-coverage':
-        from ...software import coverage
+        from ...domain.software import coverage
         state, release = ws.registry.read()
         result = {'release_id': release, **coverage(r for r in load_records(ws.registry, state) if not r['is_synthetic'])}
     elif args.command == 'research-import':
         payload = read_json(args.input)
         if args.format == 'software-seed':
-            from ...software import adapt_seed
+            from ...domain.software import adapt_seed
             payload = adapt_seed(payload)
         elif args.format == 'synthetic-fixture':
-            from ...research import adapt_synthetic
+            from ...domain.research import adapt_synthetic
             payload = adapt_synthetic(payload)
         if not isinstance(payload, list):
             raise ValueError('Research import expects a list of records')
@@ -47,7 +47,7 @@ def workspace_records(args):
         state, release = ws.registry.read()
         rows = [row for row in load_records(ws.registry, state)
                 if not row['is_synthetic'] and row['data'].get('review_status') == 'proposed']
-        from ...semantic import queued
+        from ...domain.semantic import queued
         result = {'release_id': release, 'proposals': rows, 'provider_drafts': queued(ws.root, state)}
     return emit_report(result, quiet=args.quiet, exit_code=2 if result.get('status') == 'partial' else 0)
 
@@ -70,7 +70,7 @@ def review_show(args):
         from ...review import read_proposal
         result = read_proposal(Registry(args.corpus), args.proposal_id)
     else:
-        from ...semantic import get_draft
+        from ...domain.semantic import get_draft
         from ...workspace import Workspace
         ws = Workspace(args.workspace)
         ws.config()
@@ -107,7 +107,7 @@ def codes(args):
         return research_query(args)
     if any(getattr(args, flag) is not None for flag in ('release', 'metric_revision', 'evidence_policy', 'offset', 'max_chars')):
         raise ValueError('Workspace filters require --workspace or --machine')
-    from ...domain_query import codes
+    from ...domain.domain_query import codes
     result = codes(args.corpus, registry_revision=args.registry_revision, n_min=args.n_min, n_max=args.n_max,
                    distance_at_least=args.distance_at_least, metric_definition_id=args.metric_definition_id,
                    sector=args.sector or 'joint', construction=args.construction, limit=100 if args.limit is None else args.limit)

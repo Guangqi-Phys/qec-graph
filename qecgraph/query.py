@@ -8,9 +8,9 @@ from collections.abc import Callable, Iterable, Iterator
 from functools import cached_property
 from itertools import islice
 
-from .graph import CANDIDATES, DEPENDENCIES
+from .core.graph import CANDIDATES, DEPENDENCIES
 from .store import load_graph, snapshot_database
-from .status import annotation_eligible, eligible
+from .domain.status import annotation_eligible, eligible
 
 
 class SelectionError(ValueError):

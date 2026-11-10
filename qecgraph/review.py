@@ -9,10 +9,10 @@ import copy
 import uuid
 from datetime import datetime, timezone
 
-from .graph import canonical, hash_text, read_json
-from .records import prepare_record
+from .core.graph import canonical, hash_text, read_json
+from .domain.records import prepare_record
 from .registry import Registry
-from .transactions import ManagedDataError, immutable_json, writer_lock
+from .core.transactions import ManagedDataError, immutable_json, writer_lock
 from .validators import packaged_validator
 
 SCOPES = {'statement', 'hypotheses', 'dependencies'}

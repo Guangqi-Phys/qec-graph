@@ -7,11 +7,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from qecgraph.graph import canonical
-from qecgraph.records import prepare_record
+from qecgraph.core.graph import canonical
+from qecgraph.domain.records import prepare_record
 from qecgraph.registry import Registry
 from qecgraph.review import apply, create_proposal, decide
-from qecgraph.transactions import writer_lock
+from qecgraph.core.transactions import writer_lock
 
 
 def claim(identifier, revision='1'):
@@ -73,7 +73,7 @@ class ApplyTests(unittest.TestCase):
                 raise OSError('Injected pointer publication failure')
             return original_replace(source, target)
 
-        with patch('qecgraph.transactions.os.replace', side_effect=fail_pointer):
+        with patch('qecgraph.core.transactions.os.replace', side_effect=fail_pointer):
             with self.assertRaisesRegex(OSError, 'Injected pointer'):
                 apply(self.registry.root, proposal['id'], review['id'])
         self.assertEqual(self.registry.read()[1], before)

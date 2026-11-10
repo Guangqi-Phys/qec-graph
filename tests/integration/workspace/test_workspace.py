@@ -14,10 +14,10 @@ from unittest.mock import patch
 
 from qecgraph.cli import main
 from qecgraph.corpus import execute
-from qecgraph.research_store import stage_records
-from qecgraph.source_package import unpack
+from qecgraph.domain.research_store import stage_records
+from qecgraph.source.package import unpack
 from qecgraph.store import extraction_tool_identity, ingest
-from qecgraph.transactions import ManagedDataError, writer_lock
+from qecgraph.core.transactions import ManagedDataError, writer_lock
 from qecgraph.workspace import Workspace
 from tests.unit.parsing.test_source_package import TEX, tar_bytes
 
@@ -385,7 +385,7 @@ class WorkspaceTests(unittest.TestCase):
 
 
     def test_extraction_keeps_mentions_separate_and_pins_verbatim_source(self):
-        from qecgraph.research_store import load_records
+        from qecgraph.domain.research_store import load_records
         raw = TEX.replace(b'Hello', b'\nA CSS code has $[[13,1,3]]$.\n\nA classical seed appears near $[[7,1,3]]$.\n')
         (self.inbox / 'example').write_bytes(raw)
         result = self.ws.init()
@@ -399,7 +399,7 @@ class WorkspaceTests(unittest.TestCase):
             self.assertEqual(raw.decode()[loc['char_start']:loc['char_end']], mention['data']['reported_notation'])
 
     def test_nonadditive_dimension_is_not_a_logical_qubit_count(self):
-        from qecgraph.research_store import load_records
+        from qecgraph.domain.research_store import load_records
         raw = TEX.replace(b'Hello', b'\nA nonadditive quantum code has $((9,12,3))$.\n')
         (self.inbox / 'example').write_bytes(raw)
         self.ws.init()

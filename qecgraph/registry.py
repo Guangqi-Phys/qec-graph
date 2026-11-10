@@ -7,10 +7,10 @@ import tempfile
 import uuid
 from pathlib import Path
 
-from .graph import canonical, hash_text, read_json
+from .core.graph import canonical, hash_text, read_json
 from .store import current_snapshot, load_validated_snapshot, safe_relative
-from .transactions import ManagedDataError, atomic_bytes, atomic_json, immutable_json, publish_pointer, read_pointer, writer_lock
-from .records import prepare_record
+from .core.transactions import ManagedDataError, atomic_bytes, atomic_json, immutable_json, publish_pointer, read_pointer, writer_lock
+from .domain.records import prepare_record
 from .query import resolve_node
 
 FORMAT = 'qecgraph.registry.v1'
@@ -326,7 +326,7 @@ class Registry:
                                   verify_sources=True, records=records, verified_spans=verified_spans,
                                   manifest_hashes=manifest_hashes)
         validate_graph_types(graph.graph)
-        from .status import reviewed_cycles
+        from .domain.status import reviewed_cycles
         issues.extend(reviewed_cycles(graph.graph))
         issues.extend({'code': 'review_stale', 'severity': 'warning', 'record_id': node['id'],
                        'reasons': node['review_binding']['reasons']}

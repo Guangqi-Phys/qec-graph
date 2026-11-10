@@ -31,8 +31,8 @@ Changelog = "https://github.com/Guangqi-Phys/qec-graph/blob/main/CHANGELOG.md"
 [project.scripts]
 qecgraph = "qecgraph.cli:main"
 qec-graph = "qecgraph.cli:main"
-qec-latex-split = "qecgraph.splitter:main"
-qecgraph-mcp = "qecgraph.mcp_server:main"
+qec-latex-split = "qecgraph.source.splitter:main"
+qecgraph-mcp = "qecgraph.mcp.server:main"
 
 [dependency-groups]
 dev = [

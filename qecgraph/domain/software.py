@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from importlib.resources import files
 
-from .graph import canonical, hash_text, strict_json_loads
+from ..core.graph import canonical, hash_text, strict_json_loads
 from .research import make_record, ref, validate_bundle
 
 SEED_SCHEMA = 'qecgraph.software_catalog.seed.v1'
@@ -75,7 +75,7 @@ def _official_repo_url(value):
 
 def _fetch_metadata(url, timeout):
     from urllib.request import HTTPRedirectHandler, Request, build_opener
-    from .source_package import read_bounded
+    from ..source.package import read_bounded
 
     class NoRedirect(HTTPRedirectHandler):
         def redirect_request(self, *args, **kwargs):
@@ -93,7 +93,7 @@ def refresh(registry, *, project_id=None, limit=20, timeout=8):
     from hashlib import sha256
     from urllib.error import HTTPError
     from .research_store import load_records, publish_records
-    from .workspace import now
+    from ..workspace import now
     if type(limit) is not int or not 1 <= limit <= 20 or not 1 <= timeout <= 30:
         raise ValueError('Refresh limit must be 1..20 and timeout 1..30 seconds')
     state, release = registry.read()

@@ -5,9 +5,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from qecgraph.graph import read_json
+from qecgraph.core.graph import read_json
 from qecgraph.store import current_snapshot, ingest
-from qecgraph.transactions import writer_lock
+from qecgraph.core.transactions import writer_lock
 from qecgraph.watch import Watcher
 
 

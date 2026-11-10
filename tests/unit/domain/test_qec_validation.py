@@ -7,8 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from qecgraph.domain_query import codes
-from qecgraph.graph import read_json
+from qecgraph.domain.domain_query import codes
+from qecgraph.core.graph import read_json
 from qecgraph.validators import DOMAIN_FIELDS
 from qecgraph.validators.qec import basis, check_css, check_experiment, comparable_experiments, distance_issues, matrix_rows
 

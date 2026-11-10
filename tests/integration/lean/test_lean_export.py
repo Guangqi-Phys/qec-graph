@@ -1,6 +1,6 @@
 import unittest
 
-from qecgraph.graph import read_json
+from qecgraph.core.graph import read_json
 from qecgraph.lean import audit_export
 
 from tests.support import ROOT

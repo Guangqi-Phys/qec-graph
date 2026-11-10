@@ -114,15 +114,17 @@ flowchart TB
 
 | Layer | Modules | Rule |
 |---|---|---|
-| Entry points | `qecgraph/cli`, `qecgraph.mcp_server`, `qecgraph.splitter` | May import application modules; package import must not load the CLI |
-| Application | `workspace*`, `store`, `corpus`, `registry`, `review`, `research*`, `query`, `domain_query` | Own transactions and policy; do not import development layers |
-| Kernel | `parser`, `graph`, `validators`, `source_*`, `incremental`, `semantic`, `transactions` | Pure or local side effects; no tests/tools/legacy/validation imports |
-| Output | `human`, `status`, `software`, `mcp_server` | Render/read from a pinned release; never write back through `human/` |
-| Deferred | `lean*` | Experimental only; never required by database, query or MCP reads |
+| Entry points | `qecgraph/cli`, `qecgraph/mcp/server.py`, `qecgraph/source/splitter.py` | May import application modules; package import must not load the CLI |
+| Application | `store.py`, `workspace.py`, `workspace_*.py`, `corpus.py`, `registry.py`, `review.py`, `query.py`, `domain/*` | Own transactions and policy; do not import development layers |
+| Kernel | `core/graph.py`, `core/transactions.py`, `core/coordinates.py`, `source/*`, `validators/*` | Pure or local side effects; no tests/tools/legacy/validation imports |
+| Output | `render/human.py`, `domain/status.py`, `domain/software.py`, `mcp/*` | Render/read from a pinned release; never write back through `human/` |
+| Deferred | `lean/*` | Experimental only; never required by database, query or MCP reads |
 
-The architecture test in `tests/contracts/tooling/test_architecture.py` enforces the import boundary;
-the flat package remains intentional for 0.4.x because any package file changes
-the extraction tool identity and therefore new snapshot IDs.
+The architecture test in `tests/contracts/tooling/test_architecture.py` enforces the import boundary.
+Implementation now lives under `core/`, `source/`, `domain/`, `render/`, `mcp/` and `lean/`;
+`store.py`, `workspace.py` and `corpus.py` remain cohesive service modules pending a later
+split. `qecgraph/splitter.py` and `qecgraph/mcp_server.py` are thin compatibility shims for
+the documented module entry points.
 
 ---
 
@@ -286,7 +288,7 @@ Each edge keeps `source`, `target`, `relation`, `status`, and `evidence`.
 
 ### 5.1 Parser
 
-`qecgraph/parser.py` uses `pylatexenc==2.10` to recognize structural declarations without running TeX. It records:
+`qecgraph/source/parser.py` uses `pylatexenc==2.10` to recognize structural declarations without running TeX. It records:
 
 - file bytes/hash and exact source spans;
 - sections, definitions, lemmas, theorems, propositions, corollaries, conjectures, proofs, equations, tables, figures, remarks, examples;
@@ -418,7 +420,7 @@ The typed JSON envelope (`ok/data` or `error/code/message/details/scope`) is sha
 
 > [!WARNING]
 > **Lean is deferred in 0.4.x.** It is not part of the supported database,
-> query, or MCP workflow. The `lean` CLI group, `qecgraph/lean*.py`, `lean/`
+> query, or MCP workflow. The `lean` CLI group, `qecgraph/lean/`, `lean/`
 > project, and `validation/lean-experimental` fixtures remain only as experimental regression
 > material. They are not a verification claim and must not be presented as a
 > finished product capability.
@@ -432,7 +434,7 @@ from the supported release scope until a new design is written and approved.
 
 | Artifact | Status |
 |---|---|
-| `qecgraph/lean.py`, `lean_integration.py`, `qecgraph/cli/commands/lean.py` | Experimental code retained so historical regressions remain testable; not covered by the support contract |
+| `qecgraph/lean/core.py`, `qecgraph/lean/integration.py`, `qecgraph/cli/commands/lean.py` | Experimental code retained so historical regressions remain testable; not covered by the support contract |
 | `lean/` project and `lean/axiom-policy.json` | Pinned experimental fixture; no toolchain is installed in the normal Python environment |
 | `validation/lean-experimental/` and Lean test fixtures | Historical/experimental evidence; not a current verification claim |
 | Query/MCP path | Does not import, execute, or require Lean; database construction and MCP are unaffected |

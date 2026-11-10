@@ -3,11 +3,11 @@ import unittest
 from pathlib import Path
 
 from qecgraph.corpus import execute
-from qecgraph.graph import read_json
+from qecgraph.core.graph import read_json
 from qecgraph.registry import Registry
 from qecgraph.store import current_snapshot, ingest, pin_snapshot
 from qecgraph.query import show
-from qecgraph.transactions import writer_lock
+from qecgraph.core.transactions import writer_lock
 
 
 class CorpusTests(unittest.TestCase):

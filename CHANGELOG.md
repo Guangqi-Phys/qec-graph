@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- The `qecgraph` package is grouped into `core/`, `source/`, `domain/`,
+  `render/`, `mcp/` and `lean/` implementation packages. `store.py`,
+  `workspace.py` and `corpus.py` remain cohesive service modules for a later
+  split. Only `qecgraph.splitter` and `qecgraph.mcp_server` remain as thin
+  compatibility shims for documented module entry points. This intentionally
+  changes new snapshot tool identities; existing snapshots remain valid.
 - Removed the repository-root `schemas/` compatibility folder. It contained no
   schema files, only a redirect README; canonical schemas remain packaged under
   `qecgraph/validators/schemas/` and all references now use that path.

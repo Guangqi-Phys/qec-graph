@@ -1,10 +1,10 @@
 """Publish explicit, immutable research revisions alongside the legacy corpus."""
 from __future__ import annotations
 
-from .graph import canonical, hash_text, read_json
+from ..core.graph import canonical, hash_text, read_json
 from .research import key, ref, validate_bundle
-from .store import load_validated_snapshot, safe_relative, source_span_index
-from .transactions import immutable_json, writer_lock
+from ..store import load_validated_snapshot, safe_relative, source_span_index
+from ..core.transactions import immutable_json, writer_lock
 
 
 def _record_path(record):
@@ -27,8 +27,8 @@ def load_records(registry, state):
 
 def validate_sources(registry, state, records, *, require_source=True, verified_spans=None):
     """Resolve verified locators through registered graph identity, never paths supplied by a record."""
-    from .workspace import HEX
-    from .workspace_assets import references, verify_asset
+    from ..workspace import HEX
+    from ..workspace_assets import references, verify_asset
     graphs = {}
     verified_assets = set()
 

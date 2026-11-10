@@ -6,12 +6,12 @@ import re
 from pathlib import Path
 from urllib.parse import quote
 
-from .graph import LEAN_DEPENDENCIES, canonical, hash_text, read_json, strict_json_loads
-from .lean import audit_export, producer_manifest, source_manifest
-from .records import RECORD_SCHEMA, prepare_record
-from .registry import Registry
-from .store import safe_relative, validate_snapshot
-from .transactions import writer_lock
+from ..core.graph import LEAN_DEPENDENCIES, canonical, hash_text, read_json, strict_json_loads
+from .core import audit_export, producer_manifest, source_manifest
+from ..domain.records import RECORD_SCHEMA, prepare_record
+from ..registry import Registry
+from ..store import safe_relative, validate_snapshot
+from ..core.transactions import writer_lock
 
 
 def declaration_id(project_id, name):
@@ -200,8 +200,8 @@ def import_build(corpus, report_path, *, project_id, project=None, mappings=None
                 raise ValueError('Importer cannot grant semantic review; use an independent bound human review')
             source_refs = []
             for source in mapping.get('source_refs', []):
-                from .query import resolve
-                from .validators import validate_endpoint
+                from ..query import resolve
+                from ..validators import validate_endpoint
                 graph, snapshot, version = registry.source_graph(source['source_version_id'])
                 validate_snapshot(snapshot, expected_snapshot_id=version['snapshot_id'])
                 node_id = resolve(graph, source['selector'])

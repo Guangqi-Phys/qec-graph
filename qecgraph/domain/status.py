@@ -19,7 +19,7 @@ def annotation_eligible(annotation, include_candidates=False):
 
 
 def review_states(registry, state, records, *, verified_versions=()):
-    from .review import final_records, read_proposal, read_review
+    from ..review import final_records, read_proposal, read_review
     result, assets, checked_reviews = {}, {}, {}
     sources = dict.fromkeys(verified_versions)
 

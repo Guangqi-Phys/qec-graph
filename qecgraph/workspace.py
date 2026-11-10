@@ -16,13 +16,13 @@ import tomllib
 import uuid
 
 from . import PARSER_VERSION, __version__
-from .extraction import RULE_VERSION, proposals
-from .research_store import load_records, stage_records, validate_sources
-from .graph import canonical, hash_text, read_json, strict_json_loads
+from .source.extraction import RULE_VERSION, proposals
+from .domain.research_store import load_records, stage_records, validate_sources
+from .core.graph import canonical, hash_text, read_json, strict_json_loads
 from .registry import Registry
-from .source_package import Limits, PackageError, unpack
+from .source.package import Limits, PackageError, unpack
 from .store import extraction_tool_identity, ingest, source_span_index
-from .transactions import ManagedDataError, atomic_bytes, atomic_json, immutable_json, writer_lock
+from .core.transactions import ManagedDataError, atomic_bytes, atomic_json, immutable_json, writer_lock
 
 CONFIG = 'qecgraph.toml'
 FORMAT = 'qecgraph.workspace.v1'
@@ -667,7 +667,7 @@ class Workspace:
         verified_spans = {}
         result = self.registry._validate_state(state, fixed, check_live_lean=False, verified_spans=verified_spans)
         issues = result.setdefault('issues', [])
-        from .research import validate_bundle
+        from .domain.research import validate_bundle
         records = load_records(self.registry, state)
         validate_bundle(records)
         validate_sources(self.registry, state, records, verified_spans=verified_spans)

@@ -1,7 +1,7 @@
 """CLI handlers for source commands."""
 from __future__ import annotations
 
-from ...splitter import split_project
+from ...source.splitter import split_project
 from ...store import ingest, validate_snapshot
 from ..render import emit_report, print_json
 

@@ -127,14 +127,16 @@ flowchart TB
 
 | 层 | 模块 | 规则 |
 |---|---|---|
-| 入口 | `qecgraph/cli`、`qecgraph.mcp_server`、`qecgraph.splitter` | 可导入应用模块；包导入不得加载 CLI |
-| 应用 | `workspace*`、`store`、`corpus`、`registry`、`review`、`research*`、`query`、`domain_query` | 拥有事务和策略；不得导入开发层 |
-| 内核 | `parser`、`graph`、`validators`、`source_*`、`incremental`、`semantic`、`transactions` | 纯逻辑或本地副作用；不得导入 tests/tools/legacy/validation |
-| 输出 | `human`、`status`、`software`、`mcp_server` | 从固定 release 渲染/读取；不得通过 `human/` 写回 |
-| 延期 | `lean*` | 仅实验；数据库、查询或 MCP 读取绝不依赖 |
+| 入口 | `qecgraph/cli`、`qecgraph/mcp/server.py`、`qecgraph/source/splitter.py` | 可导入应用模块；包导入不得加载 CLI |
+| 应用 | `store.py`、`workspace.py`、`workspace_*.py`、`corpus.py`、`registry.py`、`review.py`、`query.py`、`domain/*` | 拥有事务和策略；不得导入开发层 |
+| 内核 | `core/graph.py`、`core/transactions.py`、`core/coordinates.py`、`source/*`、`validators/*` | 纯逻辑或本地副作用；不得导入 tests/tools/legacy/validation |
+| 输出 | `render/human.py`、`domain/status.py`、`domain/software.py`、`mcp/*` | 从固定 release 渲染/读取；不得通过 `human/` 写回 |
+| 延期 | `lean/*` | 仅实验；数据库、查询或 MCP 读取绝不依赖 |
 
-`tests/contracts/tooling/test_architecture.py` 强制执行导入边界；0.4.x 仍有意保留扁平包，因为任何
-包内文件变化都会改变抽取工具身份，从而产生新的 snapshot ID。
+`tests/contracts/tooling/test_architecture.py` 强制执行导入边界。实现现在位于
+`core/`、`source/`、`domain/`、`render/`、`mcp/` 和 `lean/`；`store.py`、
+`workspace.py`、`corpus.py` 继续保持为内聚服务模块，后续再拆。
+`qecgraph/splitter.py` 和 `qecgraph/mcp_server.py` 是文档化模块入口的薄兼容 shim。
 
 ---
 
@@ -310,7 +312,7 @@ parser diagnostic，不是数学环。
 
 ### 5.1 Parser
 
-`qecgraph/parser.py` 使用 `pylatexenc==2.10` 识别结构声明，不运行 TeX。它记录：
+`qecgraph/source/parser.py` 使用 `pylatexenc==2.10` 识别结构声明，不运行 TeX。它记录：
 
 - 文件 bytes/hash 和精确来源区间；
 - sections、definitions、lemmas、theorems、propositions、corollaries、conjectures、proofs、equations、tables、figures、remarks、examples；
@@ -467,7 +469,7 @@ Python、CLI 和 MCP 共享。MCP protocol errors 和 business-query errors 保�
 
 > [!WARNING]
 > **Lean 在 0.4.x 中延期。** 它不是受支持的数据库、查询或 MCP 流程的一部分。
-> `lean` CLI 组、`qecgraph/lean*.py`、`lean/` 项目和
+> `lean` CLI 组、`qecgraph/lean/`、`lean/` 项目和
 > `validation/lean-experimental` fixtures 只作为实验性回归材料保留。它们不是
 > 验证声明，不得被呈现为已完成的产品能力。
 
@@ -479,7 +481,7 @@ export shape、axiom visibility），但它们不是受支持的语义契约。�
 
 | 产物 | 状态 |
 |---|---|
-| `qecgraph/lean.py`、`lean_integration.py`、`qecgraph/cli/commands/lean.py` | 保留实验代码，使历史回归仍可测试；不在支持契约内 |
+| `qecgraph/lean/core.py`、`qecgraph/lean/integration.py`、`qecgraph/cli/commands/lean.py` | 保留实验代码，使历史回归仍可测试；不在支持契约内 |
 | `lean/` 项目和 `lean/axiom-policy.json` | 固定实验 fixture；普通 Python 环境不安装 toolchain |
 | `validation/lean-experimental/` 和 Lean test fixtures | 历史/实验证据；不是当前验证声明 |
 | Query/MCP 路径 | 不导入、不执行、不要求 Lean；数据库构建和 MCP 不受影响 |

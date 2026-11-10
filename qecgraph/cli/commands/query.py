@@ -1,7 +1,7 @@
 """CLI handlers for query commands."""
 from __future__ import annotations
 
-from ...graph import read_json
+from ...core.graph import read_json
 from ...query import QuerySession
 from ...store import current_snapshot, snapshot_reference, validate_snapshot
 from ..errors import QueryError
@@ -40,7 +40,7 @@ def _ai_session(args):
                                   max_chars=args.session_max_chars, max_results=args.session_max_results)
     if args.release:
         raise ValueError('--release requires --workspace or --machine')
-    from ...ai_tools import ReadOnlySession
+    from ...mcp.ai_tools import ReadOnlySession
     return ReadOnlySession(store=args.store, corpus=args.corpus, snapshot_id=args.snapshot,
                            registry_revision=args.registry_revision, source_version_id=args.source_version_id,
                            max_nodes=args.session_max_nodes, max_depth=args.session_max_depth,
@@ -103,7 +103,7 @@ def validate_store(args):
 
 def audit_dependencies(args):
     _select_store_snapshot(args)
-    from ...status import reviewed_cycles
+    from ...domain.status import reviewed_cycles
     if args.corpus:
         from ...corpus import project
         graph_input, scope = project(args.corpus, args.registry_revision, args.source_version_id)
@@ -135,7 +135,7 @@ def mcp_config(args):
 
 
 def mcp_serve(args):
-    from ...mcp_server import serve_stdio
+    from ...mcp.server import serve_stdio
     return serve_stdio(_ai_session(args), verbose=args.verbose)
 
 

@@ -18,9 +18,9 @@ from pathlib import Path
 from dataclasses import dataclass
 
 from . import __version__
-from .graph import build_graph, canonical, hash_text, node_filename, read_json, strict_json_loads, views
-from .source_coordinates import SourceLines
-from .transactions import ManagedDataError, atomic_json, publish_pointer, read_pointer, writer_lock
+from .core.graph import build_graph, canonical, hash_text, node_filename, read_json, strict_json_loads, views
+from .core.coordinates import SourceLines
+from .core.transactions import ManagedDataError, atomic_json, publish_pointer, read_pointer, writer_lock
 
 
 CURRENT_FORMAT = 'qecgraph.current.v1'
@@ -238,7 +238,7 @@ def ingest(entry, project_id, out, project_root=None, config_path=None, annotati
 
 def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None,
                    *, strict=False, incremental=False, tool_identity=None):
-    from .parser import parse_project
+    from .source.parser import parse_project
 
     started = time.perf_counter()
     if tool_identity is None:
@@ -259,7 +259,7 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
 
     node_cache = None
     if incremental:
-        from .incremental import ParseCache
+        from .source.incremental import ParseCache
         node_cache = ParseCache(out, root, config)
     parsed = parse_project(entry, project_root=root, config=config, node_cache=node_cache)
     source_bytes = {}

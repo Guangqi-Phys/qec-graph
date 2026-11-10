@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from qecgraph.cli import main
 from qecgraph.store import ingest
-from qecgraph.transactions import writer_lock
+from qecgraph.core.transactions import writer_lock
 from qecgraph.workspace import Workspace
 from tests.support import ROOT
 

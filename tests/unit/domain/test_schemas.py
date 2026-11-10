@@ -4,8 +4,8 @@ from importlib.resources import files
 
 from jsonschema import Draft202012Validator
 
-from qecgraph.graph import read_json
-from qecgraph.records import prepare_record
+from qecgraph.core.graph import read_json
+from qecgraph.domain.records import prepare_record
 from qecgraph.review import create_proposal
 from qecgraph.validators import packaged_validator
 

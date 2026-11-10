@@ -5,7 +5,7 @@ import os
 import subprocess
 import sys
 
-from ...graph import read_json, strict_json_loads
+from ...core.graph import read_json, strict_json_loads
 from ..process import cli_command
 from ..render import emit_report, print_doctor, workspace_summary
 
@@ -104,7 +104,7 @@ def workspace_action(args, progress):
 
 
 def human_build(args):
-    from ...human import build_human
+    from ...render.human import build_human
     result = build_human(args.workspace, args.release)
     return emit_report(result, quiet=args.quiet, exit_code=0 if result['status'] == 'current' else 2)
 
@@ -116,7 +116,7 @@ def asset_add(args):
 
 
 def extract(args):
-    from ... import semantic
+    from ...domain import semantic
     if args.command == 'extract-request':
         result = semantic.request_extraction(args.workspace, args.source_version, release=args.release,
                                              max_chars=args.max_chars, offset=args.offset)

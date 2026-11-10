@@ -1,7 +1,7 @@
 """CLI handlers for the experimental/deferred Lean tools."""
 from __future__ import annotations
 
-from ...graph import read_json
+from ...core.graph import read_json
 from ...registry import Registry
 from ..render import emit_report
 
@@ -13,7 +13,7 @@ def build(args):
 
 
 def import_report(args):
-    from ...lean_integration import import_build
+    from ...lean.integration import import_build
     mappings = read_json(args.mapping) if args.mapping else None
     if mappings is not None and isinstance(mappings, dict):
         mappings = [mappings]
@@ -23,8 +23,8 @@ def import_report(args):
 
 
 def status(args):
-    from ...lean_integration import lean_record_states
-    from ...status import review_states
+    from ...lean.integration import lean_record_states
+    from ...domain.status import review_states
     registry = Registry(args.corpus)
     state, fixed = registry.read(args.registry_revision)
     records = registry.records_from_state(state)

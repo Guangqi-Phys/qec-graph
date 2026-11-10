@@ -50,7 +50,7 @@ class ArchitectureBoundaryTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_public_compatibility_names_remain_available(self):
-        from qecgraph.ai_tools import TOOL_NAMES
+        from qecgraph.mcp.ai_tools import TOOL_NAMES
         from qecgraph.cli import main as cli_main
         from qecgraph.mcp_server import main as mcp_main
         from qecgraph.splitter import main as splitter_main

@@ -7,7 +7,7 @@ import shutil
 import tempfile
 
 from .registry import Registry
-from .transactions import atomic_json, writer_lock
+from .core.transactions import atomic_json, writer_lock
 from .workspace import Workspace
 from .workspace_query import check_machine_tree
 

@@ -6,9 +6,9 @@ from hashlib import sha256
 from pathlib import Path
 from unittest.mock import patch
 
-from qecgraph.human import _assign_pages, build_human
-from qecgraph.source_package import unpack
-from qecgraph.transactions import atomic_bytes
+from qecgraph.render.human import _assign_pages, build_human
+from qecgraph.source.package import unpack
+from qecgraph.core.transactions import atomic_bytes
 from qecgraph.workspace import Workspace
 from qecgraph.workspace_query import WorkspaceSession
 from tests.unit.parsing.test_source_package import TEX, tar_bytes
@@ -37,7 +37,7 @@ class HumanTests(unittest.TestCase):
             return {p.relative_to(vault): p.read_bytes() for p in (vault / 'generated').rglob('*.md')}
         before = generated()
         self.assertTrue(before)
-        with patch('qecgraph.human.atomic_bytes', wraps=atomic_bytes) as writes:
+        with patch('qecgraph.render.human.atomic_bytes', wraps=atomic_bytes) as writes:
             self.assertEqual(build_human(self.root, release)['status'], 'current')
             writes.assert_not_called()
         self.assertEqual(generated(), before)
@@ -64,7 +64,7 @@ class HumanTests(unittest.TestCase):
                 raise OSError('simulated interrupted page publication')
             atomic_bytes(path, raw)
             written.append(path)
-        with patch('qecgraph.human.atomic_bytes', side_effect=interrupted):
+        with patch('qecgraph.render.human.atomic_bytes', side_effect=interrupted):
             self.assertEqual(build_human(self.root, next_release)['status'], 'human_stale')
         self.assertEqual(len(written), 1)
         self.assertEqual(self.ws.status()['release_id'], next_release)
@@ -200,7 +200,7 @@ Compute the commutator.
         def collision(value):
             return '0' * 12 + sha256(value.encode()).hexdigest()[12:]
 
-        with patch('qecgraph.human.hash_text', side_effect=collision):
+        with patch('qecgraph.render.human.hash_text', side_effect=collision):
             old = _assign_pages({existing_id: rows}, set(), {})
             bindings = _assign_pages({existing_id: rows, new_id: rows}, set(old.values()), old)
         self.assertEqual(bindings[existing_id], old[existing_id])
@@ -223,7 +223,7 @@ Compute the commutator.
         self.assertIn('## Archived (0)', report)
         for target in re.findall(r'\[\[([^|]+)\|', report):
             self.assertTrue((vault / (target + '.md')).is_file(), target)
-        with patch('qecgraph.human.atomic_bytes', wraps=atomic_bytes) as writes:
+        with patch('qecgraph.render.human.atomic_bytes', wraps=atomic_bytes) as writes:
             self.assertEqual(build_human(self.root, newest)['status'], 'current')
             writes.assert_not_called()
         self.assertEqual(changes.read_text(encoding='utf-8'), report)

@@ -7,8 +7,8 @@ import sqlite3
 import time
 from pathlib import Path
 
-from .graph import canonical, hash_text, read_json
-from .incremental import input_inventory
+from .core.graph import canonical, hash_text, read_json
+from .source.incremental import input_inventory
 from .store import ingest, safe_relative
 
 

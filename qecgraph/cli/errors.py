@@ -8,7 +8,7 @@ import tomllib
 from typing import Any
 
 from ..query import SelectionError
-from ..transactions import ManagedDataError, WriterBusy
+from ..core.transactions import ManagedDataError, WriterBusy
 from ..workspace import InputDestinationExists, WorkspaceConfigError
 
 

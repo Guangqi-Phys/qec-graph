@@ -11,13 +11,13 @@ import os
 from pathlib import Path
 import stat
 
-from .ai_tools import ReadOnlySession, ToolError, tool_validators
-from .domain_query import codes
-from .graph import canonical, hash_text, read_json
+from .mcp.ai_tools import ReadOnlySession, ToolError, tool_validators
+from .domain.domain_query import codes
+from .core.graph import canonical, hash_text, read_json
 from .query import GraphTextIndex, search_node_summary
 from .registry import Registry
-from .research import RELATIONS, key, validate_bundle
-from .research_store import load_records
+from .domain.research import RELATIONS, key, validate_bundle
+from .domain.research_store import load_records
 from .workspace import HEX, _managed
 from .workspace_assets import asset_bytes, references
 

@@ -12,8 +12,8 @@ from pathlib import Path
 import re
 from typing import Any
 
-from . import PARSER_VERSION
-from .source_coordinates import SourceLines
+from .. import PARSER_VERSION
+from ..core.coordinates import SourceLines
 
 try:
     from pylatexenc import __version__ as PYLATEXENC_VERSION

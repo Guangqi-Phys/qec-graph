@@ -10,7 +10,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from urllib.parse import quote
 
-from . import __version__
+from .. import __version__
 
 STATEMENTS = {"lemma", "theorem", "proposition", "corollary", "conjecture"}
 MATHEMATICS = STATEMENTS | {"definition", "proof", "equation"}
@@ -357,7 +357,7 @@ class _GraphBuilder:
                 self.diag("stale_annotation", f"Edge {source} -> {target} needs review")
 
     def lift_proof_dependencies(self) -> None:
-        from .validators import ENDPOINTS
+        from ..validators import ENDPOINTS
 
         # Lift references/uses from a proof to its proposed/declared statement.
         proof_links, containment, reference_edges = [], defaultdict(list), defaultdict(list)

@@ -9,11 +9,11 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
-from qecgraph.ai_tools import ReadOnlySession, TOOL_NAMES
+from qecgraph.mcp.ai_tools import ReadOnlySession, TOOL_NAMES
 from qecgraph.query import context, search
 from qecgraph.registry import Registry
 from qecgraph.store import ingest
-from qecgraph.transactions import ManagedDataError
+from qecgraph.core.transactions import ManagedDataError
 
 
 class AIToolTests(unittest.TestCase):
