@@ -1,6 +1,6 @@
 # 数据与检索
 
-> **状态：当前（0.5.x）。** 研究记录、证据策略和查询契约。
+> **状态：当前（0.6.x）。** 研究记录、证据策略和查询契约。
 
 > **中文** · [English](data-and-search.md)
 
@@ -12,6 +12,7 @@ QEC Graph 保存原始来源、从来源抽取的图，以及带版本的研究�
 - [工作区保存什么](#工作区保存什么)
 - [研究记录类型](#研究记录类型)
 - [按关键词、来源或结构化字段检索](#按关键词来源或结构化字段检索)
+- [AI proposals](#ai-proposals)
 - [读取和复现查询结果](#读取和复现查询结果)
 
 > [!IMPORTANT]
@@ -31,7 +32,7 @@ QEC Graph 保存原始来源、从来源抽取的图，以及带版本的研究�
 导入论文会为受支持 TeX 创建来源图，并可对识别出的参数记法生成
 `code_parameters_mention` 提案。提案带来源位置和未解决字段。结构化码参数、距离界、
 实验条件和性能点依赖显式记录和证据。来源链接保留论文实际报告的内容。
-数学检查和语义审核携带独立证据。Lean 在 0.5.x 中延期；任何实验 Lean fixture
+数学检查和语义审核携带独立证据。Lean 在 0.6.x 中延期；任何实验 Lean fixture
 都不是验证结论。[图语义和数据契约](../design/DESIGN.zh-CN.md#4-数据契约)
 
 ## 研究记录类型
@@ -121,7 +122,7 @@ construction 仍未知。
 `conflicting` 记录字段为何没有单一值。默认工作区查询过滤 synthetic 记录和
 过期 provider 批准；proposed/draft 记录仍可见并携带 `review_status`，但绝不当作已验证。
 旧 `qecgraph.record` 记录也可携带 claims、证据和实验性
-Lean 映射字段。Lean 延期，不属于受支持 0.5.x 流程；见
+Lean 映射字段。Lean 延期，不属于受支持 0.6.x 流程；见
 [设计说明](../design/DESIGN.zh-CN.md#10-lean延期不支持)。
 research schema 列出受支持 kinds、每种 kind 必填字段，以及可空 `{id, revision}`
 链接形状。`x-qec-target-kinds` 注解描述允许的目标 kind。JSON Schema 校验器还
@@ -173,6 +174,13 @@ qec-graph query software --workspace . --query Stim --limit 5
 距离过滤前检查 metric、sector、界方向和证据策略。性能比较前，先比较返回的
 metric 定义、实验和曲线修订、噪声、解码器及未解决条件。
 [导入和审核记录](advanced-usage.zh-CN.md#管理-obsidian-vault-和研究记录)
+
+## AI proposals
+
+AI 抽取会把 `qecgraph.ai.proposal` 写入 `machine/ai/proposals/`。它们保持
+`proposed`，不会被默认的 verified 证据策略选中。用 `qec-graph ai proposals`
+列出，用 `qec-graph ai decide` 记录显式决定；审核绑定 proposal 哈希，但不会
+自动创建 research record。source references 必须指向原始或映射后的规范化片段。
 
 ## 读取和复现查询结果
 

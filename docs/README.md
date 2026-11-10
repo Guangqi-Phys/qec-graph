@@ -1,6 +1,6 @@
 # QEC Graph documentation
 
-> **Status: Current (0.5.x).** This is the single documentation entry point.
+> **Status: Current (0.6.x).** This is the single documentation entry point.
 
 > **English** · [中文](README.zh-CN.md)
 
@@ -30,6 +30,7 @@ flowchart TD
 | A new user | [Quick start](user/quickstart.md) | Shortest path from archive to first query |
 | Importing or maintaining a workspace | [Workspace guide](user/workspace.md) | Archive configuration, entry points, Obsidian and provider handoff |
 | Querying records or sources | [Data and search](user/data-and-search.md) | Record types, evidence policy and CLI/MCP queries |
+| Configuring AI extraction | [Workspace guide](user/workspace.md#ai-configuration) | Provider templates, API keys, normalization and proposal review |
 | Running commands | [Advanced usage](user/advanced-usage.md) | Install, exit codes, grouped commands and release checks |
 | Working on the splitter | [Single-paper splitter](user/splitter.md) | Source spans, fragment layout and LaTeX limits |
 | An agent or contributor | [System design](design/DESIGN.md) | Authoritative architecture, data, publication and boundaries |
@@ -75,7 +76,7 @@ reference table.
 Documentation pages under `docs/` are bilingual: `page.md` is English and
 `page.zh-CN.md` is Simplified Chinese, with matching headings, tables and
 executable examples. Root contributor and security policies are English-only.
-Each page declares its status at the top. **Only Current pages describe 0.5.x.**
+Each page declares its status at the top. **Only Current pages describe 0.6.x.**
 
 There are no redirect-only or archive pages. Superseded material lives in Git
 history, not in a second documentation tree.

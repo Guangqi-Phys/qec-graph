@@ -18,6 +18,7 @@ tests/
 | 层级 | 功能组 | 文件 | 重点 |
 |---|---|---|---|
 | Unit | 解析 | `unit/parsing/test_parser.py`、`unit/parsing/test_source_package.py` | TeX 解析、归档安全、来源区间 |
+| Unit | AI | `unit/domain/test_ai_config.py`、`test_ai_client.py`、`test_ai_provider.py`、`test_ai_skills.py`、`test_ai_normalize.py`、`test_ai_normalize_runner.py`、`test_ai_extract.py`、`test_ai_prefetch.py` | Provider 配置、结构化输出、skills、规范化和并发 prefetch |
 | Unit | 领域 | `unit/domain/test_semantic.py`、`unit/domain/test_qec_validation.py`、`unit/domain/test_validators.py`、`unit/domain/test_schemas.py` | 图/证据规则、QEC 检查、Schema 契约 |
 | Integration | Pipeline | `integration/pipeline/test_pipeline.py`、`test_publication.py`、`test_registry.py`、`test_splitter.py` | 快照、发布、registry、切割 |
 | Integration | 工作区 | `integration/workspace/test_workspace.py`、`test_workspace_migration.py`、`test_workspace_query.py`、`test_incremental.py`、`test_watch.py`、`test_status.py` | init/sync/rebuild、迁移、查询、增量/watch、状态 |

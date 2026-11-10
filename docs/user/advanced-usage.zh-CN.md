@@ -1,6 +1,6 @@
 # 进阶用法
 
-> **状态：当前（0.5.x）。** 安装、工作区、查询和发布说明。
+> **状态：当前（0.6.x）。** 安装、工作区、查询和发布说明。
 
 > **中文** · [English](advanced-usage.md)
 
@@ -53,7 +53,7 @@ PYINSTALLER_CONFIG_DIR="$PWD/build/standalone-cache" \
 直接运行 `dist/standalone/qec-graph`，或把它安装到 `PATH` 中的用户目录。
 
 > [!NOTE]
-> Lean 在 0.5.x 中延期。实验性的 `lean` 命令组和 Lean fixtures 不属于受支持流程；
+> Lean 在 0.6.x 中延期。实验性的 `lean` 命令组和 Lean fixtures 不属于受支持流程；
 > 见[设计说明](../design/DESIGN.zh-CN.md#10-lean延期不支持)。
 
 ## 试运行自带论文
@@ -86,6 +86,8 @@ qec-graph query search HGP --workspace "$workspace" --limit 2
 前两个搜索结果是公式 `eq:hgp-checks` 和 `eq:hgp-commutation`。它们的 `source`
 区间把结果定位到 LaTeX。响应还标识固定 release，并说明还有更多匹配。
 [如何读取和复现查询](data-and-search.zh-CN.md#读取和复现查询结果)
+
+把 `[ai].max_parallel_packages` 设为小值（例如 `2`），可以让 `sync` 并发准备多个文献包。只有 AI 调用重叠；registry 发布和输入消费仍保持串行。
 
 ## 维护工作区
 

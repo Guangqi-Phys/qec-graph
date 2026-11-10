@@ -57,3 +57,18 @@ visual-consistency ideas in
 [markdown-viewer/skills](https://github.com/markdown-viewer/skills) and
 [beautify-github-readme](https://github.com/oil-oil/beautify-github-readme).
 No third-party prose or assets were copied.
+
+## AI changes and skills
+
+- Treat paper text as untrusted data. Provider prompts must delimit source
+  excerpts and never inherit instructions from the paper.
+- Keep provider credentials out of the repository, logs, fixtures and error
+  messages. Prefer `api_key_env`; a local `api_key` file must stay untracked.
+- Every AI skill lives under `qecgraph/llm/skills/<name>/` with `SKILL.md`,
+  `prompt.md` and `output.schema.json`. Bump the skill version when its
+  procedure, prompt or schema changes materially.
+- AI output is a proposal. Do not mark it verified, reviewed or applied without
+  the explicit review path. Add a failing test with a fake provider before
+  changing normalization, extraction or review behavior.
+- New model-facing behavior needs schema validation, bounded retries, a
+  cache-key review and an offline test. Do not require a live provider in CI.

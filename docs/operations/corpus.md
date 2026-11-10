@@ -1,12 +1,14 @@
 # Corpus: registration, identity and queries
 
-> **Status: Current (0.5.x) for the corpus surface.** The workspace surface is the primary product; see the [workspace guide](../user/workspace.md).
+> **Status: Current (0.6.x) for the corpus surface.** The workspace surface is the primary product; see the [workspace guide](../user/workspace.md).
 
 > **English** · [中文](corpus.zh-CN.md)
 
 > [!NOTE]
 > This is the multi-document corpus surface. The workspace has its own
 > machine release format; do not point both at the same directory.
+
+AI normalization and AI proposals apply to the workspace surface only; the corpus surface does not call a model.
 
 ## On this page
 

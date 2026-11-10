@@ -1,6 +1,6 @@
 # Data and search
 
-> **Status: Current (0.5.x).** Research records, evidence policy and query contracts.
+> **Status: Current (0.6.x).** Research records, evidence policy and query contracts.
 
 > **English** · [中文](data-and-search.zh-CN.md)
 
@@ -13,6 +13,7 @@ served the query, so you can trace a result back to the same data later.
 - [What the workspace stores](#what-the-workspace-stores)
 - [Research record types](#research-record-types)
 - [Search by keyword, source, or structured fields](#search-by-keyword-source-or-structured-fields)
+- [AI proposals](#ai-proposals)
 - [Read and reproduce a query result](#read-and-reproduce-a-query-result)
 
 > [!IMPORTANT]
@@ -36,7 +37,7 @@ its source location and any unresolved fields. Structured code parameters,
 distance bounds, experimental conditions, and performance data points depend on
 explicit records and evidence. Source links preserve what the paper reports.
 Mathematical checks and semantic review carry separate evidence. Lean is
-deferred in 0.5.x; any experimental Lean fixture is not a verification claim.
+deferred in 0.6.x; any experimental Lean fixture is not a verification claim.
 [Graph semantics and data contracts](../design/DESIGN.md#4-data-contracts)
 
 ## Research record types
@@ -133,7 +134,7 @@ queries filter synthetic records and stale provider approvals. Proposed or draft
 records remain visible with their `review_status`; they are never treated as verified. Legacy
 `qecgraph.record` records can also carry claims and evidence, plus
 experimental Lean mapping fields. Lean is deferred and is not part of the
-supported 0.5.x workflow; see [the design note](../design/DESIGN.md#10-lean-deferred-not-supported).
+supported 0.6.x workflow; see [the design note](../design/DESIGN.md#10-lean-deferred-not-supported).
 The research schema lists the supported kinds, the fields that must be present
 for each kind, and the shape of nullable `{id, revision}` links. Its
 `x-qec-target-kinds` annotations describe the allowed target kinds. A JSON
@@ -192,6 +193,15 @@ back empty. For distance filtering, check the metric, sector, direction of
 the bound, and evidence policy. For performance, compare the returned metric
 definition, experiment and curve revisions, noise, decoder, and unresolved
 conditions before comparing values. [Import and review records](advanced-usage.md#manage-the-obsidian-vault-and-research-records)
+
+## AI proposals
+
+AI extraction writes `qecgraph.ai.proposal` files under
+`machine/ai/proposals/`. They remain `proposed` and are not selected by the
+default verified evidence policy. List them with `qec-graph ai proposals` and
+record an explicit decision with `qec-graph ai decide`; a review binds the
+proposal hash but does not automatically create a research record. Source
+references must point at the original or mapped normalized segment.
 
 ## Read and reproduce a query result
 

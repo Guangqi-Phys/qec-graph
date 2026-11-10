@@ -1,10 +1,10 @@
 # Workspace guide
 
-> **Status: Current (0.5.x).** Workspace configuration, Obsidian and provider handoff.
+> **Status: Current (0.6.x).** Workspace configuration, Obsidian and provider handoff.
 
 > **English** · [中文](workspace.zh-CN.md)
 
-`0.5.1` is the current release. The existing `qecgraph`,
+`0.6.0` is the current release. The existing `qecgraph`,
 `qec-latex-split` and `qecgraph-mcp` commands and the SourceGraph, LemmaGraph and
 DataGraph views remain available; Lean is a deferred experimental capability,
 see [the system design](../design/DESIGN.md#10-lean-deferred-not-supported).
@@ -28,7 +28,7 @@ current executable checks; historical run artifacts remain in Git history.
 Install the actual wheel in a Python 3.11+ POSIX environment. No API key is required.
 
 ```bash
-python -m pip install /path/to/qec_graph-0.5.1-py3-none-any.whl
+python -m pip install /path/to/qec_graph-0.6.0-py3-none-any.whl
 mkdir -p ~/qec
 cd ~/qec
 qec-graph init
@@ -64,6 +64,8 @@ api_key = ""
 `qec-graph ai status` reports the selected provider without contacting it;
 `qec-graph ai test` makes one schema-bound connectivity probe. `qec-graph init`
 never calls either command automatically.
+
+`max_parallel_packages` controls concurrent AI preparation; publication and input consumption remain serial.
 
 Daily use is `qec-graph sync`, `qec-graph status` and `qec-graph validate`.
 The terminal updates one progress line and ends with success or an error. `sync`

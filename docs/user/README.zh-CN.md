@@ -1,6 +1,6 @@
 # 用户指南
 
-> **状态：当前（0.5.x）。**
+> **状态：当前（0.6.x）。**
 
 > **中文** · [English](README.md)
 
@@ -21,6 +21,7 @@
 | 安装并导入第一篇论文 | [快速开始](quickstart.zh-CN.md) |
 | 配置入口或归档行为 | [工作区说明](workspace.zh-CN.md) |
 | 搜索来源、记录、码或性能点 | [数据与检索](data-and-search.zh-CN.md) |
+| 配置 AI provider 并审核 proposals | [工作区说明](workspace.zh-CN.md#ai-配置) |
 | 查命令、退出码或发布检查 | [进阶用法](advanced-usage.zh-CN.md) |
 | 不使用工作区，单独切割 LaTeX 工程 | [单篇切割](splitter.zh-CN.md) |
 | 查看版本之间发生了什么 | [变更日志](../../CHANGELOG.md) |

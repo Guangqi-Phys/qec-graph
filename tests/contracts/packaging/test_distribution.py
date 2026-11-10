@@ -55,13 +55,13 @@ class DistributionMetadataTests(unittest.TestCase):
     def test_utf8_readme_round_trips_through_email_metadata(self):
         readme = '# QEC Graph\n\nA → B — provenance.\n'
         raw = (
-            b'Version: 0.5.1\n'
+            b'Version: 0.6.0\n'
             b'License-Expression: MIT\n'
             b'License-File: LICENSE\n'
             b'Content-Type: text/markdown; charset=utf-8\n'
             b'Content-Transfer-Encoding: 8bit\n\n' + readme.encode('utf-8')
         )
-        check_distribution._check_metadata(raw, '0.5.1', readme)
+        check_distribution._check_metadata(raw, '0.6.0', readme)
 
 
 if __name__ == '__main__':

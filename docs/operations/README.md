@@ -1,6 +1,6 @@
 # Operations and maintenance
 
-> **Status: Current (0.5.x).** Daily workspace usage lives in the [user guides](../user/README.md).
+> **Status: Current (0.6.x).** Daily workspace usage lives in the [user guides](../user/README.md).
 > This section covers the supported store/corpus surface, review and evidence.
 
 > **English** · [中文](README.zh-CN.md)
@@ -24,6 +24,8 @@
 | [Review](review.md) | Corpus | How-to / reference | Validate typed records, bind evidence, apply reviewed proposals |
 | [Workspace guide](../user/workspace.md) | Workspace | How-to | Current daily workflow (linked here for convenience) |
 | [Advanced usage](../user/advanced-usage.md) | Workspace/CLI | How-to / reference | Release checks, exit codes and grouped commands |
+
+AI artifacts live under `machine/ai/proposals` and `machine/ai/reviews`. They are workspace-local, not part of the corpus review/apply path; see the [workspace guide](../user/workspace.md#ai-configuration).
 
 ## Validation
 

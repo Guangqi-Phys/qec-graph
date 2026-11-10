@@ -31,6 +31,9 @@ mkdir my-qec
 cd my-qec
 qec-graph init
 # The command creates inputs/ and qecgraph.toml.
+# Optional AI: edit [ai] in qecgraph.toml, then:
+qec-graph ai status
+qec-graph ai test
 # Put downloaded LaTeX source packages in inputs/, then run:
 qec-graph sync
 qec-graph status
@@ -38,7 +41,10 @@ qec-graph validate
 ```
 
 `init` never extracts or calls AI. It only prepares the inbox and configuration;
-`qec-graph sync` performs the import.
+`qec-graph sync` performs the import. AI is optional: configure `[ai]` and run
+`qec-graph ai test` before `sync` to enable multi-root normalization and
+proposal extraction. Without AI, single-root packages still follow the
+deterministic path.
 
 Successful imports keep the original package in `archive/` and clear its inbox
 copy. Open `human/` as an Obsidian vault and start at `Index.md`.

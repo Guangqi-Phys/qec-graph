@@ -1,6 +1,6 @@
 # Type validation, evidence and review
 
-> **Status: Current (0.5.x) for the corpus review surface.** Workspace review/apply semantics are in the [system design](../design/DESIGN.md#6-review-evidence-and-query-eligibility).
+> **Status: Current (0.6.x) for the corpus review surface.** Workspace review/apply semantics are in the [system design](../design/DESIGN.md#6-review-evidence-and-query-eligibility).
 
 > **English** · [中文](review.zh-CN.md)
 
@@ -26,7 +26,7 @@ packaged path directly. Unknown schemas are rejected and are never reinterpreted
 with the current fields. New writes always produce the current format.
 
 `qecgraph.record` also contains an experimental `lean_declaration` kind and
-relation fields; Lean is deferred in 0.5.x, is not part of the supported workflow
+relation fields; Lean is deferred in 0.6.x, is not part of the supported workflow
 and is not a verification conclusion. See
 [system design §10](../design/DESIGN.md#10-lean-deferred-not-supported).
 

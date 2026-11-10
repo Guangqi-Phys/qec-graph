@@ -1,6 +1,6 @@
 # LaTeX splitter: implemented API and commands
 
-> **Status: Current (0.5.x).** Source-only splitter reference and limitations.
+> **Status: Current (0.6.x).** Source-only splitter reference and limitations.
 
 > **English** · [中文](splitter.zh-CN.md)
 
@@ -13,6 +13,8 @@ The actual split result is the snapshot's `nodes/<kind>/*.tex` plus the matching
 `.json` records. There is no second independent parser and no extra fragment
 directory that loses provenance. Original files always remain in the same
 snapshot's `sources/`.
+
+AI normalization may produce a derived `main.tex`; the splitter still operates on the selected entry and reports source spans, while the normalization manifest retains the mapping to the original package.
 
 ## On this page
 

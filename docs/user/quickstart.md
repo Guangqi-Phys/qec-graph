@@ -1,6 +1,6 @@
 # QEC Graph quick start
 
-> **Status: Current (0.5.x).** The shortest path from installation to a first query.
+> **Status: Current (0.6.x).** The shortest path from installation to a first query.
 
 > **English** · [中文](quickstart.zh-CN.md)
 
@@ -19,13 +19,17 @@
 |---|---|---|
 | 1 | Install via the [installation instructions](../../README.md#install) | `qec-graph --version` prints a version |
 | 2 | Enter an empty directory and run `qec-graph init` | `inputs/` and `qecgraph.toml` are created; nothing is extracted |
-| 3 | Put a LaTeX source package in `inputs/` and run `qec-graph sync` | Successful packages enter `archive/`; inbox copies are cleared |
+| 3 | Optionally configure `[ai]` in `qecgraph.toml` and run `qec-graph ai test` | The provider reports a successful schema-bound probe |
+| 4 | Put a LaTeX source package in `inputs/` and run `qec-graph sync` | Successful packages enter `archive/`; inbox copies are cleared |
 | 5 | Run `qec-graph status` / `validate` | Indexed counts and integrity results are shown |
 
 ```sh
 mkdir my-qec
 cd my-qec
 qec-graph init
+# Optional: configure [ai] in qecgraph.toml before syncing.
+qec-graph ai status
+qec-graph ai test
 # Add downloaded TeX source packages to inputs/, then:
 qec-graph sync
 qec-graph status

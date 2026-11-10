@@ -1,6 +1,6 @@
 # User guides
 
-> **Status: Current (0.5.x).**
+> **Status: Current (0.6.x).**
 
 > **English** · [中文](README.zh-CN.md)
 
@@ -21,6 +21,7 @@
 | Install and import a first paper | [Quick start](quickstart.md) |
 | Configure entry points or archive behavior | [Workspace guide](workspace.md) |
 | Search sources, records, codes or performance data points | [Data and search](data-and-search.md) |
+| Configure AI providers and review proposals | [Workspace guide](workspace.md#ai-configuration) |
 | Look up a command, exit code or release check | [Advanced usage](advanced-usage.md) |
 | Split a single LaTeX project without the workspace | [Single-paper splitter](splitter.md) |
 | See what changed between releases | [Changelog](../../CHANGELOG.md) |

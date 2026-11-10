@@ -1,6 +1,6 @@
 # Advanced usage
 
-> **Status: Current (0.5.x).** Install, workspace, query and release instructions.
+> **Status: Current (0.6.x).** Install, workspace, query and release instructions.
 
 > **English** · [中文](advanced-usage.zh-CN.md)
 
@@ -59,7 +59,7 @@ Run `dist/standalone/qec-graph` directly or install it in a user directory on
 `PATH`.
 
 > [!NOTE]
-> Lean is deferred in 0.5.x. The experimental `lean` command group and Lean
+> Lean is deferred in 0.6.x. The experimental `lean` command group and Lean
 > fixtures are not part of the supported workflow; see
 > [the design note](../design/DESIGN.md#10-lean-deferred-not-supported).
 
@@ -94,6 +94,8 @@ The first two search results were the equations `eq:hgp-checks` and
 `eq:hgp-commutation`. Their `source` spans locate them in the LaTeX. The
 response also identifies the fixed release and reports that more matches
 are available. [How to read and reproduce a query](data-and-search.md#read-and-reproduce-a-query-result)
+
+Set `[ai].max_parallel_packages` to a small value (for example `2`) to let `sync` prepare multiple packages concurrently. Only AI calls overlap; registry publication and input consumption remain serial.
 
 ## Maintain a workspace
 

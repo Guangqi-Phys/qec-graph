@@ -1,6 +1,6 @@
 # QEC Graph 快速开始
 
-> **状态：当前（0.5.x）。** 从安装到首次查询的最短路径。
+> **状态：当前（0.6.x）。** 从安装到首次查询的最短路径。
 
 > [English](quickstart.md) · **中文**
 
@@ -19,13 +19,17 @@
 |---|---|---|
 | 1 | 按 [安装说明](../../README.zh-CN.md#安装) 安装 | `qec-graph --version` 有输出 |
 | 2 | 进入空目录，运行 `qec-graph init` | 创建 `inputs/` 和 `qecgraph.toml`，不抽取内容 |
-| 3 | 放入 LaTeX 源包，运行 `qec-graph sync` | 成功包写入 `archive/`，`inputs/` 副本清除 |
+| 3 | 可选：配置 `qecgraph.toml` 的 `[ai]`，运行 `qec-graph ai test` | provider 返回成功的 schema 探针 |
+| 4 | 放入 LaTeX 源包，运行 `qec-graph sync` | 成功包写入 `archive/`，`inputs/` 副本清除 |
 | 5 | 运行 `qec-graph status` / `validate` | 显示索引数量与完整性检查结果 |
 
 ```sh
 mkdir my-qec
 cd my-qec
 qec-graph init
+# Optional: configure [ai] in qecgraph.toml before syncing.
+qec-graph ai status
+qec-graph ai test
 # Add downloaded TeX source packages to inputs/, then:
 qec-graph sync
 qec-graph status

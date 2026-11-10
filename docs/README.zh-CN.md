@@ -1,6 +1,6 @@
 # QEC Graph 文档
 
-> **状态：当前（0.5.x）。** 这里是唯一的文档入口。
+> **状态：当前（0.6.x）。** 这里是唯一的文档入口。
 
 > **中文** · [English](README.md)
 
@@ -29,6 +29,7 @@ flowchart TD
 | 新用户 | [中文快速开始](user/quickstart.zh-CN.md) | 从归档到首次查询的最短路径 |
 | 导入或维护工作区 | [工作区说明](user/workspace.zh-CN.md) | 归档配置、入口、Obsidian 和 provider 交接 |
 | 查询记录或来源 | [数据与检索](user/data-and-search.zh-CN.md) | 记录类型、证据策略和 CLI/MCP 查询 |
+| 配置 AI 抽取 | [工作区说明](user/workspace.zh-CN.md#ai-配置) | Provider 模板、API key、规范化和 proposal 审核 |
 | 运行命令 | [进阶用法](user/advanced-usage.zh-CN.md) | 安装、退出码、命令分组和发布检查 |
 | 处理 splitter | [单篇 LaTeX 切割](user/splitter.zh-CN.md) | 来源区间、片段布局和 LaTeX 限制 |
 | Agent 或贡献者 | [系统设计](design/DESIGN.zh-CN.md) | 权威架构、数据、发布和边界 |
@@ -72,6 +73,6 @@ flowchart TD
 
 `docs/` 下的文档页保持中英双语：每篇英文页都有同名 `.zh-CN.md` 中文页，结构和
 代码示例保持一致，并在页首提供语言切换。主目录的贡献和安全政策只保留英文。
-每篇页面顶部声明状态；**只有当前状态页面描述 0.5.x 版本**。
+每篇页面顶部声明状态；**只有当前状态页面描述 0.6.x 版本**。
 
 当前文档树没有重定向页或归档页。被替代的内容只保留在 Git history 中。

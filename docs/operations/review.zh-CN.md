@@ -1,6 +1,6 @@
 # 类型验证、证据与审核
 
-> **状态：当前（0.5.x），适用于 corpus 审核接口。** Workspace review/apply 语义见[系统设计](../design/DESIGN.zh-CN.md#6-审核证据和查询资格)。
+> **状态：当前（0.6.x），适用于 corpus 审核接口。** Workspace review/apply 语义见[系统设计](../design/DESIGN.zh-CN.md#6-审核证据和查询资格)。
 
 > [English](review.md) · **中文**
 
@@ -23,7 +23,7 @@
 [`qecgraph/validators/schemas/`](../../qecgraph/validators/schemas)，直接使用打包路径。
 未知 Schema 被拒绝，绝不用当前字段重新解释。新写入始终产生当前格式。
 
-`qecgraph.record` 还包含实验性的 `lean_declaration` kind 与关系字段；Lean 在 0.5.x
+`qecgraph.record` 还包含实验性的 `lean_declaration` kind 与关系字段；Lean 在 0.6.x
 中延期，不属于受支持工作流，也不是验证结论。见
 [系统设计 §10](../design/DESIGN.zh-CN.md#10-lean延期不支持)。
 

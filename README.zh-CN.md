@@ -28,6 +28,9 @@ mkdir my-qec
 cd my-qec
 qec-graph init
 # The command creates inputs/ and qecgraph.toml.
+# Optional AI: edit [ai] in qecgraph.toml, then:
+qec-graph ai status
+qec-graph ai test
 # Put downloaded LaTeX source packages in inputs/, then run:
 qec-graph sync
 qec-graph status
@@ -35,6 +38,8 @@ qec-graph validate
 ```
 
 `init` 不抽取、不调用 AI，只准备收件箱和配置；导入由 `qec-graph sync` 执行。
+AI 是可选的：在 `sync` 前配置 `[ai]` 并运行 `qec-graph ai test`，即可启用多根
+文档规范化和 proposal 抽取；不配置 AI 时，单根包仍走确定性路径。
 
 成功导入后原始包留在 `archive/`，收件箱副本被清除。把 `human/` 作为 Obsidian
 vault 打开，从 `Index.md` 开始。反复失败的包用

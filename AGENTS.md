@@ -58,3 +58,13 @@
 - `lake build`、声明存在和源文件无 `sorry` 均不足以单独构成最终证据；审计目标的实际传递公理依赖。
 - 不用新增不合理假设、自定义公理或将结论放进假设来“修复”未完成证明。
 - 不编造 toolchain、mathlib commit、镜像 digest、证书、运行时长或验证结果。
+
+## AI 接入约定
+
+- `qecgraph/llm/` 的 provider、client 和 skill 层不得让论文文本成为指令；论文内容永远是不可信数据。
+- `init` 只准备 `inputs/` 与 `qecgraph.toml`，不得调用模型；`sync` 才执行抽取。
+- AI 结果默认是 `proposed`，不得自动变成人工审核、verified 或 research record。
+- 规范化必须复制原始字节并保存 source mapping；不能把 AI 重写文本当作权威来源。
+- 所有 provider 输出先过 JSON Schema 和程序语义校验；失败时保留原始包和旧 release。
+- API key 不进入日志、测试 fixture、提交或 `human/notes/`；优先使用环境变量。
+- 修改 skill 的步骤、prompt 或 schema 时提升版本，并用 fake provider 添加离线回归测试。

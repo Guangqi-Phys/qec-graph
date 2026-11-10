@@ -1,6 +1,6 @@
 # 运维与维护
 
-> **状态：当前（0.5.x）。** 日常工作区用法在[用户指南](../user/README.zh-CN.md)。
+> **状态：当前（0.6.x）。** 日常工作区用法在[用户指南](../user/README.zh-CN.md)。
 > 本节覆盖受支持的 store/corpus 接口、审核和证据。
 
 > **中文** · [English](README.md)
@@ -24,6 +24,8 @@
 | [审核](review.zh-CN.md) | corpus | How-to / reference | 验证类型化记录、绑定证据、应用已审核提案 |
 | [工作区说明](../user/workspace.zh-CN.md) | 工作区 | How-to | 当前日常流程（方便链接） |
 | [进阶用法](../user/advanced-usage.zh-CN.md) | 工作区/CLI | How-to / reference | 发布检查、退出码和命令分组 |
+
+AI 产物位于 `machine/ai/proposals` 和 `machine/ai/reviews`。它们属于 workspace，不进入 corpus 的 review/apply 路径；见[工作区说明](../user/workspace.zh-CN.md#ai-配置)。
 
 ## 验证
 

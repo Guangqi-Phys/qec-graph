@@ -1,10 +1,10 @@
 # 工作区使用说明
 
-> **Status: Current (0.5.x).** Workspace configuration, Obsidian and provider handoff.
+> **Status: Current (0.6.x).** Workspace configuration, Obsidian and provider handoff.
 
 > [English](workspace.md) · **中文**
 
-`0.5.1` 是当前 release。已有的 `qecgraph`、`qec-latex-split`、
+`0.6.0` 是当前 release。已有的 `qecgraph`、`qec-latex-split`、
 `qecgraph-mcp` 及 SourceGraph、LemmaGraph、DataGraph 命令继续可用；Lean 为延期实验能力，见[系统设计](../design/DESIGN.zh-CN.md#10-lean延期不支持)。
 本说明描述受支持的工作流；[系统设计](../design/DESIGN.zh-CN.md)定义契约。
 [验证索引](../../validation/README.zh-CN.md)列出当前可执行检查；历史运行产物保留在
@@ -25,7 +25,7 @@ Git history。
 在 Python 3.11+ POSIX 环境中安装实际 wheel。无需 API key。
 
 ```bash
-python -m pip install /path/to/qec_graph-0.5.1-py3-none-any.whl
+python -m pip install /path/to/qec_graph-0.6.0-py3-none-any.whl
 mkdir -p ~/qec
 cd ~/qec
 qec-graph init
@@ -59,6 +59,8 @@ api_key = ""
 
 `qec-graph ai status` 只报告当前 provider，不联网；`qec-graph ai test` 发出一次
 带 schema 的连接探针。`qec-graph init` 不会自动调用这两个命令。
+
+`max_parallel_packages` 控制并发 AI 准备；发布和输入消费仍保持串行。
 
 日常使用 `qec-graph sync`、`qec-graph status` 和 `qec-graph validate`。
 终端更新同一条进度行，结束时显示成功或错误。`sync` 在成功归档并发布后清理 `inputs/` 中的副本，失败件留待重试。

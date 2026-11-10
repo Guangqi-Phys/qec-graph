@@ -1,6 +1,6 @@
 # Validation evidence
 
-> **Status: Current (0.5.x).** This is an index of executable checks, not a
+> **Status: Current (0.6.x).** This is an index of executable checks, not a
 > historical run archive.
 
 > **English** · [中文](README.zh-CN.md)
@@ -18,6 +18,8 @@ reports cannot be mistaken for a claim about the current code.
 | Workspace, MCP and isolation checks | `python tools/reproduce_workspace.py` and `python tools/reproduce_mcp.py` |
 | Release distributions | `python -m build` then `python tools/check_distribution.py dist/` |
 | Release binaries | The `Standalone Release` GitHub workflow |
+| AI configuration and provider probe | `qec-graph ai status` and `qec-graph ai test` |
+| AI proposals | `qec-graph ai proposals --json` |
 
 A check is evidence only for the exact source revision and environment in which
 it ran. A passing test does not make a paper's theorem true, a distance bound

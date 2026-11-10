@@ -1,6 +1,6 @@
 # 验证证据
 
-> **状态：当前（0.5.x）。** 这里是可执行检查的索引，不是历史运行归档。
+> **状态：当前（0.6.x）。** 这里是可执行检查的索引，不是历史运行归档。
 
 > **中文** · [English](README.md)
 
@@ -16,6 +16,8 @@
 | Workspace、MCP 和隔离检查 | `python tools/reproduce_workspace.py` 和 `python tools/reproduce_mcp.py` |
 | 发行分发包 | `python -m build` 后运行 `python tools/check_distribution.py dist/` |
 | 发行二进制 | `Standalone Release` GitHub workflow |
+| AI 配置与 provider 探针 | `qec-graph ai status` 和 `qec-graph ai test` |
+| AI proposals | `qec-graph ai proposals --json` |
 
 检查只对实际运行它的源码修订和环境构成证据。测试通过不代表论文定理为真、
 距离界已被数学验证，或 Lean 声明已语义匹配。

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.6.0 — 2026-11-10
+
+- Rewrote the four AI skills with explicit triggers, inputs, procedures,
+  evidence rules, failure policy and checklists; the full `SKILL.md` body is
+  now sent to the model.
 - Added optional AI provider configuration for OpenAI, Anthropic, OpenRouter
   and Claude Code, with `qecgraph ai status/test/config/proposals`.
 - Added explicit, proposal-content-bound AI review decisions under

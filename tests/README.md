@@ -19,6 +19,7 @@ tests/
 | Layer | Functional group | Files | Focus |
 |---|---|---|---|
 | Unit | Parsing | `unit/parsing/test_parser.py`, `unit/parsing/test_source_package.py` | TeX parsing, archive safety, source spans |
+| Unit | AI | `unit/domain/test_ai_config.py`, `test_ai_client.py`, `test_ai_provider.py`, `test_ai_skills.py`, `test_ai_normalize.py`, `test_ai_normalize_runner.py`, `test_ai_extract.py`, `test_ai_prefetch.py` | Provider config, structured output, skills, normalization and concurrent prefetch |
 | Unit | Domain | `unit/domain/test_semantic.py`, `unit/domain/test_qec_validation.py`, `unit/domain/test_validators.py`, `unit/domain/test_schemas.py` | Graph/evidence rules, QEC checks, schema contracts |
 | Integration | Pipeline | `integration/pipeline/test_pipeline.py`, `test_publication.py`, `test_registry.py`, `test_splitter.py` | Snapshot, publication, registry, splitting |
 | Integration | Workspace | `integration/workspace/test_workspace.py`, `test_workspace_migration.py`, `test_workspace_query.py`, `test_incremental.py`, `test_watch.py`, `test_status.py` | Init/sync/rebuild, migration, queries, incremental/watch, status |

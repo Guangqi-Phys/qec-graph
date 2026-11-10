@@ -1,6 +1,6 @@
 # Store and corpus maintenance
 
-> **Status: Current (0.5.x) for the store/corpus surface; not the workspace daily guide.**
+> **Status: Current (0.6.x) for the store/corpus surface; not the workspace daily guide.**
 > Workspace daily operations are in [the workspace guide](../user/workspace.md). This page
 > retains source changes, failure propagation, backups and recovery for the single-paper
 > store and corpus commands that remain supported for compatibility.
@@ -176,6 +176,8 @@ the exact snapshot used for a rollback; "latest" is not a reproducible reference
 | Matrices, certificates, manual corrections and expensive results | Cannot be recreated automatically from a Git remote or summary |
 | Run configuration, raw statistics, execution environment and evidence | Re-check estimators and applicable inputs |
 | Published snapshots and reports, or enough complete rebuild inputs | Restore a referenced query state |
+
+AI caches and derived normalizations are rebuildable but should be backed up with the workspace when a review or reproducibility run depends on them. Never back up a provider API key in a public archive.
 
 Backup is not Git push; untracked large files and container volumes need a
 separate inventory. Save human changes daily, save results immediately after an

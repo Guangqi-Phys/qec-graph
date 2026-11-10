@@ -1,12 +1,14 @@
 # Corpus：注册、身份与查询
 
-> **状态：当前（0.5.x），适用于 corpus 接口。** 主产品是 workspace，见[工作区说明](../user/workspace.zh-CN.md)。
+> **状态：当前（0.6.x），适用于 corpus 接口。** 主产品是 workspace，见[工作区说明](../user/workspace.zh-CN.md)。
 
 > [English](corpus.md) · **中文**
 
 > [!NOTE]
 > 这是多文档 corpus 接口。workspace 有自己的机器 release 格式；不要把两者
 > 指向同一个目录。
+
+AI 规范化和 AI proposal 只适用于 workspace 接口；corpus 接口不调用模型。
 
 ## 本页目录
 

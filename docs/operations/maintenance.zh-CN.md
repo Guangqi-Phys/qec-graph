@@ -1,6 +1,6 @@
 # Store 与 corpus 维护
 
-> **状态：当前（0.5.x），适用于 store/corpus 接口；不是工作区日常指南。**
+> **状态：当前（0.6.x），适用于 store/corpus 接口；不是工作区日常指南。**
 > Workspace daily operations are in [the workspace guide](../user/workspace.zh-CN.md). This page
 > retains source changes, failure propagation, backups and recovery for the single-paper
 > store and corpus commands that remain supported for compatibility.

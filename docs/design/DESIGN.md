@@ -1,12 +1,12 @@
 # QEC Graph — System Design
 
-> **Status: Current authoritative design (0.5.x).** This is the only active design document.
+> **Status: Current authoritative design (0.6.x).** This is the only active design document.
 
 > **English** · [中文](DESIGN.zh-CN.md)
 
 | | |
 |---|---|
-| **Status** | Current authoritative design (0.5.x) |
+| **Status** | Current authoritative design (0.6.x) |
 | **Reviewed** | 2026-11-10 |
 | **Supersedes** | The earlier architecture, graph-contract, data-formats, incremental, MCP and CodeGraph design pages. Lean is deferred; see §10. |
 | **Implementation** | `qecgraph/`, `tests/`, `tools/`, `validation/` |
@@ -59,7 +59,7 @@ QEC Graph turns LaTeX papers and explicit QEC research records into a provenance
 - a multi-writer or distributed database; or
 - a service that executes source code, TeX, or Lean on read.
 
-The executable scope is the Python package, CLI, local MCP server, Obsidian renderer, and the store/corpus surfaces. Lean code and fixtures exist only as deferred experimental material and are not part of the supported 0.5.x workflow.
+The executable scope is the Python package, CLI, local MCP server, Obsidian renderer, and the store/corpus surfaces. Lean code and fixtures exist only as deferred experimental material and are not part of the supported 0.6.x workflow.
 
 ---
 
@@ -425,7 +425,7 @@ The typed JSON envelope (`ok/data` or `error/code/message/details/scope`) is sha
 ## 10. Lean: deferred, not supported
 
 > [!WARNING]
-> **Lean is deferred in 0.5.x.** It is not part of the supported database,
+> **Lean is deferred in 0.6.x.** It is not part of the supported database,
 > query, or MCP workflow. The `lean` CLI group, `qecgraph/lean/`, `lean/`
 > project, and `tests/fixtures/lean/` remain only as experimental regression
 > material. They are not a verification claim and must not be presented as a
@@ -590,7 +590,7 @@ API keys are redacted and the configuration file is created mode `0600`.
 | **D2 — Evidence is layered, not a score** | Source/claim/review/computation/build states remain separate; default filtering excludes inactive states. |
 | **D3 — Read-only agents** | Fixed-scope, budgeted CLI/Python/MCP reads; no path/SQL/shell access; stdout protocol only. |
 | **D4 — Human view isolation** | Generated pages from a pinned machine release; `human/notes/` never read; per-page atomic publication; `human_stale` recovery. |
-| **D5 — Lean is deferred** | No supported verification claim in 0.5.x. Experimental fixtures remain for regression; a new design is required before implementation, and read paths never execute Lean. |
+| **D5 — Lean is deferred** | No supported verification claim in 0.6.x. Experimental fixtures remain for regression; a new design is required before implementation, and read paths never execute Lean. |
 | **D6 — CodeGraph is reference only** | Architecture comparison, no copied code, no imported performance claims; attribution retained. |
 | **D7 — Compatibility over a rewrite** | Store/corpus remain supported; workspace is current; migrations are explicit and non-destructive. |
 | **D8 — Schema ownership is singular** | Packaged schemas are canonical; unknown schemas are rejected, not reinterpreted. |
