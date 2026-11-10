@@ -8,7 +8,7 @@ from importlib.resources import files
 
 from jsonschema import Draft202012Validator, FormatChecker
 
-from ..graph import KNOWN_RELATIONS
+from ..relations import KNOWN_RELATIONS
 
 
 @lru_cache

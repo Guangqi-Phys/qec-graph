@@ -228,7 +228,7 @@ Check weight always binds to the actual presentation and check set, including se
 
 ### 4.4 Relations and edge states
 
-The canonical relation registry is `qecgraph.research.RELATIONS` / graph validation, not this prose. Common edges:
+The canonical relation registry is `qecgraph.relations.KNOWN_RELATIONS` together with `qecgraph.research.RELATIONS` and graph validation, not this prose. Common edges:
 
 - structural: `contains`, `defined_in`, `includes`, `uses_resource`;
 - textual: `references`, `cites`, `describes`;
