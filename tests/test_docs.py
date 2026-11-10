@@ -19,7 +19,7 @@ CURRENT_DOCS = ('docs/README.md', 'docs/user/README.md', 'docs/user/quickstart.z
 USER_DOCS = ('README.md', *CURRENT_DOCS, 'docs/archive/README.md', 'CONTRIBUTING.md', 'SECURITY.md')
 LINK = re.compile(r'\[[^\]\n]+\]\(([^\s)]+)\)')
 INLINE_COMMAND = re.compile(r'`qec-graph ([^`\n]+)`')
-PUBLIC_REDIRECTS = {'docs/03_SPLITTER.md', 'docs/ADVANCED_USAGE.md', 'docs/DATA_AND_SEARCH.md'}
+PUBLIC_REDIRECTS = set()
 
 
 class DocumentationTests(unittest.TestCase):
@@ -139,7 +139,7 @@ class DocumentationTests(unittest.TestCase):
 
     def test_docs_tree_has_one_current_location_per_page(self):
         root_docs = {p.name for p in (ROOT / 'docs').iterdir() if p.is_file() and p.suffix == '.md'}
-        self.assertEqual(root_docs, {'README.md', *{Path(name).name for name in PUBLIC_REDIRECTS}})
+        self.assertEqual(root_docs, {'README.md'})
         design = {p.name for p in (ROOT / 'docs/design').iterdir() if p.is_file() and p.suffix == '.md'}
         self.assertEqual(design, {'DESIGN.md'})
         self.assertFalse((ROOT / 'docs/rfc-002').exists())

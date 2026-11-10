@@ -38,6 +38,6 @@ operations and historical pages retain Chinese text; every current/historical
 page states its status at the top. Only **Current** pages describe the 0.4.x
 release.
 
-The files `ADVANCED_USAGE.md`, `DATA_AND_SEARCH.md` and `03_SPLITTER.md` are
-one-line redirects kept for saved external links.
-Do not add them to navigation and do not edit them as content.
+There are no redirect-only pages in the current tree. Every current page has
+a real body and a status marker; historical material will be removed in the
+next cleanup step unless a future audit needs it.
