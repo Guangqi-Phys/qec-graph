@@ -65,6 +65,9 @@ api_key = ""
 Claude Code provider 使用 bare 模式，禁用工具、MCP 和会话持久化。
 曾使用本地订阅登录的工作区升级时，请设置 `ANTHROPIC_API_KEY` 并移除自定义 CLI 参数。
 
+结构发布提交后，失败的 AI 抽取仍保留为待处理。下次 `sync` 从归档重试失败的 skill。
+即使禁用 AI，重建也会校验并复用已提交的归一化映射。
+
 日常使用 `qec-graph sync`、`qec-graph status` 和 `qec-graph validate`。
 终端更新同一条进度行，结束时显示成功或错误。`sync` 在成功归档并发布后清理 `inputs/` 中的副本，失败件留待重试。
 加 `--json` 可查看详细报告。除 `init` 外，命令优先使用显式的 `--workspace`，

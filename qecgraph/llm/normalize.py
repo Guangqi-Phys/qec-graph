@@ -101,9 +101,12 @@ def single_root_plan(tree: SourceTree):
     candidates = tree.entrypoints()
     if len(candidates) != 1:
         raise NormalizationError('single-root normalization requires exactly one complete TeX root')
-    path = candidates[0]
+    return entrypoint_plan(candidates[0])
+
+
+def entrypoint_plan(path):
     return {'status': 'ready',
-            'documents': [{'path': path, 'role': 'main', 'reason': 'unique complete TeX root'}],
+            'documents': [{'path': path, 'role': 'main', 'reason': 'selected TeX entry point'}],
             'operations': [{'op': 'use_document', 'source': path}],
             'label_renames': {}, 'unresolved': []}
 

@@ -92,3 +92,42 @@ class AIWorkspaceTests(unittest.TestCase):
             self.assertNotIn(token, output)
             self.assertNotIn('remote private diagnostic', output)
             self.assertIn('HTTP 401', output)
+
+    def test_sync_retries_only_failed_ai_skill_from_archive(self):
+        from qecgraph.llm.errors import ProviderError
+
+        package = self.root / 'inputs/paper.tex'
+        package.write_bytes(TEX)
+        empty = answer({'items': [], 'unresolved': []})
+        with patch('qecgraph.llm.client.LLMClient.complete_json',
+                   side_effect=[empty, ProviderError('temporary provider error'), empty]):
+            first = self.workspace.sync()
+        self.assertEqual(first['status'], 'partial_batch')
+        self.assertTrue(first['inputs'][0]['input_consumed'])
+        self.assertEqual(first['inputs'][0]['ai_extraction']['status'], 'pending')
+        self.assertFalse(package.exists())
+        with patch('qecgraph.llm.client.LLMClient.complete_json', return_value=empty) as client:
+            second = self.workspace.sync()
+            self.assertEqual(client.call_count, 1)
+            self.assertEqual(second['inputs'][0]['ai_extraction']['status'], 'complete')
+            self.assertEqual(len(second['inputs'][0]['ai_extraction']['written']), 3)
+            self.assertEqual(self.workspace.sync()['status'], 'unchanged')
+            self.assertEqual(client.call_count, 1)
+
+    def test_rebuild_reuses_committed_normalization_with_ai_disabled(self):
+        package = self.root / 'inputs/papers.tar'
+        package.write_bytes(tar_bytes({'a.tex': TEX, 'b.tex': TEX.replace(b'Hello', b'Supplement')}))
+        plan = answer({'status': 'ready', 'documents': [{'path': 'a.tex', 'role': 'main'},
+                                                        {'path': 'b.tex', 'role': 'source'}],
+                       'operations': [{'op': 'use_document', 'source': 'a.tex'}], 'unresolved': []})
+        empty = answer({'items': [], 'unresolved': []})
+        with patch('qecgraph.llm.client.LLMClient.complete_json', side_effect=[plan, empty, empty, empty]):
+            first = self.workspace.sync()['inputs'][0]
+        self.configure('enabled = true', 'enabled = false')
+        with patch('qecgraph.llm.client.LLMClient.complete_json') as client:
+            rebuilt = self.workspace.rebuild()['inputs'][0]
+            client.assert_not_called()
+        self.assertTrue(rebuilt['processing_completed'])
+        self.assertEqual(rebuilt['source_snapshot_id'], first['source_snapshot_id'])
+        self.assertEqual(rebuilt['normalization_manifest_sha256'], first['normalization_manifest_sha256'])
+        self.assertEqual(rebuilt['ai_extraction'], first['ai_extraction'])
