@@ -5,7 +5,7 @@
 
 `0.4.0rc1` 是可本地安装的发行候选。已有的 `qecgraph`、`qec-latex-split`、
 `qecgraph-mcp` 及 SourceGraph、LemmaGraph、DataGraph、Lean 命令继续可用。
-本说明描述已经接入的工作流；[原始设计](../archive/rfc-002/QEC_GRAPH_DESIGN_UPDATE.md)包含更广的目标，
+本说明描述已经接入的工作流；[系统设计](../design/DESIGN.md)描述当前工作流，
 [验收报告](../../validation/rfc002/REPORT.md)逐项列出实测和缺口。
 
 ## 建库和日常操作

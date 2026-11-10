@@ -14,9 +14,8 @@ CURRENT_DOCS = ('docs/README.md', 'docs/user/README.md', 'docs/user/quickstart.z
                 'docs/user/advanced-usage.md', 'docs/user/data-and-search.md',
                 'docs/user/workspace.md', 'docs/user/splitter.md', 'docs/design/DESIGN.md',
                 'docs/operations/README.md', 'docs/operations/maintenance.md',
-                'docs/operations/corpus.md', 'docs/operations/review.md',
-                'docs/operations/audit-remediation.md')
-USER_DOCS = ('README.md', *CURRENT_DOCS, 'docs/archive/README.md', 'CONTRIBUTING.md', 'SECURITY.md')
+                'docs/operations/corpus.md', 'docs/operations/review.md')
+USER_DOCS = ('README.md', *CURRENT_DOCS, 'CONTRIBUTING.md', 'SECURITY.md')
 LINK = re.compile(r'\[[^\]\n]+\]\(([^\s)]+)\)')
 INLINE_COMMAND = re.compile(r'`qec-graph ([^`\n]+)`')
 PUBLIC_REDIRECTS = set()
@@ -123,7 +122,7 @@ class DocumentationTests(unittest.TestCase):
 
     def test_indexes_never_link_to_public_redirects(self):
         for name in ('docs/README.md', 'docs/user/README.md', 'docs/operations/README.md',
-                     'docs/archive/README.md'):
+                     'docs/operations/README.md'):
             page = ROOT / name
             for link in LINK.findall(page.read_text(encoding='utf-8')):
                 url = urlsplit(link)
@@ -143,3 +142,4 @@ class DocumentationTests(unittest.TestCase):
         design = {p.name for p in (ROOT / 'docs/design').iterdir() if p.is_file() and p.suffix == '.md'}
         self.assertEqual(design, {'DESIGN.md'})
         self.assertFalse((ROOT / 'docs/rfc-002').exists())
+        self.assertFalse((ROOT / 'docs/archive').exists())

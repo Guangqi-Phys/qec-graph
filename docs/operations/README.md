@@ -9,7 +9,7 @@
 - [Release build and verification](../user/advanced-usage.md#installation-options) and [changelog](../../CHANGELOG.md)
 - [Contributing](../../CONTRIBUTING.md), [security reporting](../../SECURITY.md), and [the documentation index](../README.md)
 - [Citation metadata](../../CITATION.cff)
-- [Audit remediation](audit-remediation.md), [validation evidence](../../validation/README.md), and [workspace acceptance](../../validation/rfc002/REPORT.md)
+- [Validation evidence](../../validation/README.md) and [workspace acceptance](../../validation/rfc002/REPORT.md)
 
 Validation reports are evidence of their recorded inputs, commands, and
 commits. Check the report's scope before applying its results to a newer build.

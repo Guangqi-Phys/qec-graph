@@ -8,7 +8,6 @@
 | **Status** | Current authoritative design (0.4.x) |
 | **Reviewed** | 2026-11-10 |
 | **Supersedes** | `architecture.md`, `graph-contract.md`, `data-formats.md`, `incremental.md`, `mcp.md`, `lean-execution.md`, `codegraph-reference.md`, and the current ADR set for day-to-day design questions |
-| **Historical material** | `docs/archive/` (P0–P5 roadmap, RFC-QEC-002 pack, prototype, ADRs, release notes) |
 | **Implementation** | `qecgraph/`, `tests/`, `tools/`, `validation/` |
 
 This document is the single source of truth for the system's architecture, data contracts, evidence semantics, publication protocol, query/MCP surface, human view, and Lean boundary. If code, tests, and this document disagree, the executable behavior and its verification are the current state; update this document in the same change that alters the design. Do not create a second design page for a new idea: extend this document or record a superseding decision here.
@@ -385,7 +384,7 @@ The typed JSON envelope (`ok/data` or `error/code/message/details/scope`) is sha
 
 ## 11. CodeGraph reference and third-party attribution
 
-This project independently implements its Python architecture. It references [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) at commit `f72c9d2efb14454ff4f9fd7b8460abd82f19a287` (MIT, Copyright (c) 2026 Colby Mchenry) for extraction/storage/resolution/query/watch boundaries. No upstream code is copied and no upstream performance number applies. The full record, including the later progress-renderer check at `6560052a6f856855d3f71eee838fd66ccfa4285d`, is in `docs/archive/adr/`.
+This project independently implements its Python architecture. It references [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) at commit `f72c9d2efb14454ff4f9fd7b8460abd82f19a287` (MIT, Copyright (c) 2026 Colby Mchenry) for extraction/storage/resolution/query/watch boundaries. No upstream code is copied and no upstream performance number applies. The decision record below summarizes the reference; the detailed check, including `6560052a6f856855d3f71eee838fd66ccfa4285d`, remains in Git history.
 
 Mapping summary:
 
@@ -492,4 +491,4 @@ These are limits of the current release, not permission to fill gaps with plausi
 7. [leanblueprint](https://github.com/PatrickMassot/leanblueprint)
 8. [Error Correction Zoo data](https://github.com/errorcorrectionzoo/eczoo_data)
 
-For historical rationale, stage acceptance P0–P5, RFC-QEC-002, prototype schemas and old release notes, see `docs/archive/`.
+Historical rationale and superseded pages are available in Git history only; they are not part of the current documentation tree.

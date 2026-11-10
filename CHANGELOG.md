@@ -3,12 +3,11 @@
 ## Unreleased
 
 - Documentation now has one authoritative design (`docs/design/DESIGN.md`),
-  user guides under `docs/user/`, operations under `docs/operations/`, and
-  historical material under `docs/archive/`. Three public user-guide URLs keep
-  one-line redirects; internal redirect pages were removed.
+  user guides under `docs/user/`, and operations under `docs/operations/`.
+  Redirect-only and historical archive pages were removed; superseded material
+  remains in Git history.
 - The historical schema sample moved to `legacy/knowledge_starter/`; the
-  obsolete root `requirements-*.txt` files were removed and the 0.3.0 lock
-  was archived under `docs/archive/releases/`.
+  obsolete root `requirements-*.txt` files were removed.
 - Workspace maintenance prints a one-line report by default. Scripts that
   parse its output should pass `--json`, including scripts that select a
   workspace with `--workspace`.
