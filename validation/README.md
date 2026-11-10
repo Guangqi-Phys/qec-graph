@@ -37,7 +37,7 @@
 | Obsidian reading view | [obsidian.json](audit/0.4.0rc1/obsidian.json), [screenshot](audit/0.4.0rc1/obsidian-theorem.png) |
 | Pinned arXiv corpus | [golden-arxiv.json](audit/0.4.0rc1/golden-arxiv.json) |
 | Performance baseline | [benchmark.json](audit/0.4.0rc1/benchmark.json) |
-| Docs/architecture check | [docs-architecture.json](audit/0.4.0rc1/docs-architecture.json): 236 tests, markdownlint 0, build/metadata passed |
+| Docs/architecture check | [docs-architecture.json](audit/0.4.0rc1/docs-architecture.json): 237 tests, markdownlint 0, build/metadata passed |
 | Workspace acceptance | [report.md](workspace-0.4.0rc1/report.md), [installed.json](workspace-0.4.0rc1/installed.json), [distributions.json](workspace-0.4.0rc1/distributions.json) |
 
 ## Functional evidence

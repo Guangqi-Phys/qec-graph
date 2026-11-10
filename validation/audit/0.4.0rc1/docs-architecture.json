@@ -1,8 +1,8 @@
 {
   "schema": "qecgraph.validation-record.v1",
   "recorded_at": "2026-11-10",
-  "commit": "2ece004",
-  "scope": "documentation, validation layout and architecture boundary tests",
+  "commit": "146351b",
+  "scope": "documentation, validation layout, architecture boundaries and layered test suite",
   "commands": [
     ".venv/bin/python -m unittest discover -s tests",
     "node markdownlint-cli2.mjs",
@@ -12,7 +12,7 @@
     ".venv/bin/python tools/check_distribution.py dist"
   ],
   "result": {
-    "unit_tests": 236,
+    "unit_tests": 237,
     "markdownlint_issues": 0,
     "reproduce": "passed",
     "distribution_build": "passed",
