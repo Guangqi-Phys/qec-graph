@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "documents", "operations", "unresolved"],
+  "properties": {
+    "status": {"enum": ["ready", "needs_review"]},
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "role"],
+        "properties": {
+          "path": {"type": "string"},
+          "role": {"enum": ["main", "supplement", "appendix", "source", "unknown"]},
+          "reason": {"type": "string"}
+        }
+      }
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["op", "source"],
+        "properties": {
+          "op": {"enum": ["use_preamble", "include_body", "append_appendix", "append_body", "include_asset"]},
+          "source": {"type": "string"},
+          "part": {"type": "string"},
+          "target": {"type": "string"}
+        }
+      }
+    },
+    "label_renames": {"type": "object", "additionalProperties": {"type": "string"}},
+    "unresolved": {"type": "array", "items": {"type": "string"}}
+  }
+}

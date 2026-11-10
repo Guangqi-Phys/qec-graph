@@ -55,6 +55,7 @@ version = {attr = "qecgraph.__version__"}
 [tool.setuptools.package-data]
 "qecgraph" = ["catalog/*.json"]
 "qecgraph.validators" = ["schemas/*.json"]
+"qecgraph.llm" = ["skills/*/*.md", "skills/*/*.json"]
 
 [tool.ruff]
 target-version = "py311"
