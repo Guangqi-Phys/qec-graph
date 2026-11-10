@@ -587,6 +587,52 @@ API keys are redacted and the configuration file is created mode `0600`.
 | Source-mapped normalization | Implemented for ambiguous packages |
 | Theorem/assumption/data proposals | Implemented as `machine/ai/proposals`; explicit review decisions are recorded, conversion to canonical research records is not automatic |
 
+### 15.1 Parser-first body extraction rollout
+
+**Status: Planned.** Work proceeds in the following commit-sized steps.
+
+| Step | Change | Acceptance |
+|---|---|---|
+| 1 | Record eligibility, evidence, publication and migration rules | Preserve archive authority, fixed release reads and existing raw query behavior |
+| 2 | Add the shared reading projection | Both extraction methods use the existing source-block graph; derived text hides recognized formatting and citations, preserves math, and separates bibliography while the raw view retains every original slice |
+| 3 | Add the versioned structure fallback skill and local verifier | A fake provider can classify exact, numbered body ranges; reject gaps, overlaps, fabricated fields, bad anchors, and uncertain plans |
+| 4 | Integrate the fallback with strict workspace publication | Call the provider only after an eligible parser failure. Bind accepted plans to source bytes and snapshot identity, preserve proposed classification, and reuse verified plans on rebuild |
+| 5 | Expose reading search, source status and operator controls | CLI and MCP agree on the fixed release. Existing raw search stays available, and ordinary imports have zero provider calls by default |
+| 6 | Run full, installed-CLI and real-archive checks, then integrate | Keep each step reviewable in Git, push the branch, and merge into `main` after checks |
+
+The fallback starts after archive verification and entry selection. The first
+supported scope is an original UTF-8 entry with unambiguous, standalone
+document delimiters and no external TeX body inputs. Structural tokenization or
+parse failures can trigger recovery. Unresolved entry points, archive and path
+violations, missing dependencies, ambiguous boundaries, or evidence beyond the
+configured budget remain recoverable workspace failures. Multi-root
+normalization keeps its existing independent approval and source-map rules.
+
+The provider sees a bounded, numbered body and returns ordered ranges and block
+kinds. The program requires complete body coverage, validates literal section
+and bibliography anchors, and copies each slice from the archived source.
+Labels, references and titles are admitted only when the program recognizes
+their literal syntax. Unknown classifications remain visible as source text.
+The snapshot binds the validated plan, source digest, skill version, model and
+prompt hash. A proposed block classification carries its origin in reads and
+cannot create a reviewed claim or logical dependency.
+
+The structural retry runs under the existing writer and publish protocol.
+A missing provider, refusal, invalid plan or failed validation retains the
+archive, prior projection and claim for retry. A committed plan can be reused
+offline against its exact source. The ordinary parser is tried first on
+rebuild, so a parser improvement can replace a fallback with an independently
+derived projection. The current parser remains the only producer for
+single-paper store commands.
+
+`[ai].structure_fallback` governs new fallback calls and respects the existing
+enabled, provider, credentials and source-upload settings. Routine semantic
+extraction becomes an explicit opt-in through `[ai].extract_proposals`. Existing
+installations can set it to `true` to retain the previous automatic proposal
+workflow. Model output remains proposed. The implementation must cover
+successful, declined, disabled, malformed, tampered and rebuilt cases with
+offline fixtures.
+
 ## Appendix A — Decision record (supersedes the standalone ADRs for current behavior)
 
 | Decision | Current resolution |
