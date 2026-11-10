@@ -39,6 +39,7 @@ dev = [
     "build==1.6.1",
     "coverage==7.17.2",
     "mypy==2.4.1",
+    "pyright==1.1.414",
     "pre-commit==4.7.0",
     "ruff==0.17.4",
     "setuptools==84.2.1",
@@ -78,3 +79,19 @@ source = ["qecgraph"]
 fail_under = 80
 precision = 2
 show_missing = true
+
+[tool.pyright]
+include = ["qecgraph", "tests/unit"]
+exclude = ["**/__pycache__", "build", "dist", ".venv"]
+pythonVersion = "3.11"
+typeCheckingMode = "basic"
+# Legacy dict-heavy modules still produce inference warnings. Keep them visible
+# in CI, but block only missing imports/undefined names until the typing cleanup.
+reportArgumentType = "warning"
+reportAttributeAccessIssue = "warning"
+reportOptionalOperand = "warning"
+reportIndexIssue = "warning"
+reportCallIssue = "warning"
+reportOptionalMemberAccess = "warning"
+reportOperatorIssue = "warning"
+reportOptionalSubscript = "warning"

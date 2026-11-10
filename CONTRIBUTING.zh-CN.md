@@ -42,7 +42,7 @@ python -m coverage report
   链接、可达性、目录锚点和双语一致性。测试分层和按层运行命令见
   [tests/README.zh-CN.md](tests/README.zh-CN.md)。
 - 运行 `npx --yes markdownlint-cli2@0.24.0` 检查标题/列表/空行和链接片段一致性。
-  Markdown lint 是本地检查；CI 只保留 ruff、mypy、覆盖率和测试。
+  Markdown lint 是本地检查；CI 只保留 ruff、mypy、advisory pyright 和 unit tests。
 
 结构参考 [Diátaxis](https://diataxis.fr/)、[markdownlint](https://github.com/DavidAnson/markdownlint)
 和 [Lychee](https://github.com/lycheeverse/lychee)，以及

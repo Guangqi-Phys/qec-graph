@@ -49,7 +49,7 @@ the [changelog](CHANGELOG.md) for compatibility changes, and the
   reachability, table-of-contents anchors and bilingual parity. The test layer
   map and per-layer commands are in [tests/README.md](tests/README.md).
 - Run `npx --yes markdownlint-cli2@0.24.0` for heading/list/blank-line and link
-  fragment consistency. Markdown lint is a local check; CI keeps only ruff, mypy, coverage and tests.
+  fragment consistency. Markdown lint is a local check; CI keeps only ruff, mypy, advisory pyright and unit tests.
 
 The structure is informed by [Diátaxis](https://diataxis.fr/),
 [markdownlint](https://github.com/DavidAnson/markdownlint) and

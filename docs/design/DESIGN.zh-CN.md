@@ -590,7 +590,7 @@ build evidence 或 semantic equivalence。
 
 - 测试套件和 `tools/reproduce*.py` 是可执行检查；`validation/README.md` 索引记录运行及其源码修订。
 - `python -m unittest discover -s tests -v`、`python tools/reproduce.py --out build/reproduce` 和 CLI/MCP 检查是标准本地门禁。
-- CI 只运行 ruff、mypy、分支覆盖率（80% gate）和完整 unittest 测试套件。distribution、installed-wheel、Docker 和隔离检查是本地/手动发布检查。
+- CI 只运行 ruff、mypy、advisory pyright 和 unit 测试层。integration/contract 测试、覆盖率、distribution、installed-wheel、Docker 和隔离检查是本地/手动检查。
 - 任何 identity、source coordinates、evidence semantics、review binding、publication order 或 MCP scope 变化都要求新 invariant test，并在兼容性受影响时写迁移说明。
 - 只有本文、实现、测试和 validation claim 一致时，设计变更才算完成。不要把第二份矛盾设计页留在活动文档树中。
 
