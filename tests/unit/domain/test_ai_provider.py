@@ -64,3 +64,37 @@ class OpenAIProviderTests(unittest.TestCase):
             self.provider(FakeTransport(body=b'not json')).complete([Message('user', 'x')], model='m')
         with self.assertRaises(ProviderError):
             self.provider(FakeTransport(body=b'{"choices": []}')).complete([Message('user', 'x')], model='m')
+
+
+class AnthropicProviderTests(unittest.TestCase):
+    def test_messages_payload_and_structured_schema_instruction(self):
+        from qecgraph.llm.providers.anthropic import AnthropicProvider
+        transport = FakeTransport(body=json.dumps({
+            'id': 'msg-1', 'model': 'claude-test',
+            'content': [{'type': 'text', 'text': '{"ok": true}'}],
+            'stop_reason': 'end_turn', 'usage': {'input_tokens': 3, 'output_tokens': 2},
+        }).encode(), headers={'request-id': 'req-2'})
+        provider = AnthropicProvider('anthropic', base_url='https://api.anthropic.com',
+                                     api_key='secret', transport=transport)
+        completion = provider.complete(
+            [Message('system', 'system'), Message('user', 'paper')], model='claude-test',
+            response_schema={'type': 'object'}, max_output_tokens=64)
+        self.assertEqual(completion.text, '{"ok": true}')
+        self.assertEqual(completion.request_id, 'req-2')
+        method, url, headers, payload, timeout = transport.requests[0]
+        self.assertEqual((method, url), ('POST', 'https://api.anthropic.com/v1/messages'))
+        self.assertEqual(headers['x-api-key'], 'secret')
+        self.assertIn('JSON Schema', payload['system'])
+        self.assertEqual(payload['messages'], [{'role': 'user', 'content': 'paper'}])
+        self.assertEqual(payload['max_tokens'], 64)
+
+
+class CliProviderTests(unittest.TestCase):
+    def test_cli_receives_prompt_and_extracts_result_wrapper(self):
+        import sys
+        from qecgraph.llm.providers.cli import CliProvider
+        code = 'import sys; print(\'{"result": "hello from cli"}\')'
+        provider = CliProvider('claude_code', command=sys.executable, args=['-c', code])
+        completion = provider.complete([Message('user', 'prompt')], model='cli-model')
+        self.assertEqual(completion.text, 'hello from cli')
+        self.assertEqual(completion.model, 'cli-model')
