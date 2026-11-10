@@ -2,7 +2,6 @@
 
 > **Status: Current (0.4.x).** Workspace configuration, Obsidian and provider handoff.
 
-
 `0.4.0rc1` 是可本地安装的发行候选。已有的 `qecgraph`、`qec-latex-split`、
 `qecgraph-mcp` 及 SourceGraph、LemmaGraph、DataGraph 命令继续可用；Lean 为延期实验能力，见[系统设计](../design/DESIGN.md#10-lean-deferred-not-supported)。
 本说明描述已经接入的工作流；[系统设计](../design/DESIGN.md)描述当前工作流，

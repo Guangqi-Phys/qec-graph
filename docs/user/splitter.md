@@ -2,7 +2,6 @@
 
 > **Status: Current (0.4.x).** Source-only splitter reference and limitations.
 
-
 本包的切割功能调用同一套 `parser → graph → store` 流程。它读取一个 LaTeX 工程，将章节、定义、引理、定理、证明、公式、表格、图片和正文段落保存为带来源的文件，并返回每类文件的数量和准确路径。
 
 实际切割结果就是快照中的 `nodes/<kind>/*.tex` 及对应 `.json`。工具没有第二套独立解析器，也不再额外复制一份失去来源的片段目录。原文文件始终保存在同一快照的 `sources/` 中。

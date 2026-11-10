@@ -15,13 +15,13 @@
 
 ## Operations map
 
-| Page | Surface | Use when |
-|---|---|---|
-| [Legacy store and corpus maintenance](maintenance.md) | Legacy store/corpus | Ingest, validate, migrate or recover a single-paper store or corpus |
-| [Corpus](corpus.md) | Legacy corpus | Register works/versions, map sources, run fixed-revision queries |
-| [Review](review.md) | Legacy corpus | Validate typed records, bind evidence, apply reviewed proposals |
-| [Workspace guide](../user/workspace.md) | Workspace | Current daily workflow (linked here for convenience) |
-| [Advanced usage](../user/advanced-usage.md) | Workspace/CLI | Release checks, exit codes and grouped commands |
+| Page | Surface | Type | Use when |
+|---|---|---|---|
+| [Legacy store and corpus maintenance](maintenance.md) | Legacy store/corpus | How-to | Ingest, validate, migrate or recover a single-paper store or corpus |
+| [Corpus](corpus.md) | Legacy corpus | Reference | Register works/versions, map sources, run fixed-revision queries |
+| [Review](review.md) | Legacy corpus | How-to / reference | Validate typed records, bind evidence, apply reviewed proposals |
+| [Workspace guide](../user/workspace.md) | Workspace | How-to | Current daily workflow (linked here for convenience) |
+| [Advanced usage](../user/advanced-usage.md) | Workspace/CLI | How-to / reference | Release checks, exit codes and grouped commands |
 
 ## Validation
 

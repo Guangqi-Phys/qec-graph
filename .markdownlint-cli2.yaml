@@ -1,0 +1,17 @@
+# Markdown structure/style checks for the current documentation tree.
+# Line length and table-pipe spacing are intentionally off: the guides contain
+# long URLs, Chinese prose and compact tables that read better without wrapping.
+config:
+  MD013: false
+  MD028: false
+  MD060: false
+globs:
+  - "docs/**/*.md"
+  - "README.md"
+  - "CONTRIBUTING.md"
+  - "SECURITY.md"
+  - "CHANGELOG.md"
+  - "AGENTS.md"
+ignores:
+  - "legacy/**"
+  - "validation/**"

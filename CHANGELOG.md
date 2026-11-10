@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Documentation pages now use a common status + `## On this page` structure,
+  GitHub alerts, task-oriented tables and Mermaid diagrams. The root README
+  links the main reading paths directly. A `markdownlint-cli2` CI job checks
+  heading/list/link-fragment structure.
 - Lean is explicitly **deferred** in 0.4.x. The experimental code and
   validation fixtures remain only for regression; the CLI group is marked
   experimental, and the database, query and MCP paths do not invoke Lean.

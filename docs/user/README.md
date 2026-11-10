@@ -25,13 +25,13 @@
 
 ## Guide map
 
-| Guide | Language | Focus |
-|---|---|---|
-| [Quick start](quickstart.zh-CN.md) | 中文 | Shortest path: install → `init` → `sync` → `status` → query |
-| [Workspace guide](workspace.md) | 中文 | `qecgraph.toml`, entry points, provenance, Obsidian, review handoff |
-| [Data and search](data-and-search.md) | English | `research.v1`, evidence, distance policy, CLI/MCP queries |
-| [Advanced usage](advanced-usage.md) | English | Installers, command groups, JSON/exit codes, release checks |
-| [Single-paper splitter](splitter.md) | 中文 | Source spans, fragment layout, custom environments, limits |
+| Guide | Language | Type | Focus |
+|---|---|---|---|
+| [Quick start](quickstart.zh-CN.md) | 中文 | Tutorial | Shortest path: install → `init` → `sync` → `status` → query |
+| [Workspace guide](workspace.md) | 中文 | How-to | `qecgraph.toml`, entry points, provenance, Obsidian, review handoff |
+| [Data and search](data-and-search.md) | English | Reference | `research.v1`, evidence, distance policy, CLI/MCP queries |
+| [Advanced usage](advanced-usage.md) | English | How-to / reference | Installers, command groups, JSON/exit codes, release checks |
+| [Single-paper splitter](splitter.md) | 中文 | Reference | Source spans, fragment layout, custom environments, limits |
 
 ## Common flow
 

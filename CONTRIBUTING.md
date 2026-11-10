@@ -42,3 +42,13 @@ the [changelog](CHANGELOG.md) for compatibility changes, and the
   decorative markup that repeats the prose.
 - Run `python -m unittest tests.test_docs -v` after moving or renaming a page;
   it checks status markers, links, reachability and table-of-contents anchors.
+- Run `npx --yes markdownlint-cli2@0.24.0` for heading/list/blank-line and link
+  fragment consistency. CI runs the same command in the `docs` job.
+
+The structure is informed by [Diátaxis](https://diataxis.fr/),
+[markdownlint](https://github.com/DavidAnson/markdownlint) and
+[Lychee](https://github.com/lycheeverse/lychee), plus the reader-routing and
+visual-consistency ideas in
+[markdown-viewer/skills](https://github.com/markdown-viewer/skills) and
+[beautify-github-readme](https://github.com/oil-oil/beautify-github-readme).
+No third-party prose or assets were copied.

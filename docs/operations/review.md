@@ -2,7 +2,6 @@
 
 > **Status: Current for the legacy corpus review surface.** Workspace review/apply semantics are in the [system design](../design/DESIGN.md#6-review-evidence-and-query-eligibility).
 
-
 ## On this page
 
 - [记录与 Schema 版本](#记录与-schema-版本)

@@ -38,26 +38,34 @@ flowchart TD
 - [Choose your path](#choose-your-path)
 - [Current user pages](#current-user-pages)
 - [Design and operations](#design-and-operations)
+- [Page types](#page-types)
 - [Language and status](#language-and-status)
 
 ## Current user pages
 
-| Page | Language | Use when |
-|---|---|---|
-| [Quick start](user/quickstart.zh-CN.md) | 中文 | You want the shortest working example |
-| [Advanced usage](user/advanced-usage.md) | English | You need installers, command groups, exit codes or release checks |
-| [Workspace guide](user/workspace.md) | 中文 | You need archive configuration, Obsidian layout or provider handoff |
-| [Data and search](user/data-and-search.md) | English | You need `research.v1` records, evidence and query semantics |
-| [Single-paper splitter](user/splitter.md) | 中文 | You need source spans, fragment layout or LaTeX limitations |
+| Page | Language | Type | Use when |
+|---|---|---|---|
+| [Quick start](user/quickstart.zh-CN.md) | 中文 | Tutorial | You want the shortest working example |
+| [Advanced usage](user/advanced-usage.md) | English | How-to / reference | You need installers, command groups, exit codes or release checks |
+| [Workspace guide](user/workspace.md) | 中文 | How-to | You need archive configuration, Obsidian layout or provider handoff |
+| [Data and search](user/data-and-search.md) | English | Reference | You need `research.v1` records, evidence and query semantics |
+| [Single-paper splitter](user/splitter.md) | 中文 | Reference | You need source spans, fragment layout or LaTeX limitations |
 
 ## Design and operations
 
-| Page | Status | What it covers |
-|---|---|---|
-| [QEC Graph — System Design](design/DESIGN.md) | Current | The only design document: architecture, data/evidence, workspace publication, CLI/MCP, human view and deferred Lean |
-| [Operations](operations/README.md) | Current | Legacy store/corpus maintenance, corpus/review workflows and validation pointers |
-| [Validation evidence](../validation/README.md) | Evidence | Recorded inputs, commands, revisions and results; not a design contract |
-| [Changelog](../CHANGELOG.md) | Current | Compatibility and behavior changes |
+| Page | Status | Type | What it covers |
+|---|---|---|---|
+| [QEC Graph — System Design](design/DESIGN.md) | Current | Explanation / reference | The only design document: architecture, data/evidence, workspace publication, CLI/MCP, human view and deferred Lean |
+| [Operations](operations/README.md) | Current | How-to / reference | Legacy store/corpus maintenance, corpus/review workflows and validation pointers |
+| [Validation evidence](../validation/README.md) | Evidence | Evidence | Recorded inputs, commands, revisions and results; not a design contract |
+| [Changelog](../CHANGELOG.md) | Current | Reference | Compatibility and behavior changes |
+
+## Page types
+
+Pages follow the four documentation needs from [Diátaxis](https://diataxis.fr/):
+**tutorial** (learning), **how-to** (a task), **reference** (facts) and
+**explanation** (why). A page has one primary type; a guide may also contain a
+reference table.
 
 ## Language and status
 

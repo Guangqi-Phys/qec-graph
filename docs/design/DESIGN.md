@@ -2,7 +2,6 @@
 
 > **Status: Current authoritative design (0.4.x).** This is the only active design document.
 
-
 | | |
 |---|---|
 | **Status** | Current authoritative design (0.4.x) |
@@ -12,12 +11,12 @@
 
 This document is the single source of truth for the system's architecture, data contracts, evidence semantics, publication protocol, query/MCP surface, human view, and the deferred Lean boundary. If code, tests, and this document disagree, the executable behavior and its verification are the current state; update this document in the same change that alters the design. Do not create a second design page for a new idea: extend this document or record a superseding decision here.
 
-**Status vocabulary used throughout**
-
-- **Implemented** — present in the package and covered by tests or recorded verification.
-- **Partial** — the mechanism exists but a documented part is missing or limited.
-- **Not implemented** — a design goal with no executable implementation. Never describe it as available.
-- **Historical** — superseded material is available in Git history only, not in the current documentation tree.
+| Status | Meaning |
+|---|---|
+| **Implemented** | Present in the package and covered by tests or recorded verification. |
+| **Partial** | The mechanism exists but a documented part is missing or limited. |
+| **Not implemented** | A design goal with no executable implementation. Never describe it as available. |
+| **Historical** | Superseded material is available in Git history only, not in the current documentation tree. |
 
 ---
 
@@ -37,8 +36,8 @@ This document is the single source of truth for the system's architecture, data 
 - [12. Invariants and failure cases](#12-invariants-and-failure-cases)
 - [13. Current limits and non-goals](#13-current-limits-and-non-goals)
 - [14. Verification and change rules](#14-verification-and-change-rules)
-- [Appendix A — Decision record (supersedes the standalone ADRs for current behavior)](#appendix-a-decision-record-supersedes-the-standalone-adrs-for-current-behavior)
-- [Appendix B — Primary references](#appendix-b-primary-references)
+- [Appendix A — Decision record (supersedes the standalone ADRs for current behavior)](#appendix-a--decision-record-supersedes-the-standalone-adrs-for-current-behavior)
+- [Appendix B — Primary references](#appendix-b--primary-references)
 
 ## 1. Scope and non-goals
 
@@ -404,7 +403,7 @@ engineering questions (toolchain pinning, export shape, axiom visibility), but
 they are not a supported semantic contract. They are intentionally excluded
 from the supported release scope until a new design is written and approved.
 
-**What exists today, and what it means**
+### What exists today, and what it means
 
 | Artifact | Status |
 |---|---|
@@ -413,7 +412,7 @@ from the supported release scope until a new design is written and approved.
 | `validation/p5/` and Lean test fixtures | Historical/experimental evidence; not a current verification claim |
 | Query/MCP path | Does not import, execute, or require Lean; database construction and MCP are unaffected |
 
-**What is explicitly not claimed**
+### What is explicitly not claimed
 
 - no “Lean verified” status for any paper theorem;
 - no semantic equivalence between prose and a Lean type;
@@ -422,7 +421,7 @@ from the supported release scope until a new design is written and approved.
   `native_decide` trust beyond explicit experimental checks;
 - no reproducible Lean acceptance in the current release.
 
-**Before Lean is implemented again, a new design must specify**
+### Before Lean is implemented again, a new design must specify
 
 1. the exact source statement → normalized claim → Lean declaration mapping,
    including quantifiers, hypotheses, definitions, and scope;

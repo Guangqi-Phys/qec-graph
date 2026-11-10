@@ -150,7 +150,7 @@ class DocumentationTests(unittest.TestCase):
         title = re.sub(r'\[([^\]]*)\]\([^)]*\)', r'\1', title)
         title = title.lower()
         title = ''.join(ch for ch in title if ch.isalnum() or ch in ' _-')
-        title = re.sub(r'-+', '-', title.strip().replace(' ', '-'))
+        title = title.strip().replace(' ', '-')
         return title
 
     def test_long_current_documents_have_a_working_toc(self):
