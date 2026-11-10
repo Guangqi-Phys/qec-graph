@@ -11,7 +11,7 @@ from qecgraph.registry import Registry
 from qecgraph.review import apply, create_proposal, decide
 
 ROOT = Path(__file__).resolve().parents[1]
-ARTIFACTS = ROOT / 'validation/p5/step21'
+ARTIFACTS = ROOT / 'validation/lean-experimental/declaration-export'
 EXAMPLE = ROOT / 'examples/lean'
 THEOREM = 'lean:fixture:QEC.Binary.css_example_commutes'
 
@@ -77,7 +77,7 @@ class LeanIntegrationTests(unittest.TestCase):
 
     def test_build_only_and_altered_inputs_cannot_be_imported(self):
         with self.assertRaisesRegex(ValueError, 'actual validated build'):
-            inspect_build(ROOT / 'validation/p5/fixed-step20/report.json')
+            inspect_build(ROOT / 'validation/lean-experimental/fixed-build/report.json')
         altered = self.root / 'altered'
         shutil.copytree(ARTIFACTS, altered)
         (altered / 'inputs/QEC/Binary.lean').write_text('-- altered', encoding='utf-8')

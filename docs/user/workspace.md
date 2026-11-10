@@ -5,7 +5,7 @@
 `0.4.0rc1` 是可本地安装的发行候选。已有的 `qecgraph`、`qec-latex-split`、
 `qecgraph-mcp` 及 SourceGraph、LemmaGraph、DataGraph 命令继续可用；Lean 为延期实验能力，见[系统设计](../design/DESIGN.md#10-lean-deferred-not-supported)。
 本说明描述已经接入的工作流；[系统设计](../design/DESIGN.md)描述当前工作流，
-[验收报告](../../validation/rfc002/REPORT.md)逐项列出实测和缺口。
+[验收报告](../../validation/workspace-0.4.0rc1/report.md)逐项列出实测和缺口。
 
 > [!WARNING]
 > `human/notes/` 是私有笔记。生成器、查询和 MCP 都不会读取它；不要把它当作检索输入。

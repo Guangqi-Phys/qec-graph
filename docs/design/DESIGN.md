@@ -394,7 +394,7 @@ The typed JSON envelope (`ok/data` or `error/code/message/details/scope`) is sha
 > [!WARNING]
 > **Lean is deferred in 0.4.x.** It is not part of the supported database,
 > query, or MCP workflow. The `lean` CLI group, `qecgraph/lean*.py`, `lean/`
-> project, and `validation/p5` fixtures remain only as experimental regression
+> project, and `validation/lean-experimental` fixtures remain only as experimental regression
 > material. They are not a verification claim and must not be presented as a
 > finished product capability.
 
@@ -409,7 +409,7 @@ from the supported release scope until a new design is written and approved.
 |---|---|
 | `qecgraph/lean.py`, `lean_integration.py`, `qecgraph/cli/commands/lean.py` | Experimental code retained so historical regressions remain testable; not covered by the support contract |
 | `lean/` project and `lean/axiom-policy.json` | Pinned experimental fixture; no toolchain is installed in the normal Python environment |
-| `validation/p5/` and Lean test fixtures | Historical/experimental evidence; not a current verification claim |
+| `validation/lean-experimental/` and Lean test fixtures | Historical/experimental evidence; not a current verification claim |
 | Query/MCP path | Does not import, execute, or require Lean; database construction and MCP are unaffected |
 
 ### What is explicitly not claimed

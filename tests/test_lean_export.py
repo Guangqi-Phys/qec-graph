@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class LeanExportTests(unittest.TestCase):
     def setUp(self):
-        self.export = read_json(ROOT / 'validation/p5/step21/export.json')
+        self.export = read_json(ROOT / 'validation/lean-experimental/declaration-export/export.json')
         self.policy = read_json(ROOT / 'lean/axiom-policy.json')
         self.targets = read_json(ROOT / 'lean/targets.json')
 
@@ -35,10 +35,10 @@ class LeanExportTests(unittest.TestCase):
         self.assertEqual(audit['status'], 'allowed')
         self.assertEqual(audit['axioms_observed'], ['propext'])
         self.assertEqual(audit['semantic_review'], 'not_reviewed')
-        rejected = read_json(ROOT / 'validation/p5/zero-axiom-policy/audit.json')
+        rejected = read_json(ROOT / 'validation/lean-experimental/zero-axiom-policy/audit.json')
         self.assertEqual(rejected['status'], 'rejected')
         self.assertTrue(any('propext' in issue.get('axioms', []) for issue in rejected['issues']))
-        fixed = read_json(ROOT / 'validation/p5/fixed-step20/report.json')
+        fixed = read_json(ROOT / 'validation/lean-experimental/fixed-build/report.json')
         self.assertEqual(fixed['status'], 'build_passed')
         self.assertFalse(fixed['git']['project_worktree_dirty'])
         self.assertEqual(fixed['declaration_export'], 'not_performed')

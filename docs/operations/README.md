@@ -29,7 +29,7 @@ Validation reports are evidence of their recorded inputs, commands and commits.
 Check the report's scope before applying it to a newer build.
 
 - [Validation index](../../validation/README.md)
-- [Workspace acceptance report](../../validation/rfc002/REPORT.md)
+- [Workspace acceptance report](../../validation/workspace-0.4.0rc1/report.md)
 - [Pinned arXiv fixture instructions](../../tests/golden/README.md)
 
 ## Benchmarks
@@ -38,4 +38,4 @@ Run `python tools/bench.py --out build/benchmark.json` for the generated
 incremental workload. Pass `--archive-dir` to measure the six pinned arXiv
 inputs. The report records raw samples, medians, runtime versions and query
 settings; “fresh” means a new application store under ordinary OS caches.
-See the [measured baseline](../../validation/audit-0.4.0rc1/benchmark.json).
+See the [measured baseline](../../validation/audit/0.4.0rc1/benchmark.json).

@@ -58,7 +58,7 @@ qecgraph codes --corpus build/corpus --n-min 13 --n-max 13 --distance-at-least 3
 
 CSS 插件只支持 +1 相位的二元 CSS 约定；校验显式形状、坐标、GF(2) 秩、对易及逻辑配对。
 有限距离检查必须显式开启，默认 n≤20，绝对上限 22；k=0 返回定义域外，不补造距离。
-普通 HGP 示例实际得到 n=13、k=1、dX=dZ=3（validation/p2/css-check.json），仍是 Python computed_exact。
+普通 HGP 示例实际得到 n=13、k=1、dX=dZ=3（validation/review/css-check.json），仍是 Python computed_exact。
 非对易矩阵不会获得 CSS 有效结果。此接口不运行 Lean，不写审核记录。
 
 硬筛选先匹配明确 metric_definition_id 和 sector（joint/X/Z），再检查 exact/lower_bound/interval 的已知下界；
