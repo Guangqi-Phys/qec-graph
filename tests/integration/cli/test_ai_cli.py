@@ -30,6 +30,8 @@ class AICliTests(unittest.TestCase):
         self.assertEqual(status['provider'], 'openrouter')
         self.assertEqual(status['model'], '')
         self.assertFalse(status['configured'])
+        self.assertTrue(status['structure_fallback'])
+        self.assertFalse(status['extract_proposals'])
         self.assertNotIn('secret', stdout.lower())
         self.assertEqual(status['config_mode'], '0o600')
         self.assertTrue(status['config_private'])

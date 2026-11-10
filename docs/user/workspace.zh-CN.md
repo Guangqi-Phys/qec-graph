@@ -49,6 +49,8 @@ enabled = true
 provider = "openrouter"
 model = "your-model-id"
 max_parallel_packages = 2
+structure_fallback = true
+extract_proposals = false
 
 [ai.providers.openrouter]
 kind = "openai_compatible"
@@ -60,7 +62,14 @@ api_key = ""
 `qec-graph ai status` 只报告当前 provider，不联网；`qec-graph ai test` 发出一次
 带 schema 的连接探针。`qec-graph init` 不会自动调用这两个命令。
 
-`max_parallel_packages` 限制按已选定入口并发抽取的文献包数；发布和输入消费仍保持串行。
+`structure_fallback` 默认开启，同时要求 provider 可用且允许上传来源。回退请求只包含
+已选入口的带行号正文。正文边界必须独占行且唯一，正文也必须独立于外部 TeX 输入。
+方案失败或被拒绝时，归档和收件箱副本仍可用于重试。状态报告显示回退结果。
+回退成功的快照标为 `recovered_proposed`。
+
+`extract_proposals` 默认关闭。已有工作区可将它设为 `true`，延续自动生成定理、假设
+和数据提案的流程。`max_parallel_packages` 限制该可选抽取的并发包数，发布和输入
+消费仍串行。
 
 Claude Code provider 使用 bare 模式，禁用工具、MCP 和会话持久化。
 曾使用本地订阅登录的工作区升级时，请设置 `ANTHROPIC_API_KEY` 并移除自定义 CLI 参数。

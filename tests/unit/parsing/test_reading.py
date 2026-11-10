@@ -47,3 +47,10 @@ Further prose.
         prose, = [node for node in graph['nodes'] if node.get('reading_text') == 'A paper.']
         self.assertTrue(any(edge['relation'] == 'cites' and edge['source'] == prose['id'] for edge in graph['edges']))
         self.assertIn('Further prose.', [node.get('reading_text') for node in graph['nodes']])
+
+    def test_old_snapshot_paragraph_keeps_prose_around_bibliography(self):
+        from qecgraph.source.reading import source_reading_text
+
+        raw = ('Before.\n' + r'\begin{thebibliography}{1}\bibitem{a}Hidden\end{thebibliography}'
+               + '\nAfter.')
+        self.assertEqual(source_reading_text({'kind': 'paragraph', 'latex': raw}), 'Before.\n\nAfter.')

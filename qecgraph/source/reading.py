@@ -74,11 +74,11 @@ def reading_projection(text, *, kind=None, bibliography=False):
             if command == 'begin':
                 arg = _group(text, end, stop)
                 name = text[arg[0]:arg[1]] if arg else ''
-                if name in _LITERAL_ENVIRONMENTS:
+                if name in _LITERAL_ENVIRONMENTS or name == 'thebibliography':
                     closing = '\\end{' + name + '}'
                     close = text.find(closing, arg[2], stop)
                     pos = close + len(closing) if close >= 0 else stop
-                    if name != 'comment':
+                    if name != 'comment' and (name != 'thebibliography' or close < 0):
                         result.append(text[start:pos])
                     continue
             if command in CITATION_COMMANDS or command in _WRAPPERS | _DROP | {'href', 'url', 'nolinkurl'}:
@@ -114,3 +114,12 @@ def reading_projection(text, *, kind=None, bibliography=False):
         return ''.join(result)
 
     return walk(0, len(text)).strip(), citations
+
+
+def source_reading_text(node):
+    """Read the stored projection or derive it for a pre-projection snapshot."""
+    if node.get('source_role') == 'bibliography':
+        return ''
+    if 'reading_text' in node:
+        return node['reading_text']
+    return reading_projection(node['latex'], kind=node['kind'])[0]

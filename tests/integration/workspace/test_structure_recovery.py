@@ -143,3 +143,64 @@ class WorkspaceStructureRecoveryTests(unittest.TestCase):
                 manifest_path.write_text(json.dumps(manifest))
                 with self.assertRaisesRegex(ValueError, 'structure'):
                     validate_snapshot(snapshot)
+
+    def test_reading_search_cli_and_mcp_match_and_raw_citations_remain(self):
+        import subprocess
+        import sys
+
+        from qecgraph.render.human import build_human
+        from tests.integration.mcp.test_mcp import initialization, request
+
+        (self.root / 'inputs/paper.tex').write_bytes(TEX)
+        with self.provider(plan()):
+            report = self.ws.sync()
+        release = report['release_id']
+        machine = self.ws.registry.root
+        session = WorkspaceSession(machine, release)
+        args = {'query': 'λ cites', 'view': 'reading'}
+        response = session.invoke('qecgraph_search', args)
+        row, = response['data']['results']
+        self.assertEqual(row['review_status'], 'proposed')
+        self.assertEqual(row['reading_excerpt'], 'λ cites .')
+        self.assertEqual(response['data']['coverage']['recovered_proposed'], 1)
+        self.assertTrue(session.invoke('qecgraph_search', {'query': 'Example', 'view': 'raw'})['data']['results'])
+        self.assertEqual(session.invoke('qecgraph_search', {'query': 'Example', 'view': 'reading'})['data']['results'], [])
+        exact = session.invoke('qec_get_source', {'identifier': row['id']})['data']
+        self.assertEqual(exact['structure_status'], 'proposed')
+        self.assertIn(r'\cite{example}', exact['latex'])
+
+        cli = subprocess.run([sys.executable, '-m', 'qecgraph', 'search', 'λ cites', '--view', 'reading',
+                              '--machine', str(machine), '--release', release, '--json'],
+                             text=True, capture_output=True, check=True, timeout=15)
+        self.assertEqual(json.loads(cli.stdout), response)
+        messages = [initialization(), {'jsonrpc': '2.0', 'method': 'notifications/initialized'},
+                    request(2, 'tools/call', {'name': 'qecgraph_search', 'arguments': args})]
+        stdio = subprocess.run([sys.executable, '-m', 'qecgraph', 'mcp', 'serve', '--machine', str(machine),
+                                '--release', release], text=True, capture_output=True, check=True, timeout=15,
+                               input=''.join(json.dumps(message) + '\n' for message in messages))
+        replies = [json.loads(line) for line in stdio.stdout.splitlines()]
+        self.assertEqual(replies[-1]['result']['structuredContent'], response)
+
+        self.assertEqual(build_human(self.root)['status'], 'current')
+        page, = (self.root / 'human/generated/sources').glob('paper-version--*.md')
+        content = page.read_text()
+        self.assertIn('Reading preview', content)
+        self.assertIn('λ cites .', content)
+        self.assertNotIn('Example', content)
+
+    def test_upload_opt_out_and_body_budget_block_provider_calls(self):
+        package = self.root / 'inputs/paper.tex'
+        package.write_bytes(TEX)
+        self.configure('allow_source_upload = true', 'allow_source_upload = false')
+        with self.provider(plan()) as provider:
+            row, = self.ws.sync()['inputs']
+            provider.assert_not_called()
+        self.assertEqual(row['structure_recovery']['reason'], 'fallback_provider_unavailable')
+        self.configure('allow_source_upload = false', 'allow_source_upload = true')
+        self.configure('max_input_chars = 200000', 'max_input_chars = 1000')
+        package.write_bytes(TEX.replace(b'Later source.', b'x' * 2000))
+        with self.provider(plan()) as provider:
+            row, = self.ws.sync()['inputs']
+            provider.assert_not_called()
+        self.assertEqual(row['structure_recovery']['reason'], 'fallback_budget_exceeded')
+        self.assertTrue(package.exists())

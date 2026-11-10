@@ -50,7 +50,8 @@ def _ai_session(args):
 def _workspace_query(args):
     if args.command == 'search':
         session = _workspace_session(args, max_results=args.limit)
-        return session.invoke('qecgraph_search', {'query': args.query, 'kind': args.kind, 'limit': args.limit})
+        return session.invoke('qecgraph_search', {'query': args.query, 'kind': args.kind,
+                                                'limit': args.limit, 'view': args.view})
     selector = {'identifier': args.id_or_label}
     revision = getattr(args, 'revision', None)
     if revision is not None:
@@ -78,6 +79,8 @@ def _select_store_snapshot(args):
 def graph_query(args):
     if args.workspace or args.machine:
         return _emit_tool_result(args, _workspace_query(args))
+    if getattr(args, 'view', 'raw') == 'reading':
+        raise UsageError('--view reading requires --workspace or --machine')
     if getattr(args, 'revision', None) is not None:
         raise UsageError('--revision requires --workspace or --machine')
     _select_store_snapshot(args)

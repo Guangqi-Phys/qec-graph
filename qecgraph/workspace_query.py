@@ -15,6 +15,7 @@ from .mcp.ai_tools import ReadOnlySession, ToolError, tool_validators
 from .domain.domain_query import codes
 from .core.graph import canonical, hash_text, read_json
 from .query import GraphTextIndex, search_node_summary
+from .source.reading import source_reading_text
 from .registry import Registry
 from .domain.research import RELATIONS, key, validate_bundle
 from .domain.research_store import load_records
@@ -160,7 +161,8 @@ class WorkspaceSession:
         resource = {'uri': uri, 'mimeType': 'text/plain', 'text': source['latex'],
                     '_meta': {'release_id': self.release, 'occurrence_id': identifier,
                               'content_sha256': source['content_sha256'], 'source': source['source'],
-                              **({'original_ranges': source['original_ranges']} if 'original_ranges' in source else {})}}
+                              **{key: source[key] for key in ('original_ranges', 'structure_classification',
+                                                              'structure_status') if key in source}}}
         result = {'contents': [resource]}
         if len(canonical(result)) > self.graph.max_chars:
             raise ToolError('BUDGET_TOO_SMALL', 'Use qec_get_source with an exact source codepoint range')
@@ -199,6 +201,8 @@ class WorkspaceSession:
             props = descriptor['inputSchema']['properties']
             props.update(release_id={'type': 'string', 'pattern': '^[0-9a-f]{64}$'},
                          max_chars=_integer(256, self.graph.max_chars))
+            if descriptor['name'] == 'qecgraph_search':
+                props['view'] = {'enum': ['raw', 'reading']}
             if descriptor['name'] in ('qecgraph_search', 'qec_find_codes', 'qec_find_performance', 'qec_find_software'):
                 props.update(limit=_integer(1, self.graph.max_results), offset=_integer(0))
         return descriptors
@@ -215,7 +219,8 @@ class WorkspaceSession:
         return {f"source-artifact:{digest}": {'id': f'source-artifact:{digest}', 'kind': 'source_artifact',
                  **{field: m.get(field) for field in ('archive_sha256', 'source_tree_hash', 'source_version_id',
                     'source_snapshot_id', 'work_id', 'upstream_version', 'status', 'semantic_status',
-                    'processing_completed', 'source_version_conflict')}}
+                    'processing_completed', 'source_version_conflict')},
+                 **({'structure_recovery': m['structure_recovery']} if 'structure_recovery' in m else {})}
                 for digest, m in sorted(self.state.get('materials', {}).items())}
 
     @cached_property
@@ -223,6 +228,7 @@ class WorkspaceSession:
         materials = self._materials.values()
         return {'registered': len(materials),
                 'structure_complete': sum(bool(r['processing_completed']) for r in materials),
+                'recovered_proposed': sum('structure_recovery' in v for v in self.state['versions'].values()),
                 'semantic': 'pending',
                 'code_mention_proposals': sum(x['code_parameters_mentions'] for x in self.state.get('generated_research', {}).values()),
                 'source_version_conflicts': sum(bool(r['source_version_conflict']) for r in materials),
@@ -275,6 +281,9 @@ class WorkspaceSession:
                         line_end=span['line_start'] + node['latex'].count('\n', 0, max(start-original_start, end-original_start-1)))
         result = {'id': identifier, 'resource_uri': self._resource_uri(identifier), 'source': span,
                   'content_sha256': hash_text(latex), 'latex': latex}
+        if 'structure_classification' in node:
+            result['structure_classification'] = node['structure_classification']
+            result['structure_status'] = 'proposed'
         material = self._normalizations.get((span['source_version_id'], span['snapshot_id']))
         if material and span['path'] == 'main.tex':
             span.pop('archive_uri', None)
@@ -326,8 +335,36 @@ class WorkspaceSession:
     def _search_records(self):
         return [(row, canonical(row).casefold()) for row in (*self._materials.values(), *self.visible.values())]
 
+    @cached_property
+    def _reading_nodes(self):
+        return [(node, text, text.casefold()) for node in sorted(self._source_nodes.values(), key=lambda n: n['id'])
+                if (text := source_reading_text(node))]
+
+    @cached_property
+    def _reading_by_source(self):
+        groups = {}
+        for node, text, _ in self._reading_nodes:
+            source = node['source']
+            key_ = source['source_version_id'], source['snapshot_id']
+            groups.setdefault(key_, []).append((node, text))
+        return groups
+
+    def reading_blocks(self, source_version, snapshot_id):
+        """Return reading blocks for one exact registered source projection."""
+        entries = self._reading_by_source.get((source_version, snapshot_id), ())
+        return [(text, copy.deepcopy(node['source'])) for node, text in
+                sorted(entries, key=lambda pair: (pair[0]['data'].get('order', 0), pair[0]['id']))]
+
     def _search(self, args):
         needle, kind = args['query'].casefold(), args.get('kind')
+        if args.get('view') == 'reading':
+            rows = []
+            for node, text, indexed in self._reading_nodes:
+                if (not kind or kind == node['kind']) and needle in indexed:
+                    row = search_node_summary(node)
+                    row.update(reading_excerpt=text[:320], reading_excerpt_truncated=len(text) > 320)
+                    rows.append(row)
+            return {**self._paginate(rows, args, min(20, self.graph.max_results)), 'view': 'reading'}
         # Page the combined space; legacy corpus search caps each call at 200.
         # Search the already validated fixed projection so there is no SQL or file input.
         rows = [search_node_summary(node) for node in self._search_nodes.matching(args['query'], kind)]

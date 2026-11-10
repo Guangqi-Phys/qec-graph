@@ -140,6 +140,7 @@ CLI 和 MCP 使用同一套只读工作区工具。在 MCP 客户端中使用这
 | 目标 | 工具 | 如何开始 |
 | --- | --- | --- |
 | 查找术语、标签、来源或记录 | `qecgraph_search` | 传 `query`，可选 `kind`、`limit`、`offset`。工作区搜索大小写无关。用 `kind: "code_parameters_mention"` 聚焦记法提案。 |
+| 搜索阅读视图 | `qecgraph_search` | 设置 `view: "reading"`，或运行 `qec-graph search TERM --workspace . --view reading`。结果带有界摘录和原文 occurrence。 |
 | 读取记录并跟踪链接 | `qec_get_entity`、`qec_get_context` | 把结果 `id` 作为 `identifier`。有多个修订时传 `revision` 选择精确研究记录。 |
 | 读取原始段落或资产 | `qec_get_source`、`qec_get_asset` | 用已登记来源 occurrence ID 或记录的 asset ID。来源区间用半开 Unicode codepoint 偏移，资产区间用字节偏移。 |
 | 检查图节点和依赖 | `qecgraph_show`、`qecgraph_context`、`qecgraph_deps`、`qecgraph_impact` | 用图节点 ID 或唯一标签。`deps` 跟随结果依赖什么，`impact` 跟随什么依赖它。依赖 candidate 或历史链接前检查边状态。 |

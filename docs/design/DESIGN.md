@@ -558,9 +558,9 @@ These are limits of the current release, not permission to fill gaps with plausi
 ## 15. AI integration
 
 AI is an optional, local orchestration layer under `qecgraph/llm/`. `init` writes
-provider templates but never calls a provider or extracts a package. `sync`
-uses AI only when a package needs normalization (more than one complete TeX
-root); a single-root package follows the deterministic path.
+provider templates, and the local parser handles ordinary packages during
+`sync`. A configured provider can help resolve a multi-root package or recover
+an eligible structural parser failure. Routine semantic proposals are opt-in.
 
 The normalizer receives a bounded inventory and source excerpts, returns a
 normalization plan, and the assembler copies the selected original bytes into a
@@ -585,7 +585,8 @@ API keys are redacted and the configuration file is created mode `0600`.
 | Provider/client retries, schema and cache | Implemented |
 | Versioned skill packs | Implemented |
 | Source-mapped normalization | Implemented for ambiguous packages |
-| Theorem/assumption/data proposals | Implemented as `machine/ai/proposals`; explicit review decisions are recorded, conversion to canonical research records is not automatic |
+| Parser-first structure recovery | Implemented for eligible original TeX entries, with proposed block kinds |
+| Theorem/assumption/data proposals | Opt-in, implemented as `machine/ai/proposals`; explicit review decisions are recorded, conversion to canonical research records is not automatic |
 
 ### 15.1 Parser-first body extraction rollout
 
@@ -611,8 +612,9 @@ normalization keeps its existing independent approval and source-map rules.
 The provider sees a bounded, numbered body and returns ordered ranges and block
 kinds. The program requires complete body coverage, validates literal section
 and bibliography anchors, and copies each slice from the archived source.
-Labels, references and titles are admitted only when the program recognizes
-their literal syntax. Unknown classifications remain visible as source text.
+The fallback recovers literal citation keys and section titles. Label commands
+and other unsupported metadata remain available in the verbatim source.
+Unknown classifications remain visible as source text.
 The snapshot binds the validated plan, source digest, skill version, model and
 prompt hash. A proposed block classification carries its origin in reads and
 cannot create a reviewed claim or logical dependency.
@@ -620,10 +622,9 @@ cannot create a reviewed claim or logical dependency.
 The structural retry runs under the existing writer and publish protocol.
 A missing provider, refusal, invalid plan or failed validation retains the
 archive, prior projection and claim for retry. A committed plan can be reused
-offline against its exact source. The ordinary parser is tried first on
-rebuild, so a parser improvement can replace a fallback with an independently
-derived projection. The current parser remains the only producer for
-single-paper store commands.
+offline against its exact source. A parser or input change re-runs the local
+parser first, so parser improvements can replace a fallback. Single-paper
+store commands continue to use the local parser.
 
 `[ai].structure_fallback` governs new fallback calls and respects the existing
 enabled, provider, credentials and source-upload settings. Routine semantic

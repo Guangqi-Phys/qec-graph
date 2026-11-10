@@ -36,6 +36,7 @@ def config(args):
                'config': str(root / CONFIG), 'enabled': ai.enabled,
                'provider': ai.provider, 'model': ai.model,
                'allow_source_upload': ai.allow_source_upload,
+               'structure_fallback': ai.structure_fallback, 'extract_proposals': ai.extract_proposals,
                'providers': [_redacted_provider(name, provider)
                              for name, provider in sorted(ai.providers.items())]}
     return emit_report(payload, exit_code=0)
@@ -53,7 +54,8 @@ def status(args):
                'config_private': mode is not None and mode & 0o077 == 0,
                'configured': bool(selected.resolved_key()) if needs_key
                else bool(selected.command),
-               'allow_source_upload': ai.allow_source_upload}
+               'allow_source_upload': ai.allow_source_upload,
+               'structure_fallback': ai.structure_fallback, 'extract_proposals': ai.extract_proposals}
     if needs_key:
         payload['api_key_source'] = ('inline' if selected.api_key
                                      else 'environment' if selected.api_key_env else 'none')

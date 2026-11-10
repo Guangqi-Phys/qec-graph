@@ -41,10 +41,10 @@ qec-graph validate
 ```
 
 `init` never extracts or calls AI. It only prepares the inbox and configuration;
-`qec-graph sync` performs the import. AI is optional: configure `[ai]` and run
-`qec-graph ai test` before `sync` to enable multi-root normalization and
-proposal extraction. Without AI, single-root packages still follow the
-deterministic path.
+`qec-graph sync` performs the import. The local parser handles ordinary
+packages. Configuring `[ai]` enables help with eligible parser failures and
+ambiguous multi-root packages. Set `extract_proposals = true` to run the
+optional semantic proposal skills on ordinary packages.
 
 Successful imports keep the original package in `archive/` and clear its inbox
 copy. Open `human/` as an Obsidian vault and start at `Index.md`.
@@ -52,9 +52,12 @@ Use `qec-graph inputs quarantine <name>` for a package that keeps failing.
 
 ## AI extraction
 
-AI is optional. When configured, `sync` normalizes multi-root packages into one
-entry and proposes theorem, assumption and data records. The original package
-remains authoritative; AI output stays `proposed` until reviewed.
+AI is optional. The parser runs first on the selected original entry. For an
+eligible structural failure, AI can propose a partition of the numbered body.
+The program verifies the ranges and copies verbatim source into the usual
+snapshot. These block classifications stay `proposed`. Use
+`qec-graph search TERM --workspace . --view reading` for the derived reading
+text. The raw query and source resources retain citations and bibliography.
 
 `qecgraph.toml` is generated with these provider templates:
 
@@ -74,6 +77,8 @@ enabled = true
 provider = "openrouter"
 model = "your-model-id"
 max_parallel_packages = 2
+structure_fallback = true
+extract_proposals = false
 
 [ai.providers.openrouter]
 kind = "openai_compatible"
