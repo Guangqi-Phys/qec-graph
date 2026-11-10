@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Successful workspace claims are removed after their commit receipt, and empty
+  `.processing` directories are cleaned under the writer lock. Failed or retained
+  claims stay for recovery.
 - Claim `subject_id` values now resolve against the registry: a dangling subject is a
   validation error and a wrong subject kind is a warning instead of disappearing from
   distance queries without a report.

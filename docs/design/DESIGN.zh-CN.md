@@ -386,7 +386,8 @@ proposed/`needs_review` 信息，除非显式请求。`show` 是 audit 视图，
 任何失败都必须让旧 release 可读、原包可恢复、没有重复事实。成功批次可包含失败；
 结果是 `partial_batch`。`rebuild` 检查完整归档和 receipts，包括此前失败/未解决的包；
 不把 manifest 当作论文白名单。`inputs quarantine` 把持续失败的包移到一边，不删除 bytes；
-`inputs restore` 拒绝覆盖替代文件。
+`inputs restore` 拒绝覆盖替代文件。成功提交后对应 claim 目录会被清理；失败或保留的
+claim 仍可恢复，空 claim 目录在 writer lock 下清理。
 
 ### 7.2 锁、原子性和恢复
 

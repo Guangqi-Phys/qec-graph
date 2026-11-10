@@ -267,6 +267,30 @@ class Workspace:
                     and (path.is_symlink() or not path.is_dir())):
                 yield path
 
+    def _cleanup_empty_claims(self):
+        directory = self.path('inputs/.processing')
+        if not directory.is_dir():
+            return
+        for job in directory.iterdir():
+            if not JOB.fullmatch(job.name) or job.is_symlink() or not job.is_dir():
+                continue
+            try:
+                if not any(job.iterdir()):
+                    job.rmdir()
+            except OSError:
+                pass
+
+    def _remove_claim(self, job):
+        for name in ('payload', 'job.json', 'commit.json'):
+            try:
+                (job / name).unlink()
+            except FileNotFoundError:
+                pass
+        try:
+            job.rmdir()
+        except FileNotFoundError:
+            pass
+
     def _pending_jobs(self):
         parent = self.path('inputs/.processing')
         for job in sorted(parent.iterdir()):
@@ -486,6 +510,11 @@ class Workspace:
                         raise ValueError('Claim changed after archiving')
                     payload.unlink()
                     row['input_consumed'] = True
+                    try:
+                        self._remove_claim(job)
+                    except OSError as exc:
+                        row['cleanup_error'] = str(exc)
+                        row['status'] = 'committed_pending_cleanup'
                 else:
                     row['restored'] = self._restore(job, payload, meta['name'])
                     if not row['restored']:
@@ -601,6 +630,7 @@ class Workspace:
             raise ValueError('Published workspace is missing its release pointer')
         run_id = uuid.uuid4().hex
         limits = Limits(**cfg.get('limits', {}))
+        self._cleanup_empty_claims()
         claims, rows = [], []
         if scan_inputs:
             if progress:

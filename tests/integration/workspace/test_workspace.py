@@ -106,6 +106,15 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual({r['status'] for r in rebuilt['inputs']}, {'processing_completed', 'damaged_archive'})
         self.assertEqual(rebuilt['release_id'], duplicate['release_id'])
 
+    def test_successful_claims_and_empty_claim_directories_are_cleaned(self):
+        self.ws.init(no_ingest=True)
+        processing = self.root / 'inputs/.processing'
+        (processing / ('a' * 32)).mkdir()
+        (self.inbox / 'paper.tex').write_bytes(TEX)
+        result = self.ws.sync()
+        self.assertEqual(result['status'], 'published')
+        self.assertEqual(list(processing.iterdir()), [])
+
     def test_quarantine_rejects_links_and_status_tolerates_foreign_entries(self):
         self.ws.init(no_ingest=True)
         target = self.root / 'payload.bin'

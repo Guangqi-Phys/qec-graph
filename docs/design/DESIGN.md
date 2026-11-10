@@ -342,7 +342,7 @@ Default query behavior excludes inactive edges (`stale`, `unbound_review`, `unre
 8. **Publish** by atomically replacing the pointer under the writer lock.
 9. **Consume** only the claimed input copies of the successful transaction; retain failed packages and receipts. A restored name must not overwrite a newer file. `--keep-inputs` preserves copies.
 
-Any failure must leave the old release readable, the original package recoverable, and no duplicate facts. A successful batch may contain failures; the result is `partial_batch`. `rebuild` inspects the complete archive and receipts, including previously failed/unresolved packages; it does not treat a manifest as a paper allowlist. `inputs quarantine` moves a persistently bad package aside without deleting bytes; `inputs restore` refuses to overwrite a replacement.
+Any failure must leave the old release readable, the original package recoverable, and no duplicate facts. A successful batch may contain failures; the result is `partial_batch`. `rebuild` inspects the complete archive and receipts, including previously failed/unresolved packages; it does not treat a manifest as a paper allowlist. `inputs quarantine` moves a persistently bad package aside without deleting bytes; `inputs restore` refuses to overwrite a replacement. A successful claim directory is removed after its commit receipt; failed or retained claims remain recoverable, and empty claim directories are cleaned under the writer lock.
 
 ### 7.2 Locking, atomicity, and recovery
 
