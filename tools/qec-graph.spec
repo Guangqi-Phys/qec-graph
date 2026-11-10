@@ -5,11 +5,13 @@ from PyInstaller.utils.hooks import copy_metadata
 
 root = Path(SPECPATH).resolve().parent
 package = root / 'qecgraph'
-# Runtime schemas, catalogs and the original source used for snapshot fingerprints.
+skills = package / 'llm' / 'skills'
+# Runtime schemas, catalogs, skill instructions and source for snapshot fingerprints.
 data = [
     (str(path), str(path.parent.relative_to(root)))
     for path in sorted(package.rglob('*'))
-    if path.is_file() and path.suffix in {'.json', '.py'}
+    if path.is_file() and (path.suffix in {'.json', '.py'}
+                           or (path.suffix == '.md' and path.is_relative_to(skills)))
 ]
 for dependency in ('pylatexenc', 'jsonschema'):
     data.extend(copy_metadata(dependency))

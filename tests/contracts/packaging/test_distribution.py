@@ -42,7 +42,8 @@ class ContainerAndManifestTests(unittest.TestCase):
         text = (ROOT / 'pyproject.toml').read_text(encoding='utf-8')
         self.assertIn('"qecgraph.llm"', text)
         self.assertIn('skills/*/*.md', text)
-        self.assertEqual(len(load_skills()), 4)
+        self.assertIn('skills/*/*.json', text)
+        self.assertIn('recover_structure', load_skills())
 
     def test_source_distribution_manifest_ships_the_chinese_readme(self):
         manifest = (ROOT / 'MANIFEST.in').read_text(encoding='utf-8')
