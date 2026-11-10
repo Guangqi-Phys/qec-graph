@@ -21,6 +21,25 @@ Run the same command to update. The standalone executable bundles Python.
 Downloads are available for macOS (Apple Silicon) and Linux (x86_64 and arm64).
 [GitHub Releases](https://github.com/Guangqi-Phys/qec-graph/releases)
 
+## Quick start
+
+Run these commands in the folder you want to use as your workspace.
+
+```sh
+mkdir -p inputs
+# Put downloaded LaTeX source packages in inputs/.
+qec-graph init --workspace .
+
+# After adding more packages
+qec-graph sync
+qec-graph status
+qec-graph validate
+```
+
+Successful imports keep the original package in `archive/` and clear its inbox
+copy. Open `human/` as an Obsidian vault and start at `Index.md`.
+Use `qec-graph inputs quarantine <name>` for a package that keeps failing.
+
 ## How it works
 
 The pipeline is one writer; each stage leaves a named artifact for the next. Implementation docs live under `docs/user/`, `docs/design/` and `docs/operations/`.
@@ -71,25 +90,6 @@ validation leaves the previous release readable. `human/notes/` is never read.
 | MCP server | local stdio JSON-RPC `2025-06-18`, read-only tools, source resources, per-call budgets, no path or shell arguments |
 | Human view | deterministic `human/Index.md` and `human/generated/` pages, per-page atomic writes, tombstones, `human_stale` recovery |
 | Distribution | wheel/sdist, standalone executables, research Compose profile and read-only MCP isolation profile |
-
-## Quick start
-
-Run these commands in the folder you want to use as your workspace.
-
-```sh
-mkdir -p inputs
-# Put downloaded LaTeX source packages in inputs/.
-qec-graph init --workspace .
-
-# After adding more packages
-qec-graph sync
-qec-graph status
-qec-graph validate
-```
-
-Successful imports keep the original package in `archive/` and clear its inbox
-copy. Open `human/` as an Obsidian vault and start at `Index.md`.
-Use `qec-graph inputs quarantine <name>` for a package that keeps failing.
 
 ## MCP
 

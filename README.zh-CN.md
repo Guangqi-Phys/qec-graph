@@ -19,6 +19,25 @@ curl -fsSL https://raw.githubusercontent.com/Guangqi-Phys/qec-graph/main/install
 下载支持 macOS（Apple Silicon）以及 Linux（x86_64 和 arm64）。
 [GitHub Releases](https://github.com/Guangqi-Phys/qec-graph/releases)
 
+## 快速开始
+
+把下面的命令放在你想作为工作区的目录中运行。
+
+```sh
+mkdir -p inputs
+# Put downloaded LaTeX source packages in inputs/.
+qec-graph init --workspace .
+
+# After adding more packages
+qec-graph sync
+qec-graph status
+qec-graph validate
+```
+
+成功导入后原始包留在 `archive/`，收件箱副本被清除。把 `human/` 作为 Obsidian
+vault 打开，从 `Index.md` 开始。反复失败的包用
+`qec-graph inputs quarantine <name>` 处理。
+
 ## 工作流程
 
 流水线是单 writer；每个节点都为下一节点留下具名产物。实现文档位于 `docs/user/`、`docs/design/` 和 `docs/operations/`。
@@ -68,25 +87,6 @@ release 保持可读。`human/notes/` 永不被读取。
 | MCP 服务 | 本地 stdio JSON-RPC `2025-06-18`、只读工具、source resources、每调用 budget、不接受路径或 shell 参数 |
 | 人类视图 | 确定性的 `human/Index.md` 和 `human/generated/` 页面、逐页原子写、tombstone、`human_stale` 恢复 |
 | 分发 | wheel/sdist、standalone executable、research Compose profile 和只读 MCP 隔离 profile |
-
-## 快速开始
-
-把下面的命令放在你想作为工作区的目录中运行。
-
-```sh
-mkdir -p inputs
-# Put downloaded LaTeX source packages in inputs/.
-qec-graph init --workspace .
-
-# After adding more packages
-qec-graph sync
-qec-graph status
-qec-graph validate
-```
-
-成功导入后原始包留在 `archive/`，收件箱副本被清除。把 `human/` 作为 Obsidian
-vault 打开，从 `Index.md` 开始。反复失败的包用
-`qec-graph inputs quarantine <name>` 处理。
 
 ## MCP
 
