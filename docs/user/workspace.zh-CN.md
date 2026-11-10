@@ -60,7 +60,7 @@ api_key = ""
 `qec-graph ai status` 只报告当前 provider，不联网；`qec-graph ai test` 发出一次
 带 schema 的连接探针。`qec-graph init` 不会自动调用这两个命令。
 
-`max_parallel_packages` 控制并发 AI 准备；发布和输入消费仍保持串行。
+`max_parallel_packages` 限制按已选定入口并发抽取的文献包数；发布和输入消费仍保持串行。
 
 Claude Code provider 使用 bare 模式，禁用工具、MCP 和会话持久化。
 曾使用本地订阅登录的工作区升级时，请设置 `ANTHROPIC_API_KEY` 并移除自定义 CLI 参数。

@@ -626,7 +626,8 @@ normalizer 接收有界 inventory 和原文片段，返回 normalization plan；
 
 Provider 在 `qecgraph.toml` 中选择（OpenAI、Anthropic、OpenRouter 或本地 CLI
 适配器）。请求经过 schema 校验，仅对瞬时错误重试，受预算约束，按内容哈希缓存，
-并记录 model/prompt/run 来源。API key 会脱敏，配置文件以 `0600` 创建。
+并记录 model/prompt/run 来源。`[ai].max_parallel_packages` 限制已登记文献包的并发抽取，
+登记、发布和收件箱清理仍串行执行。API key 会脱敏，配置文件以 `0600` 创建。
 
 | 组件 | 状态 |
 |---|---|

@@ -20,6 +20,7 @@ class AIWorkspaceTests(unittest.TestCase):
         self.root = Path(temp.name)
         self.workspace = Workspace(self.root)
         self.workspace.prepare()
+        self.enterContext(patch.dict('os.environ', {'ANTHROPIC_API_KEY': 'offline-test-key'}))
         self.config = self.root / 'qecgraph.toml'
         self.configure('provider = "openrouter"', 'provider = "claude_code"')
         self.configure('model = ""', 'model = "fake"')
@@ -131,3 +132,37 @@ class AIWorkspaceTests(unittest.TestCase):
         self.assertEqual(rebuilt['source_snapshot_id'], first['source_snapshot_id'])
         self.assertEqual(rebuilt['normalization_manifest_sha256'], first['normalization_manifest_sha256'])
         self.assertEqual(rebuilt['ai_extraction'], first['ai_extraction'])
+
+    def test_parallel_extraction_uses_only_the_selected_entry_point(self):
+        from qecgraph.source.package import unpack
+
+        raw = tar_bytes({'selected.tex': TEX, 'other.tex': TEX.replace(b'Hello', b'UNSELECTED_MARKER')})
+        tree = unpack(raw)
+        for workers in (1, 2):
+            with self.subTest(workers=workers), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                workspace = Workspace(root)
+                workspace.prepare()
+                config = self.config.read_text().replace('max_parallel_packages = 1', f'max_parallel_packages = {workers}')
+                config = config.replace(self.workspace.config()['workspace_id'], workspace.config()['workspace_id'])
+                (root / 'qecgraph.toml').write_text(config + f'\n[entrypoints]\n"{tree.digest}" = "selected.tex"\n')
+                (root / 'inputs/papers.tar').write_bytes(raw)
+                empty = answer({'items': [], 'unresolved': []})
+                with patch('qecgraph.llm.client.LLMClient.complete_json', return_value=empty) as client:
+                    report = workspace.sync()
+                    self.assertEqual(client.call_count, 3)
+                    for call in client.call_args_list:
+                        self.assertNotIn('UNSELECTED_MARKER', call.args[0][-1].content)
+                self.assertEqual(report['inputs'][0]['entrypoint'], 'selected.tex')
+                self.assertEqual(report['inputs'][0]['ai_extraction']['status'], 'complete')
+
+    def test_missing_http_credentials_leave_offline_sync_available_with_concurrency(self):
+        self.configure('provider = "claude_code"', 'provider = "openrouter"')
+        self.configure('api_key_env = "OPENROUTER_API_KEY"', 'api_key_env = "QECGRAPH_TEST_UNSET_KEY"')
+        self.configure('max_parallel_packages = 1', 'max_parallel_packages = 2')
+        (self.root / 'inputs/paper.tex').write_bytes(TEX)
+        with patch('qecgraph.llm.providers.http.UrllibTransport.request') as transport:
+            report = self.workspace.sync()
+            transport.assert_not_called()
+        self.assertEqual(report['status'], 'published')
+        self.assertTrue(report['inputs'][0]['input_consumed'])

@@ -573,7 +573,7 @@ records.
 Providers are selected in `qecgraph.toml` (OpenAI, Anthropic, OpenRouter or a
 local CLI adapter). Requests are schema-bound, retried only on transient errors,
 budgeted, cached by content hash and logged with model/prompt/run provenance.
-`[ai].max_parallel_packages` bounds concurrent AI preparation; registry staging,
+`[ai].max_parallel_packages` bounds concurrent extraction of structurally registered packages; registry staging,
 publication and input consumption remain serial.
 API keys are redacted and the configuration file is created mode `0600`.
 

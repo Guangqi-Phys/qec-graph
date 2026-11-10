@@ -65,7 +65,7 @@ api_key = ""
 `qec-graph ai test` makes one schema-bound connectivity probe. `qec-graph init`
 never calls either command automatically.
 
-`max_parallel_packages` controls concurrent AI preparation; publication and input consumption remain serial.
+`max_parallel_packages` bounds concurrent AI extraction for the selected entry points; publication and input consumption remain serial.
 
 The Claude Code provider uses bare mode with tools, MCP and session persistence
 disabled. Set `ANTHROPIC_API_KEY` and remove custom CLI arguments when upgrading

@@ -294,133 +294,102 @@ class Workspace:
                 'next': 'qec-graph sync',
                 'message': 'Edit [ai] in qecgraph.toml, put source packages in inputs/, and run qec-graph sync.'}
 
-    def _ai_normalizer(self):
-        """Return a lazy normalizer, or None when the workspace has no AI config."""
+    def _ai_client(self):
+        from .llm.client import LLMClient
         from .llm.config import AIConfigError, load_ai_config
-        from .llm.normalize import normalize_package
+        from .llm.providers.cli import is_claude
+
+        try:
+            config = load_ai_config(self.root)
+            if not config.allow_source_upload:
+                return None
+            provider = config.require_ready()
+            if provider.kind == 'cli' and is_claude(provider.name, provider.command) and not provider.resolved_key():
+                return None
+            return LLMClient(config, cache_dir=self.path('.qecgraph/ai-cache'))
+        except AIConfigError:
+            return None
+
+    def _ai_normalize(self, client, tree):
         from .llm.artifacts import normalization_binding, write_normalization
-        from .llm.client import LLMClient
-
-        config_path = self.path(CONFIG)
-        if not config_path.is_file():
-            return None
-        try:
-            config = load_ai_config(self.root)
-        except AIConfigError:
-            return None
-        if not config.enabled or not config.model.strip():
-            return None
-
-        def normalize(tree, progress=None):
-            if progress:
-                progress(0, 'Normalizing package with AI')
-            client = LLMClient(config, cache_dir=self.path('.qecgraph/ai-cache'))
-            normalized = normalize_package(tree, client)
-            artifact, manifest = write_normalization(self.path('machine'), normalized, tree)
-            files = dict(tree.files)
-            files['main.tex'] = normalized.source.data
-            return SourceTree(tree.format, files), normalization_binding(artifact, manifest), normalized.source
-        return normalize
-
-    def _ai_prefetch(self, digests, limits, progress=None):
-        """Prepare AI results concurrently before the sequential publisher runs."""
-        from concurrent.futures import ThreadPoolExecutor, as_completed
-        from .llm.config import AIConfigError, load_ai_config
-        from .llm.client import LLMClient
         from .llm.normalize import normalize_package
-        from .llm.artifacts import write_normalization
+
+        normalized = normalize_package(tree, client)
+        artifact, manifest = write_normalization(self.registry.root, normalized, tree)
+        return (SourceTree(tree.format, {**tree.files, 'main.tex': normalized.source.data}),
+                normalization_binding(artifact, manifest))
+
+    def _extract_ai(self, client, material, previous, limits):
+        from .llm.artifacts import load_normalization
         from .llm.extract import extract
+        from .llm.normalize import assemble, entrypoint_plan
         from .llm.redact import redact
 
         try:
-            config = load_ai_config(self.root)
-        except AIConfigError:
-            return {'packages': 0, 'errors': []}
-        if not config.enabled or not config.model.strip() or config.max_parallel_packages <= 1:
-            return {'packages': 0, 'errors': []}
-        client = LLMClient(config, cache_dir=self.path('.qecgraph/ai-cache'))
-
-        def prepare(digest):
-            raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
-            tree = unpack(raw, limits)
-            if not tree.entrypoints():
-                return digest, 'no complete TeX root'
-            normalized = normalize_package(tree, client)
-            write_normalization(self.path('machine'), normalized, tree)
-            for skill in ('extract_theorems', 'extract_assumptions', 'extract_data'):
-                extract(normalized.source, client, skill)
-            return digest, None
-
-        errors = []
-        completed = 0
-        with ThreadPoolExecutor(max_workers=min(config.max_parallel_packages, max(1, len(digests)))) as pool:
-            futures = [pool.submit(prepare, digest) for digest in sorted(set(digests))]
-            for future in as_completed(futures):
-                try:
-                    digest, error = future.result()
-                except (OSError, ValueError, RuntimeError) as exc:
-                    digest, error = '<unknown>', redact(str(exc), client.secrets)
-                if error:
-                    errors.append({'archive_sha256': digest, 'error': error})
-                else:
-                    completed += 1
-        return {'packages': completed, 'errors': errors}
-
-    def _ai_extractor(self):
-        """Return a lazy extraction callback, or None when AI is unavailable."""
-        from .llm.config import AIConfigError, load_ai_config
-        from .llm.client import LLMClient
-        from .llm.extract import extract
-        from .llm.redact import redact
-
-        try:
-            config = load_ai_config(self.root)
-        except AIConfigError:
-            return None
-        if not config.enabled or not config.model.strip():
-            return None
-
-        def run(normalized, source_version_id, snapshot_id, *, previous, progress=None):
-            from concurrent.futures import ThreadPoolExecutor, as_completed
-            client = LLMClient(config, cache_dir=self.path('.qecgraph/ai-cache'))
-            written, errors = list(previous.get('written', [])), []
-            completed = {item['skill'] for item in written}
-            skills = [skill for skill in AI_EXTRACTION_SKILLS if skill not in completed]
-
-            def one(skill):
-                return skill, extract(normalized, client, skill)
-
-            if config.max_parallel_packages > 1 and len(skills) > 1:
-                with ThreadPoolExecutor(max_workers=min(config.max_parallel_packages, len(skills))) as pool:
-                    futures = [pool.submit(one, skill) for skill in skills]
-                    results = []
-                    for future in as_completed(futures):
-                        try:
-                            results.append(future.result())
-                        except (OSError, ValueError, RuntimeError) as exc:
-                            errors.append({'skill': 'unknown', 'error': redact(str(exc), client.secrets)})
-                    results.sort(key=lambda item: skills.index(item[0]))
+            if material.get('normalization_manifest_sha256'):
+                normalized, _ = load_normalization(self.registry.root, material)
             else:
-                results = []
-                for skill in skills:
-                    try:
-                        results.append(one(skill))
-                    except (OSError, ValueError, RuntimeError) as exc:
-                        errors.append({'skill': skill, 'error': redact(str(exc), client.secrets)})
-            for skill, result in results:
-                if progress:
-                    progress(1, f'Extracted {skill} with AI')
-                proposal = dict(result.proposal)
-                proposal['source_version_id'] = source_version_id
-                proposal['snapshot_id'] = snapshot_id
-                target = self.path('machine/ai/proposals/' + hash_text(source_version_id)
-                                   + '/' + skill + '-' + result.ai_result.run_id + '.json')
-                target.parent.mkdir(parents=True, exist_ok=True)
-                atomic_json(target, proposal)
-                written.append({'skill': skill, 'path': str(target),
-                                'run_id': result.ai_result.run_id})
-            return {'status': 'pending' if errors else 'complete', 'written': written, 'errors': errors}
-        return run
+                digest = material['archive_sha256']
+                raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
+                if hashlib.sha256(raw).hexdigest() != digest:
+                    raise ValueError('Archived source hash mismatch')
+                normalized = assemble(unpack(raw, limits), entrypoint_plan(material['entrypoint']))
+        except (OSError, ValueError, RuntimeError):
+            return [], [{'error': 'AI extraction could not read its registered source'}]
+
+        completed = {item['skill'] for item in previous.get('written', [])}
+        results, errors = [], []
+        for skill in AI_EXTRACTION_SKILLS:
+            if skill not in completed:
+                try:
+                    results.append(extract(normalized, client, skill))
+                except (OSError, ValueError, RuntimeError) as exc:
+                    errors.append({'skill': skill, 'error': redact(str(exc), client.secrets)})
+        return results, errors
+
+    def _stage_ai(self, identity, previous, results, errors):
+        source_version_id, snapshot_id = identity
+        written = list(previous.get('written', []))
+        for result in results:
+            skill, run_id = result.skill, result.ai_result.run_id
+            proposal = {**result.proposal, 'source_version_id': source_version_id, 'snapshot_id': snapshot_id}
+            try:
+                if not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', run_id):
+                    raise ValueError('Invalid AI extraction run ID')
+                target = self.path(f'machine/ai/proposals/{hash_text(source_version_id)}/{snapshot_id}/{skill}-{run_id}.json')
+                immutable_json(target, proposal)
+            except (OSError, ValueError):
+                errors.append({'skill': skill, 'error': 'AI proposal could not be stored'})
+            else:
+                written.append({'skill': skill, 'path': str(target), 'run_id': run_id})
+        return {'status': 'pending' if errors else 'complete', 'written': written, 'errors': errors}
+
+    def _complete_ai(self, client, materials, digests, versions, previous, limits):
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        jobs = {}
+        for digest in sorted(digests):
+            material = materials[digest]
+            if not material.get('processing_completed'):
+                continue
+            identity = material['source_version_id'], material['source_snapshot_id']
+            if (versions[identity[0]]['snapshot_id'] == identity[1]
+                    and not _ai_complete(previous.get(identity, {}))):
+                jobs.setdefault(identity, material)
+
+        def extract_one(identity):
+            return self._extract_ai(client, jobs[identity], previous.get(identity, {}), limits)
+
+        workers = min(client.config.max_parallel_packages, len(jobs))
+        if workers > 1:
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                pending = {pool.submit(extract_one, identity): identity for identity in jobs}
+                for future in as_completed(pending):
+                    identity = pending.pop(future)
+                    previous[identity] = self._stage_ai(identity, previous.get(identity, {}), *future.result())
+        else:
+            for identity in jobs:
+                previous[identity] = self._stage_ai(identity, previous.get(identity, {}), *extract_one(identity))
 
     def sync(self, *, dry_run=False, keep_inputs=False, progress=None):
         if dry_run:
@@ -429,20 +398,19 @@ class Workspace:
                     'pending_claims': sum(1 for _ in self._pending_jobs())}
         with writer_lock(self.path('.qecgraph')):
             return self._run(self.config(), scan_inputs=True, rebuild=False, keep_inputs=keep_inputs,
-                             progress=progress, normalizer=self._ai_normalizer(),
-                             extractor=self._ai_extractor())
+                             progress=progress, ai_client=self._ai_client())
 
     def rebuild(self, *, include_inputs=False, keep_inputs=False, progress=None):
         self.config()
         with writer_lock(self.path('.qecgraph')):
             cfg = self.config()
             before = None
-            normalizer, extractor = self._ai_normalizer(), self._ai_extractor()
+            ai_client = self._ai_client()
             if include_inputs:
                 before = self._run(cfg, scan_inputs=True, rebuild=False, keep_inputs=keep_inputs, progress=progress,
-                                   normalizer=normalizer, extractor=extractor)
+                                   ai_client=ai_client)
             result = self._run(cfg, scan_inputs=False, rebuild=True, keep_inputs=True, progress=progress,
-                               normalizer=normalizer, extractor=extractor)
+                               ai_client=ai_client)
         if before is not None:
             result['sync'] = before
             if before['status'] == 'partial_batch':
@@ -575,13 +543,13 @@ class Workspace:
         immutable_json(self.path('archive/receipts/' + job.name + '.json'), receipt)
         return digest
 
-    def _prepare(self, cfg, state, digest, prior, reused, limits, *, ai_results, captured, manifest_hashes, tool_identity, normalizer=None, extractor=None, progress=None):
+    def _prepare(self, cfg, state, digest, prior, reused, limits, *, captured, manifest_hashes, tool_identity, ai_client=None, progress=None):
         result = {'archive_sha256': digest, 'status': 'archived_only', 'processing_completed': False,
                   'semantic_status': 'not_extracted', 'processor': PROCESSOR}
         from .llm.artifacts import load_normalization
-        from .llm.normalize import NormalizationError, assemble, entrypoint_plan
+        from .llm.normalize import NormalizationError
 
-        normalized = normalization = None
+        normalization = None
         try:
             raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
             if hashlib.sha256(raw).hexdigest() != digest:
@@ -606,9 +574,11 @@ class Workspace:
                         'normalization_id', 'normalization_sha256', 'normalization_manifest_sha256')}
                     entry = 'main.tex'
                     extract_tree = SourceTree(tree.format, {**tree.files, entry: normalized.data})
-                elif entry is None and len(candidates) > 1 and normalizer is not None:
+                elif entry is None and len(candidates) > 1 and ai_client is not None:
                     try:
-                        extract_tree, normalization, normalized = normalizer(tree, progress=progress)
+                        if progress:
+                            progress(0, 'Normalizing package with AI')
+                        extract_tree, normalization = self._ai_normalize(ai_client, tree)
                         entry = 'main.tex'
                     except NormalizationError as exc:
                         result.update(status='needs_entrypoint', entrypoint_candidates=candidates, reason=str(exc))
@@ -650,19 +620,6 @@ class Workspace:
                             state, work_id, source_id, temporary / 'store', title=metadata.get('title'),
                             upstream_version=upstream, replace_projection=True,
                             captured=captured, manifest_hashes=manifest_hashes)
-            identity = source_id, version['snapshot_id']
-            previous = ai_results.get(identity, {})
-            if extractor is not None and not _ai_complete(previous):
-                try:
-                    if normalized is None:
-                        normalized = assemble(tree, entrypoint_plan(entry))
-                    previous = extractor(normalized, *identity, previous=previous, progress=progress)
-                except (OSError, ValueError, RuntimeError):
-                    previous = {**previous, 'status': 'pending',
-                                'errors': [{'error': 'AI extraction could not be prepared or stored'}]}
-                ai_results[identity] = previous
-            if previous:
-                result['ai_extraction'] = previous
             reused[build_key] = version
             if normalization is not None:
                 result.update(normalization)
@@ -788,8 +745,7 @@ class Workspace:
                 yield {'code': 'normalization_invalid', 'archive_sha256': digest, 'severity': 'error',
                        'message': str(exc)}
 
-    def _publish_archive(self, cfg, digests, limits, *, rebuild, update, normalizer=None, extractor=None,
-                         prefetch=None, prefetch_digests=()):
+    def _publish_archive(self, cfg, digests, limits, *, rebuild, update, ai_client=None):
         package_count = len(digests)
         package_stage = 'Checking archive packages' if rebuild else 'Checking inbox packages'
         update(1, f'{package_stage} 0/{package_count}' if package_count else 'Preparing workspace')
@@ -797,8 +753,6 @@ class Workspace:
             from .workspace_query import check_machine_tree
             check_machine_tree(self.registry.root)
             state, old = self.registry._state_and_revision()
-            if prefetch is not None and prefetch_digests:
-                prefetch(set(prefetch_digests), limits)
             materials = state.setdefault('materials', {})
             state['workspace_id'] = cfg['workspace_id']
             tool_identity = extraction_tool_identity() if digests else None
@@ -827,12 +781,11 @@ class Workspace:
             for index, digest in enumerate(sorted(digests), start=1):
                 prior = materials.get(digest, {})
                 version = self._matching_extraction(state, prior, fingerprint)
-                if rebuild or version is None or (extractor is not None and not _ai_complete(prior.get('ai_extraction', {}))):
+                if rebuild or version is None:
                     captured = []
                     materials[digest] = self._prepare(cfg, state, digest, prior, reused, limits,
-                                                       ai_results=ai_results, captured=captured, manifest_hashes=manifest_hashes,
-                                                       tool_identity=tool_identity, normalizer=normalizer,
-                                                       extractor=extractor, progress=update)
+                                                       captured=captured, manifest_hashes=manifest_hashes,
+                                                       tool_identity=tool_identity, ai_client=ai_client, progress=update)
                     materials[digest]['config_fingerprint'] = fingerprint
                     if captured:
                         graph, snapshot, registered = captured.pop()
@@ -840,6 +793,13 @@ class Workspace:
                             identity = (registered['id'], registered['snapshot_id'])
                             staged_proposals[identity] = generate(graph, snapshot, registered)
                 update(index + 1, f'{package_stage} {index}/{package_count}')
+            if ai_client is not None and digests:
+                update(package_count + 1, 'Extracting AI proposals')
+                self._complete_ai(ai_client, materials, digests, state['versions'], ai_results, limits)
+            for material in materials.values():
+                identity = material.get('source_version_id'), material.get('source_snapshot_id')
+                if identity in ai_results and material.get('processing_completed'):
+                    material['ai_extraction'] = ai_results[identity]
             update(package_count + 1, 'Publishing workspace')
             # Explicit version metadata, never inferred from filenames.
             parsed_versions = {m['source_version_id'] for m in materials.values() if m.get('source_version_id')}
@@ -881,7 +841,7 @@ class Workspace:
             release = self.registry.publish_prepared(candidate)
         return old, release, materials, proposal_map
 
-    def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None, normalizer=None, extractor=None):
+    def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None, ai_client=None):
         if not self.path('machine/CURRENT.json').is_file() and (
                 self.path('machine/operational/status.json').exists()
                 or self.path('.qecgraph/migration.json').exists()):
@@ -902,7 +862,7 @@ class Workspace:
             if progress:
                 progress(0, 1, 'Scanning the archive')
             digests.update(self._archived_digests())
-        elif extractor is not None and self.path('machine/CURRENT.json').is_file():
+        elif ai_client is not None and self.path('machine/CURRENT.json').is_file():
             state, _ = self.registry.read()
             digests.update(digest for digest, material in state.get('materials', {}).items()
                            if material.get('processing_completed') and not _ai_complete(material.get('ai_extraction', {})))
@@ -915,9 +875,7 @@ class Workspace:
                 progress(done, steps, message)
 
         old, release, materials, proposal_map = self._publish_archive(
-            cfg, digests, limits, rebuild=rebuild, update=update, normalizer=normalizer,
-            extractor=extractor, prefetch=self._ai_prefetch,
-            prefetch_digests=claimed_digests)
+            cfg, digests, limits, rebuild=rebuild, update=update, ai_client=ai_client)
         update(steps - 1, 'Finalizing workspace')
         rows.extend(self._finish_claims(claims, materials, release, limits.input_bytes, keep_inputs))
         rows.extend(materials[digest] for digest in sorted(digests - claimed_digests))

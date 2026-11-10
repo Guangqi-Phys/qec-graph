@@ -198,7 +198,8 @@ class WorkspaceTests(unittest.TestCase):
         empty = LLMResult(data={'items': [], 'unresolved': []}, text='{}', model='model',
                           usage={}, request_id='r', attempts=1, cached=False,
                           run_id='extraction-run', prompt_sha256='p' * 64)
-        with patch('qecgraph.llm.client.LLMClient.complete_json', side_effect=[ai, empty, empty, empty]):
+        with patch.dict('os.environ', {'ANTHROPIC_API_KEY': 'offline-test-key'}), patch(
+                'qecgraph.llm.client.LLMClient.complete_json', side_effect=[ai, empty, empty, empty]):
             result = self.ws.sync()
         self.assertEqual(result['status'], 'published')
         self.assertEqual(len(result['inputs']), 1)
