@@ -16,6 +16,7 @@ _GROUP = re.compile(r'\\[^\r\n]|%[^\r\n]*|[{}\[\]]')
 _LITERAL_GROUP = re.compile(r'\\[^\r\n]|[{}]')
 _KEYS = re.compile(r'[\w.:/+*-]+(?:\s*,\s*[\w.:/+*-]+)*')
 _SPACE = re.compile(r'\s*')
+_MAX_INLINE_ARGUMENT = 8192
 
 
 def _group(text, pos, stop, opening='{', *, literal=False):
@@ -24,7 +25,8 @@ def _group(text, pos, stop, opening='{', *, literal=False):
         return None
     closing = '}' if opening == '{' else ']'
     stack = [closing]
-    for match in (_LITERAL_GROUP if literal else _GROUP).finditer(text, start + 1, stop):
+    end = min(stop, start + _MAX_INLINE_ARGUMENT)
+    for match in (_LITERAL_GROUP if literal else _GROUP).finditer(text, start + 1, end):
         token = match[0]
         if token == '{' or (token == '[' and stack[-1] == ']'):
             stack.append('}' if token == '{' else ']')

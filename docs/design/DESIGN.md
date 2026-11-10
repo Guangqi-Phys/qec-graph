@@ -590,7 +590,7 @@ API keys are redacted and the configuration file is created mode `0600`.
 
 ### 15.1 Parser-first body extraction rollout
 
-**Status: Planned.** Work proceeds in the following commit-sized steps.
+**Status: Implemented.** The table records the implementation and acceptance sequence.
 
 | Step | Change | Acceptance |
 |---|---|---|

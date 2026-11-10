@@ -117,6 +117,17 @@
               }
             ]
           },
+          "reading_text": {
+            "type": "string",
+            "description": "Derived reading text. The verbatim source remains in latex."
+          },
+          "source_role": {
+            "enum": ["body", "bibliography"]
+          },
+          "structure_classification": {
+            "type": "string",
+            "description": "Proposed classification for a recovered source block."
+          },
           "latex": {
             "type": "string"
           },
