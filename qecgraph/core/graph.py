@@ -11,6 +11,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from .. import __version__
+from ..source.reading import reading_projection
 
 STATEMENTS = {"lemma", "theorem", "proposition", "corollary", "conjecture"}
 MATHEMATICS = STATEMENTS | {"definition", "proof", "equation"}
@@ -166,7 +167,10 @@ class _GraphBuilder:
             span = dict(block["source"])
             span["file_sha256"] = source_hash[span["path"]]
             span["coordinate_system"] = "unicode_codepoints_half_open; lines_1based_inclusive"
+            bibliography = block.get("source_role") == "bibliography"
+            reading, _ = reading_projection(block["latex"], kind=block["kind"], bibliography=bibliography)
             self.add_node({"id": identifier, "kind": block["kind"], "origin": "parser",
+                      "reading_text": reading, "source_role": "bibliography" if bibliography else "body",
                       "title": block.get("title_tex") or (owned_labels[0] if owned_labels else block["kind"]),
                       "labels": owned_labels, "source": span, "latex": block["latex"],
                       "content_sha256": hash_text(block["latex"]),

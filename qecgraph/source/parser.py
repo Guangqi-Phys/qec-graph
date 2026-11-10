@@ -14,6 +14,7 @@ from typing import Any
 
 from .. import PARSER_VERSION
 from ..core.coordinates import SourceLines
+from .reading import CITATION_COMMANDS as _CITATIONS
 
 try:
     from pylatexenc import __version__ as PYLATEXENC_VERSION
@@ -64,10 +65,6 @@ _REFERENCE_KINDS = {
     "ref": "ref", "eqref": "eqref", "cref": "cref", "Cref": "cref",
     "autoref": "autoref", "Autoref": "autoref", "vref": "ref", "Vref": "ref",
     "pageref": "ref", "nameref": "ref", "uses": "uses", "proves": "proves",
-}
-_CITATIONS = {
-    "cite", "citep", "citet", "citealp", "citealt", "citeauthor", "citeyear",
-    "citeyearpar", "parencite", "textcite", "autocite", "footcite", "nocite",
 }
 _CONDITIONALS = {
     "if", "ifx", "ifnum", "ifdim", "ifcase", "ifdefined", "ifcsname",
@@ -1012,6 +1009,18 @@ class _ProjectParser:
             if isinstance(node, LatexMacroNode) and node.macroname in _SECTIONS:
                 flush()
                 last_anchor = self.emit_section(node, path, owner, sections, text)
+                continue
+            if isinstance(node, LatexEnvironmentNode) and node.environmentname == "thebibliography":
+                flush()
+                if self.kind_of_environment(node.environmentname):
+                    last_anchor = self.emit_environment(node, path, self.parent(owner, sections), sections)
+                    block = self.by_key[last_anchor]
+                else:
+                    block = self.make_block("paragraph", path, node.pos, node.pos + node.len,
+                                            self.parent(owner, sections), node.environmentname)
+                    last_anchor = block["key"]
+                    self.metadata(node, path, last_anchor, sections)
+                block["source_role"] = "bibliography"
                 continue
             if isinstance(node, LatexEnvironmentNode) and self.kind_of_environment(node.environmentname):
                 flush()
