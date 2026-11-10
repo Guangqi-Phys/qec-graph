@@ -120,7 +120,8 @@ construction 仍未知。
 未知字段用 `null`。`not_extracted` 表示抽取未完成；`unresolved` 表示链接有
 歧义；`not_reported` 要求对来源指定部分做带日期检查；`not_applicable` 和
 `conflicting` 记录字段为何没有单一值。默认工作区查询过滤 synthetic 记录和
-过期 provider 批准。旧 `qecgraph.record.v3` 记录也可携带 claims、证据和实验性
+过期 provider 批准；proposed/draft 记录仍可见并携带 `review_status`，但绝不当作已验证。
+旧 `qecgraph.record.v3` 记录也可携带 claims、证据和实验性
 Lean 映射字段。Lean 延期，不属于受支持 0.4.x 流程；见
 [设计说明](../design/DESIGN.zh-CN.md#10-lean延期不支持)。
 research schema 列出受支持 kinds、每种 kind 必填字段，以及可空 `{id, revision}`

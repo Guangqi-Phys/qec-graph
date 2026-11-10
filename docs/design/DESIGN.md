@@ -324,7 +324,7 @@ Evidence policy:
 - Lean is deferred; if experimental Lean evidence is ever evaluated, it is not semantic equivalence and is not part of default filters.
 - Missing/no-result means no match in the fixed scope; it is not proof of nonexistence.
 
-Default query behavior excludes inactive edges (`stale`, `unbound_review`, `unresolved`) and candidate/proposed/`needs_review` information unless explicitly requested. `show` is the audit view and keeps all states. Any truncation is explicit; source statements/hypotheses are not silently shortened.
+Default query behavior excludes inactive edges (`stale`, `unbound_review`, `unresolved`) and candidate/proposed/`needs_review` edge or annotation information unless explicitly requested. Research record rows are not hidden merely because they are proposed; each row carries `review_status`, and hard filters use the evidence policy rather than silently promoting a draft. `show` is the audit view and keeps all states. Any truncation is explicit; source statements/hypotheses are not silently shortened.
 
 ---
 

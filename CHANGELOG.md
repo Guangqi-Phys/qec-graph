@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Distance query rows now expose the claim and evidence `review_status`; proposed
+  research records stay visible but are never presented as verified.
 - Workspace migration reserves the destination name with an atomic `mkdir` before
   copying, so a directory that appears during the copy cannot be silently replaced.
 - Registry and store pointer/state reads now reject symlinked or multiply-linked

@@ -130,7 +130,8 @@ Use `null` for unknown fields. `not_extracted` indicates unfinished
 extraction. `unresolved` can indicate an ambiguous link. `not_reported`
 requires a dated check of a specified part of the source. `not_applicable`
 and `conflicting` record why the field has no single value. Default workspace
-queries filter synthetic records and stale provider approvals. Legacy
+queries filter synthetic records and stale provider approvals. Proposed or draft
+records remain visible with their `review_status`; they are never treated as verified. Legacy
 `qecgraph.record.v3` records can also carry claims and evidence, plus
 experimental Lean mapping fields. Lean is deferred and is not part of the
 supported 0.4.x workflow; see [the design note](../design/DESIGN.md#10-lean-deferred-not-supported).

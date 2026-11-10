@@ -364,8 +364,10 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 - 缺失/无结果表示固定范围内无匹配；不是不存在证明。
 
 默认查询排除非活动边（`stale`、`unbound_review`、`unresolved`）和 candidate/
-proposed/`needs_review` 信息，除非显式请求。`show` 是 audit 视图，保留所有状态。任何截断都
-显式；来源陈述/假设不被静默缩短。
+proposed/`needs_review` 的边或注释信息，除非显式请求。research 记录不会仅因
+proposed 而被隐藏；每行携带 `review_status`，硬过滤按证据策略执行，不把草稿静默
+升级为已验证。`show` 是 audit 视图，保留所有状态。任何截断都显式；来源陈述/假设
+不被静默缩短。
 
 ---
 

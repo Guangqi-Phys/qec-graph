@@ -129,6 +129,8 @@ class QECValidationTests(unittest.TestCase):
             result = codes(registry.root, distance_at_least=3, metric_definition_id='metric:distance')
             self.assertEqual(len(result['results']), 1)
             self.assertEqual(result['results'][0]['distance_claims'][0]['evidence'][0]['kind'], 'computed_exact')
+            self.assertEqual(result['results'][0]['distance_claims'][0]['review_status'], 'proposed')
+            self.assertEqual(result['results'][0]['distance_claims'][0]['evidence'][0]['review_status'], 'proposed')
             self.assertEqual(codes(registry.root, distance_at_least=3, metric_definition_id='another:metric')['results'], [])
             session = WorkspaceSession(registry.root, bound_revision)
             arguments = {'distance_at_least': 3, 'metric_definition_id': 'metric:distance'}

@@ -116,10 +116,12 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
                             and evidence_current(registry, records[e], records, required, reviews, builds)]
                 if evidence:
                     matching.append({'claim_id': claim_id, 'claim_revision': claim['revision'],
+                                     'review_status': claim['review']['status'],
                                      'relation': measurement['relation'], 'lower_bound': measurement['lower_bound'],
                                      'upper_bound': measurement['upper_bound'], 'assumptions': measurement['assumptions'],
                                      'evidence': [{'id': e['id'], 'revision': e['revision'],
-                                                   'kind': e['data']['evidence_kind']} for e in evidence]})
+                                                   'kind': e['data']['evidence_kind'],
+                                                   'review_status': e['review']['status']} for e in evidence]})
             if not matching:
                 continue
         results.append({'id': identifier, 'revision': code['revision'], 'parameters': data['parameters'],
