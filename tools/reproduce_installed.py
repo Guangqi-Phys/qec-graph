@@ -70,8 +70,6 @@ print(json.dumps({"metadata_version": m.version("qec-graph"), "module_version": 
         call('link', 'qecgraph', 'claim-link', EXAMPLES / 'claim-link.example.json', *corpus)
         ctx = call('context', 'qecgraph', 'context', 'version:demo:1::thm:hgp-length', *corpus, '--include-candidates')
         assert any(edge['relation'] == 'normalizes_to' and edge['status'] == 'candidate' for edge in ctx['edges'])
-        call('migrate', 'qecgraph', 'migrate', KNOWLEDGE / 'records', '--source-root', KNOWLEDGE, '--out', 'migration')
-        migrated = call('migration_import', 'qecgraph', 'migration-import', 'migration', *corpus)
         actor = ('--actor-id', 'release-smoke', '--actor-kind', 'program')
         proposal = call('proposal', 'qecgraph', 'review', EXAMPLES / 'proposal.example.json', *corpus, *actor)
         decision = call('decision', 'qecgraph', 'review-decide', proposal['id'], *corpus, *actor, '--decision',
@@ -89,7 +87,7 @@ print(json.dumps({"metadata_version": m.version("qec-graph"), "module_version": 
                       '--lx', matrix / 'LX.gf2.json', '--lz', matrix / 'LZ.gf2.json', '--enumerate-distance')
         assert (finite['n'], finite['k'], finite['distance']['d']) == (13, 1, 3)
         assert finite['distance']['evidence_kind'] == 'computed_exact' and finite['lean_status'] == 'not_performed'
-        report.update(status='passed', installed=pkg, migrated=migrated, application_receipt=applied['receipt'],
+        report.update(status='passed', installed=pkg, application_receipt=applied['receipt'],
                       proposed_after_machine_acceptance=True, finite_css=finite)
         save()
     except (OSError, ValueError, RuntimeError, KeyError, AssertionError, subprocess.SubprocessError) as exc:

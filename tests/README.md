@@ -20,7 +20,7 @@ tests/
 |---|---|---|---|
 | Unit | Parsing | `unit/parsing/test_parser.py`, `unit/parsing/test_source_package.py` | TeX parsing, archive safety, source spans |
 | Unit | Domain | `unit/domain/test_semantic.py`, `unit/domain/test_qec_validation.py`, `unit/domain/test_validators.py`, `unit/domain/test_schemas.py` | Graph/evidence rules, QEC checks, schema contracts |
-| Integration | Pipeline | `integration/pipeline/test_pipeline.py`, `test_publication.py`, `test_registry.py`, `test_migrations.py`, `test_splitter.py` | Snapshot, publication, registry, migration, splitting |
+| Integration | Pipeline | `integration/pipeline/test_pipeline.py`, `test_publication.py`, `test_registry.py`, `test_splitter.py` | Snapshot, publication, registry, splitting |
 | Integration | Workspace | `integration/workspace/test_workspace.py`, `test_workspace_migration.py`, `test_workspace_query.py`, `test_incremental.py`, `test_watch.py`, `test_status.py` | Init/sync/rebuild, migration, queries, incremental/watch, status |
 | Integration | Corpus/review | `integration/corpus/test_corpus.py`, `test_review.py`, `test_apply.py`, `test_research.py` | Corpus identity, review/apply, typed research records |
 | Integration | MCP/CLI/rendering | `integration/mcp/test_mcp.py`, `integration/mcp/test_ai_tools.py`, `integration/cli/test_cli.py`, `integration/rendering/test_human.py` | Read-only MCP, CLI, Obsidian rendering |

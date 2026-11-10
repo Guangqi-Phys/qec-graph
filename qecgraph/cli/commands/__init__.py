@@ -46,8 +46,6 @@ HANDLERS = {
     'query-performance': query.research_query,
     'query-software': query.research_query,
     'validate-corpus': records.validate_corpus,
-    'migrate': records.migrate,
-    'migration-import': records.import_migration,
     'record-add': records.add_record,
     'claim-link': records.link_claim,
     'register': records.register,

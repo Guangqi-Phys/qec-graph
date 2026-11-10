@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Removed the `migrate` and `migration-import` commands, `qecgraph.migrations`,
+  `Registry.import_migration`, their tests and documentation. No legacy record
+  adapter is part of the runtime or CLI. Corpus-to-workspace migration remains a
+  separate workspace command.
 - The format discriminator field is now `schema` (formerly `schema_version`);
   values are unversioned identifiers such as `qecgraph.research`.
 - **Breaking (development stage):** all schema identifiers are unversioned

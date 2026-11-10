@@ -19,7 +19,7 @@
 
 | 页面 | 接口 | 类型 | 适用场景 |
 |---|---|---|---|
-| [旧 store 与 corpus 维护](maintenance.zh-CN.md) | 旧 store/corpus | How-to | 导入、验证、迁移或恢复单篇 store/corpus |
+| [旧 store 与 corpus 维护](maintenance.zh-CN.md) | 旧 store/corpus | How-to | 导入、验证或恢复单篇 store/corpus |
 | [Corpus](corpus.zh-CN.md) | corpus | Reference | 注册 work/version、映射来源、执行固定版本查询 |
 | [审核](review.zh-CN.md) | corpus | How-to / reference | 验证类型化记录、绑定证据、应用已审核提案 |
 | [工作区说明](../user/workspace.zh-CN.md) | 工作区 | How-to | 当前日常流程（方便链接） |

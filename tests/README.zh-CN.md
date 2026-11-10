@@ -19,7 +19,7 @@ tests/
 |---|---|---|---|
 | Unit | 解析 | `unit/parsing/test_parser.py`、`unit/parsing/test_source_package.py` | TeX 解析、归档安全、来源区间 |
 | Unit | 领域 | `unit/domain/test_semantic.py`、`unit/domain/test_qec_validation.py`、`unit/domain/test_validators.py`、`unit/domain/test_schemas.py` | 图/证据规则、QEC 检查、Schema 契约 |
-| Integration | Pipeline | `integration/pipeline/test_pipeline.py`、`test_publication.py`、`test_registry.py`、`test_migrations.py`、`test_splitter.py` | 快照、发布、registry、迁移、切割 |
+| Integration | Pipeline | `integration/pipeline/test_pipeline.py`、`test_publication.py`、`test_registry.py`、`test_splitter.py` | 快照、发布、registry、切割 |
 | Integration | 工作区 | `integration/workspace/test_workspace.py`、`test_workspace_migration.py`、`test_workspace_query.py`、`test_incremental.py`、`test_watch.py`、`test_status.py` | init/sync/rebuild、迁移、查询、增量/watch、状态 |
 | Integration | Corpus/审核 | `integration/corpus/test_corpus.py`、`test_review.py`、`test_apply.py`、`test_research.py` | corpus 身份、review/apply、类型化研究记录 |
 | Integration | MCP/CLI/渲染 | `integration/mcp/test_mcp.py`、`integration/mcp/test_ai_tools.py`、`integration/cli/test_cli.py`、`integration/rendering/test_human.py` | 只读 MCP、CLI、Obsidian 渲染 |

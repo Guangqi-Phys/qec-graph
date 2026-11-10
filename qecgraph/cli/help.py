@@ -46,8 +46,6 @@ EXAMPLES = {
     'query-performance': '--workspace ./qec --metric-id METRIC_ID --complete-only',
     'query-software': '--machine ./qec/machine --query Stim --limit 10',
     'validate-corpus': '--corpus ./corpus',
-    'migrate': './legacy/records --source-root ./legacy --out ./adapted',
-    'migration-import': './adapted --corpus ./corpus',
     'record-add': 'claim.json --corpus ./corpus',
     'claim-link': 'claim-link.json --corpus ./corpus',
     'register': '--corpus ./corpus --store ./store --work-id work:demo --source-version-id version:demo:1',

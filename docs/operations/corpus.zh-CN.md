@@ -12,7 +12,6 @@
 
 - [规范记录与来源映射](#规范记录与来源映射)
 - [固定版本查询](#固定版本查询)
-- [显式迁移和资产](#显式迁移和资产)
 
 原有单工程 store 和 CLI 保持兼容。Corpus 用独立目录维护多文档身份：
 
@@ -32,7 +31,7 @@ qecgraph register --corpus build/corpus --store build/demo --work-id work:demo -
 
 导入时完整复制并验证现有提取快照到 `source_snapshots/<snapshot_id>/`。
 原 store 或论文随后搬迁，不改变已归档的定位。这里保留的是实际提取的来源，
-仍需另存未读取的原始工程文件。旧 catalog 外部资产由迁移器显式接入，注册不宣称已复制这些资产。
+仍需另存未读取的原始工程文件。旧 catalog 外部资产需显式接入，注册不宣称已复制这些资产。
 
 运行边界：本地 POSIX 文件系统（macOS/Linux），单写者、多快照读者；
 不宣称支持分布式文件系统或 Windows 文件锁。
@@ -44,7 +43,7 @@ qecgraph record-add examples/claim.example.json --corpus build/corpus
 qecgraph claim-link examples/claim-link.example.json --corpus build/corpus
 ```
 
-P1 引入 `qecgraph.record`；P2 新写入使用严格的 `qecgraph.record`，迁移见 [审核指南](review.zh-CN.md)。
+新写入使用当前 `qecgraph.record`；未知格式被拒绝，见 [审核指南](review.zh-CN.md)。
 `id` 和 `revision` 由作者指定；内容哈希及协议由程序补齐。
 同一 ID/revision 不能覆盖不同内容；新修订保留旧文件。不同 ID 即使标题和参数相同也独立保存。
 自动输入默认 `review.status=proposed`；导入或语法解析不构成人工审核。
@@ -52,7 +51,7 @@ P1 引入 `qecgraph.record`；P2 新写入使用严格的 `qecgraph.record`，�
 `normalizes_to` 是新增的 registry 关系，表示来源块与独立 claim 的显式映射，
 每个映射绑定 source version、snapshot、准确节点和双方哈希、claim revision、假设和记号作用域。
 可多对多映射；它不把来源 lemma 改为 claim，也不宣称两种陈述等价。原 graph 关系含义不变。
-未知 Schema 被拒绝，必须先走显式迁移；新记录不重解释旧格式。
+未知 Schema 被拒绝；新记录不重解释旧格式。
 
 ## 固定版本查询
 
@@ -75,27 +74,3 @@ Python 使用 `corpus.execute(...)`、`Registry.read(revision)` 或 `store.pin_s
 
 Corpus 搜索当前采用确定性的大小写无关子串匹配，并报告 limit 截断；原单 store 保留 SQLite/FTS5。
 空结果只表示固定作用域内未命中。查询不会写记录、运行来源代码或提升数学证据。
-
-## 显式迁移和资产
-
-```bash
-qecgraph migrate legacy/knowledge_starter/records --source-root legacy/knowledge_starter --out build/migration
-qecgraph migration-import build/migration --corpus build/corpus
-qecgraph context quantum_code:rep3-hgp:13 --corpus build/corpus
-```
-
-迁移输出必须是独立的新目录。`migration-report.json` 记录输入字节哈希、Schema、
-ID/修订映射、接受及拒绝项；原始字节保存到 `originals/`，未知版本只保留为不透明输入并拒绝解释。
-任一拒绝项使迁移返回退出码 2，import 拒绝有未解决拒绝项的批次。
-
-旧 `0.1.0` 记录进入当前版本独立信封；保留原 ID、原记录全部字段、原证据类别和未执行状态。
-旧 refs 采用 `catalog:` 前缀，避免隐式提升为审核依赖。旧 claim 未说明量词时为 null 并注明原因。
-`qecgraph.graph` 与 `qecgraph.annotations` 采用逐字节 passthrough 适配，
-保持来源块和审核绑定原义，不将原文 theorem 转为 claim；完整 store 的跨文档接入使用 register。
-
-旧记录的相对资产路径必须明确提供 `--source-root`，不能相对于新 store 猜测。
-迁移校验旧字节哈希及旧 ensure_ascii=True canonical 哈希，保留旧协议标识，
-将资产复制为 `qecasset:sha256:<digest>`。记录中的实际路径替换为受管理 URI，原字段仍在 legacy_record 中。
-import 复制完整资产后原子发布 registry 状态；搬迁 corpus 不影响 URI 解析。
-`Registry.asset_bytes(uri)` 核对准确字节，损坏或缺失会报错。迁移不会运行任何导入脚本。
-旧原件和迁移报告一并备份；回滚读取旧 registry revision，不删除新对象。

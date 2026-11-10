@@ -173,8 +173,8 @@ not batch-recompute hashes and claim old reviews remain valid. Validate at the
 new output location before switching readers; update writers at the same time so
 old writers cannot keep producing the old format.
 
-Use [migrate / migration-import](corpus.md#explicit-migration-and-assets) to adapt
-old formats into a new directory. For rollback, prefer a verified historical
+There is no in-tree legacy record migration; register current-format records or
+restore a backup. old formats into a new directory. For rollback, prefer a verified historical
 snapshot or registry revision; if necessary restore the whole store and the
 matching input/tool versions. If a maintainer manually rolls back CURRENT, stop
 writers, validate the target snapshot, then atomically replace it using the

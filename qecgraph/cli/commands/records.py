@@ -122,17 +122,6 @@ def validate_corpus(args):
     return emit_report(result, quiet=args.quiet)
 
 
-def migrate(args):
-    from ...migrations import migrate
-    result = migrate(args.input, args.out, source_root=args.source_root)
-    return emit_report(result, quiet=args.quiet)
-
-
-def import_migration(args):
-    result = Registry(args.corpus).import_migration(args.input)
-    return emit_report(result, quiet=args.quiet)
-
-
 def add_record(args):
     result = Registry(args.corpus).add_record(read_json(args.input))
     return emit_report(result, quiet=args.quiet)

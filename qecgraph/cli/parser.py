@@ -361,13 +361,6 @@ def _register_commands(add):
     cmd = add('validate-corpus', help='Check typed records, references, sources and managed assets')
     cmd.add_argument('--corpus', required=True, help='Path to a legacy multi-document corpus')
     cmd.add_argument('--registry-revision', help='Exact corpus state ID; omit to use CURRENT')
-    cmd = add('migrate', help='Adapt legacy inputs into a new location with a rejection report')
-    cmd.add_argument('input', help='Path to the input file or directory described above')
-    cmd.add_argument('--out', required=True, help='Output directory for the command result')
-    cmd.add_argument('--source-root', help='Root directory for the legacy record assets')
-    cmd = add('migration-import', help='Import adapted records and managed assets atomically')
-    cmd.add_argument('input', help='Path to the input file or directory described above')
-    cmd.add_argument('--corpus', required=True, help='Path to a legacy multi-document corpus')
     for name in ('record-add', 'claim-link'):
         cmd = add(name, help="Add an explicit record or provenance mapping from JSON")
         cmd.add_argument("input", help='Path to the input file or directory described above')

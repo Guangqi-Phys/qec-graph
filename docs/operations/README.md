@@ -19,7 +19,7 @@
 
 | Page | Surface | Type | Use when |
 |---|---|---|---|
-| [Legacy store and corpus maintenance](maintenance.md) | Legacy store/corpus | How-to | Ingest, validate, migrate or recover a single-paper store or corpus |
+| [Legacy store and corpus maintenance](maintenance.md) | Legacy store/corpus | How-to | Ingest, validate or recover a single-paper store or corpus |
 | [Corpus](corpus.md) | Corpus | Reference | Register works/versions, map sources, run fixed-revision queries |
 | [Review](review.md) | Corpus | How-to / reference | Validate typed records, bind evidence, apply reviewed proposals |
 | [Workspace guide](../user/workspace.md) | Workspace | How-to | Current daily workflow (linked here for convenience) |
