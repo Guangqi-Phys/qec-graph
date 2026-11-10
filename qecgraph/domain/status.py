@@ -4,6 +4,7 @@ from __future__ import annotations
 from copy import deepcopy
 
 INACTIVE = {'stale', 'unbound_review', 'unresolved'}
+LEAN_RECORD_KINDS = {'lean_declaration', 'formalization'}
 
 
 def eligible(edge, include_candidates=False):
@@ -15,7 +16,8 @@ def eligible(edge, include_candidates=False):
 
 def annotation_eligible(annotation, include_candidates=False):
     status = annotation.get('effective_status', annotation.get('review_status', 'draft'))
-    return status not in INACTIVE and (include_candidates or status not in {'candidate', 'proposed'})
+    return status not in INACTIVE and (
+        include_candidates or status not in {'candidate', 'proposed', 'needs_review'})
 
 
 def review_states(registry, state, records, *, verified_versions=()):
@@ -79,6 +81,22 @@ def review_states(registry, state, records, *, verified_versions=()):
                 status = 'stale'
         result[identifier] = {'effective_status': status, 'reasons': reasons}
     return result
+
+
+def lean_build_states(registry, state, records, reviews, *, check_live_inputs=True):
+    """Load deferred Lean freshness only when the state actually contains Lean material.
+
+    Read projections must not import the experimental Lean builder for an ordinary
+    corpus/workspace. The import stays inside this helper so the database, query and
+    MCP boundaries stay independent of Lean as documented in the system design.
+    """
+    if not state.get('lean_projects') and not any(
+            record.get('kind') in LEAN_RECORD_KINDS
+            or record.get('kind') == 'evidence' and (record.get('data') or {}).get('evidence_kind') == 'lean_build'
+            for record in records.values()):
+        return {}
+    from ..lean.integration import lean_record_states
+    return lean_record_states(registry, state, records, reviews, check_live_inputs=check_live_inputs)
 
 
 def reviewed_cycles(graph):

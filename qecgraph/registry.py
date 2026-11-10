@@ -320,6 +320,7 @@ class Registry:
     def _validate_state(self, state, fixed, *, check_live_lean=True, verified_spans=None, manifest_hashes=None):
         from .validators import registry_issues, validate_graph_types
         from .corpus import _project_state
+        verified_spans = {} if verified_spans is None else verified_spans
         records = self.records_from_state(state)
         issues = registry_issues(self, records)
         graph, _ = _project_state(self, state, fixed, check_live_lean=check_live_lean,
@@ -334,6 +335,15 @@ class Registry:
         issues.extend({'code': 'lean_build_stale', 'severity': 'warning', 'record_id': node['id'],
                        'reasons': node['build_binding']['reasons']}
                       for node in graph.graph['nodes'] if node.get('build_binding', {}).get('effective_status') == 'stale')
+        if state.get('research_records'):
+            try:
+                from .domain.research import validate_bundle
+                from .domain.research_store import load_records, validate_sources
+                research = load_records(self, state)
+                validate_bundle(research)
+                validate_sources(self, state, research, verified_spans=verified_spans)
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                issues.append({'code': 'research_invalid', 'severity': 'error', 'message': str(exc)})
         passed = not any(issue.get('severity', 'error') == 'error' for issue in issues)
         return {'registry_revision': fixed, 'passed': passed, 'issues': issues,
                 'scope': 'structure, types, references, assets and source integrity; not mathematical verification',

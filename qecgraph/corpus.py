@@ -7,7 +7,7 @@ from .core.graph import canonical, hash_text
 from .registry import Registry
 from .store import GraphInput, source_span_index
 from . import query
-from .domain.status import review_states
+from .domain.status import lean_build_states, review_states
 from .validators import ENDPOINTS
 
 
@@ -63,8 +63,7 @@ def _project_state(registry, state, fixed, source_version_id=None, *,
     if records is None:
         records = registry.records_from_state(state, sorted(state['records']))
     reviews = review_states(registry, state, records, verified_versions=versions if verify_sources else ())
-    from .lean.integration import lean_record_states
-    builds = lean_record_states(registry, state, records, reviews, check_live_inputs=check_live_lean)
+    builds = lean_build_states(registry, state, records, reviews, check_live_inputs=check_live_lean)
     for identifier in sorted(records):
         record = records[identifier]
         node = {'id': identifier, 'kind': record['kind'], 'title': record['title'],

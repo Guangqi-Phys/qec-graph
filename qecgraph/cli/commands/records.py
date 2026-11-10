@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from ...core.graph import read_json
 from ...registry import Registry
+from ..errors import UsageError
 from ..render import emit_report
 
 
@@ -105,12 +106,14 @@ def codes(args):
     if args.corpus is None:
         from .query import research_query
         return research_query(args)
-    if any(getattr(args, flag) is not None for flag in ('release', 'metric_revision', 'evidence_policy', 'offset', 'max_chars')):
-        raise ValueError('Workspace filters require --workspace or --machine')
+    if any(getattr(args, flag) is not None for flag in ('release', 'offset', 'max_chars')):
+        raise UsageError('Workspace filters require --workspace or --machine')
     from ...domain.domain_query import codes
     result = codes(args.corpus, registry_revision=args.registry_revision, n_min=args.n_min, n_max=args.n_max,
                    distance_at_least=args.distance_at_least, metric_definition_id=args.metric_definition_id,
-                   sector=args.sector or 'joint', construction=args.construction, limit=100 if args.limit is None else args.limit)
+                   metric_revision=args.metric_revision, sector=args.sector or 'joint',
+                   construction=args.construction, limit=100 if args.limit is None else args.limit,
+                   evidence_policy=args.evidence_policy or 'verified')
     return emit_report(result, quiet=args.quiet)
 
 

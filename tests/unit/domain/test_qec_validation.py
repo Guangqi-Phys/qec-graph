@@ -6,6 +6,8 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from qecgraph.domain.domain_query import codes
 from qecgraph.core.graph import read_json
@@ -146,6 +148,57 @@ class QECValidationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'metric_definition_id'):
                 codes(registry.root, distance_at_least=3)
         self.assertTrue(distance_issues({'relation': 'exact', 'lower_bound': 3, 'upper_bound': 12}))
+
+    def test_default_distance_filter_requires_computed_evidence_not_source_report(self):
+        from qecgraph.workspace import Workspace
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Workspace(directory)
+            workspace.init(no_ingest=True)
+            registry = workspace.registry
+            code = record('code:test', 'code_instance', {'construction_id': None, 'parameters': {'n': 13, 'k': 1},
+                          'presentation_ids': ['presentation:test'], 'distance_claim_ids': ['claim:distance'], 'fixed_inputs': []})
+            registry.add_record(code)
+            registry.add_record(record('presentation:test', 'presentation', {'instance_id': 'code:test', 'matrices': {},
+                                  'row_order': 'fixed', 'qubit_order': 'fixed', 'index_base': 0,
+                                  'matrix_definition_id': 'metric:distance'}))
+            registry.add_record(record('metric:distance', 'definition', {'statement': 'Binary CSS code distance', 'scope': 'k>0'}))
+            claim = record('claim:distance', 'claim', {'statement': 'Reported distance', 'hypotheses': [], 'quantifiers': [],
+                          'subject_id': 'code:test', 'presentation_id': 'presentation:test',
+                          'metric_definition_id': 'metric:distance', 'sector': 'joint', 'relation': 'lower_bound',
+                          'lower_bound': 3, 'upper_bound': None, 'assumptions': [], 'method': 'source_report'})
+            claim['evidence_ids'] = ['evidence:reported']
+            registry.add_record(claim)
+            bindings = [{key: registry.record(identifier)[key] for key in ('id', 'revision', 'content_sha256')}
+                        for identifier in ('code:test', 'presentation:test', 'metric:distance')]
+            bound_claim = registry.record('claim:distance')
+            evidence = record('evidence:reported', 'evidence', {
+                'evidence_kind': 'source_reported', 'method': 'paper_report', 'checker': 'human transcription',
+                'inputs': bindings + [{key: bound_claim[key] for key in ('id', 'revision', 'content_sha256')}],
+                'outputs': ['paper Table 2'], 'scope': 'reported only', 'limitations': ['not recomputed'],
+                'status': 'source_reported'})
+            registry.add_record(evidence)
+
+            self.assertEqual(codes(registry.root, distance_at_least=3, metric_definition_id='metric:distance')['results'], [])
+            result = codes(registry.root, distance_at_least=3, metric_definition_id='metric:distance',
+                           metric_revision='1', evidence_policy='source_reported')
+            self.assertEqual(len(result['results']), 1)
+            self.assertEqual(result['evidence_policy'], 'source_reported')
+            with self.assertRaisesRegex(ValueError, 'metric_revision'):
+                codes(registry.root, distance_at_least=3, metric_definition_id='metric:distance',
+                      evidence_policy='source_reported')
+
+    def test_corpus_codes_cli_forwards_metric_revision_and_policy(self):
+        from qecgraph.cli.commands import records as record_commands
+        args = SimpleNamespace(corpus='corpus', registry_revision=None, n_min=None, n_max=None,
+                               distance_at_least=3, metric_definition_id='metric:distance',
+                               metric_revision='7', sector='joint', construction=None, limit=None,
+                               evidence_policy='source_reported', release=None, offset=None,
+                               max_chars=None, quiet=True)
+        with patch('qecgraph.domain.domain_query.codes', return_value={'results': []}) as mocked, \
+                patch('qecgraph.cli.commands.records.emit_report', return_value=0):
+            self.assertEqual(record_commands.codes(args), 0)
+        self.assertEqual(mocked.call_args.kwargs['metric_revision'], '7')
+        self.assertEqual(mocked.call_args.kwargs['evidence_policy'], 'source_reported')
 
     def experiment_fixture(self):
         bindings = {key: {'id': key + ':test', 'revision': '1', 'content_sha256': 'a' * 64}

@@ -3,7 +3,12 @@ from __future__ import annotations
 
 from ..registry import Registry
 from ..validators.qec import distance_issues
-from .status import review_states
+from .status import lean_build_states, review_states
+
+EVIDENCE_POLICIES = {
+    'verified': frozenset({'computed_exact', 'certificate_checked'}),
+    'source_reported': frozenset({'source_reported'}),
+}
 
 
 def evidence_current(registry, evidence, records, required_ids, reviews=None, builds=None):
@@ -47,7 +52,8 @@ def evidence_current(registry, evidence, records, required_ids, reviews=None, bu
 
 
 def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at_least=None,
-          metric_definition_id=None, metric_revision=None, sector='joint', construction=None, limit=100, check_live_lean=True):
+          metric_definition_id=None, metric_revision=None, sector='joint', construction=None, limit=100,
+          check_live_lean=True, evidence_policy='verified'):
     """Read qualifying legacy codes. Workspace paging merges results with no internal limit."""
     if limit is not None and not 1 <= limit <= 200:
         raise ValueError('limit must be 1..200')
@@ -60,14 +66,18 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
         raise ValueError('A distance hard condition needs an exact metric_definition_id')
     if metric_revision is not None and distance_at_least is None:
         raise ValueError('metric_revision requires a distance hard condition')
+    if evidence_policy not in EVIDENCE_POLICIES:
+        raise ValueError('Unknown evidence policy')
+    if evidence_policy == 'source_reported' and distance_at_least is not None and metric_revision is None:
+        raise ValueError('Source-reported hard bounds require an exact metric_revision')
     if sector not in {'X', 'Z', 'joint'}:
         raise ValueError('Unknown distance sector')
     registry = Registry(corpus)
     state, fixed = registry.read(registry_revision)
     records = registry.records_from_state(state)
     reviews = review_states(registry, state, records)
-    from ..lean.integration import lean_record_states
-    builds = lean_record_states(registry, state, records, reviews, check_live_inputs=check_live_lean)
+    builds = lean_build_states(registry, state, records, reviews, check_live_inputs=check_live_lean)
+    allowed_evidence = EVIDENCE_POLICIES[evidence_policy]
     results = []
     metric = records.get(metric_definition_id) or {}
     metric_matches = metric_revision is None or metric.get('revision') == metric_revision
@@ -102,6 +112,7 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
                     continue
                 required = [identifier, measurement['presentation_id'], metric_definition_id, claim_id]
                 evidence = [records[e] for e in claim['evidence_ids'] if e in records and records[e]['kind'] == 'evidence'
+                            and records[e]['data'].get('evidence_kind') in allowed_evidence
                             and evidence_current(registry, records[e], records, required, reviews, builds)]
                 if evidence:
                     matching.append({'claim_id': claim_id, 'claim_revision': claim['revision'],
@@ -113,10 +124,12 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
                 continue
         results.append({'id': identifier, 'revision': code['revision'], 'parameters': data['parameters'],
                         'review_status': code['review']['status'], 'distance_claims': matching})
-    scope = {'registry_revision': fixed, 'metric_definition_id': metric_definition_id, 'sector': sector}
+    scope = {'registry_revision': fixed, 'metric_definition_id': metric_definition_id, 'sector': sector,
+             'evidence_policy': evidence_policy}
     if metric_revision is not None:
         scope['metric_revision'] = metric_revision
     return {'scope': scope,
             'results': results[:limit], 'truncated': limit is not None and len(results) > limit,
-            'evidence_policy': 'Known lower bound with evidence bound to the current claim, instance, presentation and metric revisions',
+            'evidence_policy': evidence_policy,
+            'evidence_policy_note': 'Known lower bound with evidence bound to the current claim, instance, presentation and metric revisions',
             'absence_note': 'No qualifying record in this fixed scope; not a nonexistence result'}

@@ -338,7 +338,7 @@ def _register_commands(add):
     cmd.add_argument('--metric-definition-id', help='Exact metric ID for the distance filter')
     cmd.add_argument('--metric-revision', help='Exact metric revision for source-reported distance bounds')
     cmd.add_argument('--evidence-policy', choices=['verified', 'source_reported'],
-                     help='Workspace distance evidence policy (default: verified)')
+                     help='Distance evidence policy; source_reported requires an exact metric revision (default: verified)')
     cmd.add_argument('--sector', choices=['X', 'Z', 'joint'],
         help='Logical sector for the distance filter (default: joint)')
     cmd.add_argument('--construction', help='Exact construction ID or kind (legacy corpus only)')

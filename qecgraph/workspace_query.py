@@ -549,7 +549,8 @@ class WorkspaceSession:
                     legacy = {'results': [], 'truncated': False,
                               'evidence_policy': 'Source-reported bound, exact metric and source locator; not mathematical verification'}
                 else:
-                    legacy = codes(self.machine, registry_revision=self.release, check_live_lean=False, limit=None, **args)
+                    legacy = codes(self.machine, registry_revision=self.release, check_live_lean=False,
+                                   limit=None, evidence_policy='verified', **args)
                 rows = legacy['results']
                 for record in self.visible.values():
                     if record['kind'] != 'code_instance':
@@ -569,7 +570,7 @@ class WorkspaceSession:
                         rows.append(record)
                 data = self._paginate(rows, {'offset': offset, 'limit': limit}, limit)
                 data['legacy_scan_truncated'] = legacy['truncated']
-                data['evidence_policy'] = legacy['evidence_policy']
+                data['evidence_policy'] = policy
             elif name == 'qec_find_performance':
                 data = self._performance(args)
             elif name == 'qec_find_software':

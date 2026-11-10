@@ -11,6 +11,7 @@ from qecgraph.core.graph import canonical, read_json
 from qecgraph.domain.research import make_record
 from qecgraph.domain.research_store import publish_records, validate_sources
 from qecgraph.domain.semantic import request_extraction, review_extraction, submit_extraction
+from qecgraph.domain.status import annotation_eligible
 from qecgraph.source.package import unpack
 from qecgraph.workspace import Workspace
 from qecgraph.workspace_query import WorkspaceSession
@@ -18,6 +19,11 @@ from tests.unit.parsing.test_source_package import TEX, tar_bytes
 
 
 class SemanticTests(unittest.TestCase):
+    def test_needs_review_annotations_are_not_default_eligible(self):
+        self.assertFalse(annotation_eligible({'review_status': 'needs_review'}))
+        self.assertTrue(annotation_eligible({'review_status': 'needs_review'}, include_candidates=True))
+        self.assertTrue(annotation_eligible({'review_status': 'reviewed'}))
+
     def test_repeated_asset_bindings_stream_one_verification_per_operation(self):
         with tempfile.TemporaryDirectory() as directory:
             ws = Workspace(directory)
@@ -191,5 +197,7 @@ class SemanticTests(unittest.TestCase):
             old_graph = ws.registry.root / state['versions'][identifier]['snapshot_path'] / 'graph.json'
             with old_graph.open('ab') as output:
                 output.write(b' ')
-            with self.assertRaisesRegex(ValueError, 'Snapshot file changed: graph.json'):
-                ws.validate()
+            validation = ws.validate()
+            self.assertFalse(validation['valid'])
+            self.assertTrue(any('Snapshot file changed: graph.json' in issue.get('message', '')
+                                for issue in validation['issues']), validation['issues'])

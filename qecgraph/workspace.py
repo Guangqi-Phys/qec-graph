@@ -17,7 +17,7 @@ import uuid
 
 from . import PARSER_VERSION, __version__
 from .source.extraction import RULE_VERSION, proposals
-from .domain.research_store import load_records, stage_records, validate_sources
+from .domain.research_store import stage_records
 from .core.graph import canonical, hash_text, read_json, strict_json_loads
 from .registry import Registry
 from .source.package import Limits, PackageError, unpack
@@ -297,13 +297,23 @@ class Workspace:
             return []
         rows = []
         for path in sorted(directory.iterdir()):
+            error = None
             try:
                 digest = _hash_regular(path, 128 << 20)
             except PackageError as exc:
                 if exc.status != 'limit_exceeded':
                     raise
                 digest = None
-            rows.append({'name': path.name, 'archive_sha256': digest})
+                error = str(exc)
+            except OSError as exc:
+                # A foreign/linked entry may be unreadable; keep it visible
+                # without turning the whole status command into a failure.
+                digest = None
+                error = str(exc)
+            row = {'name': path.name, 'archive_sha256': digest}
+            if error is not None:
+                row['error'] = error
+            rows.append(row)
         return rows
 
     def list_inputs(self):
@@ -617,12 +627,21 @@ class Workspace:
         counts = {'registered': len(materials), 'processed': sum(x['processing_completed'] for x in materials.values()),
                   'conflicting': sum(x['source_version_conflict'] for x in materials.values()),
                   'code_mention_proposals': sum(p['code_mentions'] for p in proposal_map.values())}
-        self._write_operational_status(release, counts)
+        warning = None
+        try:
+            self._write_operational_status(release, counts)
+        except (OSError, ValueError) as exc:
+            # The machine release is already published and inputs may already be
+            # consumed; a derived-status write must not turn that into a failure.
+            warning = 'operational status could not be written: ' + str(exc).replace(str(self.root), '<workspace>')
         partial = any(not r.get('processing_completed') or r.get('cleanup_error') or r.get('retained_claim')
                       or r.get('source_version_conflict') for r in rows)
-        return {'status': 'partial_batch' if partial else 'unchanged' if old == release else 'published',
-                'run_id': run_id, 'workspace_id': cfg['workspace_id'], 'previous_release_id': old,
-                'release_id': release, 'counts': counts, 'inputs': rows}
+        result = {'status': 'partial_batch' if partial else 'unchanged' if old == release else 'published',
+                  'run_id': run_id, 'workspace_id': cfg['workspace_id'], 'previous_release_id': old,
+                  'release_id': release, 'counts': counts, 'inputs': rows}
+        if warning is not None:
+            result['warning'] = warning
+        return result
 
     def status(self):
         cfg = self.config()
@@ -667,10 +686,6 @@ class Workspace:
         verified_spans = {}
         result = self.registry._validate_state(state, fixed, check_live_lean=False, verified_spans=verified_spans)
         issues = result.setdefault('issues', [])
-        from .domain.research import validate_bundle
-        records = load_records(self.registry, state)
-        validate_bundle(records)
-        validate_sources(self.registry, state, records, verified_spans=verified_spans)
         if progress:
             progress(2, 3, 'Verifying archived packages')
         for digest in state.get('materials', {}):

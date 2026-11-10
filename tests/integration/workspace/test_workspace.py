@@ -106,6 +106,48 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual({r['status'] for r in rebuilt['inputs']}, {'processing_completed', 'damaged_archive'})
         self.assertEqual(rebuilt['release_id'], duplicate['release_id'])
 
+    def test_quarantine_rejects_links_and_status_tolerates_foreign_entries(self):
+        self.ws.init(no_ingest=True)
+        target = self.root / 'payload.bin'
+        target.write_bytes(b'payload')
+        link = self.inbox / 'linked.bin'
+        link.symlink_to(target)
+        with self.assertRaises(ValueError):
+            self.ws.move_quarantine('linked.bin')
+        self.assertTrue(link.is_symlink())
+        quarantine = self.root / 'inputs/.quarantine'
+        quarantine.mkdir()
+        foreign = quarantine / 'foreign.bin'
+        foreign.symlink_to(target)
+        result = self.ws.status()
+        row = next(item for item in result['quarantined_inputs'] if item['name'] == 'foreign.bin')
+        self.assertIsNone(row['archive_sha256'])
+        self.assertIn('error', row)
+
+    def test_operational_status_failure_does_not_hide_a_published_release(self):
+        self.ws.init(no_ingest=True)
+        (self.inbox / 'paper.tex').write_bytes(TEX)
+        with patch.object(Workspace, '_write_operational_status', side_effect=OSError('read-only status directory')):
+            result = self.ws.sync()
+        self.assertEqual(result['status'], 'published')
+        self.assertIn('operational status', result['warning'])
+        self.assertFalse((self.inbox / 'paper.tex').exists())
+
+    def test_validate_reports_a_damaged_research_revision_instead_of_raising(self):
+        from qecgraph.core.graph import hash_text
+        from qecgraph.domain.research import make_record
+        from qecgraph.domain.research_store import publish_records
+
+        self.ws.init(no_ingest=True)
+        record = make_record('algorithm', 'algo:test', 'one', {}, method='fixture')
+        publish_records(self.ws.registry, [record])
+        path = (self.ws.registry.root / 'research' / hash_text(record['id'])
+                / (hash_text(record['revision']) + '.json'))
+        path.write_text('{}', encoding='utf-8')
+        result = self.ws.validate()
+        self.assertFalse(result['valid'])
+        self.assertTrue(any(issue['code'] == 'research_invalid' for issue in result['issues']), result)
+
     def test_quarantine_acknowledges_the_exact_failed_archive_and_restores_without_clobbering(self):
         name = 'broken.zip'
         raw = b'PK\x03\x04broken'
