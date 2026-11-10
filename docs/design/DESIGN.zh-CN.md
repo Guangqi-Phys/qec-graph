@@ -326,6 +326,9 @@ parser diagnostic，不是数学环。
 不升级为类型化证明依赖。`\def` 和 `\let` 仅为后续可静态判定的 `\ifdefined` 标记
 已定义，替换文本保持不透明。
 
+带花括号的 `\href`、`\url` 和 `\nolinkurl` 目标保留 URL 中的百分号编码。
+链接的可见文本仍按常规 TeX 解析。
+
 ### 5.2 来源块与规范化 claim
 
 parser 的 theorem/lemma 是 **source block**：文档在固定区间说了什么。规范化

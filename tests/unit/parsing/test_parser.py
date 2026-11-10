@@ -28,6 +28,34 @@ class ParserTests(unittest.TestCase):
         self.assertEqual([label for b in parsed['blocks'] for label in b['labels']], ['lem:real'])
         self.assertEqual([r['targets'] for b in parsed['blocks'] for r in b['references']], [['lem:other']])
 
+    def test_percent_encoded_link_targets_preserve_bibliography_and_link_text(self):
+        body = r"""\documentclass{article}
+\usepackage{hyperref}
+\begin{document}
+\begin{thebibliography}{1}
+\providecommand \href [0]{\@href}%
+\providecommand \url [0]{\@url}%
+\bibitem{device}
+\href[page=1]{"https://example.invalid/é#:~:text=Virtex%C2%AE%20Plus"}{Device documentation}
+\url{https://example.invalid/one%20two}
+\nolinkurl{https://example.invalid/three%20four}
+\end{thebibliography}
+\begin{lemma}
+\href{https://example.invalid/%20\ref{ghost}}{\label{lem:real}See \ref{lem:real}.}
+% \label{comment:ghost}
+\end{lemma}
+\end{document}
+"""
+        source = body.replace('\n', '\r\n')
+        parsed = self.parse(source)
+        self.assertFalse([d for d in parsed['diagnostics'] if d['severity'] == 'error'])
+        lemma, = [block for block in parsed['blocks'] if block['kind'] == 'lemma']
+        self.assertEqual(lemma['labels'], ['lem:real'])
+        self.assertEqual([ref['targets'] for ref in lemma['references']], [['lem:real']])
+        span = lemma['source']
+        self.assertEqual((span['line_start'], span['line_end']), (12, 15))
+        self.assertEqual(lemma['latex'], source[span['char_start']:span['char_end']])
+
     def test_nested_inactive_branch_preserves_coordinates_of_the_live_branch(self):
         statement = r'\begin{lemma}\label{lem:visible}λ\end{lemma}'
         source = '\r\n'.join((

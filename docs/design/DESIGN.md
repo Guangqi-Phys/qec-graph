@@ -295,6 +295,8 @@ Each edge keeps `source`, `target`, `relation`, `status`, and `evidence`.
 - labels/references, literal includes/resources, macro/environment declarations;
 - diagnostics for missing/ambiguous includes, unsupported syntax, path escapes, dynamic paths, and parse failures.
 
+Braced `\href`, `\url`, and `\nolinkurl` targets preserve literal percent escapes. The visible text of a link still uses ordinary TeX parsing.
+
 It does not expand arbitrary macros, evaluate conditionals, execute TeX, or infer mathematical truth. A partial extraction is a valid, explicitly marked snapshot; `--strict` keeps it in staging without advancing `CURRENT`.
 
 `\lean` and `\uses` outside a mathematical block are preserved as `describes` / `references` associations with a diagnostic; they do not become typed proof dependencies. `\def` and `\let` mark a name as defined for a later statically decidable `\ifdefined`, while their replacement text stays opaque.
