@@ -571,6 +571,8 @@ class Workspace:
     def _prepare(self, cfg, state, digest, prior, reused, limits, *, captured, manifest_hashes, tool_identity, normalizer=None, extractor=None, progress=None):
         result = {'archive_sha256': digest, 'status': 'archived_only', 'processing_completed': False,
                   'semantic_status': 'not_extracted', 'processor': PROCESSOR}
+        from .llm.normalize import NormalizationError
+
         normalized = None
         try:
             raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
@@ -590,13 +592,16 @@ class Workspace:
                 candidates = tree.entrypoints()
                 if entry is None and len(candidates) == 1:
                     entry = candidates[0]
-                elif candidates and normalizer is not None:
+                elif entry is None and len(candidates) > 1 and normalizer is not None:
                     try:
                         extract_tree, normalization = normalizer(tree, progress=progress)
                         entry = 'main.tex'
                         normalized = normalization.get('normalized')
                         result.update(normalization_id=normalization['normalization_id'],
                                       normalization_sha256=normalization['normalization_sha256'])
+                    except NormalizationError as exc:
+                        result.update(status='needs_entrypoint', entrypoint_candidates=candidates, reason=str(exc))
+                        return self._keep_prior(result, prior)
                     except (OSError, ValueError, RuntimeError) as exc:
                         result.update(status='ai_failed', reason=str(exc).replace(str(self.root), '<workspace>'))
                         return self._keep_prior(result, prior)

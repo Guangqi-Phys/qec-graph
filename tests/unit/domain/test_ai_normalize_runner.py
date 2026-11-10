@@ -5,7 +5,7 @@ from pathlib import Path
 
 from qecgraph.llm.artifacts import write_normalization
 from qecgraph.llm.client import LLMResult
-from qecgraph.llm.normalize import normalize_package
+from qecgraph.llm.normalize import NormalizationError, normalize_package
 from qecgraph.source.package import SourceTree
 
 MAIN = b'\\documentclass{article}\n\\begin{document}\nMain.\n\\end{document}\n'
@@ -34,7 +34,8 @@ class RunnerTests(unittest.TestCase):
         self.assertIsNone(result.ai_result)
 
     def test_multi_root_calls_ai_and_writes_auditable_artifact(self):
-        plan = {'status': 'ready', 'documents': [],
+        plan = {'status': 'ready', 'documents': [{'path': 'main.tex', 'role': 'main'},
+                                            {'path': 'supp.tex', 'role': 'supplement'}],
                 'operations': [{'op': 'use_preamble', 'source': 'main.tex'},
                                {'op': 'include_body', 'source': 'main.tex'},
                                {'op': 'append_body', 'source': 'supp.tex'}],
@@ -52,17 +53,17 @@ class RunnerTests(unittest.TestCase):
             self.assertNotIn('secret', json.dumps(manifest))
 
 
-class FallbackTests(unittest.TestCase):
-    def test_needs_review_plan_falls_back_without_losing_sources(self):
-        from qecgraph.llm.normalize import normalize_package
-        plan = {'status': 'needs_review', 'documents': [],
-                'operations': [{'op': 'include_asset', 'source': 'main.tex'}],
-                'label_renames': {}, 'unresolved': []}
-        client = FakeClient(plan)
+class AmbiguityTests(unittest.TestCase):
+    def test_needs_review_never_merges_independent_documents(self):
+        plan = {'status': 'needs_review', 'documents': [], 'operations': [],
+                'unresolved': ['independent manuscripts']}
         source = SourceTree('tex', {'main.tex': MAIN, 'Supplement.tex': SUPP})
-        result = normalize_package(source, client)
-        self.assertIn('Main.', result.source.text)
-        self.assertIn('Supplement.', result.source.text)
-        self.assertIn('AI plan was not usable', result.fallback_reason)
-        self.assertEqual({segment['origin']['path'] for segment in result.source.segments
-                          if segment['origin'] is not None}, {'main.tex', 'Supplement.tex'})
+        with self.assertRaisesRegex(NormalizationError, 'not ready'):
+            normalize_package(source, FakeClient(plan))
+
+    def test_ready_plan_must_account_for_every_complete_root(self):
+        plan = {'status': 'ready', 'documents': [{'path': 'main.tex', 'role': 'main'}],
+                'operations': [{'op': 'use_document', 'source': 'main.tex'}], 'unresolved': []}
+        source = SourceTree('tex', {'main.tex': MAIN, 'other.tex': SUPP})
+        with self.assertRaisesRegex(NormalizationError, 'explicit roles'):
+            normalize_package(source, FakeClient(plan))
