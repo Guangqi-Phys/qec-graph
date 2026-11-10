@@ -68,8 +68,10 @@ class LLMClient:
         self.provider = provider or build_provider(config)
         self.cache = ResponseCache(cache_dir) if cache_dir else None
         self.sleeper = sleeper or time.sleep
-        self.secrets = tuple(value for provider_config in config.providers.values()
-                             for value in (provider_config.api_key,))
+        self.secrets = tuple(key for item in config.providers.values() if (key := item.resolved_key()))
+        provider_key = getattr(self.provider, 'api_key', None)
+        if isinstance(provider_key, str) and provider_key and provider_key not in self.secrets:
+            self.secrets += (provider_key,)
 
     def complete_json(self, messages: Sequence[Message], schema: Mapping[str, Any], *,
                       model: str | None = None, temperature: float = 0.0,
@@ -107,11 +109,11 @@ class LLMClient:
                 last_error = exc
                 if not exc.retryable or attempt > self.config.max_retries:
                     raise ProviderError(redact(str(exc), self.secrets), status=exc.status,
-                                        retryable=exc.retryable, code=exc.code) from exc
+                                        retryable=exc.retryable, code=exc.code) from None
                 self.sleeper(min(2 ** (attempt - 1), 8))
                 continue
             except (LLMError, OSError) as exc:
-                raise LLMError(redact(str(exc), self.secrets)) from exc
+                raise LLMError(redact(str(exc), self.secrets)) from None
             spent += _usage_cost(completion.usage)
             if spent > self.config.max_cost_usd:
                 raise BudgetExceeded(f'AI cost limit exceeded: {spent:.4f} USD')
@@ -121,7 +123,7 @@ class LLMClient:
             except ResponseSchemaError:
                 raise
             except ValidationError as exc:
-                raise ResponseSchemaError(f'model response does not match schema: {exc.message}') from exc
+                raise ResponseSchemaError(f'model response does not match schema ({exc.validator})') from None
             result = {'data': data, 'text': completion.text, 'model': completion.model,
                       'usage': completion.usage, 'request_id': completion.request_id}
             if use_cache and self.cache is not None:

@@ -43,11 +43,10 @@ class CliProvider:
                                          timeout=timeout, check=False)
         except subprocess.TimeoutExpired as exc:
             raise ProviderError(f'{self.name}: CLI timed out after {timeout:g}s', retryable=True) from exc
-        except OSError as exc:
-            raise ProviderError(f'{self.name}: could not start CLI: {exc}', retryable=False) from exc
+        except OSError:
+            raise ProviderError(f'{self.name}: could not start CLI', retryable=False) from None
         if process.returncode != 0:
-            detail = (process.stderr or process.stdout).strip()[-300:]
-            raise ProviderError(f'{self.name}: CLI exited {process.returncode}: {detail}')
+            raise ProviderError(f'{self.name}: CLI exited {process.returncode}')
         text = process.stdout
         try:
             wrapped = json.loads(text)

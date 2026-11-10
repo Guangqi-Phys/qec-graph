@@ -62,13 +62,13 @@ class OpenAICompatibleProvider:
         try:
             result = self.transport.request('POST', self.endpoint, headers=headers,
                                             body=json.dumps(payload).encode('utf-8'), timeout=timeout)
-        except ConnectionError as exc:
-            raise ProviderError(f'{self.name}: transport failed: {exc}', retryable=True) from exc
+        except ConnectionError:
+            raise ProviderError(f'{self.name}: transport failed', retryable=True) from None
         self._raise_for_status(result)
         try:
             data = json.loads(result.body.decode('utf-8'))
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise ProviderError(f'{self.name}: provider returned invalid JSON') from exc
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise ProviderError(f'{self.name}: provider returned invalid JSON') from None
         choices = data.get('choices')
         if not isinstance(choices, list) or not choices:
             raise ProviderError(f'{self.name}: provider returned no choices')
@@ -88,16 +88,4 @@ class OpenAICompatibleProvider:
         if 200 <= result.status < 300:
             return
         retryable = result.status in {408, 409, 429} or result.status >= 500
-        detail = ''
-        try:
-            body = json.loads(result.body.decode('utf-8'))
-            error = body.get('error') if isinstance(body, dict) else None
-            if isinstance(error, dict):
-                detail = str(error.get('message') or error.get('type') or '')[:300]
-            elif isinstance(error, str):
-                detail = error[:300]
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            detail = result.body.decode('utf-8', 'replace')[:300]
-        suffix = f': {detail}' if detail else ''
-        raise ProviderError(f'{self.name}: HTTP {result.status}{suffix}',
-                            status=result.status, retryable=retryable)
+        raise ProviderError(f'{self.name}: HTTP {result.status}', status=result.status, retryable=retryable)

@@ -52,7 +52,8 @@ class OpenAIProviderTests(unittest.TestCase):
         with self.assertRaises(ProviderError) as caught:
             self.provider(transport).complete([Message('user', 'x')], model='m')
         self.assertTrue(caught.exception.retryable)
-        self.assertIn('slow down', str(caught.exception))
+        self.assertIn('HTTP 429', str(caught.exception))
+        self.assertNotIn('slow down', str(caught.exception))
 
         transport = FakeTransport(error=ConnectionError('offline'))
         with self.assertRaises(ProviderError) as caught:

@@ -76,3 +76,19 @@ class AIWorkspaceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Candidate machine release failed validation'):
             self.workspace.sync()
         self.assertEqual(self.workspace.registry.read()[1], report['release_id'])
+
+    def test_provider_error_body_and_environment_key_never_reach_release(self):
+        from qecgraph.llm.providers.base import HttpResult
+
+        self.configure('provider = "claude_code"', 'provider = "openrouter"')
+        (self.root / 'inputs/paper.tex').write_bytes(TEX)
+        token = 'TEST_ENV_TOKEN_VALUE_94'
+        body = json.dumps({'error': {'message': 'remote private diagnostic ' + token}}).encode()
+        with patch.dict('os.environ', {'OPENROUTER_API_KEY': token}), patch(
+                'qecgraph.llm.providers.http.UrllibTransport.request', return_value=HttpResult(401, {}, body)):
+            report = self.workspace.sync()
+        state_path = self.root / 'machine/states' / (report['release_id'] + '.json')
+        for output in (json.dumps(report), state_path.read_text()):
+            self.assertNotIn(token, output)
+            self.assertNotIn('remote private diagnostic', output)
+            self.assertIn('HTTP 401', output)
