@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
+import json
 import re
 from typing import Any, Mapping
 
@@ -114,6 +115,8 @@ def _check_plan(tree, plan):
         raise NormalizationError('normalization plan is not ready')
     if not plan['operations']:
         raise NormalizationError('normalization plan has no operations')
+    if any(operation['op'] == 'use_document' for operation in plan['operations']) and len(plan['operations']) != 1:
+        raise NormalizationError('use_document cannot be combined with other operations')
     for operation in plan['operations']:
         if operation['op'] not in {'use_document', 'use_preamble', 'include_body', 'append_appendix',
                                    'append_body', 'include_asset'}:
@@ -175,3 +178,66 @@ def assemble(tree: SourceTree, plan: Mapping[str, Any]):
         raise NormalizationError('normalized source is not valid UTF-8') from exc
     return NormalizedSource(source_tree_hash=tree.digest, data=bytes(output), plan=plan,
                             segments=tuple(segments))
+
+
+@dataclass(frozen=True)
+class NormalizationResult:
+    source: NormalizedSource
+    inventory: dict
+    ai_result: object | None
+    skill_version: int
+
+
+def _excerpt(raw, start, end, limit=1200):
+    data = raw[start:end]
+    try:
+        text = data.decode('utf-8')
+    except UnicodeDecodeError:
+        return ''
+    if len(text) <= limit:
+        return text
+    return text[:limit] + '\n...[truncated]...\n' + text[-min(300, limit // 3):]
+
+
+def normalization_evidence(tree: SourceTree, inventory_data):
+    """Build a bounded, source-only evidence pack for the normalization skill."""
+    documents = []
+    for document in inventory_data['documents']:
+        raw = tree.files[document['path']]
+        parts = document['parts']
+        documents.append({
+            **document,
+            'excerpts': {
+                'preamble': _excerpt(raw, parts['preamble']['byte_start'], parts['preamble']['byte_end']),
+                'body': _excerpt(raw, parts['body']['byte_start'], parts['body']['byte_end']),
+                'appendix': _excerpt(raw, parts['appendix']['byte_start'], parts['appendix']['byte_end']),
+            },
+        })
+    return {'schema': 'qecgraph.normalization_evidence',
+            'source_tree_hash': tree.digest, 'documents': documents}
+
+
+def normalize_package(tree: SourceTree, client, *, extra_skills_dir=None, use_cache=True):
+    """Return a source-faithful normalized entry, using AI only for ambiguity."""
+    from .skills import load_skill  # local import keeps the assembler dependency-light
+
+    inventory_data = inventory(tree)
+    roots = tree.entrypoints()
+    if len(roots) == 1:
+        plan = single_root_plan(tree)
+        normalized = assemble(tree, plan)
+        return NormalizationResult(normalized, inventory_data, None, 1)
+    if len(roots) == 0:
+        raise NormalizationError('no complete TeX root was found')
+    skill = load_skill('normalize_package', extra_skills_dir)
+    evidence = normalization_evidence(tree, inventory_data)
+    messages = [
+        {'role': 'system', 'content': skill.prompt},
+        {'role': 'user', 'content': json.dumps(evidence, ensure_ascii=False, sort_keys=True)},
+    ]
+    from .providers.base import Message
+    ai_result = client.complete_json([Message(**message) for message in messages], skill.schema,
+                                     use_cache=use_cache)
+    plan = ai_result.data
+    normalized = assemble(tree, plan)
+    return NormalizationResult(normalized, inventory_data, ai_result, skill.version)
