@@ -65,7 +65,8 @@ api_key = ""
 `structure_fallback` 默认开启，同时要求 provider 可用且允许上传来源。回退请求只包含
 已选入口的带行号正文。正文边界必须独占行且唯一，正文也必须独立于外部 TeX 输入。
 方案失败或被拒绝时，归档和收件箱副本仍可用于重试。状态报告显示回退结果。
-回退成功的快照标为 `recovered_proposed`。
+回退成功的快照标为 `recovered_proposed`。读取含有此状态的发布前，先升级机器读取端。
+升级后的 CLI 和 MCP 继续读取历史快照。
 
 `extract_proposals` 默认关闭。已有工作区可将它设为 `true`，延续自动生成定理、假设
 和数据提案的流程。`max_parallel_packages` 限制该可选抽取的并发包数，发布和输入

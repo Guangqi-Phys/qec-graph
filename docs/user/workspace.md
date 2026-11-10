@@ -73,7 +73,9 @@ never calls either command automatically.
 numbered body. The body must have unique standalone delimiters and no external
 TeX body inputs. Failed or declined plans leave the archive and inbox copy
 available for retry. Status reports show the recovery state. A successful
-recovery records `recovered_proposed` on the snapshot.
+recovery records `recovered_proposed` on the snapshot. Upgrade machine
+readers before pointing them at a release that uses this status. The updated
+CLI and MCP continue to read previously published snapshots.
 
 `extract_proposals` defaults to `false`. Set it to `true` to keep the earlier
 automatic theorem, assumption and data proposal workflow on existing
