@@ -13,6 +13,25 @@ from .base import Completion, HttpResult, Message, Transport
 from .http import UrllibTransport
 
 
+_UNSUPPORTED_STRICT_KEYWORDS = {'allOf', 'not', 'dependentRequired', 'dependentSchemas', 'if', 'then', 'else',
+                                'patternProperties', 'unevaluatedProperties', 'propertyNames'}
+
+
+def _supports_strict_schema(schema):
+    if _UNSUPPORTED_STRICT_KEYWORDS.intersection(schema):
+        return False
+    if schema.get('type') == 'object':
+        if schema.get('additionalProperties') is not False:
+            return False
+        if set(schema.get('properties', {})) != set(schema.get('required', [])):
+            return False
+    children = [*schema.get('properties', {}).values(), *schema.get('$defs', {}).values(),
+                *schema.get('anyOf', [])]
+    if 'items' in schema:
+        children.append(schema['items'])
+    return all(isinstance(child, dict) and _supports_strict_schema(child) for child in children)
+
+
 class OpenAICompatibleProvider:
     kind = 'openai_compatible'
 
@@ -41,10 +60,17 @@ class OpenAICompatibleProvider:
         if max_output_tokens is not None:
             payload['max_tokens'] = max_output_tokens
         if response_schema is not None:
-            payload['response_format'] = {
-                'type': 'json_schema',
-                'json_schema': {'name': 'qecgraph_result', 'strict': True, 'schema': response_schema},
-            }
+            if response_schema.get('type') == 'object' and _supports_strict_schema(response_schema):
+                wire_schema = {key: value for key, value in response_schema.items() if key != '$schema'}
+                payload['response_format'] = {
+                    'type': 'json_schema',
+                    'json_schema': {'name': 'qecgraph_result', 'strict': True, 'schema': wire_schema},
+                }
+            else:
+                # JSON mode preserves the skill's full schema for validation in LLMClient.
+                payload['response_format'] = {'type': 'json_object'}
+                payload['messages'].insert(0, {'role': 'system', 'content':
+                    'Return one JSON object matching this schema:\n' + json.dumps(response_schema, sort_keys=True)})
         return payload
 
     def complete(self, messages: Sequence[Message], *, model: str,

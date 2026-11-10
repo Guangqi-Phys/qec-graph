@@ -36,7 +36,8 @@ class OpenAIProviderTests(unittest.TestCase):
         transport = FakeTransport(body=response())
         completion = self.provider(transport).complete(
             [Message('system', 'system'), Message('user', 'paper text')], model='model-x',
-            response_schema={'type': 'object', 'properties': {'ok': {'type': 'boolean'}}},
+            response_schema={'type': 'object', 'properties': {'ok': {'type': 'boolean'}},
+                             'required': ['ok'], 'additionalProperties': False},
             max_output_tokens=100, timeout=9)
         self.assertEqual(completion.text, '{"ok": true}')
         self.assertEqual(completion.request_id, 'req-1')
@@ -46,6 +47,27 @@ class OpenAIProviderTests(unittest.TestCase):
         self.assertEqual(payload['model'], 'model-x')
         self.assertEqual(payload['messages'][1]['content'], 'paper text')
         self.assertEqual(payload['response_format']['type'], 'json_schema')
+
+    def test_real_skill_schemas_use_json_mode_and_local_validation(self):
+        from qecgraph.llm.client import LLMClient, ResponseSchemaError
+        from qecgraph.llm.skills import load_skills
+        from tests.unit.domain.test_ai_client import config
+
+        for name, skill in load_skills().items():
+            with self.subTest(skill=name):
+                result = ({'status': 'needs_review', 'documents': [], 'operations': [], 'unresolved': []}
+                          if name == 'normalize_package' else {'items': [], 'unresolved': []})
+                transport = FakeTransport(body=response(json.dumps(result)))
+                client = LLMClient(config(), provider=self.provider(transport))
+                messages = [Message('system', skill.system_prompt), Message('user', 'paper data')]
+                self.assertEqual(client.complete_json(messages, skill.schema).data, result)
+                payload = transport.requests[0][3]
+                self.assertEqual(payload['response_format'], {'type': 'json_object'})
+                self.assertIn(json.dumps(skill.schema, sort_keys=True), payload['messages'][0]['content'])
+                self.assertEqual(payload['messages'][-1], {'role': 'user', 'content': 'paper data'})
+                transport.body = response('{}')
+                with self.assertRaises(ResponseSchemaError):
+                    client.complete_json(messages, skill.schema)
 
     def test_http_and_transport_errors_are_typed(self):
         transport = FakeTransport(status=429, body=b'{"error": {"message": "slow down"}}')
