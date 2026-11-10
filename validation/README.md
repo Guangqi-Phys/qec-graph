@@ -1,7 +1,12 @@
 # Validation evidence
 
-Reports describe runs against specific source revisions. For the current audit
-status see [the remediation ledger](../docs/AUDIT_REMEDIATION.md).
+Reports describe runs against specific source revisions. For current user and
+operations guidance see [the documentation index](../docs/README.md); historical
+material is retained in Git history.
+
+> **Lean note:** Lean is deferred in 0.4.x. The Lean fixtures under `validation/p5`
+> are experimental regression inputs, not a supported verification claim. The
+> database, query and MCP paths do not execute Lean.
 
 | Stage | Source revision | Command | Result |
 | --- | --- | --- | --- |
@@ -19,10 +24,9 @@ status see [the remediation ledger](../docs/AUDIT_REMEDIATION.md).
 | Pinned arXiv corpus | `cdbe50b` | `python tools/reproduce_golden.py --archive-dir ARCHIVES --out build/golden-arxiv.json` | Six archived source versions imported and validated. [Fixture instructions](../tests/golden/README.md) and [results](audit-0.4.0rc1/golden-arxiv.json) |
 | Performance baseline | `ad789c0` | `python tools/bench.py --runs 3 --archive-dir ARCHIVES --out build/benchmark.json` | Paired synthetic ingestion and six-source workspace timings. [Samples and environment](audit-0.4.0rc1/benchmark.json) |
 | RFC-QEC-002 | `71c7904` | Workspace and macOS isolation replays | [Historical RFC acceptance](rfc002/REPORT.md) |
-| P0–P5 and 0.3.0 | Per-run commits where recorded | Python, Lean, installed CLI, MCP, and incremental replays | [Historical stage reports](REPORT.md) |
+| P0–P5 and 0.3.0 | Per-run commits where recorded | Python, experimental Lean fixtures, installed CLI, MCP, and incremental replays | [Historical stage reports](REPORT.md) |
 
-The 181-test run used existing Lean evidence fixtures. The release checks
-above used the Python and standalone artifacts built locally on macOS arm64.
+The 181-test run used experimental Lean fixtures only for regression. The release checks above used the Python and standalone artifacts built locally on macOS arm64.
 The source-bound tests checked provenance and extraction, with no new
 mathematical verification claim.
 
@@ -31,7 +35,7 @@ mathematical verification claim.
 The 574 historical paths listed in [archive.sha256](archive.sha256) are
 available at the fixed commit `3e6f687e199b173a22eeb7e7b89f76148033c84c`.
 This checkout keeps stage summaries, linked reports, current results, and
-the original evidence fixtures required by the Lean regression tests.
+the experimental fixtures required by the Lean regression tests; Lean itself is not part of the supported release.
 Detailed logs, duplicate copies, and empty output files remain in Git
 history with their original paths and bytes.
 

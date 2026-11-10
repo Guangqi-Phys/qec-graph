@@ -9,6 +9,23 @@
 运行时先读本包 `AGENTS.md`、[架构](../design/DESIGN.md#2-system-overview) 和 [数据契约](../design/DESIGN.md#4-data-contracts)。
 以下命令以本包根目录为工作目录；各步骤成功后再执行下一步。
 
+## On this page
+
+- [1. 首次安装与基线](#1-首次安装与基线)
+- [2. 日常 ingest 与查询](#2-日常-ingest-与查询)
+- [3. 每次改动的操作顺序](#3-每次改动的操作顺序)
+- [4. 失效传播与审核](#4-失效传播与审核)
+- [5. 索引重建与原子发布](#5-索引重建与原子发布)
+- [6. Schema 迁移与回滚](#6-schema-迁移与回滚)
+- [7. 备份与恢复演练](#7-备份与恢复演练)
+- [8. 可选容器部署规范](#8-可选容器部署规范)
+- [主来源](#主来源)
+
+> [!WARNING]
+> This page covers the **legacy store/corpus** surface. The primary workspace
+> workflow is in [the workspace guide](../user/workspace.md); do not mix the
+> two pointer formats or lock domains.
+
 ## 1. 首次安装与基线
 
 当前需要本地 POSIX 文件系统、Python 3.11 或以上以及可用的 SQLite FTS5。
@@ -72,11 +89,11 @@ qecgraph context thm:hgp-length --store build/demo
 
 | 发生变化 | 最少需要复核的内容 |
 |---|---|
-| 原文定理或定义 | 关联规范化 claim、语义审核、依赖及 Lean 映射 |
+| 原文定理或定义 | 关联规范化 claim、语义审核、依赖（及实验性 Lean 映射；延期） |
 | 矩阵或列序 | 秩、对易、逻辑代表、距离证据、依赖该表示的 SEC |
 | circuit／noise／decoder | 运行输入身份、结果可比性、相关统计和图表 |
 | 检查器代码或配置 | 其证据适用性及需要重跑的结果 |
-| Lean 类型或 imports | 构建、实际依赖、axiom 信息和语义对应 |
+| Lean 类型或 imports（实验性） | 延期；当前不属于受支持恢复/验证流程 |
 | 分块器或 embedding 模型 | 对应查询投影；永久来源身份不改变 |
 
 旧 sidecar 按项目 source hash 绑定审核；corpus 按记录修订、来源版本和资产绑定。
@@ -140,7 +157,7 @@ pointer 包含 `format: qecgraph.current.v1`、目标 `snapshot_id` 和 `path: s
 3. 运行 `qecgraph validate --store <恢复的store路径>`，检查诊断和完整性。
 4. 使用归档输入与对应工具版本在另一目录重新 ingest，核对节点、来源定位和预期快照。
 5. 重跑关键结构化查询及有界上下文；对本包旧例运行 `python legacy/knowledge_starter/tools/qec_kb.py verify`。
-6. Lean 项目按 [13](../design/DESIGN.md#10-lean-boundary) 用固定工具链重建并检查证据；不可复建的记录只作为历史读取。
+6. Lean 为延期能力；不要把它纳入当前恢复验收。实验记录只按历史读取，不宣称已验证。
 7. 记录恢复耗时、缺失资产、差异与修复动作，通过后再切换正式读取入口。
 
 恢复测试失败时先补齐备份或修复流程，不能仅因为备份任务退出成功就标记“可恢复”。
@@ -152,7 +169,7 @@ pointer 包含 `format: qecgraph.current.v1`、目标 `snapshot_id` 和 `path: s
 模板把 `./examples/paper` 只读挂到 `/input`，把 `./build/container` 挂到 `/output`，默认执行 split。
 运行进程的 UID/GID 由 `QEC_UID/QEC_GID` 指定，默认均为 1000；输出目录须先存在且允许该用户写入。
 运行期为只读根文件系统、禁用网络，`/tmp` 使用 tmpfs；镜像构建仍需获取依赖或使用已有缓存。
-后续 research 镜像应补齐系统依赖锁。Lean 本机复现固定 4.19.0，工程未配置 Lean 镜像。
+后续 research 镜像应补齐系统依赖锁。Lean 已延期，当前不提供受支持的 Lean 镜像或验收。
 需要 PDF 解析时再增加 parser 服务，保持输入资源限制和独立输出目录。
 
 | 路径角色 | 挂载和生命周期 |

@@ -1,4 +1,4 @@
-"""CLI handlers for lean commands."""
+"""CLI handlers for the experimental/deferred Lean tools."""
 from __future__ import annotations
 
 from ...graph import read_json

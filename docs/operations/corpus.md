@@ -2,6 +2,15 @@
 
 > **Status: Current for the legacy corpus surface.** The workspace surface is the primary product; see the [workspace guide](../user/workspace.md).
 
+> [!NOTE]
+> This is the legacy multi-document corpus surface. The workspace has its own
+> machine release format; do not point both at the same directory.
+
+## On this page
+
+- [规范记录与来源映射](#规范记录与来源映射)
+- [固定版本查询](#固定版本查询)
+- [显式迁移和资产](#显式迁移和资产)
 
 原有单工程 store 和 CLI 保持兼容。Corpus 用独立目录维护多文档身份：
 

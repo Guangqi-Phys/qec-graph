@@ -6,7 +6,7 @@ RFC-QEC-002 / 0.4.0rc1 的独立报告见 [候选版验收](rfc002/REPORT.md)；
 下方保留 0.3.0 的历史记录。
 
 
-0.3.0 的复现步骤见 [发布复现](../docs/14_RELEASE.md)，实施范围见 [实施记录](../docs/IMPLEMENTATION_LOG.md)。
+0.3.0 的复现步骤保留在 Git 历史；当前文档入口见 [文档索引](../docs/README.md)。
 
 交接复核修正了距离论断证据绑定、实验未知配置的可比性、Lean 提议与有效审核状态区分。修正后的 Python、增量、MCP、Lean 构建和映射复验均已通过。[交接复核](release/recheck.json)
 
@@ -31,7 +31,7 @@ P0 基线命令：`.venv/bin/python tools/reproduce.py --out build/reproduce`，
 3 个源文件、26 个片段；sidecar 图 36 节点、97 边。
 完整 JSON Schema 检查和有限 HGP [[13,1,3]] 穷举通过。
 运行环境为本机 Python 3.15.2，准确 SQLite/依赖版本记录在结果和安装报告中。
-`docs/archive/releases/requirements-lock-0.3.0.txt` 保存本次 Python 环境（本项目 editable 安装使用 `pip install -e .`）。
+历史 Python 环境锁定见 Git 历史（本项目当前使用 `pip install -e .` 与 `pyproject.toml` 依赖组）。
 
 `handoff/` 是历史交付证据。后续阶段须增加自己的测试及报告。
 本次 P0 未运行 Docker、Lean、真实用户论文或 MCP 客户端。

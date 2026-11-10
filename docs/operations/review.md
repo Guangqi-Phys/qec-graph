@@ -3,13 +3,26 @@
 > **Status: Current for the legacy corpus review surface.** Workspace review/apply semantics are in the [system design](../design/DESIGN.md#6-review-evidence-and-query-eligibility).
 
 
+## On this page
+
+- [记录与 Schema 版本](#记录与-schema-版本)
+- [验证范围](#验证范围)
+- [数学插件和硬条件](#数学插件和硬条件)
+- [提案和决定](#提案和决定)
+- [Apply 事务与恢复](#apply-事务与恢复)
+- [派生失效与逻辑环](#派生失效与逻辑环)
+
+> [!IMPORTANT]
+> Schema/type validation is not mathematical verification. A passed check,
+> a bound distance witness, and a human review are separate evidence states.
+
 ## 记录与 Schema 版本
 
 P2 新记录使用 `qecgraph.record.v3`。相对 P1 v2，新增逐 kind 必填字段、显式未知原因、
 严格引用和受管理资产结构。权威 Schema 随 Python 包发布于
 [`qecgraph/validators/schemas/`](../../qecgraph/validators/schemas)。旧路径见[迁移说明](../../schemas/README.md)。
-P5 在 v3 添加 `lean_declaration` kind 与专用关系，原有字段和旧记录哈希不变；
-包含新 kind 的记录需支持该扩展的读者。实际构建与语义审核见 [13](../design/DESIGN.md#10-lean-boundary)。
+Legacy v3 还包含实验性的 `lean_declaration` kind 与关系字段；Lean 在 0.4.x
+中延期，不属于受支持工作流，也不是验证结论。见[系统设计 §10](../design/DESIGN.md#10-lean-deferred-not-supported)。
 
 原 v2 记录和历史哈希仍可读取，不就地改写。用 `migrate <旧记录目录> --out <新目录>`
 显式生成新 revision，完整旧对象及旧哈希保存在 `extensions.pre_validation_record`。
@@ -32,7 +45,7 @@ qecgraph validate-corpus --corpus build/corpus
 错误类型会在发布前失败并保留旧 CURRENT。旧 catalog: 关系保留旧语义，不冒充审核依赖。
 Corpus 验证还检查悬空引用、修订绑定、受管理资产字节和来源完整性。
 草稿可保存未解析引用，但查询诊断和严格验收会明确报告，不能静默忽略。
-结构/类型通过不代表矩阵有效、距离已证明、有人审核或 Lean 已构建。
+结构/类型通过不代表矩阵有效、距离已证明、有人审核或实验性 Lean 已构建。
 
 工具指纹包含所有 Python 子模块、打包 Schema 及解析/验证依赖版本；
 修改验证器或 Schema 会产生新构建身份，不复用旧快照作为新规则的验收证据。
@@ -53,7 +66,7 @@ CSS 插件只支持 +1 相位的二元 CSS 约定；校验显式形状、坐标�
 upper_bound、未知下界、缺失表示或无当前证据都不匹配。Evidence 的 `data.inputs` 必须绑定距离论断、
 实例、表示和度量各自的当前 ID、revision 与内容哈希。相关资产也必须可读且哈希一致。
 已有证据缺少论断绑定时仍可查阅。要在硬筛选中使用，需检查确切论断后登记新证据修订。
-输出保留来源报告、计算、证书或 Lean 的证据类别。
+输出保留来源报告、计算、证书等证据类别；Lean 不参与受支持流程。
 旧迁移样例的部分输入绑定和 sector 未说明，故默认不满足此严格筛选；应重新执行并登记准确证据，不能只刷新哈希。
 `evidence_ids` 在 v3 中唯一保存在记录信封；旧 data 中同名字段显式迁移，原值仍在历史对象中。
 

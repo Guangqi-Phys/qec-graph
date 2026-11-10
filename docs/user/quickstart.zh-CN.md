@@ -2,21 +2,44 @@
 
 > **状态：当前（0.4.x）。** 从安装到首次查询的最短路径。
 
+> [!TIP]
+> 需要完整配置、退出码或 MCP 细节时，转到 [进阶用法](advanced-usage.md)
+> 或 [工作区说明](workspace.md)。
 
-QEC Graph 把 LaTeX 论文导入本地量子纠错数据库。记录可以追溯到论文原文，并能在 Obsidian 或只读 MCP 中查询。
+## On this page
 
-按 [安装说明](../../README.md#install) 安装。再次运行同一条命令可更新。进入你想用作数据库的目录，把 LaTeX 源码包放进 `inputs/`：
+- [最短路径](#最短路径)
+- [接下来做什么](#接下来做什么)
+
+## 最短路径
+
+| 步骤 | 操作 | 期望结果 |
+|---|---|---|
+| 1 | 按 [安装说明](../../README.md#install) 安装 | `qec-graph --version` 有输出 |
+| 2 | 进入工作目录，创建 `inputs/` | 目录中能看到 `inputs/` |
+| 3 | 放入 LaTeX 源包，运行 `qec-graph init` | 终端显示发布成功或部分批次 |
+| 4 | 运行 `qec-graph sync` | 成功包写入 `archive/`，`inputs/` 副本清除 |
+| 5 | 运行 `qec-graph status` / `validate` | 显示索引数量与完整性检查结果 |
 
 ```sh
 mkdir -p inputs
+# 把下载完成的 TeX 源包放进 inputs/
 qec-graph init --workspace .
 qec-graph sync
 qec-graph status
 qec-graph validate
 ```
 
-成功导入后，原始包留在 `archive/`，`inputs/` 中的副本会清除。失败的包保留供重试。把 `human/` 作为 Obsidian 仓库打开，从 `Index.md` 开始。
+## 接下来做什么
 
-查找文献和记录：`qec-graph search HGP --workspace .`。接入 Codex 请参照 [MCP 说明](../../README.md#mcp)，或运行 `qec-graph mcp config --workspace .` 打印其他客户端所需的配置。
+| 目标 | 命令 / 入口 |
+|---|---|
+| 搜索来源与记录 | `qec-graph query search HGP --workspace .` |
+| 浏览人类视图 | 在 Obsidian 中打开 `human/`，从 `Index.md` 开始 |
+| 接入只读 MCP | `qec-graph mcp config --workspace .` |
+| 处理失败包 | `qec-graph inputs list`，再 `qec-graph inputs quarantine <name>` |
 
-[进阶用法](advanced-usage.md) · [数据与检索](data-and-search.md)
+成功导入后，原始包留在 `archive/`；失败包保留在 `inputs/` 以便重试。把 `human/`
+作为 Obsidian 仓库打开，从 `Index.md` 开始。**不要**把 `human/notes/` 当作检索输入。
+
+[进阶用法](advanced-usage.md) · [数据与检索](data-and-search.md) · [工作区说明](workspace.md)

@@ -110,7 +110,7 @@ _GROUPS = {
         'propose': 'review', 'list': 'review-list', 'show': 'review-show', 'decide': 'review-decide', 'apply': 'apply',
         'import': 'extract-submit',
     }),
-    'lean': ('Build, import, or inspect Lean evidence', {
+    'lean': ('Experimental (deferred) Lean tools; not part of the supported workflow', {
         'build': 'lean-build', 'import': 'lean-import', 'status': 'lean-status',
     }),
     'mcp': ('Configure or serve read-only MCP tools', {
@@ -256,12 +256,12 @@ def _register_commands(add):
     cmd = add('review-list', help='List source-linked proposals without approving them')
     cmd.add_argument('--workspace',
         help='Path to the QEC workspace; omit to use local discovery where supported')
-    cmd = add('lean-build', help='Explicitly build/export/audit a pinned Lean project; never invoked by read tools')
+    cmd = add('lean-build', help='Experimental (deferred): build/export/audit a pinned Lean project; not a supported workflow')
     cmd.add_argument('--project', required=True, help='Path to the pinned Lean project')
     cmd.add_argument('--out', required=True, help='Output directory for the command result')
     cmd.add_argument('--lake', help='Explicit Lake executable')
     cmd.add_argument('--build-only', action='store_true', help='Run the build without exporting declarations')
-    cmd = add('lean-import', help='Import an actual Lean export with current input or explicit historical bindings')
+    cmd = add('lean-import', help='Experimental (deferred): import a Lean export with explicit bindings')
     cmd.add_argument('report', help='Path to the actual Lean build report JSON')
     cmd.add_argument('--corpus', required=True, help='Path to a legacy multi-document corpus')
     cmd.add_argument('--project-id', required=True, help='Stable project ID')
@@ -269,7 +269,7 @@ def _register_commands(add):
     cmd.add_argument('--mapping', help='Path to a JSON object or list of exact declaration mappings')
     cmd.add_argument('--historical', action='store_true',
         help='Allow import as historical evidence using recorded bindings')
-    cmd = add('lean-status', help='Read Lean build freshness without executing Lean')
+    cmd = add('lean-status', help='Experimental (deferred): read Lean build freshness without executing Lean')
     cmd.add_argument('--corpus', required=True, help='Path to a legacy multi-document corpus')
     cmd.add_argument('--registry-revision', help='Exact corpus state ID; omit to use CURRENT')
     cmd = add('mcp-config', help='Print a reviewable fixed-scope client config without editing user settings')

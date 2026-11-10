@@ -143,3 +143,37 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(design, {'DESIGN.md'})
         self.assertFalse((ROOT / 'docs/rfc-002').exists())
         self.assertFalse((ROOT / 'docs/archive').exists())
+
+    @staticmethod
+    def _doc_slug(title):
+        title = re.sub(r'`([^`]*)`', r'\1', title)
+        title = re.sub(r'\[([^\]]*)\]\([^)]*\)', r'\1', title)
+        title = title.lower()
+        title = ''.join(ch for ch in title if ch.isalnum() or ch in ' _-')
+        title = re.sub(r'-+', '-', title.strip().replace(' ', '-'))
+        return title
+
+    def test_long_current_documents_have_a_working_toc(self):
+        for name in CURRENT_DOCS:
+            text = (ROOT / name).read_text(encoding='utf-8')
+            headings, fenced = [], False
+            for line in text.splitlines():
+                if line.strip().startswith('```'):
+                    fenced = not fenced
+                    continue
+                if not fenced:
+                    match = re.match(r'^##\s+(.+?)\s*$', line)
+                    if match and match.group(1).strip() != 'On this page':
+                        headings.append(match.group(1).strip())
+            if len(headings) < 2:
+                continue
+            with self.subTest(page=name):
+                self.assertIn('## On this page', text)
+                toc = text.split('## On this page', 1)[1].split('\n## ', 1)[0]
+                anchors = re.findall(r'\]\(#([^)]+)\)', toc)
+                self.assertEqual(anchors, [self._doc_slug(h) for h in headings])
+
+    def test_no_redirect_only_pages(self):
+        for page in sorted((ROOT / 'docs').rglob('*.md')):
+            self.assertGreaterEqual(len(page.read_text(encoding='utf-8').splitlines()), 10,
+                                    f'{page.relative_to(ROOT)} is a redirect/stub, not a document')

@@ -1,22 +1,41 @@
 # Operations and maintenance
 
-> **Status: Current.** Daily workspace usage lives in the [user guides](../user/README.md);
-> this section covers the legacy store/corpus compatibility surface, review,
-> remediation and validation evidence.
+> **Status: Current.** Daily workspace usage lives in the [user guides](../user/README.md).
+> This section covers the supported legacy store/corpus surface, review and evidence.
 
-- [Legacy store and corpus maintenance](maintenance.md): source changes, index rebuilds, backups, and recovery for the compatibility surface
-- [Corpus](corpus.md), [review](review.md), and [workspace migration](../user/workspace.md)
-- [Release build and verification](../user/advanced-usage.md#installation-options) and [changelog](../../CHANGELOG.md)
-- [Contributing](../../CONTRIBUTING.md), [security reporting](../../SECURITY.md), and [the documentation index](../README.md)
-- [Citation metadata](../../CITATION.cff)
-- [Validation evidence](../../validation/README.md) and [workspace acceptance](../../validation/rfc002/REPORT.md)
+> [!IMPORTANT]
+> These pages assume you already have a checkout and a working Python
+> environment. They do not replace the workspace guide for daily operations.
 
-Validation reports are evidence of their recorded inputs, commands, and
-commits. Check the report's scope before applying its results to a newer build.
+## On this page
+
+- [Operations map](#operations-map)
+- [Validation](#validation)
+- [Benchmarks](#benchmarks)
+
+## Operations map
+
+| Page | Surface | Use when |
+|---|---|---|
+| [Legacy store and corpus maintenance](maintenance.md) | Legacy store/corpus | Ingest, validate, migrate or recover a single-paper store or corpus |
+| [Corpus](corpus.md) | Legacy corpus | Register works/versions, map sources, run fixed-revision queries |
+| [Review](review.md) | Legacy corpus | Validate typed records, bind evidence, apply reviewed proposals |
+| [Workspace guide](../user/workspace.md) | Workspace | Current daily workflow (linked here for convenience) |
+| [Advanced usage](../user/advanced-usage.md) | Workspace/CLI | Release checks, exit codes and grouped commands |
+
+## Validation
+
+Validation reports are evidence of their recorded inputs, commands and commits.
+Check the report's scope before applying it to a newer build.
+
+- [Validation index](../../validation/README.md)
+- [Workspace acceptance report](../../validation/rfc002/REPORT.md)
+- [Pinned arXiv fixture instructions](../../tests/golden/README.md)
+
+## Benchmarks
 
 Run `python tools/bench.py --out build/benchmark.json` for the generated
 incremental workload. Pass `--archive-dir` to measure the six pinned arXiv
-inputs too. The report includes raw samples, medians, runtime versions, and
-query settings. Fresh means a new application store under ordinary OS caches.
-See the [source instructions](../../tests/golden/README.md) and the
-[measured baseline](../../validation/audit-0.4.0rc1/benchmark.json).
+inputs. The report records raw samples, medians, runtime versions and query
+settings; “fresh” means a new application store under ordinary OS caches.
+See the [measured baseline](../../validation/audit-0.4.0rc1/benchmark.json).

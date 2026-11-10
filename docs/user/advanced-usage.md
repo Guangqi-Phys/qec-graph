@@ -5,6 +5,22 @@
 
 For the install command, daily workflow, and MCP setup, start with the [README](../../README.md).
 
+## On this page
+
+- [Installation options](#installation-options)
+- [Try the bundled paper](#try-the-bundled-paper)
+- [Maintain a workspace](#maintain-a-workspace)
+- [Exit codes and script output](#exit-codes-and-script-output)
+- [Manage the Obsidian vault and research records](#manage-the-obsidian-vault-and-research-records)
+- [Query a workspace from the CLI](#query-a-workspace-from-the-cli)
+- [Work with individual papers and older corpora](#work-with-individual-papers-and-older-corpora)
+- [Reproduce the checks](#reproduce-the-checks)
+
+> [!TIP]
+> Run commands from the workspace root unless a section says otherwise.
+> `--workspace PATH` overrides the current directory; `--json` is the
+> machine-readable mode for scripts.
+
 ## Installation options
 
 The installer selects an executable for your operating system and CPU from
@@ -39,8 +55,12 @@ PYINSTALLER_CONFIG_DIR="$PWD/build/standalone-cache" \
 ```
 
 Run `dist/standalone/qec-graph` directly or install it in a user directory on
-`PATH`. Explicit Lean builds require the project's Lean toolchain.
-[Lean guide](../design/DESIGN.md#10-lean-boundary)
+`PATH`.
+
+> [!NOTE]
+> Lean is deferred in 0.4.x. The experimental `lean` command group and Lean
+> fixtures are not part of the supported workflow; see
+> [the design note](../design/DESIGN.md#10-lean-deferred-not-supported).
 
 ## Try the bundled paper
 
@@ -158,8 +178,9 @@ diagnostics include a numeric request ID or a short hash of a string ID.
 Request text, tool arguments, and source passages stay out of those diagnostics.
 
 Related commands also have grouped names. For example, `workspace sync`,
-`query search`, `lean build`, and `mcp serve` use the same options and
-handlers as `sync`, `search`, `lean-build`, and `serve-mcp`. Use
+`query search`, and `mcp serve` use the same options and handlers as `sync`,
+`search`, and `serve-mcp`. The `lean` group is experimental/deferred and is
+not part of the supported workflow. Use
 `qec-graph help mcp serve` for options and an example on a grouped command.
 `qec-graph help errors` and `qec-graph help json` describe script output.
 The original `review <file>` still works; use `review propose <file>` for the grouped

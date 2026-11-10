@@ -7,6 +7,18 @@ QEC Graph keeps the original sources, the graph extracted from them, and
 versioned research records. Search results refer to the machine release that
 served the query, so you can trace a result back to the same data later.
 
+## On this page
+
+- [What the workspace stores](#what-the-workspace-stores)
+- [Research record types](#research-record-types)
+- [Search by keyword, source, or structured fields](#search-by-keyword-source-or-structured-fields)
+- [Read and reproduce a query result](#read-and-reproduce-a-query-result)
+
+> [!IMPORTANT]
+> A field marked `known` means evidence is attached; it does not mean the
+> paper's theorem is mathematically verified. Distance bounds, review states
+> and Lean (deferred) remain separate evidence dimensions.
+
 ## What the workspace stores
 
 | Layer | Contents |
@@ -22,7 +34,8 @@ Importing a paper creates the source graph for supported TeX and can generate
 its source location and any unresolved fields. Structured code parameters,
 distance bounds, experimental conditions, and performance points depend on
 explicit records and evidence. Source links preserve what the paper reports.
-Mathematical checks, semantic review, and Lean builds carry separate evidence.
+Mathematical checks and semantic review carry separate evidence. Lean is
+deferred in 0.4.x; any experimental Lean fixture is not a verification claim.
 [Graph semantics and data contracts](../design/DESIGN.md#4-data-contracts)
 
 ## Research record types
@@ -117,8 +130,9 @@ extraction. `unresolved` can indicate an ambiguous link. `not_reported`
 requires a dated check of a specified part of the source. `not_applicable`
 and `conflicting` record why the field has no single value. Default workspace
 queries filter synthetic records and stale provider approvals. Legacy
-`qecgraph.record.v3` records can also carry claims, evidence, and Lean mappings
-in a migrated workspace.
+`qecgraph.record.v3` records can also carry claims and evidence, plus
+experimental Lean mapping fields. Lean is deferred and is not part of the
+supported 0.4.x workflow; see [the design note](../design/DESIGN.md#10-lean-deferred-not-supported).
 The research schema lists the supported kinds, the fields that must be present
 for each kind, and the shape of nullable `{id, revision}` links. Its
 `x-qec-target-kinds` annotations describe the allowed target kinds. A JSON
