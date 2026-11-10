@@ -28,6 +28,7 @@ def write_normalization(root, result: NormalizationResult, *, run_id=None):
         'normalized_sha256': result.source.sha256,
         'plan_sha256': hash_text(json.dumps(result.source.plan, sort_keys=True)),
         'skill_version': result.skill_version,
+        'fallback_reason': result.fallback_reason,
         'segments': list(result.source.segments),
         'ai': None if result.ai_result is None else {
             'model': result.ai_result.model,

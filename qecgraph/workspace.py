@@ -305,7 +305,9 @@ class Workspace:
         if not config.enabled:
             return None
 
-        def normalize(tree):
+        def normalize(tree, progress=None):
+            if progress:
+                progress(0, 'Normalizing package with AI')
             client = LLMClient(config, cache_dir=self.path('.qecgraph/ai-cache'))
             normalized = normalize_package(tree, client)
             artifact, manifest = write_normalization(self.path('machine'), normalized)
@@ -331,10 +333,12 @@ class Workspace:
         if not config.enabled:
             return None
 
-        def run(normalized, source_version_id, snapshot_id):
+        def run(normalized, source_version_id, snapshot_id, progress=None):
             client = LLMClient(config, cache_dir=self.path('.qecgraph/ai-cache'))
             written, errors = [], []
             for skill in ('extract_theorems', 'extract_assumptions', 'extract_data'):
+                if progress:
+                    progress(1, f'Extracting {skill} with AI')
                 try:
                     result = extract(normalized, client, skill)
                     proposal = dict(result.proposal)
@@ -501,7 +505,7 @@ class Workspace:
         immutable_json(self.path('archive/receipts/' + job.name + '.json'), receipt)
         return digest
 
-    def _prepare(self, cfg, state, digest, prior, reused, limits, *, captured, manifest_hashes, tool_identity, normalizer=None, extractor=None):
+    def _prepare(self, cfg, state, digest, prior, reused, limits, *, captured, manifest_hashes, tool_identity, normalizer=None, extractor=None, progress=None):
         result = {'archive_sha256': digest, 'status': 'archived_only', 'processing_completed': False,
                   'semantic_status': 'not_extracted', 'processor': PROCESSOR}
         normalized = None
@@ -525,7 +529,7 @@ class Workspace:
                     entry = candidates[0]
                 elif candidates and normalizer is not None:
                     try:
-                        extract_tree, normalization = normalizer(tree)
+                        extract_tree, normalization = normalizer(tree, progress=progress)
                         entry = 'main.tex'
                         normalized = normalization.get('normalized')
                         result.update(normalization_id=normalization['normalization_id'],
@@ -576,7 +580,7 @@ class Workspace:
                             captured=captured, manifest_hashes=manifest_hashes)
             if extractor is not None and normalized is not None and fresh_extraction and version is not None:
                 try:
-                    result['ai_extraction'] = extractor(normalized, source_id, version['snapshot_id'])
+                    result['ai_extraction'] = extractor(normalized, source_id, version['snapshot_id'], progress=progress)
                 except (OSError, ValueError, RuntimeError) as exc:
                     result['ai_extraction_error'] = str(exc).replace(str(self.root), '<workspace>')
             reused[build_key] = version
@@ -714,7 +718,7 @@ class Workspace:
                     materials[digest] = self._prepare(cfg, state, digest, prior, reused, limits,
                                                        captured=captured, manifest_hashes=manifest_hashes,
                                                        tool_identity=tool_identity, normalizer=normalizer,
-                                                       extractor=extractor)
+                                                       extractor=extractor, progress=update)
                     materials[digest]['config_fingerprint'] = fingerprint
                     if captured:
                         graph, snapshot, registered = captured.pop()

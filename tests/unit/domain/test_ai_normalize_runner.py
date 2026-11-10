@@ -50,3 +50,19 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual(manifest['schema'], 'qecgraph.normalization')
             self.assertEqual(manifest['ai']['model'], 'fake-model')
             self.assertNotIn('secret', json.dumps(manifest))
+
+
+class FallbackTests(unittest.TestCase):
+    def test_needs_review_plan_falls_back_without_losing_sources(self):
+        from qecgraph.llm.normalize import normalize_package
+        plan = {'status': 'needs_review', 'documents': [],
+                'operations': [{'op': 'include_asset', 'source': 'main.tex'}],
+                'label_renames': {}, 'unresolved': []}
+        client = FakeClient(plan)
+        source = SourceTree('tex', {'main.tex': MAIN, 'Supplement.tex': SUPP})
+        result = normalize_package(source, client)
+        self.assertIn('Main.', result.source.text)
+        self.assertIn('Supplement.', result.source.text)
+        self.assertIn('AI plan was not usable', result.fallback_reason)
+        self.assertEqual({segment['origin']['path'] for segment in result.source.segments
+                          if segment['origin'] is not None}, {'main.tex', 'Supplement.tex'})

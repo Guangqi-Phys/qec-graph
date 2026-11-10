@@ -108,6 +108,31 @@ def single_root_plan(tree: SourceTree):
             'label_renames': {}, 'unresolved': []}
 
 
+def deterministic_multi_root_plan(tree: SourceTree):
+    """Choose a main root and append other roots when AI cannot decide."""
+    roots = tree.entrypoints()
+    if len(roots) < 2:
+        raise NormalizationError('deterministic multi-root normalization needs at least two roots')
+    def is_supplement(name):
+        lowered = name.lower()
+        return any(token in lowered for token in ('supplement', 'supp_', 'appendix', 'response'))
+    main = next((name for name in roots if not is_supplement(name)), roots[0])
+    others = [name for name in roots if name != main]
+    main_raw = tree.files[main]
+    operations = [{'op': 'use_preamble', 'source': main},
+                  {'op': 'include_body', 'source': main}]
+    if b'\\appendix' in main_raw:
+        operations.append({'op': 'append_appendix', 'source': main})
+    for name in others:
+        operations.append({'op': 'append_body', 'source': name})
+        if b'\\appendix' in tree.files[name]:
+            operations.append({'op': 'append_appendix', 'source': name})
+    return {'status': 'ready',
+            'documents': [{'path': name, 'role': 'main' if name == main else 'supplement'}
+                          for name in [main, *others]],
+            'operations': operations, 'label_renames': {}, 'unresolved': []}
+
+
 def _check_plan(tree, plan):
     try:
         schema = load_skill('normalize_package').schema
@@ -189,6 +214,7 @@ class NormalizationResult:
     inventory: dict
     ai_result: LLMResult | None
     skill_version: int
+    fallback_reason: str | None = None
 
 
 def _excerpt(raw, start, end, limit=1200):
@@ -242,5 +268,11 @@ def normalize_package(tree: SourceTree, client, *, extra_skills_dir=None, use_ca
     ai_result = client.complete_json([Message(**message) for message in messages], skill.schema,
                                      use_cache=use_cache)
     plan = ai_result.data
-    normalized = assemble(tree, plan)
-    return NormalizationResult(normalized, inventory_data, ai_result, skill.version)
+    fallback_reason = None
+    try:
+        normalized = assemble(tree, plan)
+    except NormalizationError as exc:
+        fallback_reason = f'AI plan was not usable: {exc}'
+        normalized = assemble(tree, deterministic_multi_root_plan(tree))
+    return NormalizationResult(normalized, inventory_data, ai_result, skill.version,
+                               fallback_reason=fallback_reason)
