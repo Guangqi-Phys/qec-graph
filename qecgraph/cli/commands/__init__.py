@@ -7,6 +7,7 @@ HANDLERS = {
     'ai-test': ai.test,
     'ai-status': ai.status,
     'ai-config': ai.config,
+    'ai-proposals': ai.proposals,
     'doctor': workspace.doctor,
     'snapshot': workspace.snapshots,
     'inputs': workspace.inputs,

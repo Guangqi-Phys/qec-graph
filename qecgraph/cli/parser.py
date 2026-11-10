@@ -118,7 +118,7 @@ _GROUPS = {
     }),
     'human': ('Render human-readable views', {'build': 'human-build'}),
     'ai': ('Configure and test optional AI providers', {
-        'test': 'ai-test', 'status': 'ai-status', 'config': 'ai-config',
+        'test': 'ai-test', 'status': 'ai-status', 'config': 'ai-config', 'proposals': 'ai-proposals',
     }),
     'software': ('Manage the software directory', {
         'import-seed': 'software-import-seed', 'coverage': 'software-coverage',
@@ -134,7 +134,7 @@ _GROUPS = {
 _SHORTCUTS = {'init', 'sync', 'rebuild', 'status', 'validate', 'search', 'show',
               'deps', 'impact', 'context', 'doctor', 'snapshot'}
 _GROUP_ONLY = {'query-performance', 'query-software', 'review-show',
-               'ai-test', 'ai-status', 'ai-config'}
+               'ai-test', 'ai-status', 'ai-config', 'ai-proposals'}
 _LEGACY_PATHS = {command: f'{group} {verb}' for group, (_, actions) in _GROUPS.items()
                  for verb, command in actions.items() if command not in _SHORTCUTS | _GROUP_ONLY}
 
@@ -197,7 +197,8 @@ def _register_commands(add):
                 help='Ingest new inbox files as well as replaying the archive')
     for name, description in (('ai-test', 'Test the configured AI provider without sending paper text'),
                               ('ai-status', 'Report the selected AI provider/model and key source'),
-                              ('ai-config', 'Show the workspace AI configuration with secrets redacted')):
+                              ('ai-config', 'Show the workspace AI configuration with secrets redacted'),
+                              ('ai-proposals', 'List AI proposals waiting for review')):
         cmd = add(name, help=description)
         cmd.add_argument('--workspace',
             help='Path to the QEC workspace; omit to use local discovery where supported')

@@ -18,6 +18,7 @@ EXAMPLES = {
     'ai-test': '--workspace ./qec',
     'ai-status': '--workspace ./qec',
     'ai-config': '--workspace ./qec',
+    'ai-proposals': '--workspace ./qec',
     'asset-add': 'results.csv --workspace ./qec --media-type text/csv',
     'extract-request': 'SOURCE_VERSION_ID --workspace ./qec --max-chars 12000',
     'extract-submit': 'REQUEST_ID response.json --workspace ./qec',
