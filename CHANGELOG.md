@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+## 0.6.1 — 2026-11-11
+
+- Fixed parsing of percent-encoded URLs in LaTeX links, including the
+  `arXiv-2411.10343v2` bibliography failure, while preserving original bytes
+  and source coordinates.
+- Added parser-first AI structure recovery for eligible failures. Recovery
+  plans must cover the original source exactly, remain `proposed`, and pass
+  schema, source-mapping and publication checks. Saved plans support offline
+  rebuilds.
+- Added source-linked reading views for CLI search, workspace MCP queries and
+  human previews, with conservative removal of formatting and citations.
+- Ordinary packages now use deterministic extraction. AI structure fallback
+  defaults to enabled, while semantic proposal extraction requires explicit
+  `[ai].extract_proposals = true`. Upgrade readers before sharing snapshots
+  that use the new `recovered_proposed` extraction status.
+- Hardened normalization mappings, publication recovery, concurrent package
+  processing, proposal reviews, citation verification, query evidence and
+  provider response/cache validation.
+- Fixed standalone packaging of AI skill instructions, prompts and schemas.
+  Added offline regressions and installed CLI/workspace acceptance checks.
+
 ## 0.6.0 — 2026-11-10
 
 - Release checks now account for prepare-only `init`: the workspace reproduction
