@@ -25,7 +25,7 @@
         "additionalProperties": false,
         "required": ["op", "source"],
         "properties": {
-          "op": {"enum": ["use_preamble", "include_body", "append_appendix", "append_body", "include_asset"]},
+          "op": {"enum": ["use_document", "use_preamble", "include_body", "append_appendix", "append_body", "include_asset"]},
           "source": {"type": "string"},
           "part": {"type": "string"},
           "target": {"type": "string"}
