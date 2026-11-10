@@ -253,8 +253,7 @@ def normalize_package(tree: SourceTree, client, *, extra_skills_dir=None, use_ca
     roots = tree.entrypoints()
     if len(roots) == 1:
         plan = single_root_plan(tree)
-        normalized = assemble(tree, plan)
-        return NormalizationResult(normalized, inventory_data, None, 1)
+        return NormalizationResult(assemble(tree, plan), inventory_data, None, 1)
     if len(roots) == 0:
         raise NormalizationError('no complete TeX root was found')
     skill = load_skill('normalize_package', extra_skills_dir)
@@ -264,9 +263,19 @@ def normalize_package(tree: SourceTree, client, *, extra_skills_dir=None, use_ca
         {'role': 'user', 'content': json.dumps(evidence, ensure_ascii=False, sort_keys=True)},
     ]
     from .providers.base import Message
+    normalized: NormalizedSource | None = None
+
+    def check_plan(plan):
+        source = assemble(tree, plan)
+        _check_root_roles(tree, plan)
+        return source
+
+    def validate(plan):
+        nonlocal normalized
+        normalized = check_plan(plan)
+
     ai_result = client.complete_json([Message(**message) for message in messages], skill.schema,
-                                     use_cache=use_cache)
-    plan = ai_result.data
-    normalized = assemble(tree, plan)
-    _check_root_roles(tree, plan)
+                                     use_cache=use_cache, validate=validate)
+    if normalized is None:
+        normalized = check_plan(ai_result.data)
     return NormalizationResult(normalized, inventory_data, ai_result, skill.version)

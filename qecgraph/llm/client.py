@@ -6,12 +6,13 @@ import hashlib
 import json
 from pathlib import Path
 import time
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 import uuid
 
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
+from ..core.graph import canonical, strict_json_loads
 from .cache import ResponseCache, cache_key
 from .config import AIConfig
 from .errors import LLMError, ProviderError
@@ -48,9 +49,9 @@ def _parse_json(text):
         if len(lines) >= 3 and lines[0].startswith('```') and lines[-1].strip() == '```':
             value = '\n'.join(lines[1:-1]).strip()
     try:
-        return json.loads(value)
-    except json.JSONDecodeError as exc:
-        raise ResponseSchemaError(f'model returned invalid JSON: {exc.msg}') from exc
+        return strict_json_loads(value)
+    except ValueError:
+        raise ResponseSchemaError('model returned invalid JSON') from None
 
 
 def _usage_cost(usage):
@@ -73,9 +74,16 @@ class LLMClient:
         if isinstance(provider_key, str) and provider_key and provider_key not in self.secrets:
             self.secrets += (provider_key,)
 
+    def _provider_identity(self):
+        configured = self.config.providers.get(self.config.provider)
+        return {'name': self.config.provider, 'kind': getattr(self.provider, 'kind', configured and configured.kind),
+                'endpoint': getattr(self.provider, 'endpoint', None) or (configured and configured.base_url),
+                'command': configured and configured.command, 'args': configured and configured.args}
+
     def complete_json(self, messages: Sequence[Message], schema: Mapping[str, Any], *,
                       model: str | None = None, temperature: float = 0.0,
-                      max_output_tokens: int | None = None, use_cache: bool = True) -> LLMResult:
+                      max_output_tokens: int | None = None, use_cache: bool = True,
+                      validate: Callable[[Any], None] | None = None) -> LLMResult:
         if not self.config.allow_source_upload:
             raise LLMError('source upload is disabled by [ai].allow_source_upload')
         selected_model = model or self.config.model
@@ -84,8 +92,20 @@ class LLMClient:
         if sum(len(message.content) for message in messages) > self.config.max_input_chars:
             raise BudgetExceeded('AI request exceeds [ai].max_input_chars')
         Draft202012Validator.check_schema(schema)
+        schema_validator = Draft202012Validator(schema)
+
+        def validated(text):
+            data = _parse_json(text)
+            try:
+                schema_validator.validate(data)
+            except ValidationError as exc:
+                raise ResponseSchemaError(f'model response does not match schema ({exc.validator})') from None
+            if validate is not None:
+                validate(data)
+            return data
+
         message_payload = [{'role': message.role, 'content': message.content} for message in messages]
-        key = cache_key(provider=self.config.provider, model=selected_model,
+        key = cache_key(provider=self._provider_identity(), model=selected_model,
                         messages=message_payload, schema=schema, temperature=temperature,
                         max_output_tokens=max_output_tokens)
         prompt_hash = hashlib.sha256(json.dumps(message_payload, ensure_ascii=False,
@@ -93,10 +113,20 @@ class LLMClient:
         run_id = uuid.uuid4().hex
         if use_cache and self.cache is not None:
             cached = self.cache.get(key)
-            if cached is not None and isinstance(cached.get('data'), (dict, list)):
-                return LLMResult(data=cached['data'], text=cached.get('text', ''), model=selected_model,
-                                 usage=cached.get('usage', {}), request_id=cached.get('request_id'),
-                                 attempts=0, cached=True, run_id=run_id, prompt_sha256=prompt_hash)
+            if (cached is not None and isinstance(cached.get('text'), str)
+                    and isinstance(cached.get('model'), str) and cached['model']
+                    and isinstance(cached.get('usage'), dict)
+                    and (cached.get('request_id') is None or isinstance(cached['request_id'], str))):
+                try:
+                    data = validated(cached['text'])
+                    if canonical(data) != canonical(cached['data']):
+                        raise ResponseSchemaError('cached JSON differs from the response text')
+                except (ValueError, KeyError, LLMError):
+                    pass
+                else:
+                    return LLMResult(data=data, text=cached['text'], model=cached['model'],
+                                     usage=cached['usage'], request_id=cached.get('request_id'),
+                                     attempts=0, cached=True, run_id=run_id, prompt_sha256=prompt_hash)
         last_error = None
         spent = 0.0
         for attempt in range(1, self.config.max_retries + 2):
@@ -117,13 +147,7 @@ class LLMClient:
             spent += _usage_cost(completion.usage)
             if spent > self.config.max_cost_usd:
                 raise BudgetExceeded(f'AI cost limit exceeded: {spent:.4f} USD')
-            try:
-                data = _parse_json(completion.text)
-                Draft202012Validator(schema).validate(data)
-            except ResponseSchemaError:
-                raise
-            except ValidationError as exc:
-                raise ResponseSchemaError(f'model response does not match schema ({exc.validator})') from None
+            data = validated(completion.text)
             result = {'data': data, 'text': completion.text, 'model': completion.model,
                       'usage': completion.usage, 'request_id': completion.request_id}
             if use_cache and self.cache is not None:

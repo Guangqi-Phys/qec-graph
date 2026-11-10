@@ -186,13 +186,22 @@ def extract(normalized, client, skill_name, *, projection_path='main.tex', extra
         'segments': list(normalized.segments),
     }
     content = json.dumps(evidence, ensure_ascii=False, sort_keys=True)
+    checked = None
+
+    def validate(data):
+        nonlocal checked
+        validate_extraction(skill_name, data)
+        validate_source_refs(normalized, projection_path, skill_name, data)
+        checked = data
+
     ai_result = client.complete_json(
         [Message('system', skill.system_prompt), Message('user', content)], skill.schema,
-        use_cache=use_cache)
+        use_cache=use_cache, validate=validate)
+    if checked is not ai_result.data:
+        validate(ai_result.data)
     proposal = make_proposal(skill_name, ai_result.data,
                              source_tree_hash=normalized.source_tree_hash,
                              ai_result=ai_result, normalization_id=normalized.sha256)
-    validate_source_refs(normalized, projection_path, skill_name, ai_result.data)
     proposal['projection_path'] = projection_path
     proposal['provenance']['skill_version'] = skill.version
     return ExtractionResult(skill=skill_name, data=ai_result.data, proposal=proposal,
