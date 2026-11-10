@@ -38,6 +38,7 @@ This document is the single source of truth for the system's architecture, data 
 - [12. Invariants and failure cases](#12-invariants-and-failure-cases)
 - [13. Current limits and non-goals](#13-current-limits-and-non-goals)
 - [14. Verification and change rules](#14-verification-and-change-rules)
+- [15. AI integration](#15-ai-integration)
 - [Appendix A — Decision record (supersedes the standalone ADRs for current behavior)](#appendix-a--decision-record-supersedes-the-standalone-adrs-for-current-behavior)
 - [Appendix B — Primary references](#appendix-b--primary-references)
 
@@ -551,6 +552,33 @@ These are limits of the current release, not permission to fill gaps with plausi
 - A design change is complete only when this document, the implementation, the tests and the validation claim agree. Do not leave a second contradictory design page in the active tree.
 
 ---
+
+## 15. AI integration
+
+AI is an optional, local orchestration layer under `qecgraph/llm/`. `init` writes
+provider templates but never calls a provider or extracts a package. `sync`
+uses AI only when a package needs normalization (more than one complete TeX
+root); a single-root package follows the deterministic path.
+
+The normalizer receives a bounded inventory and source excerpts, returns a
+normalization plan, and the assembler copies the selected original bytes into a
+derived `main.tex`. The original archive and source tree remain authoritative;
+the derived document records segment-to-source mappings. AI extraction writes
+reviewable `qecgraph.ai.proposal` artifacts; it never promotes them to verified
+records.
+
+Providers are selected in `qecgraph.toml` (OpenAI, Anthropic, OpenRouter or a
+local CLI adapter). Requests are schema-bound, retried only on transient errors,
+budgeted, cached by content hash and logged with model/prompt/run provenance.
+API keys are redacted and the configuration file is created mode `0600`.
+
+| Component | Status |
+|---|---|
+| Init and provider configuration | Implemented; no network call in `init` |
+| Provider/client retries, schema and cache | Implemented |
+| Versioned skill packs | Implemented |
+| Source-mapped normalization | Implemented for ambiguous packages |
+| Theorem/assumption/data proposals | Implemented as `machine/ai/proposals`; review/apply wiring is partial |
 
 ## Appendix A — Decision record (supersedes the standalone ADRs for current behavior)
 

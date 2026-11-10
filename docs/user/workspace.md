@@ -40,6 +40,30 @@ qec-graph rebuild
 qec-graph validate
 ```
 
+### AI configuration
+
+`init` writes an `[ai]` table and provider blocks for OpenAI, Anthropic,
+OpenRouter and Claude Code. `sync` can then normalize multiple TeX roots and
+extract proposals. Keep the key in `api_key_env` when possible; a key placed in
+`qecgraph.toml` is protected by mode `0600` but should not be committed.
+
+```toml
+[ai]
+enabled = true
+provider = "openrouter"
+model = "your-model-id"
+
+[ai.providers.openrouter]
+kind = "openai_compatible"
+base_url = "https://openrouter.ai/api/v1"
+api_key_env = "OPENROUTER_API_KEY"
+api_key = ""
+```
+
+`qec-graph ai status` reports the selected provider without contacting it;
+`qec-graph ai test` makes one schema-bound connectivity probe. `qec-graph init`
+never calls either command automatically.
+
 Daily use is `qec-graph sync`, `qec-graph status` and `qec-graph validate`.
 The terminal updates one progress line and ends with success or an error. `sync`
 clears copies in `inputs/` only after successful archive and publication;

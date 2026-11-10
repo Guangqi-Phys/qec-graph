@@ -102,6 +102,8 @@ partial 状态在两种模式下都退出 2。无效命令语法退出 64。命�
 | 任务 | 从工作区根目录运行的命令 |
 | --- | --- |
 | 创建工作区和 AI 配置，不抽取内容 | `qec-graph init` |
+| 不联网查看当前 AI provider | `qec-graph ai status` |
+| 用一次探针测试 AI 接入 | `qec-graph ai test` |
 | 预览待处理输入 | `qec-graph sync --dry-run` |
 | 导入并保留收件箱副本 | `qec-graph sync --keep-inputs` |
 | 查看包和失败详情 | `qec-graph status --json` |

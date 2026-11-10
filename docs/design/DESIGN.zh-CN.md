@@ -41,6 +41,7 @@ Lean 边界的唯一权威来源。如果代码、测试和本文不一致，以
 - [12. 不变量和失败案例](#12-不变量和失败案例)
 - [13. 当前限制和非目标](#13-当前限制和非目标)
 - [14. 验证和变更规则](#14-验证和变更规则)
+- [15. AI 接入](#15-ai-接入)
 - [附录 A — 决策记录（替代当前行为的独立 ADR）](#附录-a--决策记录替代当前行为的独立-adr)
 - [附录 B — 主要参考](#附录-b--主要参考)
 
@@ -610,6 +611,29 @@ build evidence 或 semantic equivalence。
 - 只有本文、实现、测试和 validation claim 一致时，设计变更才算完成。不要把第二份矛盾设计页留在活动文档树中。
 
 ---
+
+## 15. AI 接入
+
+AI 是 `qecgraph/llm/` 下的可选本地编排层。`init` 只写 provider 模板，不调用模型、
+不抽取文献包。`sync` 只在需要规范化（存在多个完整 TeX 根）时使用 AI；单根文献包
+走确定性路径。
+
+normalizer 接收有界 inventory 和原文片段，返回 normalization plan；assembler
+按计划复制原始字节生成派生 `main.tex`。原始压缩包和 source tree 仍是权威来源，
+派生文档记录 segment 到原始来源的映射。AI 抽取写出可审核的
+`qecgraph.ai.proposal` 产物，绝不自动提升为 verified 记录。
+
+Provider 在 `qecgraph.toml` 中选择（OpenAI、Anthropic、OpenRouter 或本地 CLI
+适配器）。请求经过 schema 校验，仅对瞬时错误重试，受预算约束，按内容哈希缓存，
+并记录 model/prompt/run 来源。API key 会脱敏，配置文件以 `0600` 创建。
+
+| 组件 | 状态 |
+|---|---|
+| Init 与 provider 配置 | 已实现；`init` 不联网 |
+| Provider/client 重试、schema、缓存 | 已实现 |
+| 版本化 skill packs | 已实现 |
+| 来源映射规范化 | 已实现于歧义文献包 |
+| 定理/假设/数据 proposal | 已写入 `machine/ai/proposals`；review/apply 接线仍为部分实现 |
 
 ## 附录 A — 决策记录（替代当前行为的独立 ADR）
 

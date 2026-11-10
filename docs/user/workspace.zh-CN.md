@@ -37,6 +37,28 @@ qec-graph rebuild
 qec-graph validate
 ```
 
+### AI 配置
+
+`init` 会写入 `[ai]` 表和 OpenAI、Anthropic、OpenRouter、Claude Code 的接入点。
+之后 `sync` 可以规范化多个 TeX 根文档并提取提议。优先把 key 放在
+`api_key_env`；直接写入 `qecgraph.toml` 的 key 受 `0600` 权限保护，但不应提交。
+
+```toml
+[ai]
+enabled = true
+provider = "openrouter"
+model = "your-model-id"
+
+[ai.providers.openrouter]
+kind = "openai_compatible"
+base_url = "https://openrouter.ai/api/v1"
+api_key_env = "OPENROUTER_API_KEY"
+api_key = ""
+```
+
+`qec-graph ai status` 只报告当前 provider，不联网；`qec-graph ai test` 发出一次
+带 schema 的连接探针。`qec-graph init` 不会自动调用这两个命令。
+
 日常使用 `qec-graph sync`、`qec-graph status` 和 `qec-graph validate`。
 终端更新同一条进度行，结束时显示成功或错误。`sync` 在成功归档并发布后清理 `inputs/` 中的副本，失败件留待重试。
 加 `--json` 可查看详细报告。除 `init` 外，命令优先使用显式的 `--workspace`，

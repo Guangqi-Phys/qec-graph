@@ -113,6 +113,8 @@ for command options or `qec-graph --version` for the installed version.
 | Task | Command from the workspace root |
 | --- | --- |
 | Create the workspace and AI configuration without extracting | `qec-graph init` |
+| Inspect the selected AI provider without network access | `qec-graph ai status` |
+| Test the configured AI endpoint with one probe | `qec-graph ai test` |
 | Preview pending inputs | `qec-graph sync --dry-run` |
 | Import and keep the inbox copies | `qec-graph sync --keep-inputs` |
 | Inspect package and failure details | `qec-graph status --json` |

@@ -3,6 +3,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import copy
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .client import LLMResult
 
 from .errors import LLMError
 
@@ -16,7 +20,7 @@ class ExtractionResult:
     skill: str
     data: dict
     proposal: dict
-    ai_result: object
+    ai_result: LLMResult
 
 
 def _strings(value, field):

@@ -138,17 +138,20 @@ def load_ai_config(root, environ: Mapping[str, str] | None = None) -> AIConfig:
     provider = raw.get('provider')
     if not isinstance(provider, str) or not provider:
         raise AIConfigError('[ai].provider must be a nonempty string')
-    numbers = {
-        'timeout_seconds': (raw.get('timeout_seconds', 180), (int, float), 1),
-        'max_retries': (raw.get('max_retries', 2), int, 0),
-        'max_cost_usd': (raw.get('max_cost_usd', 5.0), (int, float), 0),
-        'max_input_chars': (raw.get('max_input_chars', 200000), int, 1000),
-    }
-    parsed = {}
-    for name, (value, types, minimum) in numbers.items():
-        if isinstance(value, bool) or not isinstance(value, types) or value < minimum:
+    def number(name, default, minimum, *, integer=False):
+        value = raw.get(name, default)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or value < minimum:
             raise AIConfigError(f'[ai].{name} has an invalid value')
-        parsed[name] = value
+        if integer and not isinstance(value, int):
+            raise AIConfigError(f'[ai].{name} must be an integer')
+        return value
+
+    parsed = {
+        'timeout_seconds': number('timeout_seconds', 180, 1),
+        'max_retries': number('max_retries', 2, 0, integer=True),
+        'max_cost_usd': number('max_cost_usd', 5.0, 0),
+        'max_input_chars': number('max_input_chars', 200000, 1000, integer=True),
+    }
     allow = raw.get('allow_source_upload', True)
     if not isinstance(allow, bool):
         raise AIConfigError('[ai].allow_source_upload must be a boolean')

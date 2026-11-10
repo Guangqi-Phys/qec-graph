@@ -44,6 +44,49 @@ Successful imports keep the original package in `archive/` and clear its inbox
 copy. Open `human/` as an Obsidian vault and start at `Index.md`.
 Use `qec-graph inputs quarantine <name>` for a package that keeps failing.
 
+## AI extraction
+
+AI is optional. When configured, `sync` normalizes multi-root packages into one
+entry and proposes theorem, assumption and data records. The original package
+remains authoritative; AI output stays `proposed` until reviewed.
+
+`qecgraph.toml` is generated with these provider templates:
+
+| Provider | Kind | Default credential |
+|---|---|---|
+| OpenAI | `openai` | `OPENAI_API_KEY` |
+| Anthropic | `anthropic` | `ANTHROPIC_API_KEY` |
+| OpenRouter | `openai_compatible` | `OPENROUTER_API_KEY` |
+| Claude Code | `cli` | existing local CLI login |
+
+Set the provider, model and key. `api_key` may be filled inline, or leave it
+empty and use `api_key_env`:
+
+```toml
+[ai]
+enabled = true
+provider = "openrouter"
+model = "your-model-id"
+
+[ai.providers.openrouter]
+kind = "openai_compatible"
+base_url = "https://openrouter.ai/api/v1"
+api_key_env = "OPENROUTER_API_KEY"
+api_key = ""
+```
+
+Check the configuration without sending paper text, then import:
+
+```sh
+qec-graph ai status
+qec-graph ai test
+qec-graph sync
+```
+
+If `inputs/` has several TeX roots, the normalizer proposes a source-mapped
+`main.tex`; the parser then extracts it. If AI is unavailable, a package with
+several roots remains archived and asks for an entry point instead.
+
 ## How it works
 
 The pipeline is one writer; each stage leaves a named artifact for the next. Implementation docs live under `docs/user/`, `docs/design/` and `docs/operations/`.
@@ -52,7 +95,7 @@ The pipeline is one writer; each stage leaves a named artifact for the next. Imp
 |---|---|---|---|---|
 | `inputs/` | Receive candidate source packages | [Quick start](docs/user/quickstart.md), [Workspace guide](docs/user/workspace.md) | `.tex`, `.tar`, `.tar.gz`/`.tgz`, `.zip`, `.gz` | claimed inbox files and `.processing/<job>/job.json` |
 | `archive/` | Preserve original bytes and a receipt | [System design](docs/design/DESIGN.md#7-workspace-transaction-and-publication-protocol), [Workspace guide](docs/user/workspace.md) | claimed package | `archive/blobs/sha256/<sha256>`, `archive/receipts/<job>.json` |
-| `source tree` | Verify, unpack and select the entry point | [Workspace guide](docs/user/workspace.md), [Splitter](docs/user/splitter.md) | archived blob | `sources/<tree-hash>/...` and `[entrypoints]` in `qecgraph.toml` |
+| `source tree` | Verify, unpack and select or normalize the entry point | [Workspace guide](docs/user/workspace.md), [Splitter](docs/user/splitter.md), [AI extraction](#ai-extraction) | archived blob | `sources/<tree-hash>/...`; optional derived `machine/derived/normalizations/.../main.tex` |
 | `parser` | Extract sections, environments, labels, refs and spans | [Splitter](docs/user/splitter.md), [System design](docs/design/DESIGN.md#5-source-extraction) | verified `.tex` tree | store: `snapshots/<snapshot-id>/`; workspace: `machine/source_snapshots/<snapshot-id>/`; both contain `graph.json`, `manifest.json`, `report.json`, `graph.sqlite`, `nodes/<kind>/` |
 | `research records` | Store typed QEC objects and field evidence | [Data and search](docs/user/data-and-search.md), [System design](docs/design/DESIGN.md#4-data-contracts) | source snapshot plus `research` JSON | `machine/research/<hash(id)>/<hash(revision)>.json` with `schema: qecgraph.research` |
 | `review` | Bind proposals and decisions to exact content | [Review](docs/operations/review.md), [System design](docs/design/DESIGN.md#6-review-evidence-and-query-eligibility) | proposal JSON and explicit decision | `machine/proposals/<hash>.json`, `machine/reviews/<hash>.json`, `machine/states/<revision>.json` |
@@ -79,6 +122,7 @@ validation leaves the previous release readable. `human/notes/` is never read.
 | Review | Proposal/diff, explicit decide, hash-bound apply, stale review detection |
 | Query | Exact filters, bounded context, dependency/impact traversal, code/performance/software queries |
 | MCP | 13 fixed-scope read tools, `qec://source/...` resources, budgets, one pinned release per session |
+| AI assistance | optional provider config, source-mapped normalization of multiple TeX roots, proposed theorem/assumption/data extraction |
 | Human view | Generated Obsidian pages with stable links and tombstones; `human/notes/` is private |
 | Surfaces | Workspace is primary; single-paper store and multi-paper corpus remain available |
 
@@ -93,6 +137,7 @@ validation leaves the previous release readable. `human/notes/` is never read.
 | Read queries | `search`, `show`, `deps`, `impact`, `context`, `codes`, `performance`, `software`; SQLite/FTS5 with a deterministic fallback |
 | MCP server | local stdio JSON-RPC `2025-06-18`, read-only tools, source resources, per-call budgets, no path or shell arguments |
 | Human view | deterministic `human/Index.md` and `human/generated/` pages, per-page atomic writes, tombstones, `human_stale` recovery |
+| AI layer | provider adapters, schema-bound client, versioned skills, source-mapped normalization and reviewable proposals |
 | Distribution | wheel/sdist, standalone executables, research Compose profile and read-only MCP isolation profile |
 
 ## MCP

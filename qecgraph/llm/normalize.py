@@ -10,7 +10,10 @@ from dataclasses import dataclass
 import hashlib
 import json
 import re
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
+
+if TYPE_CHECKING:
+    from .client import LLMResult
 
 from jsonschema import Draft202012Validator
 
@@ -130,7 +133,7 @@ def assemble(tree: SourceTree, plan: Mapping[str, Any]):
     _check_plan(tree, plan)
     output = bytearray()
     segments = []
-    labels = {}
+    labels: dict[str, tuple[str, int]] = {}
     for operation in plan['operations']:
         path = operation['source']
         raw = tree.files[path]
@@ -184,7 +187,7 @@ def assemble(tree: SourceTree, plan: Mapping[str, Any]):
 class NormalizationResult:
     source: NormalizedSource
     inventory: dict
-    ai_result: object | None
+    ai_result: LLMResult | None
     skill_version: int
 
 

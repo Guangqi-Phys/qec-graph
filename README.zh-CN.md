@@ -40,6 +40,47 @@ qec-graph validate
 vault 打开，从 `Index.md` 开始。反复失败的包用
 `qec-graph inputs quarantine <name>` 处理。
 
+## AI 抽取
+
+AI 是可选能力。配置后，`sync` 会把多根 TeX 包规范化为一个入口，并提议定理、
+假设和数据记录。原始包仍是权威来源；AI 结果在审核前保持 `proposed`。
+
+`qecgraph.toml` 会预置以下接入点：
+
+| 接入点 | 类型 | 默认凭据 |
+|---|---|---|
+| OpenAI | `openai` | `OPENAI_API_KEY` |
+| Anthropic | `anthropic` | `ANTHROPIC_API_KEY` |
+| OpenRouter | `openai_compatible` | `OPENROUTER_API_KEY` |
+| Claude Code | `cli` | 已有的本地 CLI 登录 |
+
+设置 provider、model 和 key。`api_key` 可以直接填，也可以留空并用
+`api_key_env`：
+
+```toml
+[ai]
+enabled = true
+provider = "openrouter"
+model = "your-model-id"
+
+[ai.providers.openrouter]
+kind = "openai_compatible"
+base_url = "https://openrouter.ai/api/v1"
+api_key_env = "OPENROUTER_API_KEY"
+api_key = ""
+```
+
+先检查配置（不会发送论文文本），再导入：
+
+```sh
+qec-graph ai status
+qec-graph ai test
+qec-graph sync
+```
+
+如果 `inputs/` 中有多个 TeX 根文档，normalizer 会提议一个带来源映射的
+`main.tex`，然后由 parser 提取。AI 不可用时，多根包会保持归档并提示需要入口。
+
 ## 工作流程
 
 流水线是单 writer；每个节点都为下一节点留下具名产物。实现文档位于 `docs/user/`、`docs/design/` 和 `docs/operations/`。
@@ -48,7 +89,7 @@ vault 打开，从 `Index.md` 开始。反复失败的包用
 |---|---|---|---|---|
 | `inputs/` | 接收候选源包 | [快速开始](docs/user/quickstart.zh-CN.md)、[工作区说明](docs/user/workspace.zh-CN.md) | `.tex`、`.tar`、`.tar.gz`/`.tgz`、`.zip`、`.gz` | 已认领的收件箱文件和 `.processing/<job>/job.json` |
 | `archive/` | 保存原始字节和 receipt | [系统设计](docs/design/DESIGN.zh-CN.md#7-工作区事务与发布协议)、[工作区说明](docs/user/workspace.zh-CN.md) | 已认领的源包 | `archive/blobs/sha256/<sha256>`、`archive/receipts/<job>.json` |
-| `source tree` | 验证、解包并选择入口点 | [工作区说明](docs/user/workspace.zh-CN.md)、[切割器](docs/user/splitter.zh-CN.md) | 归档 blob | `sources/<tree-hash>/...` 和 `qecgraph.toml` 中的 `[entrypoints]` |
+| `source tree` | 验证、解包并选择或规范化入口点 | [工作区说明](docs/user/workspace.zh-CN.md)、[切割器](docs/user/splitter.zh-CN.md)、[AI 抽取](#ai-抽取) | 归档 blob | `sources/<tree-hash>/...`；可选派生 `machine/derived/normalizations/.../main.tex` |
 | `parser` | 抽取 sections、environments、labels、refs 和区间 | [切割器](docs/user/splitter.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#5-来源抽取) | 已验证的 `.tex` 树 | store：`snapshots/<snapshot-id>/`；workspace：`machine/source_snapshots/<snapshot-id>/`；两者都含 `graph.json`、`manifest.json`、`report.json`、`graph.sqlite`、`nodes/<kind>/` |
 | `research records` | 保存类型化 QEC 对象和字段证据 | [数据与检索](docs/user/data-and-search.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#4-数据契约) | 来源快照和 `research` JSON | `machine/research/<hash(id)>/<hash(revision)>.json`，含 `schema: qecgraph.research` |
 | `review` | 把提案和决定绑定到精确内容 | [审核](docs/operations/review.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#6-审核证据和查询资格) | proposal JSON 和显式决定 | `machine/proposals/<hash>.json`、`machine/reviews/<hash>.json`、`machine/states/<revision>.json` |
@@ -74,6 +115,7 @@ release 保持可读。`human/notes/` 永不被读取。
 | 审核 | proposal/diff、显式 decide、哈希绑定 apply、stale review 检测 |
 | 查询 | 精确过滤、有界上下文、依赖/影响遍历、code/performance/software 查询 |
 | MCP | 13 个固定作用域只读工具、`qec://source/...` resources、budgets、每会话固定 release |
+| AI 辅助 | 可选 provider 配置、多 TeX 根的来源映射规范化、定理/假设/数据提议 |
 | 人类视图 | 带稳定链接和 tombstone 的生成 Obsidian 页面；`human/notes/` 私有 |
 | 接口面 | workspace 为主；单篇 store 和多篇 corpus 仍可用 |
 
@@ -88,6 +130,7 @@ release 保持可读。`human/notes/` 永不被读取。
 | 读取查询 | `search`、`show`、`deps`、`impact`、`context`、`codes`、`performance`、`software`；SQLite/FTS5 加确定性 fallback |
 | MCP 服务 | 本地 stdio JSON-RPC `2025-06-18`、只读工具、source resources、每调用 budget、不接受路径或 shell 参数 |
 | 人类视图 | 确定性的 `human/Index.md` 和 `human/generated/` 页面、逐页原子写、tombstone、`human_stale` 恢复 |
+| AI 层 | provider 适配、schema 校验 client、版本化 skills、来源映射规范化、可审核 proposal |
 | 分发 | wheel/sdist、standalone executable、research Compose profile 和只读 MCP 隔离 profile |
 
 ## MCP
