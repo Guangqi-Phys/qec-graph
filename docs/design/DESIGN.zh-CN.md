@@ -133,7 +133,7 @@ flowchart TB
 | 输出 | `human`、`status`、`software`、`mcp_server` | 从固定 release 渲染/读取；不得通过 `human/` 写回 |
 | 延期 | `lean*` | 仅实验；数据库、查询或 MCP 读取绝不依赖 |
 
-`tests/test_architecture.py` 强制执行导入边界；0.4.x 仍有意保留扁平包，因为任何
+`tests/contracts/tooling/test_architecture.py` 强制执行导入边界；0.4.x 仍有意保留扁平包，因为任何
 包内文件变化都会改变抽取工具身份，从而产生新的 snapshot ID。
 
 ---

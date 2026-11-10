@@ -120,7 +120,7 @@ flowchart TB
 | Output | `human`, `status`, `software`, `mcp_server` | Render/read from a pinned release; never write back through `human/` |
 | Deferred | `lean*` | Experimental only; never required by database, query or MCP reads |
 
-The architecture test in `tests/test_architecture.py` enforces the import boundary;
+The architecture test in `tests/contracts/tooling/test_architecture.py` enforces the import boundary;
 the flat package remains intentional for 0.4.x because any package file changes
 the extraction tool identity and therefore new snapshot IDs.
 

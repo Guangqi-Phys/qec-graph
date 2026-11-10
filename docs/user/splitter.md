@@ -300,7 +300,7 @@ fragments inside a snapshot makes later hash verification fail.
 
 ## 8. Verification of this implementation
 
-`tests/test_splitter.py` covers classified fragments, source bytes, graph
+`tests/integration/pipeline/test_splitter.py` covers classified fragments, source bytes, graph
 queries, repeat imports, write boundaries, partial-extraction exit codes, parity
 of the two entry points and environment configuration.
 

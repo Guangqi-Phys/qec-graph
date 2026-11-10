@@ -38,7 +38,7 @@ python -m coverage report
 - 优先使用小表格、GitHub alerts（`> [!NOTE]`、`> [!TIP]`、`> [!WARNING]`）和
   Mermaid 图来说明分支或流程。不要添加重复正文的装饰性标记。
 - 移动、重命名或翻译页面后运行
-  `python -m unittest tests.test_docs tests.test_docs_bilingual -v`；测试检查状态标记、
+  `python -m unittest tests.contracts.docs.test_docs tests.contracts.docs.test_docs_bilingual -v`；测试检查状态标记、
   链接、可达性、目录锚点和双语一致性。
 - 运行 `npx --yes markdownlint-cli2@0.24.0` 检查标题/列表/空行和链接片段一致性。
   CI 在 `docs` job 中运行同一命令。

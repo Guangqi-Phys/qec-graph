@@ -44,7 +44,7 @@ the [changelog](CHANGELOG.md) for compatibility changes, and the
 - Prefer small tables, GitHub alerts (`> [!NOTE]`, `> [!TIP]`, `> [!WARNING]`)
   and Mermaid diagrams where they clarify a branch or workflow. Do not add
   decorative markup that repeats the prose.
-- Run `python -m unittest tests.test_docs tests.test_docs_bilingual -v` after
+- Run `python -m unittest tests.contracts.docs.test_docs tests.contracts.docs.test_docs_bilingual -v` after
   moving, renaming or translating a page; the tests check status markers, links,
   reachability, table-of-contents anchors and bilingual parity.
 - Run `npx --yes markdownlint-cli2@0.24.0` for heading/list/blank-line and link

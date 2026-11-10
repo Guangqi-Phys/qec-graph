@@ -2,13 +2,17 @@
 
 ## Unreleased
 
+- Tests are organized by scope under `tests/unit/`, `tests/integration/` and
+  `tests/contracts/`, with functional subdirectories inside each layer.
+  `unittest discover -s tests` still runs the complete suite; per-layer
+  commands are documented in `tests/README.md`.
 - Current documentation is now bilingual: every current page under `docs/`, the
   root README, contributor/security policies and the validation index has an
   English and a Simplified Chinese counterpart with matching headings, tables
   and executable examples. Validation evidence is grouped by function instead
   of `p0`–`p5` stage numbers, and a scheduled Lychee workflow checks external
-  links. Module import boundaries are now pinned by `tests/test_architecture.py`, and
-  every repository tool is smoke-tested by `tests/test_tools.py`. Runtime code
+  links. Module import boundaries are now pinned by `tests/contracts/tooling/test_architecture.py`, and
+  every repository tool is smoke-tested by `tests/contracts/tooling/test_tools.py`. Runtime code
   and extraction tool identity are deliberately unchanged in this release.
 - Documentation pages now use a common status + `## On this page` structure,
   GitHub alerts, task-oriented tables and Mermaid diagrams. The root README

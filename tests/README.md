@@ -3,19 +3,39 @@
 > **English** · [中文](README.zh-CN.md)
 
 Tests use the standard library `unittest` runner and do not require a separate
-test dependency.
+test dependency. The tree has three layers, with functional subdirectories
+inside each layer.
 
-| Group | Files | Focus |
-|---|---|---|
-| Documentation | `test_docs.py`, `test_docs_bilingual.py` | Status/TOC/link contracts and English/Chinese parity |
-| Architecture and tooling | `test_architecture.py`, `test_tools.py` | Import boundaries/public API and all `tools/*.py --help` paths |
-| Package and distribution | `test_distribution.py`, `test_installer.py`, `test_schemas.py` | Metadata, installer, packaged schemas |
-| Parsing and provenance | `test_parser.py`, `test_source_package.py`, `test_splitter.py` | TeX parsing, archive safety, source spans |
-| Store and publication | `test_pipeline.py`, `test_publication.py`, `test_registry.py`, `test_migrations.py` | Snapshots, writer locks, atomic publication, recovery |
-| Workspace | `test_workspace.py`, `test_workspace_migration.py`, `test_workspace_query.py`, `test_human.py` | Init/sync/rebuild, migration, queries and Obsidian rendering |
-| Research and review | `test_research.py`, `test_review.py`, `test_apply.py`, `test_qec_validation.py`, `test_validators.py` | Typed records, evidence, decisions, apply transactions |
-| MCP and isolation | `test_mcp.py`, `test_ai_tools.py`, `test_watch.py`, `test_status.py` | Read-only MCP, status and watch paths |
-| Lean (deferred) | `test_lean_export.py`, `test_lean_integration.py` | Experimental regression fixtures only |
+```text
+tests/
+├── unit/          # pure parsing, graph/domain rules, schema checks
+├── integration/   # store, workspace, corpus, MCP, CLI, rendering
+├── contracts/     # docs, packaging, architecture and tooling contracts
+├── fixtures/      # shared input fixtures
+├── golden/        # pinned arXiv manifest and instructions
+└── support.py     # shared root/fixture paths
+```
+
+| Layer | Functional group | Files | Focus |
+|---|---|---|---|
+| Unit | Parsing | `unit/parsing/test_parser.py`, `unit/parsing/test_source_package.py` | TeX parsing, archive safety, source spans |
+| Unit | Domain | `unit/domain/test_semantic.py`, `unit/domain/test_qec_validation.py`, `unit/domain/test_validators.py`, `unit/domain/test_schemas.py` | Graph/evidence rules, QEC checks, schema contracts |
+| Integration | Pipeline | `integration/pipeline/test_pipeline.py`, `test_publication.py`, `test_registry.py`, `test_migrations.py`, `test_splitter.py` | Snapshot, publication, registry, migration, splitting |
+| Integration | Workspace | `integration/workspace/test_workspace.py`, `test_workspace_migration.py`, `test_workspace_query.py`, `test_incremental.py`, `test_watch.py`, `test_status.py` | Init/sync/rebuild, migration, queries, incremental/watch, status |
+| Integration | Corpus/review | `integration/corpus/test_corpus.py`, `test_review.py`, `test_apply.py`, `test_research.py` | Corpus identity, review/apply, typed research records |
+| Integration | MCP/CLI/rendering | `integration/mcp/test_mcp.py`, `integration/mcp/test_ai_tools.py`, `integration/cli/test_cli.py`, `integration/rendering/test_human.py` | Read-only MCP, CLI, Obsidian rendering |
+| Integration | Lean (deferred) | `integration/lean/test_lean_export.py`, `integration/lean/test_lean_integration.py` | Experimental regression fixtures only |
+| Contract | Docs | `contracts/docs/test_docs.py`, `contracts/docs/test_docs_bilingual.py` | Status/TOC/link contracts and English/Chinese parity |
+| Contract | Packaging | `contracts/packaging/test_distribution.py`, `contracts/packaging/test_installer.py` | Metadata, installer, packaged distribution |
+| Contract | Architecture/tooling | `contracts/tooling/test_architecture.py`, `contracts/tooling/test_tools.py` | Import boundaries/public API and every `tools/*.py --help` path |
+
+Run by layer:
+
+```sh
+python -m unittest discover -s tests/unit
+python -m unittest discover -s tests/integration
+python -m unittest discover -s tests/contracts
+```
 
 Run everything:
 
