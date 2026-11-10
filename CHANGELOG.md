@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- The format discriminator field is now `schema` (formerly `schema_version`);
+  values are unversioned identifiers such as `qecgraph.research`.
 - **Breaking (development stage):** all schema identifiers are unversioned
   (`qecgraph.research`, `qecgraph.record`, `qecgraph.graph`, `qecgraph.annotations`,
   `qecgraph.proposal`, `qecgraph.review`, `qecgraph.lean-export`, filesystem

@@ -46,25 +46,6 @@ def _copy_asset(source_root, out, asset):
     return binding
 
 
-KIND_ALIASES = {'code_instance': 'quantum_code', 'presentation': 'check_matrix'}
-FIELD_ALIASES = {
-    'n_data': 'n', 'k_logical': 'k', 'r_gauge': 'r',
-    'matrix_definition_id': 'metric_id', 'metric_definition_id': 'metric_id',
-    'presentation_id': 'check_matrix_id', 'presentation_ids': 'check_matrix_ids',
-    'input_presentation_id': 'check_matrix_id', 'distance_claim_ids': 'distance_estimate_ids',
-}
-ID_PREFIXES = {'code:': 'quantum_code:', 'presentation:': 'check_matrix:'}
-
-
-def _legacy_id(value):
-    if not isinstance(value, str):
-        return value
-    for old, new in ID_PREFIXES.items():
-        if value.startswith(old):
-            return new + value[len(old):]
-    return value
-
-
 def adapt_legacy_record(record, source_digest, *, source_root=None, out):
     if record.get('schema') != '0.1.0':
         raise ValueError('Unsupported legacy record version')
@@ -73,15 +54,15 @@ def adapt_legacy_record(record, source_digest, *, source_root=None, out):
 
     def managed(value):
         if isinstance(value, dict):
-            return {FIELD_ALIASES.get(k, k): managed(v) for k, v in value.items()}
+            return {k: managed(v) for k, v in value.items()}
         if isinstance(value, list):
             return [managed(v) for v in value]
         if isinstance(value, str):
-            return path_map.get(value, _legacy_id(value))
+            return path_map.get(value, value)
         return value
 
     data = managed(record['data'])
-    kind = KIND_ALIASES.get(record['kind'], record['kind'])
+    kind = record['kind']
     # Missing legacy fields remain explicitly unknown, never guessed from names.
     missing = [field for field in DOMAIN_FIELDS[kind] if field not in data]
     for field in missing:
@@ -97,10 +78,10 @@ def adapt_legacy_record(record, source_digest, *, source_root=None, out):
         data.setdefault('unknown_reason', 'Legacy record does not explicitly enumerate all quantifiers')
         data.pop('evidence_ids', None)  # v3 stores this once, in the record envelope.
         _distance_unknowns(data)
-    adapted = {'schema': RECORD_SCHEMA, 'id': _legacy_id(record['id']), 'kind': kind,
+    adapted = {'schema': RECORD_SCHEMA, 'id': record['id'], 'kind': kind,
                'revision': 'legacy-0.1.0-' + source_digest, 'title': record.get('title', record['id']),
                'data': data, 'assets': assets,
-               'refs': [{'relation': 'catalog:' + ref['relation'], 'target': _legacy_id(ref['target_id']), 'status': 'declared'}
+               'refs': [{'relation': 'catalog:' + ref['relation'], 'target': ref['target_id'], 'status': 'declared'}
                         for ref in record.get('refs', [])],
                'evidence_ids': record.get('data', {}).get('evidence_ids', []),
                'provenance': {'method': 'legacy_adapter_v1', 'input_schema': '0.1.0',
