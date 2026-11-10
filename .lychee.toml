@@ -1,0 +1,9 @@
+# External link checking is run on a schedule, not as a required PR gate:
+# third-party sites and arXiv rate limits must not block documentation fixes.
+max_concurrency = 4
+timeout = 20
+max_retries = 2
+retry_wait_time = 5
+exclude = [
+  "https://github.com/Guangqi-Phys/qec-graph/releases/tag/v0.4.0rc1",
+]
