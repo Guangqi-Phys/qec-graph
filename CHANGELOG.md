@@ -4,6 +4,9 @@
 
 ## 0.6.0 — 2026-11-10
 
+- Release checks now account for prepare-only `init`: the workspace reproduction
+  runs `init` followed by `sync`, and an unset AI model is treated as disabled
+  rather than an extraction error.
 - Rewrote the four AI skills with explicit triggers, inputs, procedures,
   evidence rules, failure policy and checklists; the full `SKILL.md` body is
   now sent to the model.

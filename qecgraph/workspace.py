@@ -302,7 +302,7 @@ class Workspace:
             config = load_ai_config(self.root)
         except AIConfigError:
             return None
-        if not config.enabled:
+        if not config.enabled or not config.model.strip():
             return None
 
         def normalize(tree, progress=None):
@@ -333,7 +333,7 @@ class Workspace:
             config = load_ai_config(self.root)
         except AIConfigError:
             return {'packages': 0, 'errors': []}
-        if not config.enabled or config.max_parallel_packages <= 1:
+        if not config.enabled or not config.model.strip() or config.max_parallel_packages <= 1:
             return {'packages': 0, 'errors': []}
         client = LLMClient(config, cache_dir=self.path('.qecgraph/ai-cache'))
 
@@ -374,7 +374,7 @@ class Workspace:
             config = load_ai_config(self.root)
         except AIConfigError:
             return None
-        if not config.enabled:
+        if not config.enabled or not config.model.strip():
             return None
 
         def run(normalized, source_version_id, snapshot_id, progress=None):

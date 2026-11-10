@@ -45,7 +45,9 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
         if hashlib.sha256(raw).hexdigest() != SUBSYSTEM_SHA:
             raise ValueError('Real regression expects the recorded Subsystem Codes v1 archive bytes')
         (inbox / 'subsystem-v1.source').write_bytes(raw)
-    first = run('init', ['init', '--json'])
+    prepared = run('init', ['init', '--json'])
+    assert prepared['status'] == 'initialized'
+    first = run('init_sync', ['sync', '--json'])
     assert first['status'] == 'published'
     assert first['counts']['registered'] == (2 if real_source else 1)
     assert first['human']['status'] == 'current'
