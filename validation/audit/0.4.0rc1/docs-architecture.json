@@ -1,0 +1,28 @@
+{
+  "schema": "qecgraph.validation-record.v1",
+  "recorded_at": "2026-11-10",
+  "commit": "2ece004",
+  "scope": "documentation, validation layout and architecture boundary tests",
+  "commands": [
+    ".venv/bin/python -m unittest discover -s tests",
+    "node markdownlint-cli2.mjs",
+    ".venv/bin/python tools/reproduce.py --out build/reproduce",
+    ".venv/bin/python -m build --no-isolation",
+    ".venv/bin/python -m twine check --strict dist/*",
+    ".venv/bin/python tools/check_distribution.py dist"
+  ],
+  "result": {
+    "unit_tests": 236,
+    "markdownlint_issues": 0,
+    "reproduce": "passed",
+    "distribution_build": "passed",
+    "twine": "passed",
+    "distribution_metadata": "passed"
+  },
+  "not_run": [
+    "Docker image build",
+    "Lean build",
+    "real arXiv source replay",
+    "Windows"
+  ]
+}

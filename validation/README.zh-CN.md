@@ -31,6 +31,7 @@
 | Obsidian 阅读视图 | [obsidian.json](audit/0.4.0rc1/obsidian.json)、[截图](audit/0.4.0rc1/obsidian-theorem.png) |
 | 固定 arXiv corpus | [golden-arxiv.json](audit/0.4.0rc1/golden-arxiv.json) |
 | 性能基线 | [benchmark.json](audit/0.4.0rc1/benchmark.json) |
+| 文档/架构检查 | [docs-architecture.json](audit/0.4.0rc1/docs-architecture.json)：236 项测试、markdownlint 0、构建/元数据通过 |
 | 工作区验收 | [report.md](workspace-0.4.0rc1/report.md)、[installed.json](workspace-0.4.0rc1/installed.json)、[distributions.json](workspace-0.4.0rc1/distributions.json) |
 
 ## 功能证据
