@@ -54,10 +54,15 @@ def _render_release(workspace, release):
         process = subprocess.run(cli_command('human', 'build', '--workspace', str(workspace), '--release', release),
                                  capture_output=True, text=True, timeout=120, check=False)
         report = strict_json_loads(process.stdout)
-    except (OSError, ValueError, subprocess.TimeoutExpired):
-        return fallback
+    except subprocess.TimeoutExpired:
+        return {**fallback, 'error': 'human build timed out after 120 seconds'}
+    except (OSError, ValueError) as exc:
+        return {**fallback, 'error': f'{type(exc).__name__}: {exc}'}
     if not isinstance(report, dict):
-        return fallback
+        return {**fallback, 'error': 'human build returned an invalid report'}
+    error = report.get('error')
+    if isinstance(error, str) and error.strip():
+        fallback['error'] = error.strip()
     status = report.get('status')
     if status == 'current' and process.returncode == 0 and report.get('release_id') == release:
         return report
@@ -65,6 +70,9 @@ def _render_release(workspace, release):
         return report
     if status == 'superseded' and process.returncode == 2 and report.get('target_release_id') == release:
         return report
+    if 'error' not in fallback and process.stderr.strip():
+        lines = process.stderr.strip().splitlines()
+        fallback['error'] = 'human build failed: ' + lines[-1].strip()
     return fallback
 
 

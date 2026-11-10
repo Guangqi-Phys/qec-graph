@@ -439,6 +439,9 @@ def build_human(workspace=None, release=None):
                 ws.path('.qecgraph/human-pending.json').unlink(missing_ok=True)
             _operational(ws, latest, 'current', latest)
             return {'status': 'current', 'release_id': latest, 'generated_pages': len(pages)}
-        except (OSError, ValueError, KeyError, TypeError):
-            # Only fixed counts/status cross the worker boundary; no private path, content or traceback.
-            return {'status': 'human_stale', 'release_id': latest, 'rendered_release_id': past['release_id']}
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            # Keep the fixed status contract, but return a local diagnostic so
+            # callers do not collapse every rendering failure into one message.
+            message = str(exc).replace(str(ws.root), '<workspace>')
+            return {'status': 'human_stale', 'release_id': latest, 'rendered_release_id': past['release_id'],
+                    'error': f'{type(exc).__name__}: {message}'}

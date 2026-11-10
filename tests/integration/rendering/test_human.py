@@ -124,6 +124,17 @@ class HumanTests(unittest.TestCase):
         self.assertEqual(status()['human'], {'status': 'unknown', 'target_release_id': release,
                                             'rendered_release_id': None})
 
+    def test_render_failure_returns_a_sanitized_reason(self):
+        release = self.ws.sync()['release_id']
+        self.note.unlink()
+        self.notes.rmdir()
+        self.notes.write_text('not a directory', encoding='utf-8')
+        result = build_human(self.root, release)
+        self.assertEqual(result['status'], 'human_stale')
+        self.assertIn('FileExistsError', result['error'])
+        self.assertNotIn(str(self.root), result['error'])
+        self.assertIn('<workspace>', result['error'])
+
     def test_renderer_does_not_follow_generated_symlink_to_note(self):
         release = self.ws.sync()['release_id']
         build_human(self.root, release)
