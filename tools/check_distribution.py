@@ -3,6 +3,7 @@
 import argparse
 import runpy
 import tarfile
+from email import policy
 from email.parser import BytesParser
 from pathlib import Path
 from zipfile import ZipFile
@@ -14,7 +15,10 @@ def _check_metadata(raw, expected_version, expected_readme):
         raise ValueError('Distribution version differs from the package version')
     if metadata['License-Expression'] != 'MIT' or metadata.get_all('License-File') != ['LICENSE']:
         raise ValueError('Distribution metadata does not name the project license')
-    if metadata.get_payload().rstrip() != expected_readme.rstrip():
+    payload = metadata.get_payload(decode=True)
+    if payload is None:
+        payload = metadata.get_payload().encode('utf-8')
+    if payload.decode('utf-8').rstrip() != expected_readme.rstrip():
         raise ValueError('Distribution metadata README differs from the source README')
 
 
