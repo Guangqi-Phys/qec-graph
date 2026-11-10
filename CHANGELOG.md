@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Lean is explicitly **deferred** in 0.4.x. The experimental code and
+  validation fixtures remain only for regression; the CLI group is marked
+  experimental, and the database, query and MCP paths do not invoke Lean.
+  Superseded Lean design pages were removed from the documentation tree.
 - Documentation now has one authoritative design (`docs/design/DESIGN.md`),
   user guides under `docs/user/`, and operations under `docs/operations/`.
   Redirect-only and historical archive pages were removed; superseded material
