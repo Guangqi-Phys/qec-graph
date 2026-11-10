@@ -75,7 +75,7 @@ class ExtractionRunnerTests(unittest.TestCase):
         self.assertEqual(value.proposal['skill'], 'extract_theorems')
         self.assertEqual(value.proposal['review_status'], 'proposed')
         self.assertIn('source_refs', value.proposal['items'][0])
-        self.assertIn('QEC paper', client.messages[0].content)
+        self.assertIn('theorem extractor', client.messages[0].content)
 
     def test_runner_rejects_unsupported_skill(self):
         from qecgraph.llm.extract import extract

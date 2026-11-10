@@ -15,6 +15,7 @@ class SkillTests(unittest.TestCase):
             self.assertEqual(skill.name, name)
             self.assertGreaterEqual(skill.version, 1)
             self.assertIn('JSON', skill.prompt)
+            self.assertIn('Checklist', skill.system_prompt)
             self.assertTrue(skill.schema.get('properties'))
 
     def test_workspace_skill_can_override_a_default_pack(self):

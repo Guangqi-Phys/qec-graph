@@ -142,7 +142,7 @@ def extract(normalized, client, skill_name, *, extra_skills_dir=None, use_cache=
     }
     content = json.dumps(evidence, ensure_ascii=False, sort_keys=True)
     ai_result = client.complete_json(
-        [Message('system', skill.prompt), Message('user', content)], skill.schema,
+        [Message('system', skill.system_prompt), Message('user', content)], skill.schema,
         use_cache=use_cache)
     proposal = make_proposal(skill_name, ai_result.data,
                              source_tree_hash=normalized.source_tree_hash,

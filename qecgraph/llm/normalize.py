@@ -261,7 +261,7 @@ def normalize_package(tree: SourceTree, client, *, extra_skills_dir=None, use_ca
     skill = load_skill('normalize_package', extra_skills_dir)
     evidence = normalization_evidence(tree, inventory_data)
     messages = [
-        {'role': 'system', 'content': skill.prompt},
+        {'role': 'system', 'content': skill.system_prompt},
         {'role': 'user', 'content': json.dumps(evidence, ensure_ascii=False, sort_keys=True)},
     ]
     from .providers.base import Message

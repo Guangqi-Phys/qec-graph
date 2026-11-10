@@ -23,11 +23,18 @@ class Skill:
     prompt: str
     schema: dict
 
+    @property
+    def system_prompt(self):
+        """The SKILL.md body plus the short role prompt sent to the model."""
+        return self.body.rstrip() + '\n\n' + self.prompt.strip()
+
     def validate(self):
         if not self.name or not self.description:
             raise SkillError(f'{self.path}: name and description are required')
         if self.version < 1:
             raise SkillError(f'{self.path}: version must be positive')
+        if not self.body:
+            raise SkillError(f'{self.path}: SKILL.md body is empty')
         if not isinstance(self.schema, dict) or not self.schema:
             raise SkillError(f'{self.path}: output.schema.json must be an object')
         Draft202012Validator.check_schema(self.schema)
