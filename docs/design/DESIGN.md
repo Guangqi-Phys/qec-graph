@@ -197,7 +197,7 @@ Duplicate labels are ambiguous and must be resolved with an exact ID. Missing re
 | `proposal.v1`, `review.v1` | Review envelopes | packaged schemas |
 | `lean-export.v1` | Experimental/deferred Lean export envelope | packaged schema |
 
-Unknown schema versions are rejected or preserved as opaque historical input; never reinterpret them with the latest fields. Package version and data-schema version move independently. The canonical schemas are packaged resources; `schemas/` at the repository root only points at them and must not become a second editable source.
+Unknown schema versions are rejected or preserved as opaque historical input; never reinterpret them with the latest fields. Package version and data-schema version move independently. The canonical schemas are packaged resources; do not create a second editable copy at the repository root.
 
 ### 4.2 Research record envelope
 

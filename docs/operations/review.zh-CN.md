@@ -21,8 +21,8 @@
 
 P2 新记录使用 `qecgraph.record.v3`。相对 P1 v2，新增逐 kind 必填字段、显式未知原因、
 严格引用和受管理资产结构。权威 Schema 随 Python 包发布于
-[`qecgraph/validators/schemas/`](../../qecgraph/validators/schemas)。旧路径见[迁移说明](../../schemas/README.md)。
-Legacy v3 还包含实验性的 `lean_declaration` kind 与关系字段；Lean 在 0.4.x
+[`qecgraph/validators/schemas/`](../../qecgraph/validators/schemas)。仓库根旧的
+`schemas/` 兼容路径已移除，直接使用打包路径。Legacy v3 还包含实验性的 `lean_declaration` kind 与关系字段；Lean 在 0.4.x
 中延期，不属于受支持工作流，也不是验证结论。见[系统设计 §10](../design/DESIGN.zh-CN.md#10-lean-deferred-not-supported)。
 
 原 v2 记录和历史哈希仍可读取，不就地改写。用 `migrate <旧记录目录> --out <新目录>`

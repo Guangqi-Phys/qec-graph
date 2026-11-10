@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Removed the repository-root `schemas/` compatibility folder. It contained no
+  schema files, only a redirect README; canonical schemas remain packaged under
+  `qecgraph/validators/schemas/` and all references now use that path.
 - CI is reduced to one Linux/Python 3.11 `Lint and test` job: ruff, mypy,
   advisory pyright and the unit-test layer. Markdown-structure,
   integration/contract tests, coverage gates, distribution, installed-wheel,

@@ -2,7 +2,6 @@ graft tests
 graft examples
 graft legacy/knowledge_starter
 include legacy/README.md
-graft schemas
 graft tools
 include AGENTS.md CHANGELOG.md CITATION.cff CONTRIBUTING.md SECURITY.md install.sh
 recursive-include docs *.md

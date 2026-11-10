@@ -214,8 +214,8 @@ Store 和 corpus 有各自受管理根目录。不要合并它们的 pointer 格
 | `lean-export.v1` | 实验性/延期 Lean 导出信封 | packaged schema |
 
 未知 schema 版本被拒绝或作为不透明历史输入保留；绝不用最新字段重新解释。
-包版本和数据 schema 版本独立演进。规范 schema 是打包资源；仓库根 `schemas/`
-只指向它们，不能成为第二份可编辑来源。
+包版本和数据 schema 版本独立演进。规范 schema 是打包资源；不要在仓库根创建
+第二份可编辑副本。
 
 ### 4.2 Research 记录信封
 

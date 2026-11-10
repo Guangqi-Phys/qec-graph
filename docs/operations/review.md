@@ -22,8 +22,9 @@
 New P2 records use `qecgraph.record.v3`. Relative to P1 v2, it adds per-kind
 required fields, explicit unknown reasons, strict references and a managed asset
 structure. The authoritative schemas ship with the Python package under
-[`qecgraph/validators/schemas/`](../../qecgraph/validators/schemas). See the
-[migration guide](../../schemas/README.md) for the old paths. Legacy v3 also
+[`qecgraph/validators/schemas/`](../../qecgraph/validators/schemas). The old
+repository-root `schemas/` compatibility path has been removed; use the packaged
+path directly. Legacy v3 also
 contains an experimental `lean_declaration` kind and relation fields; Lean is
 deferred in 0.4.x, is not part of the supported workflow and is not a
 verification conclusion. See [system design §10](../design/DESIGN.md#10-lean-deferred-not-supported).
