@@ -1,6 +1,6 @@
-# Legacy store and corpus maintenance
+# Store 与 corpus 维护
 
-> **状态：当前，适用于旧 store/corpus 接口；不是工作区日常指南。**
+> **状态：当前（0.5.x），适用于 store/corpus 接口；不是工作区日常指南。**
 > Workspace daily operations are in [the workspace guide](../user/workspace.zh-CN.md). This page
 > retains source changes, failure propagation, backups and recovery for the single-paper
 > store and corpus commands that remain supported for compatibility.
@@ -11,7 +11,7 @@
 运行时先读本包 `AGENTS.md`、[架构](../design/DESIGN.zh-CN.md#2-系统总览) 和 [数据契约](../design/DESIGN.zh-CN.md#4-数据契约)。
 以下命令以本包根目录为工作目录；各步骤成功后再执行下一步。
 
-## On this page
+## 本页目录
 
 - [1. 首次安装与基线](#1-首次安装与基线)
 - [2. 日常 ingest 与查询](#2-日常-ingest-与查询)
@@ -24,9 +24,8 @@
 - [主来源](#主来源)
 
 > [!WARNING]
-> This page covers the **legacy store/corpus** surface. The primary workspace
-> workflow is in [the workspace guide](../user/workspace.zh-CN.md); do not mix the
-> two pointer formats or lock domains.
+> 本页覆盖 **store/corpus** 接口。主 workspace 工作流见
+> [工作区说明](../user/workspace.zh-CN.md)；不要混用两种 pointer 格式或锁域。
 
 ## 1. 首次安装与基线
 

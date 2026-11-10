@@ -1,10 +1,10 @@
 # 类型验证、证据与审核
 
-> **状态：当前，适用于 corpus 审核接口。** Workspace review/apply semantics are in the [system design](../design/DESIGN.zh-CN.md#6-审核证据和查询资格).
+> **状态：当前（0.5.x），适用于 corpus 审核接口。** Workspace review/apply 语义见[系统设计](../design/DESIGN.zh-CN.md#6-审核证据和查询资格)。
 
 > [English](review.md) · **中文**
 
-## On this page
+## 本页目录
 
 - [记录与 Schema](#记录与-schema)
 - [验证范围](#验证范围)

@@ -1,11 +1,11 @@
 # Corpus: registration, identity and queries
 
-> **Status: Current for the corpus surface.** The workspace surface is the primary product; see the [workspace guide](../user/workspace.md).
+> **Status: Current (0.5.x) for the corpus surface.** The workspace surface is the primary product; see the [workspace guide](../user/workspace.md).
 
 > **English** · [中文](corpus.zh-CN.md)
 
 > [!NOTE]
-> This is the legacy multi-document corpus surface. The workspace has its own
+> This is the multi-document corpus surface. The workspace has its own
 > machine release format; do not point both at the same directory.
 
 ## On this page
@@ -51,8 +51,8 @@ qecgraph record-add examples/claim.example.json --corpus build/corpus
 qecgraph claim-link examples/claim-link.example.json --corpus build/corpus
 ```
 
-P1 introduced `qecgraph.record`; new P2 writes use strict
-`qecgraph.record`; unknown formats are rejected.
+New writes use the current `qecgraph.record` format; unknown formats are
+rejected. See the [review guide](review.md).
 The author supplies `id` and `revision`; the program fills content hashes and
 protocol fields. The same ID/revision cannot overwrite different content; a new
 revision preserves the old file. Different IDs remain independent even when

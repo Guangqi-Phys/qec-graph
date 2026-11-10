@@ -1,7 +1,7 @@
 # 运维与维护
 
-> **状态：当前。** 日常工作区用法在[用户指南](../user/README.zh-CN.md)。
-> 本节覆盖受支持的旧 store/corpus 接口、审核和证据。
+> **状态：当前（0.5.x）。** 日常工作区用法在[用户指南](../user/README.zh-CN.md)。
+> 本节覆盖受支持的 store/corpus 接口、审核和证据。
 
 > **中文** · [English](README.md)
 

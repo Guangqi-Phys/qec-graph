@@ -21,7 +21,7 @@ current executable checks; historical run artifacts remain in Git history.
 - [Create and operate a workspace](#create-and-operate-a-workspace)
 - [Research queries and review](#research-queries-and-review)
 - [Obsidian and machine isolation](#obsidian-and-machine-isolation)
-- [Migrate from a legacy corpus](#import-an-existing-corpus)
+- [Import an existing corpus](#import-an-existing-corpus)
 
 ## Create and operate a workspace
 

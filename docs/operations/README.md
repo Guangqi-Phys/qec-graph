@@ -1,7 +1,7 @@
 # Operations and maintenance
 
-> **Status: Current.** Daily workspace usage lives in the [user guides](../user/README.md).
-> This section covers the supported legacy store/corpus surface, review and evidence.
+> **Status: Current (0.5.x).** Daily workspace usage lives in the [user guides](../user/README.md).
+> This section covers the supported store/corpus surface, review and evidence.
 
 > **English** · [中文](README.zh-CN.md)
 

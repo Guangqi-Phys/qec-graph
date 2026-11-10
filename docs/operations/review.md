@@ -1,6 +1,6 @@
 # Type validation, evidence and review
 
-> **Status: Current for the corpus review surface.** Workspace review/apply semantics are in the [system design](../design/DESIGN.md#6-review-evidence-and-query-eligibility).
+> **Status: Current (0.5.x) for the corpus review surface.** Workspace review/apply semantics are in the [system design](../design/DESIGN.md#6-review-evidence-and-query-eligibility).
 
 > **English** · [中文](review.zh-CN.md)
 

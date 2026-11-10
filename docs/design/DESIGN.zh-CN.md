@@ -61,7 +61,7 @@ QEC Graph 把 LaTeX 论文和显式 QEC 研究记录变成保留来源的本地�
 - 多写者或分布式数据库；或
 - 在读取时执行源码、TeX 或 Lean 的服务。
 
-可执行范围是 Python 包、CLI、本地 MCP 服务、Obsidian 渲染器和旧 store/corpus
+可执行范围是 Python 包、CLI、本地 MCP 服务、Obsidian 渲染器和 store/corpus
 兼容层。Lean 代码和 fixtures 只作为延期实验材料存在，不属于受支持的 0.5.x 流程。
 
 ---

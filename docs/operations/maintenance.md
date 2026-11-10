@@ -1,6 +1,6 @@
-# Legacy store and corpus maintenance
+# Store and corpus maintenance
 
-> **Status: Current for the legacy store/corpus surface; not the workspace daily guide.**
+> **Status: Current (0.5.x) for the store/corpus surface; not the workspace daily guide.**
 > Workspace daily operations are in [the workspace guide](../user/workspace.md). This page
 > retains source changes, failure propagation, backups and recovery for the single-paper
 > store and corpus commands that remain supported for compatibility.
@@ -26,7 +26,7 @@ from the package root and complete each step before the next.
 - [Primary sources](#primary-sources)
 
 > [!WARNING]
-> This page covers the **legacy store/corpus** surface. The primary workspace
+> This page covers the **store/corpus** surface. The primary workspace
 > workflow is in [the workspace guide](../user/workspace.md); do not mix the
 > two pointer formats or lock domains.
 

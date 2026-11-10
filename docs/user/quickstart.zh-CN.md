@@ -8,7 +8,7 @@
 > 需要完整配置、退出码或 MCP 细节时，转到 [进阶用法](advanced-usage.zh-CN.md)
 > 或 [工作区说明](workspace.zh-CN.md)。
 
-## On this page
+## 本页目录
 
 - [最短路径](#最短路径)
 - [接下来做什么](#接下来做什么)

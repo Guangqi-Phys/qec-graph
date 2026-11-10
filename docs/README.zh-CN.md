@@ -57,7 +57,7 @@ flowchart TD
 | 页面 | 状态 | 类型 | 内容 |
 |---|---|---|---|
 | [QEC Graph — 系统设计](design/DESIGN.zh-CN.md) | 当前 | Explanation / reference | 唯一设计文档：架构、数据/证据、工作区发布、CLI/MCP、人类视图和延期 Lean |
-| [运维](operations/README.zh-CN.md) | 当前 | How-to / reference | 旧 store/corpus 维护、corpus/review 流程和验证入口 |
+| [运维](operations/README.zh-CN.md) | 当前 | How-to / reference | store/corpus 维护、corpus/review 流程和验证入口 |
 | [验证证据](../validation/README.zh-CN.md) | 证据 | Evidence | 当前可执行检查及运行方式；历史运行产物不再随仓库提供 |
 | [变更日志](../CHANGELOG.md) | 当前 | Reference | 兼容性和行为变化 |
 | [贡献规则](../CONTRIBUTING.md#documentation-rules) | 当前 | Reference | 文档位置、状态/TOC 规则和 docs 测试 |

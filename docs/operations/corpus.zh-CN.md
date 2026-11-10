@@ -1,14 +1,14 @@
 # Corpus：注册、身份与查询
 
-> **状态：当前，适用于 corpus 接口。** The workspace surface is the primary product; see the [workspace guide](../user/workspace.zh-CN.md).
+> **状态：当前（0.5.x），适用于 corpus 接口。** 主产品是 workspace，见[工作区说明](../user/workspace.zh-CN.md)。
 
 > [English](corpus.md) · **中文**
 
 > [!NOTE]
-> This is the legacy multi-document corpus surface. The workspace has its own
-> machine release format; do not point both at the same directory.
+> 这是多文档 corpus 接口。workspace 有自己的机器 release 格式；不要把两者
+> 指向同一个目录。
 
-## On this page
+## 本页目录
 
 - [规范记录与来源映射](#规范记录与来源映射)
 - [固定版本查询](#固定版本查询)
