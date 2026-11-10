@@ -37,6 +37,13 @@ class ContainerAndManifestTests(unittest.TestCase):
                 with self.subTest(instruction=instruction, source=source):
                     self.assertTrue((ROOT / source).exists(), f'{source} is copied but missing from the checkout')
 
+    def test_ai_skills_are_declared_package_data(self):
+        from qecgraph.llm.skills import load_skills
+        text = (ROOT / 'pyproject.toml').read_text(encoding='utf-8')
+        self.assertIn('"qecgraph.llm"', text)
+        self.assertIn('skills/*/*.md', text)
+        self.assertEqual(len(load_skills()), 4)
+
     def test_source_distribution_manifest_ships_the_chinese_readme(self):
         manifest = (ROOT / 'MANIFEST.in').read_text(encoding='utf-8')
         for name in ('README.zh-CN.md',):

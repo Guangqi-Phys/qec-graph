@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added optional AI provider configuration for OpenAI, Anthropic, OpenRouter
+  and Claude Code, with `qecgraph ai status/test/config/proposals`.
+- `sync` now normalizes ambiguous multi-root TeX packages through a
+  source-mapped plan and emits schema-validated theorem, assumption and data
+  proposals under `machine/ai/proposals`; the original package stays
+  authoritative and AI output is never auto-verified.
 - `qec-graph init` now initializes only the current directory unless
   `--workspace` is explicit. It accepts an empty directory or one containing
   only `inputs/`, creates `inputs/` and an AI-ready `qecgraph.toml`, and never

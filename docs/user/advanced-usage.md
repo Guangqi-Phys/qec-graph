@@ -115,6 +115,7 @@ for command options or `qec-graph --version` for the installed version.
 | Create the workspace and AI configuration without extracting | `qec-graph init` |
 | Inspect the selected AI provider without network access | `qec-graph ai status` |
 | Test the configured AI endpoint with one probe | `qec-graph ai test` |
+| List AI proposals waiting for review | `qec-graph ai proposals --json` |
 | Preview pending inputs | `qec-graph sync --dry-run` |
 | Import and keep the inbox copies | `qec-graph sync --keep-inputs` |
 | Inspect package and failure details | `qec-graph status --json` |

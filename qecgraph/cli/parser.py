@@ -17,6 +17,7 @@ _QUICK_HELP = """Usage: qec-graph <command> [options]
   validate   Check the current release
   search     Find source blocks and records
   mcp serve  Start the read-only MCP server
+  ai status  Inspect the optional AI provider configuration
 
 Run qec-graph --help for all commands or qec-graph help <command> for options."""
 
