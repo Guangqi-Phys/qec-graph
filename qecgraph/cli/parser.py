@@ -405,6 +405,8 @@ def _register_commands(add):
     cmd.add_argument("query", help='Literal search text')
     _add_query_scope(cmd, workspace=True)
     cmd.add_argument("--kind", help='Only return records and blocks of this kind')
+    cmd.add_argument("--view", choices=("raw", "reading"), default="raw",
+                     help="Search the raw index or the workspace reading projection")
     cmd.add_argument("--limit", type=int, default=20,
         help='Maximum number of results or entries to process (default: %(default)s)')
     cmd = add("show", help="Read one node with its incoming/outgoing edges")

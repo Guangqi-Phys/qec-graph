@@ -30,7 +30,13 @@ FORMAT = 'qecgraph.workspace'
 PROCESSOR = f'qecgraph-{__version__}:archive-structure-v1:parser-{PARSER_VERSION}:{RULE_VERSION}'
 HEX = re.compile(r'[0-9a-f]{64}')
 JOB = re.compile(r'[0-9a-f]{32}')
+AI_EXTRACTION_SKILLS = ('extract_theorems', 'extract_assumptions', 'extract_data')
 _CHUNK_BYTES = 256 << 10
+
+
+def _ai_complete(outcome):
+    return ({item['skill'] for item in outcome.get('written', []) if item.get('proposal_sha256')} == set(AI_EXTRACTION_SKILLS)
+            and not outcome.get('errors'))
 
 
 def now():
@@ -288,135 +294,115 @@ class Workspace:
                 'next': 'qec-graph sync',
                 'message': 'Edit [ai] in qecgraph.toml, put source packages in inputs/, and run qec-graph sync.'}
 
-    def _ai_normalizer(self):
-        """Return a lazy normalizer, or None when the workspace has no AI config."""
-        from .llm.config import AIConfigError, load_ai_config
-        from .llm.normalize import normalize_package
-        from .llm.artifacts import write_normalization
+    def _ai_client(self):
         from .llm.client import LLMClient
+        from .llm.config import AIConfigError, load_ai_config
+        from .llm.providers.cli import is_claude
 
-        config_path = self.path(CONFIG)
-        if not config_path.is_file():
-            return None
         try:
             config = load_ai_config(self.root)
+            if not config.allow_source_upload:
+                return None
+            provider = config.require_ready()
+            if provider.kind == 'cli' and is_claude(provider.name, provider.command) and not provider.resolved_key():
+                return None
+            return LLMClient(config, cache_dir=self.path('.qecgraph/ai-cache'))
         except AIConfigError:
             return None
-        if not config.enabled or not config.model.strip():
-            return None
 
-        def normalize(tree, progress=None):
-            if progress:
-                progress(0, 'Normalizing package with AI')
-            client = LLMClient(config, cache_dir=self.path('.qecgraph/ai-cache'))
-            normalized = normalize_package(tree, client)
-            artifact, manifest = write_normalization(self.path('machine'), normalized)
-            files = dict(tree.files)
-            files['main.tex'] = normalized.source.data
-            return SourceTree(tree.format, files), {'normalization_id': artifact.name,
-                                                    'normalization_sha256': normalized.source.sha256,
-                                                    'normalization_manifest': str(artifact / 'manifest.json'),
-                                                    'normalization': manifest, 'normalized': normalized.source}
-        return normalize
+    def _resolve_normalization(self, client, tree, prior):
+        from .llm.artifacts import load_normalization, normalization_binding, revalidate_legacy_normalization, write_normalization
+        from .llm.normalize import NormalizationError, normalize_package
 
-    def _ai_prefetch(self, digests, limits, progress=None):
-        """Prepare AI results concurrently before the sequential publisher runs."""
-        from concurrent.futures import ThreadPoolExecutor, as_completed
-        from .llm.config import AIConfigError, load_ai_config
-        from .llm.client import LLMClient
-        from .llm.normalize import normalize_package
-        from .llm.artifacts import write_normalization
+        if prior.get('normalization_manifest_sha256'):
+            source, _ = load_normalization(self.registry.root, prior, tree=tree)
+            binding = {field: prior[field] for field in (
+                'normalization_id', 'normalization_sha256', 'normalization_manifest_sha256')}
+            return SourceTree(tree.format, {**tree.files, 'main.tex': source.data}), binding
+        if prior.get('normalization_id'):
+            try:
+                source, binding = revalidate_legacy_normalization(self.registry.root, prior, tree)
+                return SourceTree(tree.format, {**tree.files, 'main.tex': source.data}), binding
+            except NormalizationError:
+                if client is None:
+                    raise
+        normalized = normalize_package(tree, client)
+        artifact, manifest = write_normalization(self.registry.root, normalized, tree)
+        return (SourceTree(tree.format, {**tree.files, 'main.tex': normalized.source.data}),
+                normalization_binding(artifact, manifest))
+
+    def _extract_ai(self, client, material, previous, limits):
+        from .llm.artifacts import load_normalization
         from .llm.extract import extract
+        from .llm.normalize import assemble, entrypoint_plan
         from .llm.redact import redact
 
         try:
-            config = load_ai_config(self.root)
-        except AIConfigError:
-            return {'packages': 0, 'errors': []}
-        if not config.enabled or not config.model.strip() or config.max_parallel_packages <= 1:
-            return {'packages': 0, 'errors': []}
-        client = LLMClient(config, cache_dir=self.path('.qecgraph/ai-cache'))
-
-        def prepare(digest):
-            raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
-            tree = unpack(raw, limits)
-            if not tree.entrypoints():
-                return digest, 'no complete TeX root'
-            normalized = normalize_package(tree, client)
-            write_normalization(self.path('machine'), normalized)
-            for skill in ('extract_theorems', 'extract_assumptions', 'extract_data'):
-                extract(normalized.source, client, skill)
-            return digest, None
-
-        errors = []
-        completed = 0
-        with ThreadPoolExecutor(max_workers=min(config.max_parallel_packages, max(1, len(digests)))) as pool:
-            futures = [pool.submit(prepare, digest) for digest in sorted(set(digests))]
-            for future in as_completed(futures):
-                try:
-                    digest, error = future.result()
-                except (OSError, ValueError, RuntimeError) as exc:
-                    digest, error = '<unknown>', redact(str(exc), client.secrets)
-                if error:
-                    errors.append({'archive_sha256': digest, 'error': error})
-                else:
-                    completed += 1
-        return {'packages': completed, 'errors': errors}
-
-    def _ai_extractor(self):
-        """Return a lazy extraction callback, or None when AI is unavailable."""
-        from .llm.config import AIConfigError, load_ai_config
-        from .llm.client import LLMClient
-        from .llm.extract import extract
-        from .llm.redact import redact
-
-        try:
-            config = load_ai_config(self.root)
-        except AIConfigError:
-            return None
-        if not config.enabled or not config.model.strip():
-            return None
-
-        def run(normalized, source_version_id, snapshot_id, progress=None):
-            from concurrent.futures import ThreadPoolExecutor, as_completed
-            client = LLMClient(config, cache_dir=self.path('.qecgraph/ai-cache'))
-            skills = ('extract_theorems', 'extract_assumptions', 'extract_data')
-            written, errors = [], []
-
-            def one(skill):
-                return skill, extract(normalized, client, skill)
-
-            if config.max_parallel_packages > 1:
-                with ThreadPoolExecutor(max_workers=min(config.max_parallel_packages, len(skills))) as pool:
-                    futures = [pool.submit(one, skill) for skill in skills]
-                    results = []
-                    for future in as_completed(futures):
-                        try:
-                            results.append(future.result())
-                        except (OSError, ValueError, RuntimeError) as exc:
-                            errors.append({'skill': 'unknown', 'error': redact(str(exc), client.secrets)})
-                    results.sort(key=lambda item: skills.index(item[0]))
+            if material.get('normalization_id'):
+                normalized, _ = load_normalization(self.registry.root, material)
             else:
-                results = []
-                for skill in skills:
-                    try:
-                        results.append(one(skill))
-                    except (OSError, ValueError, RuntimeError) as exc:
-                        errors.append({'skill': skill, 'error': redact(str(exc), client.secrets)})
-            for skill, result in results:
-                if progress:
-                    progress(1, f'Extracted {skill} with AI')
-                proposal = dict(result.proposal)
-                proposal['source_version_id'] = source_version_id
-                proposal['snapshot_id'] = snapshot_id
-                target = self.path('machine/ai/proposals/' + hash_text(source_version_id)
-                                   + '/' + skill + '-' + result.ai_result.run_id + '.json')
-                target.parent.mkdir(parents=True, exist_ok=True)
-                atomic_json(target, proposal)
-                written.append({'skill': skill, 'path': str(target),
-                                'run_id': result.ai_result.run_id})
-            return {'written': written, 'errors': errors}
-        return run
+                digest = material['archive_sha256']
+                raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
+                if hashlib.sha256(raw).hexdigest() != digest:
+                    raise ValueError('Archived source hash mismatch')
+                normalized = assemble(unpack(raw, limits), entrypoint_plan(material['entrypoint']))
+        except (OSError, ValueError, RuntimeError):
+            return [], [{'error': 'AI extraction could not read its registered source'}]
+
+        completed = {item['skill'] for item in previous.get('written', []) if item.get('proposal_sha256')}
+        results, errors = [], []
+        for skill in AI_EXTRACTION_SKILLS:
+            if skill not in completed:
+                try:
+                    results.append(extract(normalized, client, skill, projection_path=material['entrypoint']))
+                except (OSError, ValueError, RuntimeError) as exc:
+                    errors.append({'skill': skill, 'error': redact(str(exc), client.secrets)})
+        return results, errors
+
+    def _stage_ai(self, identity, previous, results, errors):
+        source_version_id, snapshot_id = identity
+        written = [item for item in previous.get('written', []) if item.get('proposal_sha256')]
+        for result in results:
+            skill, run_id = result.skill, result.ai_result.run_id
+            proposal = {**result.proposal, 'source_version_id': source_version_id, 'snapshot_id': snapshot_id}
+            try:
+                if not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', run_id):
+                    raise ValueError('Invalid AI extraction run ID')
+                target = self.path(f'machine/ai/proposals/{hash_text(source_version_id)}/{snapshot_id}/{skill}-{run_id}.json')
+                immutable_json(target, proposal)
+            except (OSError, ValueError):
+                errors.append({'skill': skill, 'error': 'AI proposal could not be stored'})
+            else:
+                written.append({'skill': skill, 'path': target.relative_to(self.registry.root).as_posix(),
+                                'run_id': run_id, 'proposal_sha256': hash_text(canonical(proposal))})
+        return {'status': 'pending' if errors else 'complete', 'written': written, 'errors': errors}
+
+    def _complete_ai(self, client, materials, digests, versions, previous, limits):
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        jobs = {}
+        for digest in sorted(digests):
+            material = materials[digest]
+            if not material.get('processing_completed'):
+                continue
+            identity = material['source_version_id'], material['source_snapshot_id']
+            if (versions[identity[0]]['snapshot_id'] == identity[1]
+                    and not _ai_complete(previous.get(identity, {}))):
+                jobs.setdefault(identity, material)
+
+        def extract_one(identity):
+            return self._extract_ai(client, jobs[identity], previous.get(identity, {}), limits)
+
+        workers = min(client.config.max_parallel_packages, len(jobs))
+        if workers > 1:
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                pending = {pool.submit(extract_one, identity): identity for identity in jobs}
+                for future in as_completed(pending):
+                    identity = pending.pop(future)
+                    previous[identity] = self._stage_ai(identity, previous.get(identity, {}), *future.result())
+        else:
+            for identity in jobs:
+                previous[identity] = self._stage_ai(identity, previous.get(identity, {}), *extract_one(identity))
 
     def sync(self, *, dry_run=False, keep_inputs=False, progress=None):
         if dry_run:
@@ -425,17 +411,19 @@ class Workspace:
                     'pending_claims': sum(1 for _ in self._pending_jobs())}
         with writer_lock(self.path('.qecgraph')):
             return self._run(self.config(), scan_inputs=True, rebuild=False, keep_inputs=keep_inputs,
-                             progress=progress, normalizer=self._ai_normalizer(),
-                             extractor=self._ai_extractor())
+                             progress=progress, ai_client=self._ai_client())
 
     def rebuild(self, *, include_inputs=False, keep_inputs=False, progress=None):
         self.config()
         with writer_lock(self.path('.qecgraph')):
             cfg = self.config()
             before = None
+            ai_client = self._ai_client()
             if include_inputs:
-                before = self._run(cfg, scan_inputs=True, rebuild=False, keep_inputs=keep_inputs, progress=progress)
-            result = self._run(cfg, scan_inputs=False, rebuild=True, keep_inputs=True, progress=progress)
+                before = self._run(cfg, scan_inputs=True, rebuild=False, keep_inputs=keep_inputs, progress=progress,
+                                   ai_client=ai_client)
+            result = self._run(cfg, scan_inputs=False, rebuild=True, keep_inputs=True, progress=progress,
+                               ai_client=ai_client)
         if before is not None:
             result['sync'] = before
             if before['status'] == 'partial_batch':
@@ -568,10 +556,48 @@ class Workspace:
         immutable_json(self.path('archive/receipts/' + job.name + '.json'), receipt)
         return digest
 
-    def _prepare(self, cfg, state, digest, prior, reused, limits, *, captured, manifest_hashes, tool_identity, normalizer=None, extractor=None, progress=None):
+    def _recover_source(self, parsed, *, raw, entry, state, prior, source_id, client, report):
+        from .llm.client import BudgetExceeded, ResponseSchemaError
+        from .llm.errors import LLMError
+        from .llm.structure import recover_structure
+        from .source.structure import StructureError, StructureIneligible, StructureNeedsReview, body_evidence, parsed_structure
+
+        allowed = {'latex_parse_error', 'structural_scan_incomplete'}
+        errors = {d['code'] for d in parsed['diagnostics'] if d['severity'] == 'error'}
+        if not errors or not errors <= allowed or parsed.get('includes') or len(parsed['files']) != 1:
+            report['structure_recovery'] = {'status': 'ineligible', 'reason': 'local_structure_or_dependency_error'}
+            return None
+        try:
+            evidence = body_evidence(entry, raw)
+            previous = state['versions'].get(source_id)
+            if (previous and previous.get('structure_recovery')
+                    and prior.get('source_snapshot_id') == previous['snapshot_id'] and prior.get('entrypoint') == entry):
+                graph, _, _ = self.registry.source_graph_from_state(state, source_id, None, verify=True)
+                return parsed_structure(evidence, graph['structure_recovery'])
+            if client is None or not client.config.structure_fallback:
+                reason = 'fallback_provider_unavailable' if client is None else 'fallback_disabled'
+                report['structure_recovery'] = {'status': 'unavailable', 'reason': reason}
+                return None
+            return recover_structure(evidence, client)
+        except StructureIneligible:
+            reason = 'body_outside_supported_scope'
+        except StructureNeedsReview:
+            reason = 'provider_requested_review'
+        except BudgetExceeded:
+            reason = 'fallback_budget_exceeded'
+        except (StructureError, ResponseSchemaError):
+            reason = 'invalid_structure_plan'
+        except LLMError:
+            reason = 'fallback_provider_failed'
+        report['structure_recovery'] = {'status': 'pending', 'reason': reason}
+        return None
+
+    def _prepare(self, cfg, state, digest, prior, reused, limits, *, captured, manifest_hashes, tool_identity, ai_client=None, progress=None):
         result = {'archive_sha256': digest, 'status': 'archived_only', 'processing_completed': False,
                   'semantic_status': 'not_extracted', 'processor': PROCESSOR}
-        normalized = None
+        from .llm.normalize import NormalizationError
+
+        normalization = None
         try:
             raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
             if hashlib.sha256(raw).hexdigest() != digest:
@@ -590,29 +616,24 @@ class Workspace:
                 candidates = tree.entrypoints()
                 if entry is None and len(candidates) == 1:
                     entry = candidates[0]
-                elif candidates and normalizer is not None:
+                elif entry is None and len(candidates) > 1 and (ai_client is not None or prior.get('normalization_id')):
                     try:
-                        extract_tree, normalization = normalizer(tree, progress=progress)
+                        if progress:
+                            progress(0, 'Resolving TeX entry point')
+                        extract_tree, normalization = self._resolve_normalization(ai_client, tree, prior)
                         entry = 'main.tex'
-                        normalized = normalization.get('normalized')
-                        result.update(normalization_id=normalization['normalization_id'],
-                                      normalization_sha256=normalization['normalization_sha256'])
+                    except NormalizationError as exc:
+                        result.update(status='needs_entrypoint', entrypoint_candidates=candidates, reason=str(exc))
+                        return self._keep_prior(result, prior)
                     except (OSError, ValueError, RuntimeError) as exc:
                         result.update(status='ai_failed', reason=str(exc).replace(str(self.root), '<workspace>'))
                         return self._keep_prior(result, prior)
                 else:
                     result.update(status='needs_entrypoint', entrypoint_candidates=candidates)
                     return self._keep_prior(result, prior)
-            if extractor is not None and normalized is None and entry in tree.files:
-                try:
-                    from .llm.normalize import assemble, single_root_plan
-                    normalized = assemble(tree, single_root_plan(tree))
-                except (OSError, ValueError, RuntimeError):
-                    normalized = None
             source_id = 'source:local:' + hash_text(canonical([tree_hash, work_id, upstream]))
-            build_key = (source_id, entry)
+            build_key = (source_id, entry, normalization and normalization['normalization_sha256'])
             version = reused.get(build_key)
-            fresh_extraction = version is None
             result['entrypoint'] = entry
             saved = self.path('sources/' + tree_hash)
             preserve = not saved.exists()
@@ -630,9 +651,14 @@ class Workspace:
                     if version is None:
                         project = temporary / 'project'
                         extract_tree.materialize(project)
+                        def recover(parsed):
+                            return self._recover_source(parsed, raw=tree.files[entry], entry=entry, state=state,
+                                                        prior=prior, source_id=source_id, client=ai_client, report=result)
+
                         extraction = ingest(project / entry, 'source-' + source_id.rsplit(':', 1)[-1],
                                             temporary / 'store', project_root=project, strict=True,
-                                            _tool_identity=tool_identity)
+                                            _tool_identity=tool_identity,
+                                            _recover_source=recover if normalization is None else None)
                         if not extraction.get('published'):
                             result.update(status='parse_failed', reason='Structural extraction is partial; see diagnostics',
                                           diagnostics=extraction.get('diagnostics', []))
@@ -641,12 +667,11 @@ class Workspace:
                             state, work_id, source_id, temporary / 'store', title=metadata.get('title'),
                             upstream_version=upstream, replace_projection=True,
                             captured=captured, manifest_hashes=manifest_hashes)
-            if extractor is not None and normalized is not None and fresh_extraction and version is not None:
-                try:
-                    result['ai_extraction'] = extractor(normalized, source_id, version['snapshot_id'], progress=progress)
-                except (OSError, ValueError, RuntimeError) as exc:
-                    result['ai_extraction_error'] = str(exc).replace(str(self.root), '<workspace>')
             reused[build_key] = version
+            if normalization is not None:
+                result.update(normalization)
+            if version.get('structure_recovery'):
+                result['structure_recovery'] = version['structure_recovery']
             result.update(status='processing_completed', processing_completed=True, semantic_status='semantic_pending',
                           source_version_id=source_id, source_snapshot_id=version['snapshot_id'])
             return result
@@ -661,6 +686,9 @@ class Workspace:
         if prior.get('source_version_id'):
             result.update(source_version_id=prior['source_version_id'], source_snapshot_id=prior['source_snapshot_id'],
                           retained_prior_extraction=True)
+            for field in ('normalization_id', 'normalization_sha256', 'normalization_manifest_sha256'):
+                if field in prior:
+                    result[field] = prior[field]
         return result
 
     @staticmethod
@@ -742,8 +770,33 @@ class Workspace:
         atomic_json(operational, {'observed_at': now(), 'release_id': release, 'counts': counts,
                     'human': {'status': human_status, 'target_release_id': release, 'rendered_release_id': rendered}})
 
-    def _publish_archive(self, cfg, digests, limits, *, rebuild, update, normalizer=None, extractor=None,
-                         prefetch=None, prefetch_digests=()):
+    def _normalization_issues(self, state, limits):
+        from .llm.artifacts import load_normalization
+
+        for digest, material in state.get('materials', {}).items():
+            if not material.get('normalization_id'):
+                continue
+            if not material.get('normalization_manifest_sha256'):
+                yield {'code': 'normalization_unbound', 'archive_sha256': digest, 'severity': 'warning',
+                       'message': 'Historical normalization is missing a bound source map'}
+                continue
+            try:
+                raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
+                if hashlib.sha256(raw).hexdigest() != digest:
+                    raise ValueError('Archived source hash mismatch')
+                source, _ = load_normalization(self.registry.root, material, tree=unpack(raw, limits))
+                version = state['versions'][material['source_version_id']]
+                if (version['snapshot_id'] == material['source_snapshot_id']
+                        and not _matches_regular(self.path('machine/' + version['snapshot_path'] + '/sources/main.tex'),
+                                                 limits.expanded_bytes, source.data)):
+                    raise ValueError('Registered projection differs from the normalized TeX')
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                yield {'code': 'normalization_invalid', 'archive_sha256': digest, 'severity': 'error',
+                       'message': str(exc)}
+
+    def _publish_archive(self, cfg, digests, limits, *, rebuild, update, ai_client=None):
+        from .llm.review import proposal_issues
+
         package_count = len(digests)
         package_stage = 'Checking archive packages' if rebuild else 'Checking inbox packages'
         update(1, f'{package_stage} 0/{package_count}' if package_count else 'Preparing workspace')
@@ -751,8 +804,6 @@ class Workspace:
             from .workspace_query import check_machine_tree
             check_machine_tree(self.registry.root)
             state, old = self.registry._state_and_revision()
-            if prefetch is not None and prefetch_digests:
-                prefetch(set(prefetch_digests), limits)
             materials = state.setdefault('materials', {})
             state['workspace_id'] = cfg['workspace_id']
             tool_identity = extraction_tool_identity() if digests else None
@@ -771,11 +822,13 @@ class Workspace:
                 return proposals(graph, version)
 
             reused = {}
+            ai_results = {(material.get('source_version_id'), material.get('source_snapshot_id')): material['ai_extraction']
+                          for material in materials.values() if material.get('ai_extraction')}
             if digests:
                 for prior in materials.values():
                     version = self._matching_extraction(state, prior, fingerprint)
                     if version is not None:
-                        reused[(version['id'], prior['entrypoint'])] = version
+                        reused[(version['id'], prior['entrypoint'], prior.get('normalization_sha256'))] = version
             for index, digest in enumerate(sorted(digests), start=1):
                 prior = materials.get(digest, {})
                 version = self._matching_extraction(state, prior, fingerprint)
@@ -783,8 +836,7 @@ class Workspace:
                     captured = []
                     materials[digest] = self._prepare(cfg, state, digest, prior, reused, limits,
                                                        captured=captured, manifest_hashes=manifest_hashes,
-                                                       tool_identity=tool_identity, normalizer=normalizer,
-                                                       extractor=extractor, progress=update)
+                                                       tool_identity=tool_identity, ai_client=ai_client, progress=update)
                     materials[digest]['config_fingerprint'] = fingerprint
                     if captured:
                         graph, snapshot, registered = captured.pop()
@@ -792,6 +844,13 @@ class Workspace:
                             identity = (registered['id'], registered['snapshot_id'])
                             staged_proposals[identity] = generate(graph, snapshot, registered)
                 update(index + 1, f'{package_stage} {index}/{package_count}')
+            if ai_client is not None and ai_client.config.extract_proposals and digests:
+                update(package_count + 1, 'Extracting AI proposals')
+                self._complete_ai(ai_client, materials, digests, state['versions'], ai_results, limits)
+            for material in materials.values():
+                identity = material.get('source_version_id'), material.get('source_snapshot_id')
+                if identity in ai_results and material.get('processing_completed'):
+                    material['ai_extraction'] = ai_results[identity]
             update(package_count + 1, 'Publishing workspace')
             # Explicit version metadata, never inferred from filenames.
             parsed_versions = {m['source_version_id'] for m in materials.values() if m.get('source_version_id')}
@@ -823,7 +882,9 @@ class Workspace:
             # This verifies every registered snapshot, including reused ones,
             # before publishing the pointer or consuming any input claims.
             validation = self.registry.validate(candidate, check_live_lean=False, manifest_hashes=manifest_hashes)
-            if not validation['passed']:
+            if (not validation['passed'] or any(issue['severity'] == 'error'
+                                                for issue in self._normalization_issues(state, limits))
+                    or next(proposal_issues(self.registry, state), None) is not None):
                 raise ValueError('Candidate machine release failed validation; CURRENT was retained')
             if cfg != self.config():
                 raise ValueError('Workspace configuration changed while preparing; retry')
@@ -832,7 +893,7 @@ class Workspace:
             release = self.registry.publish_prepared(candidate)
         return old, release, materials, proposal_map
 
-    def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None, normalizer=None, extractor=None):
+    def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None, ai_client=None):
         if not self.path('machine/CURRENT.json').is_file() and (
                 self.path('machine/operational/status.json').exists()
                 or self.path('.qecgraph/migration.json').exists()):
@@ -847,11 +908,16 @@ class Workspace:
             if progress:
                 progress(0, 1, 'Archiving inbox packages')
             claims, rows = self._archive_inbox(limits.input_bytes, keep_inputs)
-        digests = {digest for _, _, digest in claims}
+        claimed_digests = {digest for _, _, digest in claims}
+        digests = set(claimed_digests)
         if rebuild:
             if progress:
                 progress(0, 1, 'Scanning the archive')
             digests.update(self._archived_digests())
+        elif ai_client is not None and ai_client.config.extract_proposals and self.path('machine/CURRENT.json').is_file():
+            state, _ = self.registry.read()
+            digests.update(digest for digest, material in state.get('materials', {}).items()
+                           if material.get('processing_completed') and not _ai_complete(material.get('ai_extraction', {})))
 
         # Archiving, one check per distinct package, publication and final CLI work.
         steps = len(digests) + 3
@@ -861,13 +927,10 @@ class Workspace:
                 progress(done, steps, message)
 
         old, release, materials, proposal_map = self._publish_archive(
-            cfg, digests, limits, rebuild=rebuild, update=update, normalizer=normalizer,
-            extractor=extractor, prefetch=self._ai_prefetch,
-            prefetch_digests={digest for _, _, digest in claims})
+            cfg, digests, limits, rebuild=rebuild, update=update, ai_client=ai_client)
         update(steps - 1, 'Finalizing workspace')
         rows.extend(self._finish_claims(claims, materials, release, limits.input_bytes, keep_inputs))
-        if rebuild:
-            rows.extend(materials[digest] for digest in sorted(digests))
+        rows.extend(materials[digest] for digest in sorted(digests - claimed_digests))
         counts = {'registered': len(materials), 'processed': sum(x['processing_completed'] for x in materials.values()),
                   'conflicting': sum(x['source_version_conflict'] for x in materials.values()),
                   'code_mention_proposals': sum(p['code_parameters_mentions'] for p in proposal_map.values())}
@@ -879,7 +942,7 @@ class Workspace:
             # consumed; a derived-status write must not turn that into a failure.
             warning = 'operational status could not be written: ' + str(exc).replace(str(self.root), '<workspace>')
         partial = any(not r.get('processing_completed') or r.get('cleanup_error') or r.get('retained_claim')
-                      or r.get('source_version_conflict') for r in rows)
+                      or r.get('source_version_conflict') or r.get('ai_extraction', {}).get('errors') for r in rows)
         result = {'status': 'partial_batch' if partial else 'unchanged' if old == release else 'published',
                   'run_id': run_id, 'workspace_id': cfg['workspace_id'], 'previous_release_id': old,
                   'release_id': release, 'counts': counts, 'inputs': rows}
@@ -894,7 +957,8 @@ class Workspace:
         digests = {row['archive_sha256'] for row in quarantined}
         materials = [{**material, 'quarantined': digest in digests}
                      for digest, material in state.get('materials', {}).items()]
-        partial = any((not material.get('processing_completed') or material.get('source_version_conflict'))
+        partial = any((not material.get('processing_completed') or material.get('source_version_conflict')
+                       or material.get('ai_extraction', {}).get('errors'))
                       and not material['quarantined']
                       for material in materials)
         pending_inputs = sum(1 for _ in self._inbox())
@@ -921,6 +985,8 @@ class Workspace:
                 'pending_inputs': pending_inputs, 'pending_claims': pending_claims}
 
     def validate(self, *, progress=None):
+        from .llm.review import proposal_issues
+
         cfg = self.config()
         from .workspace_query import check_machine_tree
         check_machine_tree(self.registry.root)
@@ -940,6 +1006,8 @@ class Workspace:
                     raise ValueError('Archive hash mismatch')
             except (OSError, ValueError) as exc:
                 issues.append({'code': 'archive_invalid', 'archive_sha256': digest, 'message': str(exc)})
+        issues.extend(self._normalization_issues(state, Limits(**cfg.get('limits', {}))))
+        issues.extend(proposal_issues(self.registry, state))
         passed = result.get('passed', False) and not any(i.get('severity') != 'warning' for i in issues)
         return {**result, 'valid': passed, 'passed': passed, 'suggested_exit_code': 0 if passed else 2, 'status': 'ok' if passed else 'invalid',
                 'workspace_id': cfg['workspace_id'], 'release_id': fixed}

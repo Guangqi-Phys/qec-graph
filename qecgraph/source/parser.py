@@ -14,6 +14,7 @@ from typing import Any
 
 from .. import PARSER_VERSION
 from ..core.coordinates import SourceLines
+from .reading import CITATION_COMMANDS as _CITATIONS
 
 try:
     from pylatexenc import __version__ as PYLATEXENC_VERSION
@@ -58,15 +59,12 @@ _LITERAL_ENVIRONMENTS = {
     "lstlisting", "minted", "comment", "filecontents", "filecontents*",
 }
 _LITERAL_MACROS = {"verb", "lstinline", "mintinline"}
+_LINK_MACROS = {"href", "url", "nolinkurl"}
 _METADATA_MACROS = {"label", "uses", "proves", "lean", "leanok", "mathlibok", "notready"}
 _REFERENCE_KINDS = {
     "ref": "ref", "eqref": "eqref", "cref": "cref", "Cref": "cref",
     "autoref": "autoref", "Autoref": "autoref", "vref": "ref", "Vref": "ref",
     "pageref": "ref", "nameref": "ref", "uses": "uses", "proves": "proves",
-}
-_CITATIONS = {
-    "cite", "citep", "citet", "citealp", "citealt", "citeauthor", "citeyear",
-    "citeyearpar", "parencite", "textcite", "autocite", "footcite", "nocite",
 }
 _CONDITIONALS = {
     "if", "ifx", "ifnum", "ifdim", "ifcase", "ifdefined", "ifcsname",
@@ -147,6 +145,62 @@ class _OpaqueDeclarationParser(MacroStandardArgsParser):
                                                                 strict_braces=True)
                     args.append(node)
                     pos = start + length
+        return ParsedMacroArgs(argspec=self.argspec, argnlist=args), original, pos - original
+
+
+_LINK_TARGET_TOKEN = re.compile(r"\\[\\{}]|[{}]")
+
+
+class _LinkArgsParser(MacroStandardArgsParser):
+    """Read braced URLs with literal percent signs, then parse link text as TeX."""
+
+    def __init__(self, *, with_text=False):
+        super().__init__(argspec="[{{" if with_text else "{")
+        self.with_text = with_text
+
+    def parse_target(self, w, pos, parsing_state):
+        args = []
+        if self.with_text:
+            token = _next_token(w, pos, parsing_state)
+            option = None
+            if token is not None and token.tok == "char" and token.arg == "[":
+                option, start, length = w.get_latex_braced_group(token.pos, brace_type="[",
+                                                                 parsing_state=parsing_state)
+                pos = start + length
+            args.append(option)
+
+        token = _next_token(w, pos, parsing_state)
+        if token is None:
+            raise LatexWalkerParseError(s=w.s, pos=pos, msg="Missing link target")
+        if token.tok != "brace_open":
+            target, start, length = w.get_latex_expression(token.pos, strict_braces=True,
+                                                           parsing_state=parsing_state)
+            return [*args, target], start + length
+
+        start = token.pos
+        depth = 1
+        for delimiter in _LINK_TARGET_TOKEN.finditer(w.s, start + 1):
+            if delimiter[0] == "{":
+                depth += 1
+            elif delimiter[0] == "}":
+                depth -= 1
+                if depth == 0:
+                    end = delimiter.end()
+                    raw = w.s[start + 1:end - 1]
+                    chars = w.make_node(LatexCharsNode, parsing_state=parsing_state,
+                                        pos=start + 1, len=len(raw), chars=raw)
+                    target = w.make_node(LatexGroupNode, parsing_state=parsing_state, pos=start,
+                                         len=end - start, nodelist=[chars], delimiters=("{", "}"))
+                    return [*args, target], end
+        raise LatexWalkerParseError(s=w.s, pos=start, msg="Unclosed link target")
+
+    def parse_args(self, w, pos, parsing_state=None):
+        original = pos
+        args, pos = self.parse_target(w, pos, parsing_state)
+        if self.with_text:
+            text, start, length = w.get_latex_expression(pos, strict_braces=True, parsing_state=parsing_state)
+            args.append(text)
+            pos = start + length
         return ParsedMacroArgs(argspec=self.argspec, argnlist=args), original, pos - original
 
 
@@ -386,6 +440,12 @@ def _scan_structure(text, inherited, context, known_conditionals):
             continue
 
         uncertain = conditionals.uncertain()
+        if name in _LINK_MACROS:
+            parser = context.get_macro_spec(name).args_parser
+            if isinstance(parser, _LinkArgsParser):
+                # Keep the visible link text in the structural token stream.
+                _, pos = parser.parse_target(walker, pos, state)
+                continue
         if name == "let":
             target = _next_token(walker, pos, state)
             if target is not None and target.tok == "macro":
@@ -537,6 +597,8 @@ class _ProjectParser:
         for name in _PRIMITIVE_DEFINITIONS:
             specs[name] = MacroSpec(name, args_parser=_PrimitiveDefinitionParser())
         specs["DeclareMathOperator"] = MacroSpec("DeclareMathOperator", args_parser=_OpaqueDeclarationParser("*{{"))
+        for name in sorted(_LINK_MACROS):
+            specs.setdefault(name, MacroSpec(name, args_parser=_LinkArgsParser(with_text=name == "href")))
         for name in ("verb", "lstinline"):
             specs[name] = MacroSpec(name, args_parser=_InlineLiteralParser(name))
         specs["mintinline"] = MacroSpec("mintinline", args_parser=_OpaqueDeclarationParser("[{{"))
@@ -745,6 +807,10 @@ class _ProjectParser:
         name = _raw_arg(args[1], text).strip().lstrip("\\")
         if not re.fullmatch(r"[A-Za-z@]+", name):
             return
+        # Generated bibliographies often provide zero-argument URL shims
+        # that delegate to another command after changing URL catcodes.
+        if name in _LINK_MACROS and node.macroname == "providecommand":
+            return
         try:
             number = int(_raw_arg(args[2], text)) if args[2] is not None else 0
         except ValueError:
@@ -943,6 +1009,18 @@ class _ProjectParser:
             if isinstance(node, LatexMacroNode) and node.macroname in _SECTIONS:
                 flush()
                 last_anchor = self.emit_section(node, path, owner, sections, text)
+                continue
+            if isinstance(node, LatexEnvironmentNode) and node.environmentname == "thebibliography":
+                flush()
+                if self.kind_of_environment(node.environmentname):
+                    last_anchor = self.emit_environment(node, path, self.parent(owner, sections), sections)
+                    block = self.by_key[last_anchor]
+                else:
+                    block = self.make_block("paragraph", path, node.pos, node.pos + node.len,
+                                            self.parent(owner, sections), node.environmentname)
+                    last_anchor = block["key"]
+                    self.metadata(node, path, last_anchor, sections)
+                block["source_role"] = "bibliography"
                 continue
             if isinstance(node, LatexEnvironmentNode) and self.kind_of_environment(node.environmentname):
                 flush()

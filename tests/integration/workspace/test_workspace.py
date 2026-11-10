@@ -183,10 +183,12 @@ class WorkspaceTests(unittest.TestCase):
         text = config.read_text(encoding='utf-8')
         text = text.replace('provider = "openrouter"', 'provider = "claude_code"')
         text = text.replace('model = ""', 'model = "normalizer-test"')
+        text = text.replace('extract_proposals = false', 'extract_proposals = true')
         config.write_text(text, encoding='utf-8')
         supplement = b'\\documentclass{article}\n\\begin{document}\nSupplement text.\n\\end{document}\n'
         (self.inbox / 'bundle.tar').write_bytes(tar_bytes({'main.tex': TEX, 'supp.tex': supplement}))
-        plan = {'status': 'ready', 'documents': [],
+        plan = {'status': 'ready', 'documents': [{'path': 'main.tex', 'role': 'main'},
+                                                 {'path': 'supp.tex', 'role': 'supplement'}],
                 'operations': [{'op': 'use_preamble', 'source': 'main.tex'},
                                {'op': 'include_body', 'source': 'main.tex'},
                                {'op': 'append_body', 'source': 'supp.tex'}],
@@ -197,7 +199,8 @@ class WorkspaceTests(unittest.TestCase):
         empty = LLMResult(data={'items': [], 'unresolved': []}, text='{}', model='model',
                           usage={}, request_id='r', attempts=1, cached=False,
                           run_id='extraction-run', prompt_sha256='p' * 64)
-        with patch('qecgraph.llm.client.LLMClient.complete_json', side_effect=[ai, empty, empty, empty]):
+        with patch.dict('os.environ', {'ANTHROPIC_API_KEY': 'offline-test-key'}), patch(
+                'qecgraph.llm.client.LLMClient.complete_json', side_effect=[ai, empty, empty, empty]):
             result = self.ws.sync()
         self.assertEqual(result['status'], 'published')
         self.assertEqual(len(result['inputs']), 1)

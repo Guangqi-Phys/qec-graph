@@ -43,8 +43,9 @@ qec-graph validate
 ### AI configuration
 
 `init` writes an `[ai]` table and provider blocks for OpenAI, Anthropic,
-OpenRouter and Claude Code. `sync` can then normalize multiple TeX roots and
-extract proposals. Keep the key in `api_key_env` when possible; a key placed in
+OpenRouter and Claude Code. An available provider can help with multi-root
+normalization and eligible local parser failures. Keep the key in
+`api_key_env` when possible. A key placed in
 `qecgraph.toml` is protected by mode `0600` but should not be committed.
 
 ```toml
@@ -53,6 +54,8 @@ enabled = true
 provider = "openrouter"
 model = "your-model-id"
 max_parallel_packages = 2
+structure_fallback = true
+extract_proposals = false
 
 [ai.providers.openrouter]
 kind = "openai_compatible"
@@ -65,7 +68,30 @@ api_key = ""
 `qec-graph ai test` makes one schema-bound connectivity probe. `qec-graph init`
 never calls either command automatically.
 
-`max_parallel_packages` controls concurrent AI preparation; publication and input consumption remain serial.
+`structure_fallback` defaults to `true` and also requires a ready provider and
+`allow_source_upload`. A fallback request contains only the selected entry's
+numbered body. The body must have unique standalone delimiters and no external
+TeX body inputs. Failed or declined plans leave the archive and inbox copy
+available for retry. Status reports show the recovery state. A successful
+recovery records `recovered_proposed` on the snapshot. Upgrade machine
+readers before pointing them at a release that uses this status. The updated
+CLI and MCP continue to read previously published snapshots.
+
+`extract_proposals` defaults to `false`. Set it to `true` to keep the earlier
+automatic theorem, assumption and data proposal workflow on existing
+workspaces. `max_parallel_packages` bounds this optional extraction.
+Publication and input consumption remain serial.
+
+The Claude Code provider uses bare mode with tools, MCP and session persistence
+disabled. Set `ANTHROPIC_API_KEY` and remove custom CLI arguments when upgrading
+a workspace that used the local subscription login.
+
+Failed AI extraction remains pending after the structural release commits. A
+later `sync` retries the failed skills from the archive. Rebuild verifies and
+reuses committed normalization maps even with AI disabled. For an older release,
+rebuild can bind a historical map when the saved plan and archive reproduce the
+exact projection. An unconfirmed fallback still needs an explicit entry point or
+a new plan.
 
 Daily use is `qec-graph sync`, `qec-graph status` and `qec-graph validate`.
 The terminal updates one progress line and ends with success or an error. `sync`

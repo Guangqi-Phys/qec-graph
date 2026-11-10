@@ -65,6 +65,8 @@ def proposals(graph, version):
     source = make_record('paper_version', source_id, snapshot,
                          {'work_id': version['work_id'], 'upstream_version': version['upstream_version'],
                           'source_snapshot_id': snapshot}, source=origin, method='workspace_source_registry')
+    if graph.get('structure_recovery'):
+        return [source]
     candidates = {}
     for node in graph['nodes']:
         span = node.get('source')

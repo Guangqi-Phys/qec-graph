@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import copy
+import json
+import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -24,7 +26,7 @@ class ExtractionResult:
 
 
 def _strings(value, field):
-    if not isinstance(value, list) or not all(isinstance(item, str) and item.strip() for item in value):
+    if not isinstance(value, list) or not value or not all(isinstance(item, str) and item.strip() for item in value):
         raise ExtractionError(f'{field} must be a nonempty array of strings')
 
 
@@ -121,12 +123,54 @@ def make_proposal(skill, data, *, source_tree_hash, ai_result, normalization_id=
 _EXTRACTION_SKILLS = {'extract_theorems', 'extract_assumptions', 'extract_data'}
 
 
-def extract(normalized, client, skill_name, *, extra_skills_dir=None, use_cache=True):
+_LINE_REF = re.compile(r'(.+):([1-9][0-9]{0,8})(?:-([1-9][0-9]{0,8}))?')
+
+
+def validate_source_refs(normalized, projection_path, skill, data):
+    """Resolve model citations within supplied evidence and check verbatim claims."""
+    if not data['items']:
+        return
+    text = normalized.text
+    line_offsets = [0, *(match.end() for match in re.finditer(r'\n', text)), len(text)]
+    originals = []
+    offset = 0
+    for segment in normalized.segments:
+        span = segment['normalized']
+        end = offset + len(normalized.data[span['byte_start']:span['byte_end']].decode('utf-8'))
+        if segment['origin'] is not None:
+            originals.append((offset, end))
+        offset = end
+
+    def check(row, verbatim=None):
+        excerpts = []
+        for reference in row.get('source_refs', []):
+            match = _LINE_REF.fullmatch(reference) if isinstance(reference, str) else None
+            if not match or match[1] != projection_path:
+                raise ExtractionError('AI source reference must name the supplied projection and line range')
+            first, last = int(match[2]), int(match[3] or match[2])
+            if not first <= last < len(line_offsets):
+                raise ExtractionError('AI source reference line range is out of bounds')
+            start, end = line_offsets[first - 1], line_offsets[last]
+            chunks = [text[max(start, a):min(end, b)] for a, b in originals if start < b and a < end]
+            if not any(chunk.strip() for chunk in chunks):
+                raise ExtractionError('AI source reference contains no original text')
+            excerpts.extend(chunks)
+        if verbatim and not any(verbatim in excerpt for excerpt in excerpts):
+            raise ExtractionError('AI statement or explicit assumption is not verbatim in its cited source')
+
+    for item in data['items']:
+        verbatim = item['statement'] if skill == 'extract_theorems' else (
+            item['text'] if skill == 'extract_assumptions' and item.get('kind') == 'explicit' else None)
+        check(item, verbatim)
+        for hypothesis in item.get('hypotheses', []):
+            check(hypothesis, hypothesis['text'] if hypothesis['kind'] == 'explicit' else None)
+
+
+def extract(normalized, client, skill_name, *, projection_path='main.tex', extra_skills_dir=None, use_cache=True):
     """Ask one extraction skill for a proposal over a normalized source."""
     from .normalize import NormalizedSource
     from .skills import load_skill
     from .providers.base import Message
-    import json
 
     if not isinstance(normalized, NormalizedSource):
         raise ExtractionError('normalized source is required')
@@ -137,15 +181,28 @@ def extract(normalized, client, skill_name, *, extra_skills_dir=None, use_cache=
         'schema': 'qecgraph.extraction_evidence',
         'source_tree_hash': normalized.source_tree_hash,
         'normalized_sha256': normalized.sha256,
+        'projection_path': projection_path,
         'text': normalized.text,
         'segments': list(normalized.segments),
     }
     content = json.dumps(evidence, ensure_ascii=False, sort_keys=True)
+    checked = None
+
+    def validate(data):
+        nonlocal checked
+        validate_extraction(skill_name, data)
+        validate_source_refs(normalized, projection_path, skill_name, data)
+        checked = data
+
     ai_result = client.complete_json(
         [Message('system', skill.system_prompt), Message('user', content)], skill.schema,
-        use_cache=use_cache)
+        use_cache=use_cache, validate=validate)
+    if checked is not ai_result.data:
+        validate(ai_result.data)
     proposal = make_proposal(skill_name, ai_result.data,
                              source_tree_hash=normalized.source_tree_hash,
                              ai_result=ai_result, normalization_id=normalized.sha256)
+    proposal['projection_path'] = projection_path
+    proposal['provenance']['skill_version'] = skill.version
     return ExtractionResult(skill=skill_name, data=ai_result.data, proposal=proposal,
                             ai_result=ai_result)

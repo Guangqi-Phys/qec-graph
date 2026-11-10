@@ -7,11 +7,12 @@ import os
 from pathlib import Path
 import threading
 
+from ..core.graph import strict_json_loads
 from ..core.transactions import atomic_json
 
 
 def cache_key(*, provider, model, messages, schema, temperature, max_output_tokens):
-    payload = {'provider': provider, 'model': model,
+    payload = {'format': 'qecgraph.ai.cache.v2', 'provider': provider, 'model': model,
                'messages': list(messages), 'schema': schema, 'temperature': temperature,
                'max_output_tokens': max_output_tokens}
     return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True,
@@ -30,8 +31,8 @@ class ResponseCache:
         with self.lock:
             try:
                 raw = self.path(key).read_bytes()
-                value = json.loads(raw)
-            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                value = strict_json_loads(raw)
+            except (OSError, ValueError):
                 return None
             return value if isinstance(value, dict) else None
 

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "blocks"],
+  "properties": {
+    "status": {"enum": ["ready", "needs_review"]},
+    "blocks": {
+      "type": "array",
+      "maxItems": 512,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "first_line", "last_line"],
+        "properties": {
+          "kind": {"enum": ["section", "paragraph", "definition", "lemma", "theorem",
+                            "proposition", "corollary", "conjecture", "proof", "equation",
+                            "table", "figure", "remark", "example", "bibliography", "unknown"]},
+          "first_line": {"type": "integer", "minimum": 1},
+          "last_line": {"type": "integer", "minimum": 1}
+        }
+      }
+    }
+  }
+}

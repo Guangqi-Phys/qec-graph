@@ -155,10 +155,11 @@ your MCP client or pass them to `qec-graph query-tool` with JSON arguments.
 | Goal | Tools | How to start |
 | --- | --- | --- |
 | Find a term, label, source, or record | `qecgraph_search` | Pass `query` and optionally `kind`, `limit`, and `offset`. The workspace search matches keywords case-insensitively. Use `kind: "code_parameters_mention"` to focus on notation proposals. |
+| Search the reading view | `qecgraph_search` | Set `view: "reading"` or run `qec-graph search TERM --workspace . --view reading`. Results contain a bounded excerpt and the source occurrence. |
 | Read a record and follow its links | `qec_get_entity`, `qec_get_context` | Pass the result's `id` as `identifier`. Supply `revision` to select an exact research record when several revisions are available. |
 | Read the original passage or asset | `qec_get_source`, `qec_get_asset` | Use the registered source occurrence ID or a record's asset ID. Source ranges use half-open Unicode code point offsets. Asset ranges use byte offsets. |
 | Inspect graph nodes and dependencies | `qecgraph_show`, `qecgraph_context`, `qecgraph_deps`, `qecgraph_impact` | Use the graph node ID or a unique label. `deps` follows what a result depends on. `impact` follows what depends on it. Inspect edge status before relying on a candidate or historical link. |
-| Filter quantum codes | `qec_find_codes` | Use `n_min` or `n_max` to filter code size. For a hard distance bound, specify the metric ID and choose a sector (`joint` by default). The default `verified` policy requires current bound evidence and accepts an exact `metric_revision`. The `source_reported` policy requires `metric_revision` for hard distance filters. |
+| Filter quantum codes | `qec_find_codes` | Use `n_min` or `n_max` to filter code size. For a hard distance bound, specify the metric ID and choose a sector (`joint` by default). The default `verified` policy requires current bound evidence and accepts an exact `metric_revision`. For a workspace hard filter with `source_reported`, specify `metric_revision`. The distance estimate must name a check-matrix representation linked to the code and cite a span in the current source projection. |
 | Find performance data points | `qec_find_performance` | Filter by `code_id`, `decoder_id`, `noise_model_id`, or `metric_id`. Use `complete_only: true` for points with the required context bound. Coordinate selection supports exact or nearest reported points and returns the actual reported coordinate. |
 | Find software or an algorithm | `qec_find_software` | Search by `query` or `role`. A project entry describes the catalog. Follow its usage records for evidence that a paper or run used it. |
 | Inspect workspace status | `qec_workspace_status` | Pass `{}` to read the latest recorded operational status alongside the connection's fixed knowledge release. If the operational report is missing or malformed, `operational_status` is `null`; the fixed release and its coverage are still returned. |
@@ -199,9 +200,12 @@ conditions before comparing values. [Import and review records](advanced-usage.m
 AI extraction writes `qecgraph.ai.proposal` files under
 `machine/ai/proposals/`. They remain `proposed` and are not selected by the
 default verified evidence policy. List them with `qec-graph ai proposals` and
-record an explicit decision with `qec-graph ai decide`; a review binds the
-proposal hash but does not automatically create a research record. Source
-references must point at the original or mapped normalized segment.
+record an explicit decision with `qec-graph ai decide`. A decision binds the
+published proposal hash and source snapshot. If either changes, the original
+decision is retained and reported as stale. Proposal references use
+`projection_path:first-last` with 1-based inclusive lines. The projection maps
+back to the archived source. Existing unbound proposals are retained on disk.
+Run `sync` with AI configured to generate bound proposals from the archive.
 
 ## Read and reproduce a query result
 

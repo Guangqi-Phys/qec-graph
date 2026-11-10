@@ -89,6 +89,8 @@ class GraphTextIndex:
 def search_node_summary(node, *, include_build_binding=False):
     row = {key: node.get(key) for key in ('id', 'kind', 'title', 'source', 'provenance',
                                         'review_status', 'verification_status')}
+    if 'structure_classification' in node:
+        row['structure_classification'] = node['structure_classification']
     if include_build_binding and 'build_binding' in node:
         row['build_binding'] = node['build_binding']
     return row

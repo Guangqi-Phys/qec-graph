@@ -15,11 +15,13 @@ from .mcp.ai_tools import ReadOnlySession, ToolError, tool_validators
 from .domain.domain_query import codes
 from .core.graph import canonical, hash_text, read_json
 from .query import GraphTextIndex, search_node_summary
+from .source.reading import source_reading_text
 from .registry import Registry
 from .domain.research import RELATIONS, key, validate_bundle
 from .domain.research_store import load_records
 from .workspace import HEX, _managed
 from .workspace_assets import asset_bytes, references
+from .llm.artifacts import load_normalization, mapped_ranges
 
 
 def check_machine_tree(machine):
@@ -89,6 +91,10 @@ class WorkspaceSession:
                               if n['origin'] == 'parser' and n.get('source')}
         self.resources = {self._resource_uri(identifier): identifier for identifier in self._source_nodes}
         self._resource_bindings = sorted(self.resources.items())
+        self._normalizations = {
+            (material['source_version_id'], material['source_snapshot_id']): material
+            for material in self.state.get('materials', {}).values() if material.get('normalization_id')
+        }
 
     def _resource_uri(self, occurrence):
         return f'qec://source/{self.release}/{hash_text(occurrence)}'
@@ -154,7 +160,9 @@ class WorkspaceSession:
         source = self.source_excerpt(identifier)
         resource = {'uri': uri, 'mimeType': 'text/plain', 'text': source['latex'],
                     '_meta': {'release_id': self.release, 'occurrence_id': identifier,
-                              'content_sha256': source['content_sha256'], 'source': source['source']}}
+                              'content_sha256': source['content_sha256'], 'source': source['source'],
+                              **{key: source[key] for key in ('original_ranges', 'structure_classification',
+                                                              'structure_status') if key in source}}}
         result = {'contents': [resource]}
         if len(canonical(result)) > self.graph.max_chars:
             raise ToolError('BUDGET_TOO_SMALL', 'Use qec_get_source with an exact source codepoint range')
@@ -193,6 +201,8 @@ class WorkspaceSession:
             props = descriptor['inputSchema']['properties']
             props.update(release_id={'type': 'string', 'pattern': '^[0-9a-f]{64}$'},
                          max_chars=_integer(256, self.graph.max_chars))
+            if descriptor['name'] == 'qecgraph_search':
+                props['view'] = {'enum': ['raw', 'reading']}
             if descriptor['name'] in ('qecgraph_search', 'qec_find_codes', 'qec_find_performance', 'qec_find_software'):
                 props.update(limit=_integer(1, self.graph.max_results), offset=_integer(0))
         return descriptors
@@ -209,7 +219,8 @@ class WorkspaceSession:
         return {f"source-artifact:{digest}": {'id': f'source-artifact:{digest}', 'kind': 'source_artifact',
                  **{field: m.get(field) for field in ('archive_sha256', 'source_tree_hash', 'source_version_id',
                     'source_snapshot_id', 'work_id', 'upstream_version', 'status', 'semantic_status',
-                    'processing_completed', 'source_version_conflict')}}
+                    'processing_completed', 'source_version_conflict')},
+                 **({'structure_recovery': m['structure_recovery']} if 'structure_recovery' in m else {})}
                 for digest, m in sorted(self.state.get('materials', {}).items())}
 
     @cached_property
@@ -217,6 +228,7 @@ class WorkspaceSession:
         materials = self._materials.values()
         return {'registered': len(materials),
                 'structure_complete': sum(bool(r['processing_completed']) for r in materials),
+                'recovered_proposed': sum('structure_recovery' in v for v in self.state['versions'].values()),
                 'semantic': 'pending',
                 'code_mention_proposals': sum(x['code_parameters_mentions'] for x in self.state.get('generated_research', {}).values()),
                 'source_version_conflicts': sum(bool(r['source_version_conflict']) for r in materials),
@@ -262,15 +274,27 @@ class WorkspaceSession:
         end = original_end if end is None else end
         if not original_start <= start <= end <= original_end:
             raise ToolError('INVALID_ARGUMENT', 'Requested codepoint range escapes the registered span')
-        if (start, end) == (original_start, original_end):
-            return {'id': identifier, 'resource_uri': self._resource_uri(identifier), 'source': span,
-                    'content_sha256': node['content_sha256'], 'latex': node['latex']}
         latex = node['latex'][start - original_start:end - original_start]
-        span.update(char_start=start, char_end=end,
-                    line_start=span['line_start'] + node['latex'].count('\n', 0, start-original_start),
-                    line_end=span['line_start'] + node['latex'].count('\n', 0, max(start-original_start, end-original_start-1)))
-        return {'id': identifier, 'resource_uri': self._resource_uri(identifier), 'source': span,
-                'content_sha256': hash_text(latex), 'latex': latex}
+        if (start, end) != (original_start, original_end):
+            span.update(char_start=start, char_end=end,
+                        line_start=span['line_start'] + node['latex'].count('\n', 0, start-original_start),
+                        line_end=span['line_start'] + node['latex'].count('\n', 0, max(start-original_start, end-original_start-1)))
+        result = {'id': identifier, 'resource_uri': self._resource_uri(identifier), 'source': span,
+                  'content_sha256': hash_text(latex), 'latex': latex}
+        if 'structure_classification' in node:
+            result['structure_classification'] = node['structure_classification']
+            result['structure_status'] = 'proposed'
+        material = self._normalizations.get((span['source_version_id'], span['snapshot_id']))
+        if material and span['path'] == 'main.tex':
+            span.pop('archive_uri', None)
+            span['source_kind'] = 'normalized_unbound'
+            if material.get('normalization_manifest_sha256'):
+                normalized, manifest = load_normalization(self.machine, material)
+                if span['file_sha256'] != normalized.sha256 or normalized.text[start:end] != latex:
+                    raise ValueError('Normalized source does not match the registered occurrence')
+                span['source_kind'] = 'normalized'
+                result['original_ranges'] = mapped_ranges(normalized.text, manifest['source_map'], start, end)
+        return result
 
     @staticmethod
     def _paginate(rows, args, default_limit):
@@ -311,8 +335,36 @@ class WorkspaceSession:
     def _search_records(self):
         return [(row, canonical(row).casefold()) for row in (*self._materials.values(), *self.visible.values())]
 
+    @cached_property
+    def _reading_nodes(self):
+        return [(node, text, text.casefold()) for node in sorted(self._source_nodes.values(), key=lambda n: n['id'])
+                if (text := source_reading_text(node))]
+
+    @cached_property
+    def _reading_by_source(self):
+        groups = {}
+        for node, text, _ in self._reading_nodes:
+            source = node['source']
+            key_ = source['source_version_id'], source['snapshot_id']
+            groups.setdefault(key_, []).append((node, text))
+        return groups
+
+    def reading_blocks(self, source_version, snapshot_id):
+        """Return reading blocks for one exact registered source projection."""
+        entries = self._reading_by_source.get((source_version, snapshot_id), ())
+        return [(text, copy.deepcopy(node['source'])) for node, text in
+                sorted(entries, key=lambda pair: (pair[0]['data'].get('order', 0), pair[0]['id']))]
+
     def _search(self, args):
         needle, kind = args['query'].casefold(), args.get('kind')
+        if args.get('view') == 'reading':
+            rows = []
+            for node, text, indexed in self._reading_nodes:
+                if (not kind or kind == node['kind']) and needle in indexed:
+                    row = search_node_summary(node)
+                    row.update(reading_excerpt=text[:320], reading_excerpt_truncated=len(text) > 320)
+                    rows.append(row)
+            return {**self._paginate(rows, args, min(20, self.graph.max_results)), 'view': 'reading'}
         # Page the combined space; legacy corpus search caps each call at 200.
         # Search the already validated fixed projection so there is no SQL or file input.
         rows = [search_node_summary(node) for node in self._search_nodes.matching(args['query'], kind)]
@@ -357,20 +409,32 @@ class WorkspaceSession:
                 'truncated': truncated, 'context_complete': not truncated and not unresolved}
 
     def _reported_distance(self, record, args):
+        code = {'id': record['id'], 'revision': record['revision']}
+        metric = {'id': args['metric_id'], 'revision': args['metric_revision']}
+        if key(metric) not in self.visible:
+            return []
         matching = []
         for binding in record['data'].get('distance_estimate_refs') or []:
             claim = self.visible.get(key(binding))
             if not claim:
                 continue
             data = claim['data']
+            subject = data.get('subject_ref')
+            if subject not in (record['data'].get('check_matrix_refs') or []):
+                continue
+            matrix = self.visible.get(key(subject))
+            if not matrix or matrix['data'].get('code_ref') != code:
+                continue
+            evidence = claim['field_evidence'].get('/data/lower_bound', {})
+            locator = evidence.get('source_locator') or {}
             bound = data['lower_bound']
-            if (data.get('subject_ref') != {'id': record['id'], 'revision': record['revision']}
-                    or data.get('metric_ref') != {'id': args['metric_id'], 'revision': args['metric_revision']}
+            if (data.get('metric_ref') != metric
                     or data.get('sector') != args.get('sector', 'joint')
                     or data.get('relation') not in {'exact', 'lower_bound', 'interval'}
                     or bound is None or bound < args['distance_at_least']
                     or data.get('method') is None or data.get('conditions') is None
-                    or not claim['field_evidence'].get('/data/lower_bound', {}).get('source_locator')):
+                    or evidence.get('status') != 'known' or not locator
+                    or self.source_snapshot_id(locator['source_version_id']) != locator['snapshot_id']):
                 continue
             matching.append(claim)
         return matching
@@ -547,7 +611,7 @@ class WorkspaceSession:
                     if 'distance_at_least' in args and 'metric_revision' not in args:
                         raise ToolError('INVALID_ARGUMENT', 'Source-reported hard bounds require exact metric ID and revision')
                     legacy = {'results': [], 'truncated': False,
-                              'evidence_policy': 'Source-reported bound, exact metric and source locator; not mathematical verification'}
+                              'evidence_policy': 'Source-reported bound with a current source locator, metric and check matrix'}
                 else:
                     legacy = codes(self.machine, registry_revision=self.release, check_live_lean=False,
                                    limit=None, evidence_policy='verified', **args)

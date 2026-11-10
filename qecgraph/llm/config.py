@@ -28,6 +28,7 @@ DEFAULT_PROVIDERS = {
     'claude_code': {
         'kind': 'cli',
         'command': 'claude',
+        'api_key_env': 'ANTHROPIC_API_KEY',
         'args': ['-p', '--output-format', 'json'],
     },
 }
@@ -68,6 +69,8 @@ class AIConfig:
     allow_source_upload: bool
     providers: dict[str, ProviderConfig] = field(default_factory=dict)
     max_parallel_packages: int = 1
+    structure_fallback: bool = True
+    extract_proposals: bool = False
 
     @property
     def selected(self) -> ProviderConfig:
@@ -156,14 +159,19 @@ def load_ai_config(root, environ: Mapping[str, str] | None = None) -> AIConfig:
     }
     if parsed['max_parallel_packages'] > 16:
         raise AIConfigError('[ai].max_parallel_packages must be at most 16')
-    allow = raw.get('allow_source_upload', True)
-    if not isinstance(allow, bool):
-        raise AIConfigError('[ai].allow_source_upload must be a boolean')
+    def flag(name, default):
+        value = raw.get(name, default)
+        if not isinstance(value, bool):
+            raise AIConfigError(f'[ai].{name} must be a boolean')
+        return value
+
     return AIConfig(enabled=enabled, provider=provider, model=model,
                     timeout_seconds=float(parsed['timeout_seconds']),
                     max_retries=parsed['max_retries'], max_cost_usd=float(parsed['max_cost_usd']),
-                    max_input_chars=parsed['max_input_chars'], allow_source_upload=allow,
-                    providers=providers, max_parallel_packages=parsed['max_parallel_packages'])
+                    max_input_chars=parsed['max_input_chars'], allow_source_upload=flag('allow_source_upload', True),
+                    providers=providers, max_parallel_packages=parsed['max_parallel_packages'],
+                    structure_fallback=flag('structure_fallback', True),
+                    extract_proposals=flag('extract_proposals', False))
 
 
 def render_config_template(workspace_id):
@@ -182,6 +190,8 @@ max_cost_usd = 5.0
 max_input_chars = 200000
 max_parallel_packages = 1
 allow_source_upload = true
+structure_fallback = true
+extract_proposals = false
 
 [ai.providers.openai]
 kind = "openai"
@@ -204,5 +214,7 @@ api_key = ""
 [ai.providers.claude_code]
 kind = "cli"
 command = "claude"
+api_key_env = "ANTHROPIC_API_KEY"
+api_key = ""
 args = ["-p", "--output-format", "json"]
 '''

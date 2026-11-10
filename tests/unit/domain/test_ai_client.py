@@ -75,3 +75,57 @@ class ClientTests(unittest.TestCase):
         self.assertNotIn('sk-abc123456789', value)
         self.assertNotIn('abcdefghijkl', value)
         self.assertIn('<redacted>', value)
+
+    def test_cache_rechecks_schema_and_preserves_actual_model(self):
+        import json
+
+        first_response = Completion('{"ok": true}', 'served-1', {'completion_tokens': 2}, 'request-1')
+        next_response = Completion('{"ok": false}', 'served-2', {'completion_tokens': 3}, 'request-2')
+        provider = FakeProvider(first_response, next_response)
+        messages = [Message('user', 'x')]
+        with tempfile.TemporaryDirectory() as directory:
+            client = LLMClient(config(), provider=provider, cache_dir=directory)
+            first = client.complete_json(messages, SCHEMA)
+            second = client.complete_json(messages, SCHEMA)
+            self.assertTrue(second.cached)
+            self.assertEqual((second.model, second.usage, second.request_id),
+                             (first.model, first.usage, first.request_id))
+            path, = Path(directory).glob('*.json')
+            value = json.loads(path.read_text())
+            value['data']['ok'] = 'invalid'
+            value['text'] = json.dumps(value['data'])
+            path.write_text(json.dumps(value))
+            repaired = client.complete_json(messages, SCHEMA)
+        self.assertEqual(provider.calls, 2)
+        self.assertFalse(repaired.cached)
+        self.assertEqual(repaired.data, {'ok': False})
+        self.assertEqual(repaired.model, 'served-2')
+
+    def test_cache_isolated_by_provider_endpoint(self):
+        messages = [Message('user', 'x')]
+        with tempfile.TemporaryDirectory() as directory:
+            for endpoint, response in (('https://old.example/v1', True), ('https://new.example/v1', False)):
+                with self.subTest(endpoint=endpoint):
+                    selected = ProviderConfig('fake', 'openai_compatible', base_url=endpoint)
+                    text = '{"ok": true}' if response else '{"ok": false}'
+                    provider = FakeProvider(Completion(text, 'served'))
+                    client = LLMClient(config(providers={'fake': selected}), provider=provider, cache_dir=directory)
+                    result = client.complete_json(messages, SCHEMA)
+                    self.assertFalse(result.cached)
+                    self.assertEqual(result.data['ok'], response)
+                    self.assertEqual(provider.calls, 1)
+
+    def test_semantically_invalid_output_is_not_cached(self):
+        provider = FakeProvider(Completion('{"ok": false}', 'm'), Completion('{"ok": true}', 'm'))
+        messages = [Message('user', 'x')]
+
+        def validate(data):
+            if not data['ok']:
+                raise ValueError('invalid evidence')
+
+        with tempfile.TemporaryDirectory() as directory:
+            client = LLMClient(config(), provider=provider, cache_dir=directory)
+            with self.assertRaisesRegex(ValueError, 'invalid evidence'):
+                client.complete_json(messages, SCHEMA, validate=validate)
+            self.assertEqual(list(Path(directory).glob('*.json')), [])
+            self.assertTrue(client.complete_json(messages, SCHEMA, validate=validate).data['ok'])

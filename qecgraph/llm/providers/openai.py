@@ -13,6 +13,25 @@ from .base import Completion, HttpResult, Message, Transport
 from .http import UrllibTransport
 
 
+_UNSUPPORTED_STRICT_KEYWORDS = {'allOf', 'not', 'dependentRequired', 'dependentSchemas', 'if', 'then', 'else',
+                                'patternProperties', 'unevaluatedProperties', 'propertyNames'}
+
+
+def _supports_strict_schema(schema):
+    if _UNSUPPORTED_STRICT_KEYWORDS.intersection(schema):
+        return False
+    if schema.get('type') == 'object':
+        if schema.get('additionalProperties') is not False:
+            return False
+        if set(schema.get('properties', {})) != set(schema.get('required', [])):
+            return False
+    children = [*schema.get('properties', {}).values(), *schema.get('$defs', {}).values(),
+                *schema.get('anyOf', [])]
+    if 'items' in schema:
+        children.append(schema['items'])
+    return all(isinstance(child, dict) and _supports_strict_schema(child) for child in children)
+
+
 class OpenAICompatibleProvider:
     kind = 'openai_compatible'
 
@@ -41,10 +60,17 @@ class OpenAICompatibleProvider:
         if max_output_tokens is not None:
             payload['max_tokens'] = max_output_tokens
         if response_schema is not None:
-            payload['response_format'] = {
-                'type': 'json_schema',
-                'json_schema': {'name': 'qecgraph_result', 'strict': True, 'schema': response_schema},
-            }
+            if response_schema.get('type') == 'object' and _supports_strict_schema(response_schema):
+                wire_schema = {key: value for key, value in response_schema.items() if key != '$schema'}
+                payload['response_format'] = {
+                    'type': 'json_schema',
+                    'json_schema': {'name': 'qecgraph_result', 'strict': True, 'schema': wire_schema},
+                }
+            else:
+                # JSON mode preserves the skill's full schema for validation in LLMClient.
+                payload['response_format'] = {'type': 'json_object'}
+                payload['messages'].insert(0, {'role': 'system', 'content':
+                    'Return one JSON object matching this schema:\n' + json.dumps(response_schema, sort_keys=True)})
         return payload
 
     def complete(self, messages: Sequence[Message], *, model: str,
@@ -62,13 +88,13 @@ class OpenAICompatibleProvider:
         try:
             result = self.transport.request('POST', self.endpoint, headers=headers,
                                             body=json.dumps(payload).encode('utf-8'), timeout=timeout)
-        except ConnectionError as exc:
-            raise ProviderError(f'{self.name}: transport failed: {exc}', retryable=True) from exc
+        except ConnectionError:
+            raise ProviderError(f'{self.name}: transport failed', retryable=True) from None
         self._raise_for_status(result)
         try:
             data = json.loads(result.body.decode('utf-8'))
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise ProviderError(f'{self.name}: provider returned invalid JSON') from exc
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise ProviderError(f'{self.name}: provider returned invalid JSON') from None
         choices = data.get('choices')
         if not isinstance(choices, list) or not choices:
             raise ProviderError(f'{self.name}: provider returned no choices')
@@ -88,16 +114,4 @@ class OpenAICompatibleProvider:
         if 200 <= result.status < 300:
             return
         retryable = result.status in {408, 409, 429} or result.status >= 500
-        detail = ''
-        try:
-            body = json.loads(result.body.decode('utf-8'))
-            error = body.get('error') if isinstance(body, dict) else None
-            if isinstance(error, dict):
-                detail = str(error.get('message') or error.get('type') or '')[:300]
-            elif isinstance(error, str):
-                detail = error[:300]
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            detail = result.body.decode('utf-8', 'replace')[:300]
-        suffix = f': {detail}' if detail else ''
-        raise ProviderError(f'{self.name}: HTTP {result.status}{suffix}',
-                            status=result.status, retryable=retryable)
+        raise ProviderError(f'{self.name}: HTTP {result.status}', status=result.status, retryable=retryable)

@@ -1,13 +1,13 @@
 """CLI handlers for optional AI provider configuration."""
 from __future__ import annotations
 
-import json
 import os
 import stat
 
 from ...llm.client import LLMClient
 from ...llm.config import AIConfigError, load_ai_config
 from ...llm.providers.base import Message
+from ...llm.providers.cli import is_claude
 from ...workspace import CONFIG, locate
 from ..render import emit_report
 
@@ -36,6 +36,7 @@ def config(args):
                'config': str(root / CONFIG), 'enabled': ai.enabled,
                'provider': ai.provider, 'model': ai.model,
                'allow_source_upload': ai.allow_source_upload,
+               'structure_fallback': ai.structure_fallback, 'extract_proposals': ai.extract_proposals,
                'providers': [_redacted_provider(name, provider)
                              for name, provider in sorted(ai.providers.items())]}
     return emit_report(payload, exit_code=0)
@@ -45,15 +46,17 @@ def status(args):
     root, ai = _config(args)
     selected = ai.selected
     config_path = root / CONFIG
+    needs_key = selected.kind != 'cli' or is_claude(selected.name, selected.command)
     mode = stat.S_IMODE(config_path.stat().st_mode) if config_path.is_file() else None
     payload = {'status': 'ok', 'workspace': str(root), 'enabled': ai.enabled,
                'provider': ai.provider, 'model': ai.model,
                'kind': selected.kind, 'config_mode': None if mode is None else oct(mode),
                'config_private': mode is not None and mode & 0o077 == 0,
-               'configured': bool(selected.resolved_key()) if selected.kind != 'cli'
+               'configured': bool(selected.resolved_key()) if needs_key
                else bool(selected.command),
-               'allow_source_upload': ai.allow_source_upload}
-    if selected.kind != 'cli':
+               'allow_source_upload': ai.allow_source_upload,
+               'structure_fallback': ai.structure_fallback, 'extract_proposals': ai.extract_proposals}
+    if needs_key:
         payload['api_key_source'] = ('inline' if selected.api_key
                                      else 'environment' if selected.api_key_env else 'none')
     return emit_report(payload, exit_code=0)
@@ -72,21 +75,9 @@ def test(args):
 
 def proposals(args):
     root = locate(args.workspace, default=os.environ.get('QECGRAPH_WORKSPACE'))
-    directory = root / 'machine' / 'ai' / 'proposals'
-    items = []
-    if directory.is_dir():
-        for path in sorted(directory.rglob('*.json')):
-            try:
-                value = json.loads(path.read_text(encoding='utf-8'))
-            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-                items.append({'path': str(path), 'status': 'invalid'})
-                continue
-            if not isinstance(value, dict):
-                items.append({'path': str(path), 'status': 'invalid'})
-                continue
-            items.append({'path': str(path), 'skill': value.get('skill'),
-                          'review_status': value.get('review_status'),
-                          'items': len(value.get('items', [])) if isinstance(value.get('items'), list) else 0})
+    from ...llm.review import proposals as list_proposals
+
+    items = list_proposals(root)
     return emit_report({'status': 'ok', 'workspace': str(root), 'count': len(items),
                         'proposals': items}, exit_code=0)
 

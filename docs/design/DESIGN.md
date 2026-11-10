@@ -295,6 +295,8 @@ Each edge keeps `source`, `target`, `relation`, `status`, and `evidence`.
 - labels/references, literal includes/resources, macro/environment declarations;
 - diagnostics for missing/ambiguous includes, unsupported syntax, path escapes, dynamic paths, and parse failures.
 
+Braced `\href`, `\url`, and `\nolinkurl` targets preserve literal percent escapes. The visible text of a link still uses ordinary TeX parsing.
+
 It does not expand arbitrary macros, evaluate conditionals, execute TeX, or infer mathematical truth. A partial extraction is a valid, explicitly marked snapshot; `--strict` keeps it in staging without advancing `CURRENT`.
 
 `\lean` and `\uses` outside a mathematical block are preserved as `describes` / `references` associations with a diagnostic; they do not become typed proof dependencies. `\def` and `\let` mark a name as defined for a later statically decidable `\ifdefined`, while their replacement text stays opaque.
@@ -556,21 +558,24 @@ These are limits of the current release, not permission to fill gaps with plausi
 ## 15. AI integration
 
 AI is an optional, local orchestration layer under `qecgraph/llm/`. `init` writes
-provider templates but never calls a provider or extracts a package. `sync`
-uses AI only when a package needs normalization (more than one complete TeX
-root); a single-root package follows the deterministic path.
+provider templates, and the local parser handles ordinary packages during
+`sync`. A configured provider can help resolve a multi-root package or recover
+an eligible structural parser failure. Routine semantic proposals are opt-in.
 
 The normalizer receives a bounded inventory and source excerpts, returns a
 normalization plan, and the assembler copies the selected original bytes into a
 derived `main.tex`. The original archive and source tree remain authoritative;
-the derived document records segment-to-source mappings. AI extraction writes
+a plan that needs review leaves the package archived pending an entry point.
+The release binds the normalized TeX and its source map by hash. Source reads
+identify projection coordinates and return original paths and ranges separately.
+AI extraction writes
 reviewable `qecgraph.ai.proposal` artifacts; it never promotes them to verified
 records.
 
 Providers are selected in `qecgraph.toml` (OpenAI, Anthropic, OpenRouter or a
 local CLI adapter). Requests are schema-bound, retried only on transient errors,
 budgeted, cached by content hash and logged with model/prompt/run provenance.
-`[ai].max_parallel_packages` bounds concurrent AI preparation; registry staging,
+`[ai].max_parallel_packages` bounds concurrent extraction of structurally registered packages; registry staging,
 publication and input consumption remain serial.
 API keys are redacted and the configuration file is created mode `0600`.
 
@@ -580,7 +585,54 @@ API keys are redacted and the configuration file is created mode `0600`.
 | Provider/client retries, schema and cache | Implemented |
 | Versioned skill packs | Implemented |
 | Source-mapped normalization | Implemented for ambiguous packages |
-| Theorem/assumption/data proposals | Implemented as `machine/ai/proposals`; explicit review decisions are recorded, conversion to canonical research records is not automatic |
+| Parser-first structure recovery | Implemented for eligible original TeX entries, with proposed block kinds |
+| Theorem/assumption/data proposals | Opt-in, implemented as `machine/ai/proposals`; explicit review decisions are recorded, conversion to canonical research records is not automatic |
+
+### 15.1 Parser-first body extraction rollout
+
+**Status: Implemented.** The table records the implementation and acceptance sequence.
+
+| Step | Change | Acceptance |
+|---|---|---|
+| 1 | Record eligibility, evidence, publication and migration rules | Preserve archive authority, fixed release reads and existing raw query behavior |
+| 2 | Add the shared reading projection | Both extraction methods use the existing source-block graph; derived text hides recognized formatting and citations, preserves math, and separates bibliography while the raw view retains every original slice |
+| 3 | Add the versioned structure fallback skill and local verifier | A fake provider can classify exact, numbered body ranges; reject gaps, overlaps, fabricated fields, bad anchors, and uncertain plans |
+| 4 | Integrate the fallback with strict workspace publication | Call the provider only after an eligible parser failure. Bind accepted plans to source bytes and snapshot identity, preserve proposed classification, and reuse verified plans on rebuild |
+| 5 | Expose reading search, source status and operator controls | CLI and MCP agree on the fixed release. Existing raw search stays available, and ordinary imports have zero provider calls by default |
+| 6 | Run full, installed-CLI and real-archive checks, then integrate | Keep each step reviewable in Git, push the branch, and merge into `main` after checks |
+
+The fallback starts after archive verification and entry selection. The first
+supported scope is an original UTF-8 entry with unambiguous, standalone
+document delimiters and no external TeX body inputs. Structural tokenization or
+parse failures can trigger recovery. Unresolved entry points, archive and path
+violations, missing dependencies, ambiguous boundaries, or evidence beyond the
+configured budget remain recoverable workspace failures. Multi-root
+normalization keeps its existing independent approval and source-map rules.
+
+The provider sees a bounded, numbered body and returns ordered ranges and block
+kinds. The program requires complete body coverage, validates literal section
+and bibliography anchors, and copies each slice from the archived source.
+The fallback recovers literal citation keys and section titles. Label commands
+and other unsupported metadata remain available in the verbatim source.
+Unknown classifications remain visible as source text.
+The snapshot binds the validated plan, source digest, skill version, model and
+prompt hash. A proposed block classification carries its origin in reads and
+cannot create a reviewed claim or logical dependency.
+
+The structural retry runs under the existing writer and publish protocol.
+A missing provider, refusal, invalid plan or failed validation retains the
+archive, prior projection and claim for retry. A committed plan can be reused
+offline against its exact source. A parser or input change re-runs the local
+parser first, so parser improvements can replace a fallback. Single-paper
+store commands continue to use the local parser.
+
+`[ai].structure_fallback` governs new fallback calls and respects the existing
+enabled, provider, credentials and source-upload settings. Routine semantic
+extraction becomes an explicit opt-in through `[ai].extract_proposals`. Existing
+installations can set it to `true` to retain the previous automatic proposal
+workflow. Model output remains proposed. The implementation must cover
+successful, declined, disabled, malformed, tampered and rebuilt cases with
+offline fixtures.
 
 ## Appendix A — Decision record (supersedes the standalone ADRs for current behavior)
 

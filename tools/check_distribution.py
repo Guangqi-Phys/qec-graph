@@ -28,6 +28,8 @@ def verify(source, wheel, sdist):
     schema_root = 'qecgraph/validators/schemas/'
     schemas = {path.relative_to(source).as_posix(): path.read_bytes()
                for path in (source / schema_root).glob('*.schema.json')}
+    skills = {path.relative_to(source).as_posix(): path.read_bytes()
+              for path in (source / 'qecgraph/llm/skills').glob('*/*') if path.suffix in {'.md', '.json'}}
     seed = 'qecgraph/catalog/software_catalog.seed.json'
     seed_bytes = (source / seed).read_bytes()
     with ZipFile(wheel) as archive:
@@ -39,9 +41,9 @@ def verify(source, wheel, sdist):
         inventory = [name for name in archive.namelist() if name.startswith(schema_root) and name.endswith('.schema.json')]
         if sorted(inventory) != sorted(schemas):
             raise ValueError('Wheel schema inventory differs from the checkout')
-        for name, expected in schemas.items():
-            if archive.read(name) != expected:
-                raise ValueError(f'Wheel schema differs from the checkout: {name}')
+        for name, expected in {**schemas, **skills}.items():
+            if archive.namelist().count(name) != 1 or archive.read(name) != expected:
+                raise ValueError(f'Wheel runtime resource differs from the checkout: {name}')
         if archive.namelist().count(seed) != 1 or archive.read(seed) != seed_bytes:
             raise ValueError('Wheel software catalog seed differs from the checkout')
     with tarfile.open(sdist, 'r:gz') as archive:
@@ -51,7 +53,7 @@ def verify(source, wheel, sdist):
         if sorted(inventory) != sorted(schemas):
             raise ValueError('Source distribution schema inventory differs from the checkout')
         expected_files = {'README.md': readme.encode('utf-8'), 'LICENSE': license_bytes,
-                          'install.sh': (source / 'install.sh').read_bytes(), seed: seed_bytes, **schemas}
+                          'install.sh': (source / 'install.sh').read_bytes(), seed: seed_bytes, **schemas, **skills}
         for name, expected in expected_files.items():
             matches = [item for item in archive.getmembers() if item.name == f'{prefix}/{name}']
             if len(matches) != 1 or not matches[0].isfile():
@@ -72,7 +74,7 @@ def main():
     wheel, = args.dist.glob('*.whl')
     sdist, = args.dist.glob('*.tar.gz')
     version = verify(args.source, wheel, sdist)
-    print(f'Verified {version}, README, license, schemas, and catalog seed in {wheel.name} and {sdist.name}')
+    print(f'Verified {version}, README, license, schemas, skills and catalog seed in {wheel.name} and {sdist.name}')
 
 
 if __name__ == '__main__':

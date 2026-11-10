@@ -177,6 +177,8 @@ def _record_sections(record, session, targets, titles, relations, visible_revisi
                    ('Original package SHA-256', record['archive_sha256'])]
     sections = [_table(fields)]
     if record['kind'] == 'source_artifact':
+        if recovery := record.get('structure_recovery'):
+            sections.append('Source structure: ' + _inline(recovery['status']))
         source = record.get('source_version_id')
         if source in targets:
             sections.append('Parsed source: ' + _link(targets[source], titles[source]))
@@ -184,6 +186,18 @@ def _record_sections(record, session, targets, titles, relations, visible_revisi
     if span:
         sections += [f'{section_level} Source text', _excerpt(record.get('latex', ''), 800)]
     data = record.get('data', {})
+    if record['kind'] == 'paper_version':
+        blocks = session.reading_blocks(record['id'], record['revision'])
+        if blocks:
+            sections.append(f'{section_level} Reading preview')
+            remaining = 6000
+            for shown, (text, source) in enumerate(blocks[:24], start=1):
+                sections.append(f'**{_inline(_source_label(source))}**\n\n' + _fenced(text[:remaining]))
+                remaining -= len(text)
+                if remaining <= 0:
+                    break
+            if shown < len(blocks) or remaining < 0:
+                sections.append('… Reading preview truncated. Use source queries for full passages.')
     links = list(relations.get(record['id'], []))
     for relation in RELATIONS.get(record['kind'], {}):
         value = data.get(relation)

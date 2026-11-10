@@ -49,6 +49,8 @@ enabled = true
 provider = "openrouter"
 model = "your-model-id"
 max_parallel_packages = 2
+structure_fallback = true
+extract_proposals = false
 
 [ai.providers.openrouter]
 kind = "openai_compatible"
@@ -60,7 +62,22 @@ api_key = ""
 `qec-graph ai status` 只报告当前 provider，不联网；`qec-graph ai test` 发出一次
 带 schema 的连接探针。`qec-graph init` 不会自动调用这两个命令。
 
-`max_parallel_packages` 控制并发 AI 准备；发布和输入消费仍保持串行。
+`structure_fallback` 默认开启，同时要求 provider 可用且允许上传来源。回退请求只包含
+已选入口的带行号正文。正文边界必须独占行且唯一，正文也必须独立于外部 TeX 输入。
+方案失败或被拒绝时，归档和收件箱副本仍可用于重试。状态报告显示回退结果。
+回退成功的快照标为 `recovered_proposed`。读取含有此状态的发布前，先升级机器读取端。
+升级后的 CLI 和 MCP 继续读取历史快照。
+
+`extract_proposals` 默认关闭。已有工作区可将它设为 `true`，延续自动生成定理、假设
+和数据提案的流程。`max_parallel_packages` 限制该可选抽取的并发包数，发布和输入
+消费仍串行。
+
+Claude Code provider 使用 bare 模式，禁用工具、MCP 和会话持久化。
+曾使用本地订阅登录的工作区升级时，请设置 `ANTHROPIC_API_KEY` 并移除自定义 CLI 参数。
+
+结构发布提交后，失败的 AI 抽取仍保留为待处理。下次 `sync` 从归档重试失败的 skill。
+即使禁用 AI，重建也会校验并复用已提交的归一化映射。旧版归一化方案与归档能逐字节复现
+原投影时，重建可补齐发布绑定。未经确认的回退仍需要显式入口或新方案。
 
 日常使用 `qec-graph sync`、`qec-graph status` 和 `qec-graph validate`。
 终端更新同一条进度行，结束时显示成功或错误。`sync` 在成功归档并发布后清理 `inputs/` 中的副本，失败件留待重试。

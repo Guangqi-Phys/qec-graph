@@ -101,36 +101,14 @@ def single_root_plan(tree: SourceTree):
     candidates = tree.entrypoints()
     if len(candidates) != 1:
         raise NormalizationError('single-root normalization requires exactly one complete TeX root')
-    path = candidates[0]
+    return entrypoint_plan(candidates[0])
+
+
+def entrypoint_plan(path):
     return {'status': 'ready',
-            'documents': [{'path': path, 'role': 'main', 'reason': 'unique complete TeX root'}],
+            'documents': [{'path': path, 'role': 'main', 'reason': 'selected TeX entry point'}],
             'operations': [{'op': 'use_document', 'source': path}],
             'label_renames': {}, 'unresolved': []}
-
-
-def deterministic_multi_root_plan(tree: SourceTree):
-    """Choose a main root and append other roots when AI cannot decide."""
-    roots = tree.entrypoints()
-    if len(roots) < 2:
-        raise NormalizationError('deterministic multi-root normalization needs at least two roots')
-    def is_supplement(name):
-        lowered = name.lower()
-        return any(token in lowered for token in ('supplement', 'supp_', 'appendix', 'response'))
-    main = next((name for name in roots if not is_supplement(name)), roots[0])
-    others = [name for name in roots if name != main]
-    main_raw = tree.files[main]
-    operations = [{'op': 'use_preamble', 'source': main},
-                  {'op': 'include_body', 'source': main}]
-    if b'\\appendix' in main_raw:
-        operations.append({'op': 'append_appendix', 'source': main})
-    for name in others:
-        operations.append({'op': 'append_body', 'source': name})
-        if b'\\appendix' in tree.files[name]:
-            operations.append({'op': 'append_appendix', 'source': name})
-    return {'status': 'ready',
-            'documents': [{'path': name, 'role': 'main' if name == main else 'supplement'}
-                          for name in [main, *others]],
-            'operations': operations, 'label_renames': {}, 'unresolved': []}
 
 
 def _check_plan(tree, plan):
@@ -141,6 +119,8 @@ def _check_plan(tree, plan):
         raise NormalizationError(f'invalid normalization plan: {exc}') from exc
     if plan['status'] != 'ready':
         raise NormalizationError('normalization plan is not ready')
+    if plan['unresolved'] or plan.get('label_renames'):
+        raise NormalizationError('normalization plan has unresolved evidence or label changes')
     if not plan['operations']:
         raise NormalizationError('normalization plan has no operations')
     if any(operation['op'] == 'use_document' for operation in plan['operations']) and len(plan['operations']) != 1:
@@ -151,6 +131,26 @@ def _check_plan(tree, plan):
             raise NormalizationError(f"unsupported operation: {operation['op']}")
         if operation['source'] not in tree.files:
             raise NormalizationError(f"operation references missing source: {operation['source']}")
+
+
+def validate_root_roles(tree, plan):
+    roots = set(tree.entrypoints())
+    documents = plan['documents']
+    roles = {document['path']: document['role'] for document in documents}
+    mains = [path for path, role in roles.items() if role == 'main']
+    if (len(roles) != len(documents) or not roots <= roles.keys()
+            or not roles.keys() <= tree.files.keys() or len(mains) != 1 or mains[0] not in roots
+            or any(roles[path] == 'unknown' for path in roots)):
+        raise NormalizationError('normalization requires explicit roles for every complete root and one main')
+    operations = [operation for operation in plan['operations'] if operation['op'] != 'include_asset']
+    if not operations or operations[0]['source'] != mains[0] or operations[0]['op'] not in {'use_document', 'use_preamble'}:
+        raise NormalizationError('normalization must start with the main document or its preamble')
+    if any(operation['op'] == 'use_preamble' for operation in operations[1:]):
+        raise NormalizationError('normalization cannot include a second preamble')
+    included = {operation['source'] for operation in operations}
+    expected = {path for path, role in roles.items() if role in {'main', 'supplement', 'appendix'}}
+    if included != expected or not included <= roots:
+        raise NormalizationError('normalization operations must match the classified documents')
 
 
 def assemble(tree: SourceTree, plan: Mapping[str, Any]):
@@ -193,10 +193,10 @@ def assemble(tree: SourceTree, plan: Mapping[str, Any]):
             labels[label] = (path, start + match.start())
     if not output:
         raise NormalizationError('normalization produced an empty document')
-    if b'\\end{document}' not in output:
+    if plan['operations'][0]['op'] != 'use_document' and b'\\end{document}' not in output:
+        out_start = len(output)
         if not output.endswith(b'\n'):
             output += b'\n'
-        out_start = len(output)
         output += b'\\end{document}\n'
         segments.append({'normalized': {'byte_start': out_start, 'byte_end': len(output)},
                          'origin': None, 'kind': 'generated'})
@@ -214,7 +214,6 @@ class NormalizationResult:
     inventory: dict
     ai_result: LLMResult | None
     skill_version: int
-    fallback_reason: str | None = None
 
 
 def _excerpt(raw, start, end, limit=1200):
@@ -254,8 +253,7 @@ def normalize_package(tree: SourceTree, client, *, extra_skills_dir=None, use_ca
     roots = tree.entrypoints()
     if len(roots) == 1:
         plan = single_root_plan(tree)
-        normalized = assemble(tree, plan)
-        return NormalizationResult(normalized, inventory_data, None, 1)
+        return NormalizationResult(assemble(tree, plan), inventory_data, None, 1)
     if len(roots) == 0:
         raise NormalizationError('no complete TeX root was found')
     skill = load_skill('normalize_package', extra_skills_dir)
@@ -265,14 +263,19 @@ def normalize_package(tree: SourceTree, client, *, extra_skills_dir=None, use_ca
         {'role': 'user', 'content': json.dumps(evidence, ensure_ascii=False, sort_keys=True)},
     ]
     from .providers.base import Message
+    normalized: NormalizedSource | None = None
+
+    def check_plan(plan):
+        source = assemble(tree, plan)
+        validate_root_roles(tree, plan)
+        return source
+
+    def validate(plan):
+        nonlocal normalized
+        normalized = check_plan(plan)
+
     ai_result = client.complete_json([Message(**message) for message in messages], skill.schema,
-                                     use_cache=use_cache)
-    plan = ai_result.data
-    fallback_reason = None
-    try:
-        normalized = assemble(tree, plan)
-    except NormalizationError as exc:
-        fallback_reason = f'AI plan was not usable: {exc}'
-        normalized = assemble(tree, deterministic_multi_root_plan(tree))
-    return NormalizationResult(normalized, inventory_data, ai_result, skill.version,
-                               fallback_reason=fallback_reason)
+                                     use_cache=use_cache, validate=validate)
+    if normalized is None:
+        normalized = check_plan(ai_result.data)
+    return NormalizationResult(normalized, inventory_data, ai_result, skill.version)

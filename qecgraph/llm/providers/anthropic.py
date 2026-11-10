@@ -51,17 +51,16 @@ class AnthropicProvider:
         try:
             result = self.transport.request('POST', self.endpoint, headers=headers,
                                             body=json.dumps(payload).encode('utf-8'), timeout=timeout)
-        except ConnectionError as exc:
-            raise ProviderError(f'{self.name}: transport failed: {exc}', retryable=True) from exc
+        except ConnectionError:
+            raise ProviderError(f'{self.name}: transport failed', retryable=True) from None
         if not 200 <= result.status < 300:
-            detail = result.body.decode('utf-8', 'replace')[:300]
             retryable = result.status in {408, 409, 429} or result.status >= 500
-            raise ProviderError(f'{self.name}: HTTP {result.status}: {detail}',
+            raise ProviderError(f'{self.name}: HTTP {result.status}',
                                 status=result.status, retryable=retryable)
         try:
             data = json.loads(result.body.decode('utf-8'))
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise ProviderError(f'{self.name}: provider returned invalid JSON') from exc
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise ProviderError(f'{self.name}: provider returned invalid JSON') from None
         blocks = data.get('content')
         text = ''.join(block.get('text', '') for block in blocks
                        if isinstance(block, dict) and block.get('type') == 'text') if isinstance(blocks, list) else ''

@@ -107,6 +107,10 @@ def _input_problem(row):
         problem = next((item['message'] for item in row.get('diagnostics', [])
                         if item['severity'] == 'error'), None)
         problem = problem or row.get('reason') or row['status'].replace('_', ' ')
+        if reason := row.get('structure_recovery', {}).get('reason'):
+            problem = reason.replace('_', ' ') + '; ' + problem
+    elif row.get('ai_extraction', {}).get('errors'):
+        problem = 'AI extraction pending; sync retries from the archive'
     else:
         return None
     name = row.get('input') or row.get('archive_sha256', '')[:12]

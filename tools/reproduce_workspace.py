@@ -47,6 +47,8 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
         (inbox / 'subsystem-v1.source').write_bytes(raw)
     prepared = run('init', ['init', '--json'])
     assert prepared['status'] == 'initialized'
+    ai = run('ai_policy_defaults', ['ai', 'status', '--json'])
+    assert ai['structure_fallback'] and not ai['extract_proposals']
     first = run('init_sync', ['sync', '--json'])
     assert first['status'] == 'published'
     assert first['counts']['registered'] == (2 if real_source else 1)
@@ -97,6 +99,10 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
     assert cli['ok'] and cli['data']['results']
     direct = run('search', ['search', 'CSS code', '--workspace', '.', '--limit', '10'])
     assert direct == cli
+    reading = run('reading_search', ['search', 'CSS code', '--workspace', '.', '--limit', '10',
+                                    '--view', 'reading'])
+    assert reading['data']['view'] == 'reading'
+    assert any('CSS code' in row['reading_excerpt'] for row in reading['data']['results'])
     occurrence = next(r['id'] for r in cli['data']['results'] if r.get('source'))
     (workspace / 'source-args.json').write_text(json.dumps({'identifier': occurrence}), encoding='utf-8')
     span = run('get_exact_source', ['query-tool', 'qec_get_source', '--workspace', '.', '--arguments', 'source-args.json'])['data']
@@ -113,6 +119,8 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
         {'id': 6, 'method': 'resources/list'},
         {'id': 7, 'method': 'resources/read', 'params': {'uri': span['resource_uri']}},
         {'id': 8, 'method': 'resources/read', 'params': {'uri': 'file:///human/notes/private-validation-note.md'}},
+        {'id': 9, 'method': 'tools/call', 'params': {'name': 'qecgraph_search',
+                                                   'arguments': {**search_args, 'view': 'reading'}}},
     ]
     stdio = run('mcp_stdio', ['mcp', 'serve', '--machine', 'machine', '--release', expected_release],
                 stdin=''.join(json.dumps({'jsonrpc': '2.0', **frame}) + '\n' for frame in frames), json_output=False)
@@ -126,6 +134,7 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
     content, = replies[7]['contents']
     assert content['text'] == span['latex'] and content['_meta']['content_sha256'] == span['content_sha256']
     assert replies[8]['code'] == -32002
+    assert replies[9]['structuredContent'] == reading
     assert 'private-validation-note' not in stdio and 'RFC002-PERSONAL-CANARY-9212' not in stdio
     assert note.read_text(encoding='utf-8') == 'RFC002-PERSONAL-CANARY-9212'
     index = (workspace / 'human/Index.md').read_text(encoding='utf-8')

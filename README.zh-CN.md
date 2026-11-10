@@ -38,8 +38,8 @@ qec-graph validate
 ```
 
 `init` 不抽取、不调用 AI，只准备收件箱和配置；导入由 `qec-graph sync` 执行。
-AI 是可选的：在 `sync` 前配置 `[ai]` 并运行 `qec-graph ai test`，即可启用多根
-文档规范化和 proposal 抽取；不配置 AI 时，单根包仍走确定性路径。
+普通包由本地解析器处理。配置 `[ai]` 后，可对符合条件的解析失败和多入口歧义使用 AI。
+若希望普通包也运行语义提案 skill，请显式设置 `extract_proposals = true`。
 
 成功导入后原始包留在 `archive/`，收件箱副本被清除。把 `human/` 作为 Obsidian
 vault 打开，从 `Index.md` 开始。反复失败的包用
@@ -47,8 +47,10 @@ vault 打开，从 `Index.md` 开始。反复失败的包用
 
 ## AI 抽取
 
-AI 是可选能力。配置后，`sync` 会把多根 TeX 包规范化为一个入口，并提议定理、
-假设和数据记录。原始包仍是权威来源；AI 结果在审核前保持 `proposed`。
+AI 是可选能力。选定原始入口后先运行本地解析器。符合条件的结构失败可让 AI
+提出带行号的正文分块，程序校验区间并逐字复制进现有快照。块分类保留为
+`proposed`。用 `qec-graph search TERM --workspace . --view reading` 搜索阅读
+文本。原文查询和来源资源保留引文与参考文献。
 
 `qecgraph.toml` 会预置以下接入点：
 
@@ -57,7 +59,7 @@ AI 是可选能力。配置后，`sync` 会把多根 TeX 包规范化为一个�
 | OpenAI | `openai` | `OPENAI_API_KEY` |
 | Anthropic | `anthropic` | `ANTHROPIC_API_KEY` |
 | OpenRouter | `openai_compatible` | `OPENROUTER_API_KEY` |
-| Claude Code | `cli` | 已有的本地 CLI 登录 |
+| Claude Code | `cli` | bare 模式下的 `ANTHROPIC_API_KEY` |
 
 设置 provider、model 和 key。`api_key` 可以直接填，也可以留空并用
 `api_key_env`：
@@ -68,6 +70,8 @@ enabled = true
 provider = "openrouter"
 model = "your-model-id"
 max_parallel_packages = 2
+structure_fallback = true
+extract_proposals = false
 
 [ai.providers.openrouter]
 kind = "openai_compatible"
