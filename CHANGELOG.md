@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Registry and store pointer/state reads now reject symlinked or multiply-linked
+  authority files instead of following them; writes already did.
 - Successful workspace claims are removed after their commit receipt, and empty
   `.processing` directories are cleaned under the writer lock. Failed or retained
   claims stay for recovery.

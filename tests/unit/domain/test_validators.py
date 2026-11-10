@@ -6,6 +6,7 @@ from pathlib import Path
 from qecgraph.core.graph import read_json
 from qecgraph.migrations import migrate
 from qecgraph.domain.records import prepare_record
+from qecgraph.core.transactions import ManagedDataError
 from qecgraph.registry import Registry
 from qecgraph.store import current_snapshot, ingest
 from qecgraph.corpus import execute
@@ -56,6 +57,29 @@ class ValidatorTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Invalid proof_of endpoint'):
             ingest(entry, 'typed', store, annotations_path=sidecar)
         self.assertEqual(current_snapshot(store), previous)
+
+    def test_registry_read_rejects_linked_pointer_and_state(self):
+        registry = Registry(self.root / 'corpus')
+        registry.add_record(claim())
+        pointer = registry.root / 'CURRENT.json'
+        original = pointer.read_bytes()
+        outside = self.root / 'pointer.json'
+        outside.write_bytes(original)
+        pointer.unlink()
+        pointer.symlink_to(outside)
+        with self.assertRaisesRegex(ManagedDataError, 'regular unlinked'):
+            registry.read()
+        pointer.unlink()
+        pointer.write_bytes(original)
+        _, revision = registry.read()
+        state = registry.root / 'states' / (revision + '.json')
+        state_original = state.read_bytes()
+        state_outside = self.root / 'state.json'
+        state_outside.write_bytes(state_original)
+        state.unlink()
+        state.symlink_to(state_outside)
+        with self.assertRaisesRegex(ManagedDataError, 'regular unlinked'):
+            registry.read()
 
     def test_claim_subject_must_resolve_to_a_subject_kind(self):
         registry = Registry(self.root / 'corpus')

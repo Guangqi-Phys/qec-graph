@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import shutil
+import stat
 import tempfile
 import uuid
 from pathlib import Path
@@ -42,6 +43,13 @@ class Registry:
                 raise ManagedDataError(pointer_path, 'CURRENT does not identify a valid registry revision')
             raise ValueError('Invalid registry revision')
         state_path = self.root / 'states' / (revision + '.json')
+        try:
+            metadata = state_path.lstat()
+        except FileNotFoundError:
+            pass
+        else:
+            if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+                raise ManagedDataError(state_path, 'Registry state must be a regular unlinked local file')
         try:
             state = read_json(state_path)
         except ValueError as exc:

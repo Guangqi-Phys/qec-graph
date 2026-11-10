@@ -26,10 +26,20 @@ class WriterBusy(ValueError):
         super().__init__(f'Another writer holds {self.root}')
 
 
+def _require_regular_unlinked(path, label):
+    try:
+        metadata = Path(path).lstat()
+    except FileNotFoundError:
+        return
+    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+        raise ManagedDataError(path, label + ' must be a regular unlinked local file')
+
+
 def read_pointer(path, expected_format):
-    """Read one authoritative pointer and reject corrupt JSON or format."""
+    """Read one authoritative pointer and reject corrupt JSON, links or format."""
     from .graph import read_json
 
+    _require_regular_unlinked(path, 'CURRENT')
     try:
         pointer = read_json(path)
     except ValueError as exc:
