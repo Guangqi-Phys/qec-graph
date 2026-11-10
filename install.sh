@@ -6,6 +6,18 @@ die() {
     exit 1
 }
 
+status() {
+    printf 'qec-graph installer: %s\n' "$*" >&2
+}
+
+download() {
+    if [ -t 2 ]; then
+        curl -fL --progress-bar --proto '=https' --proto-redir '=https' --retry 2 "$@"
+    else
+        curl -fsSL --proto '=https' --proto-redir '=https' --retry 2 "$@"
+    fi
+}
+
 repository=Guangqi-Phys/qec-graph
 releases_url="https://github.com/$repository/releases"
 
@@ -34,12 +46,14 @@ trap 'exit 1' HUP INT TERM
 
 version="${1:-}"
 if [ -z "$version" ]; then
+    status 'Resolving the latest GitHub Release...'
     latest="$(curl -sSL --proto '=https' --proto-redir '=https' --retry 2 \
         --output /dev/null --write-out '%{http_code} %{url_effective}' "$releases_url/latest")" \
         || die 'could not resolve the latest GitHub Release'
     case "$latest" in
         "200 $releases_url/tag/"*) release_page="${latest#200 }" ;;
         "200 $releases_url"|"200 $releases_url/"|"404 $releases_url/latest")
+            status 'No stable release found; reading the GitHub Releases feed...'
             curl -fsSL --proto '=https' --proto-redir '=https' --retry 2 \
                 --output "$download/releases.atom" "$releases_url.atom" \
                 || die 'could not download the GitHub Releases feed'
@@ -67,12 +81,16 @@ case "$version" in
 esac
 
 release_url="$releases_url/download/$version"
-for file in "$asset.sha256" "$asset"; do
-    curl -fsSL --proto '=https' --proto-redir '=https' --retry 2 \
-        --output "$download/$file" "$release_url/$file" \
-        || die "could not download $file for $version"
-done
+status "Downloading checksum for $version..."
+curl -fsSL --proto '=https' --proto-redir '=https' --retry 2 \
+    --output "$download/$asset.sha256" "$release_url/$asset.sha256" \
+    || die "could not download $asset.sha256 for $version"
 
+status "Downloading qec-graph $version ($asset)..."
+download --output "$download/$asset" "$release_url/$asset" \
+    || die "could not download $asset for $version"
+
+status 'Verifying SHA-256 checksum...'
 IFS=' ' read -r expected filename < "$download/$asset.sha256" || die 'invalid SHA-256 manifest'
 case "$expected" in ''|*[!0-9a-f]*) die 'invalid SHA-256 manifest' ;; esac
 [ "${#expected}" -eq 64 ] && [ "$filename" = "$asset" ] || die 'invalid SHA-256 manifest'
@@ -82,6 +100,7 @@ case "$platform" in
 esac
 [ "${actual%% *}" = "$expected" ] || die 'download failed SHA-256 verification'
 
+status "Installing to $destination..."
 mkdir -p "$bin_dir"
 staged="$(mktemp "$bin_dir/.qec-graph.XXXXXX")"
 install -m 755 "$download/$asset" "$staged"
