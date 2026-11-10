@@ -620,7 +620,8 @@ AI 是 `qecgraph/llm/` 下的可选本地编排层。`init` 只写 provider 模�
 
 normalizer 接收有界 inventory 和原文片段，返回 normalization plan；assembler
 按计划复制原始字节生成派生 `main.tex`。原始压缩包和 source tree 仍是权威来源，
-派生文档记录 segment 到原始来源的映射。AI 抽取写出可审核的
+需要审核的方案会保留归档包并等待入口。发布版本通过哈希绑定归一化 TeX 和来源映射。
+来源读取会标注派生坐标，并单独返回对应的原始路径和区间。AI 抽取写出可审核的
 `qecgraph.ai.proposal` 产物，绝不自动提升为 verified 记录。
 
 Provider 在 `qecgraph.toml` 中选择（OpenAI、Anthropic、OpenRouter 或本地 CLI

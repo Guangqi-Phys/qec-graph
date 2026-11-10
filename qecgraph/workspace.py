@@ -292,7 +292,7 @@ class Workspace:
         """Return a lazy normalizer, or None when the workspace has no AI config."""
         from .llm.config import AIConfigError, load_ai_config
         from .llm.normalize import normalize_package
-        from .llm.artifacts import write_normalization
+        from .llm.artifacts import normalization_binding, write_normalization
         from .llm.client import LLMClient
 
         config_path = self.path(CONFIG)
@@ -310,13 +310,10 @@ class Workspace:
                 progress(0, 'Normalizing package with AI')
             client = LLMClient(config, cache_dir=self.path('.qecgraph/ai-cache'))
             normalized = normalize_package(tree, client)
-            artifact, manifest = write_normalization(self.path('machine'), normalized)
+            artifact, manifest = write_normalization(self.path('machine'), normalized, tree)
             files = dict(tree.files)
             files['main.tex'] = normalized.source.data
-            return SourceTree(tree.format, files), {'normalization_id': artifact.name,
-                                                    'normalization_sha256': normalized.source.sha256,
-                                                    'normalization_manifest': str(artifact / 'manifest.json'),
-                                                    'normalization': manifest, 'normalized': normalized.source}
+            return SourceTree(tree.format, files), normalization_binding(artifact, manifest), normalized.source
         return normalize
 
     def _ai_prefetch(self, digests, limits, progress=None):
@@ -343,7 +340,7 @@ class Workspace:
             if not tree.entrypoints():
                 return digest, 'no complete TeX root'
             normalized = normalize_package(tree, client)
-            write_normalization(self.path('machine'), normalized)
+            write_normalization(self.path('machine'), normalized, tree)
             for skill in ('extract_theorems', 'extract_assumptions', 'extract_data'):
                 extract(normalized.source, client, skill)
             return digest, None
@@ -573,7 +570,7 @@ class Workspace:
                   'semantic_status': 'not_extracted', 'processor': PROCESSOR}
         from .llm.normalize import NormalizationError
 
-        normalized = None
+        normalized = normalization = None
         try:
             raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
             if hashlib.sha256(raw).hexdigest() != digest:
@@ -594,11 +591,8 @@ class Workspace:
                     entry = candidates[0]
                 elif entry is None and len(candidates) > 1 and normalizer is not None:
                     try:
-                        extract_tree, normalization = normalizer(tree, progress=progress)
+                        extract_tree, normalization, normalized = normalizer(tree, progress=progress)
                         entry = 'main.tex'
-                        normalized = normalization.get('normalized')
-                        result.update(normalization_id=normalization['normalization_id'],
-                                      normalization_sha256=normalization['normalization_sha256'])
                     except NormalizationError as exc:
                         result.update(status='needs_entrypoint', entrypoint_candidates=candidates, reason=str(exc))
                         return self._keep_prior(result, prior)
@@ -615,7 +609,7 @@ class Workspace:
                 except (OSError, ValueError, RuntimeError):
                     normalized = None
             source_id = 'source:local:' + hash_text(canonical([tree_hash, work_id, upstream]))
-            build_key = (source_id, entry)
+            build_key = (source_id, entry, normalization and normalization['normalization_sha256'])
             version = reused.get(build_key)
             fresh_extraction = version is None
             result['entrypoint'] = entry
@@ -652,6 +646,8 @@ class Workspace:
                 except (OSError, ValueError, RuntimeError) as exc:
                     result['ai_extraction_error'] = str(exc).replace(str(self.root), '<workspace>')
             reused[build_key] = version
+            if normalization is not None:
+                result.update(normalization)
             result.update(status='processing_completed', processing_completed=True, semantic_status='semantic_pending',
                           source_version_id=source_id, source_snapshot_id=version['snapshot_id'])
             return result
@@ -666,6 +662,9 @@ class Workspace:
         if prior.get('source_version_id'):
             result.update(source_version_id=prior['source_version_id'], source_snapshot_id=prior['source_snapshot_id'],
                           retained_prior_extraction=True)
+            for field in ('normalization_id', 'normalization_sha256', 'normalization_manifest_sha256'):
+                if field in prior:
+                    result[field] = prior[field]
         return result
 
     @staticmethod
@@ -747,6 +746,30 @@ class Workspace:
         atomic_json(operational, {'observed_at': now(), 'release_id': release, 'counts': counts,
                     'human': {'status': human_status, 'target_release_id': release, 'rendered_release_id': rendered}})
 
+    def _normalization_issues(self, state, limits):
+        from .llm.artifacts import load_normalization
+
+        for digest, material in state.get('materials', {}).items():
+            if not material.get('normalization_id'):
+                continue
+            if not material.get('normalization_manifest_sha256'):
+                yield {'code': 'normalization_unbound', 'archive_sha256': digest, 'severity': 'warning',
+                       'message': 'Historical normalization is missing a bound source map'}
+                continue
+            try:
+                raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
+                if hashlib.sha256(raw).hexdigest() != digest:
+                    raise ValueError('Archived source hash mismatch')
+                source, _ = load_normalization(self.registry.root, material, tree=unpack(raw, limits))
+                version = state['versions'][material['source_version_id']]
+                if (version['snapshot_id'] == material['source_snapshot_id']
+                        and not _matches_regular(self.path('machine/' + version['snapshot_path'] + '/sources/main.tex'),
+                                                 limits.expanded_bytes, source.data)):
+                    raise ValueError('Registered projection differs from the normalized TeX')
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                yield {'code': 'normalization_invalid', 'archive_sha256': digest, 'severity': 'error',
+                       'message': str(exc)}
+
     def _publish_archive(self, cfg, digests, limits, *, rebuild, update, normalizer=None, extractor=None,
                          prefetch=None, prefetch_digests=()):
         package_count = len(digests)
@@ -780,7 +803,7 @@ class Workspace:
                 for prior in materials.values():
                     version = self._matching_extraction(state, prior, fingerprint)
                     if version is not None:
-                        reused[(version['id'], prior['entrypoint'])] = version
+                        reused[(version['id'], prior['entrypoint'], prior.get('normalization_sha256'))] = version
             for index, digest in enumerate(sorted(digests), start=1):
                 prior = materials.get(digest, {})
                 version = self._matching_extraction(state, prior, fingerprint)
@@ -828,7 +851,8 @@ class Workspace:
             # This verifies every registered snapshot, including reused ones,
             # before publishing the pointer or consuming any input claims.
             validation = self.registry.validate(candidate, check_live_lean=False, manifest_hashes=manifest_hashes)
-            if not validation['passed']:
+            if (not validation['passed'] or any(issue['severity'] == 'error'
+                                                for issue in self._normalization_issues(state, limits))):
                 raise ValueError('Candidate machine release failed validation; CURRENT was retained')
             if cfg != self.config():
                 raise ValueError('Workspace configuration changed while preparing; retry')
@@ -945,6 +969,7 @@ class Workspace:
                     raise ValueError('Archive hash mismatch')
             except (OSError, ValueError) as exc:
                 issues.append({'code': 'archive_invalid', 'archive_sha256': digest, 'message': str(exc)})
+        issues.extend(self._normalization_issues(state, Limits(**cfg.get('limits', {}))))
         passed = result.get('passed', False) and not any(i.get('severity') != 'warning' for i in issues)
         return {**result, 'valid': passed, 'passed': passed, 'suggested_exit_code': 0 if passed else 2, 'status': 'ok' if passed else 'invalid',
                 'workspace_id': cfg['workspace_id'], 'release_id': fixed}

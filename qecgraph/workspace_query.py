@@ -20,6 +20,7 @@ from .domain.research import RELATIONS, key, validate_bundle
 from .domain.research_store import load_records
 from .workspace import HEX, _managed
 from .workspace_assets import asset_bytes, references
+from .llm.artifacts import load_normalization, mapped_ranges
 
 
 def check_machine_tree(machine):
@@ -89,6 +90,10 @@ class WorkspaceSession:
                               if n['origin'] == 'parser' and n.get('source')}
         self.resources = {self._resource_uri(identifier): identifier for identifier in self._source_nodes}
         self._resource_bindings = sorted(self.resources.items())
+        self._normalizations = {
+            (material['source_version_id'], material['source_snapshot_id']): material
+            for material in self.state.get('materials', {}).values() if material.get('normalization_id')
+        }
 
     def _resource_uri(self, occurrence):
         return f'qec://source/{self.release}/{hash_text(occurrence)}'
@@ -154,7 +159,8 @@ class WorkspaceSession:
         source = self.source_excerpt(identifier)
         resource = {'uri': uri, 'mimeType': 'text/plain', 'text': source['latex'],
                     '_meta': {'release_id': self.release, 'occurrence_id': identifier,
-                              'content_sha256': source['content_sha256'], 'source': source['source']}}
+                              'content_sha256': source['content_sha256'], 'source': source['source'],
+                              **({'original_ranges': source['original_ranges']} if 'original_ranges' in source else {})}}
         result = {'contents': [resource]}
         if len(canonical(result)) > self.graph.max_chars:
             raise ToolError('BUDGET_TOO_SMALL', 'Use qec_get_source with an exact source codepoint range')
@@ -262,15 +268,24 @@ class WorkspaceSession:
         end = original_end if end is None else end
         if not original_start <= start <= end <= original_end:
             raise ToolError('INVALID_ARGUMENT', 'Requested codepoint range escapes the registered span')
-        if (start, end) == (original_start, original_end):
-            return {'id': identifier, 'resource_uri': self._resource_uri(identifier), 'source': span,
-                    'content_sha256': node['content_sha256'], 'latex': node['latex']}
         latex = node['latex'][start - original_start:end - original_start]
-        span.update(char_start=start, char_end=end,
-                    line_start=span['line_start'] + node['latex'].count('\n', 0, start-original_start),
-                    line_end=span['line_start'] + node['latex'].count('\n', 0, max(start-original_start, end-original_start-1)))
-        return {'id': identifier, 'resource_uri': self._resource_uri(identifier), 'source': span,
-                'content_sha256': hash_text(latex), 'latex': latex}
+        if (start, end) != (original_start, original_end):
+            span.update(char_start=start, char_end=end,
+                        line_start=span['line_start'] + node['latex'].count('\n', 0, start-original_start),
+                        line_end=span['line_start'] + node['latex'].count('\n', 0, max(start-original_start, end-original_start-1)))
+        result = {'id': identifier, 'resource_uri': self._resource_uri(identifier), 'source': span,
+                  'content_sha256': hash_text(latex), 'latex': latex}
+        material = self._normalizations.get((span['source_version_id'], span['snapshot_id']))
+        if material and span['path'] == 'main.tex':
+            span.pop('archive_uri', None)
+            span['source_kind'] = 'normalized_unbound'
+            if material.get('normalization_manifest_sha256'):
+                normalized, manifest = load_normalization(self.machine, material)
+                if span['file_sha256'] != normalized.sha256 or normalized.text[start:end] != latex:
+                    raise ValueError('Normalized source does not match the registered occurrence')
+                span['source_kind'] = 'normalized'
+                result['original_ranges'] = mapped_ranges(normalized.text, manifest['source_map'], start, end)
+        return result
 
     @staticmethod
     def _paginate(rows, args, default_limit):

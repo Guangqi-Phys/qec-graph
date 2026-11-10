@@ -563,7 +563,10 @@ root); a single-root package follows the deterministic path.
 The normalizer receives a bounded inventory and source excerpts, returns a
 normalization plan, and the assembler copies the selected original bytes into a
 derived `main.tex`. The original archive and source tree remain authoritative;
-the derived document records segment-to-source mappings. AI extraction writes
+a plan that needs review leaves the package archived pending an entry point.
+The release binds the normalized TeX and its source map by hash. Source reads
+identify projection coordinates and return original paths and ranges separately.
+AI extraction writes
 reviewable `qecgraph.ai.proposal` artifacts; it never promotes them to verified
 records.
 

@@ -30,6 +30,8 @@ def _project_state(registry, state, fixed, source_version_id=None, *,
     selected = [source_version_id] if source_version_id else sorted(state['versions'])
     nodes, edges, labels, versions = [], [], {}, {}
     partial = False
+    normalized = {(m.get('source_version_id'), m.get('source_snapshot_id')): m
+                  for m in state.get('materials', {}).values() if m.get('normalization_id')}
     for version_id in selected:
         graph, snapshot, version = registry.source_graph_from_state(
             state, version_id, fixed, verify=verify_sources, manifest_hashes=manifest_hashes)
@@ -39,6 +41,7 @@ def _project_state(registry, state, fixed, source_version_id=None, *,
         partial |= graph['extraction_status'] == 'partial'
         occurrence_prefix = occurrence_id(version_id, '')
         label_prefix = version_id + '::'
+        normalization = normalized.get((version_id, version['snapshot_id']))
         archive_prefix = 'qecgraph://source/' + quote(version_id, safe='') + '/'
         # The loader gives this projection its own freshly decoded graph.
         for node in graph['nodes']:
@@ -49,7 +52,11 @@ def _project_state(registry, state, fixed, source_version_id=None, *,
                                   'snapshot_id': version['snapshot_id']}
             if node.get('source'):
                 node['source'].update(node['provenance'])
-                node['source']['archive_uri'] = archive_prefix + quote(node['source']['path'])
+                if normalization and node['source']['path'] == 'main.tex':
+                    node['source']['source_kind'] = (
+                        'normalized' if normalization.get('normalization_manifest_sha256') else 'normalized_unbound')
+                else:
+                    node['source']['archive_uri'] = archive_prefix + quote(node['source']['path'])
             node['labels'] = [label_prefix + label for label in node['labels']]
             # Full original IDs are also version-qualified to disambiguate revisions.
             for label in node['labels'] + [label_prefix + original_id]:

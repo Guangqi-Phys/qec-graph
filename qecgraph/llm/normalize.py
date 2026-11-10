@@ -191,9 +191,9 @@ def assemble(tree: SourceTree, plan: Mapping[str, Any]):
     if not output:
         raise NormalizationError('normalization produced an empty document')
     if b'\\end{document}' not in output:
+        out_start = len(output)
         if not output.endswith(b'\n'):
             output += b'\n'
-        out_start = len(output)
         output += b'\\end{document}\n'
         segments.append({'normalized': {'byte_start': out_start, 'byte_end': len(output)},
                          'origin': None, 'kind': 'generated'})

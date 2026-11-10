@@ -186,7 +186,8 @@ class WorkspaceTests(unittest.TestCase):
         config.write_text(text, encoding='utf-8')
         supplement = b'\\documentclass{article}\n\\begin{document}\nSupplement text.\n\\end{document}\n'
         (self.inbox / 'bundle.tar').write_bytes(tar_bytes({'main.tex': TEX, 'supp.tex': supplement}))
-        plan = {'status': 'ready', 'documents': [],
+        plan = {'status': 'ready', 'documents': [{'path': 'main.tex', 'role': 'main'},
+                                                 {'path': 'supp.tex', 'role': 'supplement'}],
                 'operations': [{'op': 'use_preamble', 'source': 'main.tex'},
                                {'op': 'include_body', 'source': 'main.tex'},
                                {'op': 'append_body', 'source': 'supp.tex'}],

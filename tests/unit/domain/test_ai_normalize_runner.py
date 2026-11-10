@@ -41,12 +41,13 @@ class RunnerTests(unittest.TestCase):
                                {'op': 'append_body', 'source': 'supp.tex'}],
                 'label_renames': {}, 'unresolved': []}
         client = FakeClient(plan)
-        result = normalize_package(SourceTree('tex', {'main.tex': MAIN, 'supp.tex': SUPP}), client)
+        tree = SourceTree('tex', {'main.tex': MAIN, 'supp.tex': SUPP})
+        result = normalize_package(tree, client)
         self.assertEqual(client.calls, 1)
         self.assertIn('Supplement', result.source.text)
         self.assertEqual(result.ai_result.model, 'fake-model')
         with tempfile.TemporaryDirectory() as directory:
-            target, manifest = write_normalization(Path(directory), result)
+            target, manifest = write_normalization(Path(directory), result, tree)
             self.assertTrue((target / 'main.tex').is_file())
             self.assertEqual(manifest['schema'], 'qecgraph.normalization')
             self.assertEqual(manifest['ai']['model'], 'fake-model')
