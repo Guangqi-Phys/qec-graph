@@ -46,7 +46,8 @@ the [changelog](CHANGELOG.md) for compatibility changes, and the
   decorative markup that repeats the prose.
 - Run `python -m unittest tests.contracts.docs.test_docs tests.contracts.docs.test_docs_bilingual -v` after
   moving, renaming or translating a page; the tests check status markers, links,
-  reachability, table-of-contents anchors and bilingual parity.
+  reachability, table-of-contents anchors and bilingual parity. The test layer
+  map and per-layer commands are in [tests/README.md](tests/README.md).
 - Run `npx --yes markdownlint-cli2@0.24.0` for heading/list/blank-line and link
   fragment consistency. CI runs the same command in the `docs` job.
 
