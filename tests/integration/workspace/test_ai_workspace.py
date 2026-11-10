@@ -107,6 +107,7 @@ class AIWorkspaceTests(unittest.TestCase):
         self.assertTrue(first['inputs'][0]['input_consumed'])
         self.assertEqual(first['inputs'][0]['ai_extraction']['status'], 'pending')
         self.assertFalse(package.exists())
+        self.assertEqual(self.workspace.status()['status'], 'partial_batch')
         with patch('qecgraph.llm.client.LLMClient.complete_json', return_value=empty) as client:
             second = self.workspace.sync()
             self.assertEqual(client.call_count, 1)
@@ -181,3 +182,40 @@ class AIWorkspaceTests(unittest.TestCase):
         with self.assertRaisesRegex(AIReviewError, 'No machine release'):
             decide(self.root, orphan, actor={'id': 'reviewer', 'kind': 'human'}, decision='approve',
                    rationale='checked', checked_scopes=['statement', 'hypotheses', 'dependencies'])
+
+    def test_rebuild_revalidates_legacy_map_without_calling_a_provider(self):
+        from qecgraph.core.transactions import writer_lock
+
+        package = self.root / 'inputs/papers.tar'
+        package.write_bytes(tar_bytes({'a.tex': TEX, 'b.tex': TEX.replace(b'Hello', b'Supplement')}))
+        plan = answer({'status': 'ready', 'documents': [{'path': 'a.tex', 'role': 'main'},
+                                                        {'path': 'b.tex', 'role': 'supplement'}],
+                       'operations': [{'op': 'use_preamble', 'source': 'a.tex'},
+                                      {'op': 'include_body', 'source': 'a.tex'},
+                                      {'op': 'append_body', 'source': 'b.tex'}], 'unresolved': []})
+        empty = answer({'items': [], 'unresolved': []})
+        with patch('qecgraph.llm.client.LLMClient.complete_json', side_effect=[plan, empty, empty, empty]):
+            initial = self.workspace.sync()['inputs'][0]
+
+        registry = self.workspace.registry
+        manifest_path = next((registry.root / 'derived/normalizations').rglob('manifest.json'))
+        manifest = json.loads(manifest_path.read_text())
+        manifest.pop('source_map')
+        manifest['fallback_reason'] = None
+        manifest_path.write_text(json.dumps(manifest))
+        with writer_lock(registry.root):
+            state, _ = registry.read()
+            material = state['materials'][initial['archive_sha256']]
+            material.pop('normalization_manifest_sha256')
+            material.pop('ai_extraction')
+            registry._publish(state)
+
+        self.configure('enabled = true', 'enabled = false')
+        with patch('qecgraph.llm.client.LLMClient.complete_json') as client:
+            result = self.workspace.rebuild()
+            client.assert_not_called()
+        row, = result['inputs']
+        self.assertTrue(row['processing_completed'])
+        self.assertNotEqual(row['normalization_id'], initial['normalization_id'])
+        self.assertEqual(row['normalization_sha256'], initial['normalization_sha256'])
+        self.assertTrue(self.workspace.validate()['passed'])

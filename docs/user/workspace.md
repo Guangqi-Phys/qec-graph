@@ -73,7 +73,10 @@ a workspace that used the local subscription login.
 
 Failed AI extraction remains pending after the structural release commits. A
 later `sync` retries the failed skills from the archive. Rebuild verifies and
-reuses committed normalization maps even with AI disabled.
+reuses committed normalization maps even with AI disabled. For an older release,
+rebuild can bind a historical map when the saved plan and archive reproduce the
+exact projection. An unconfirmed fallback still needs an explicit entry point or
+a new plan.
 
 Daily use is `qec-graph sync`, `qec-graph status` and `qec-graph validate`.
 The terminal updates one progress line and ends with success or an error. `sync`

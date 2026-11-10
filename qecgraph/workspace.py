@@ -310,10 +310,22 @@ class Workspace:
         except AIConfigError:
             return None
 
-    def _ai_normalize(self, client, tree):
-        from .llm.artifacts import normalization_binding, write_normalization
-        from .llm.normalize import normalize_package
+    def _resolve_normalization(self, client, tree, prior):
+        from .llm.artifacts import load_normalization, normalization_binding, revalidate_legacy_normalization, write_normalization
+        from .llm.normalize import NormalizationError, normalize_package
 
+        if prior.get('normalization_manifest_sha256'):
+            source, _ = load_normalization(self.registry.root, prior, tree=tree)
+            binding = {field: prior[field] for field in (
+                'normalization_id', 'normalization_sha256', 'normalization_manifest_sha256')}
+            return SourceTree(tree.format, {**tree.files, 'main.tex': source.data}), binding
+        if prior.get('normalization_id'):
+            try:
+                source, binding = revalidate_legacy_normalization(self.registry.root, prior, tree)
+                return SourceTree(tree.format, {**tree.files, 'main.tex': source.data}), binding
+            except NormalizationError:
+                if client is None:
+                    raise
         normalized = normalize_package(tree, client)
         artifact, manifest = write_normalization(self.registry.root, normalized, tree)
         return (SourceTree(tree.format, {**tree.files, 'main.tex': normalized.source.data}),
@@ -547,7 +559,6 @@ class Workspace:
     def _prepare(self, cfg, state, digest, prior, reused, limits, *, captured, manifest_hashes, tool_identity, ai_client=None, progress=None):
         result = {'archive_sha256': digest, 'status': 'archived_only', 'processing_completed': False,
                   'semantic_status': 'not_extracted', 'processor': PROCESSOR}
-        from .llm.artifacts import load_normalization
         from .llm.normalize import NormalizationError
 
         normalization = None
@@ -569,17 +580,11 @@ class Workspace:
                 candidates = tree.entrypoints()
                 if entry is None and len(candidates) == 1:
                     entry = candidates[0]
-                elif entry is None and prior.get('normalization_manifest_sha256'):
-                    normalized, _ = load_normalization(self.registry.root, prior, tree=tree)
-                    normalization = {field: prior[field] for field in (
-                        'normalization_id', 'normalization_sha256', 'normalization_manifest_sha256')}
-                    entry = 'main.tex'
-                    extract_tree = SourceTree(tree.format, {**tree.files, entry: normalized.data})
-                elif entry is None and len(candidates) > 1 and ai_client is not None:
+                elif entry is None and len(candidates) > 1 and (ai_client is not None or prior.get('normalization_id')):
                     try:
                         if progress:
-                            progress(0, 'Normalizing package with AI')
-                        extract_tree, normalization = self._ai_normalize(ai_client, tree)
+                            progress(0, 'Resolving TeX entry point')
+                        extract_tree, normalization = self._resolve_normalization(ai_client, tree, prior)
                         entry = 'main.tex'
                     except NormalizationError as exc:
                         result.update(status='needs_entrypoint', entrypoint_candidates=candidates, reason=str(exc))
@@ -909,7 +914,8 @@ class Workspace:
         digests = {row['archive_sha256'] for row in quarantined}
         materials = [{**material, 'quarantined': digest in digests}
                      for digest, material in state.get('materials', {}).items()]
-        partial = any((not material.get('processing_completed') or material.get('source_version_conflict'))
+        partial = any((not material.get('processing_completed') or material.get('source_version_conflict')
+                       or material.get('ai_extraction', {}).get('errors'))
                       and not material['quarantined']
                       for material in materials)
         pending_inputs = sum(1 for _ in self._inbox())

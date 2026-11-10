@@ -133,7 +133,7 @@ def _check_plan(tree, plan):
             raise NormalizationError(f"operation references missing source: {operation['source']}")
 
 
-def _check_root_roles(tree, plan):
+def validate_root_roles(tree, plan):
     roots = set(tree.entrypoints())
     documents = plan['documents']
     roles = {document['path']: document['role'] for document in documents}
@@ -267,7 +267,7 @@ def normalize_package(tree: SourceTree, client, *, extra_skills_dir=None, use_ca
 
     def check_plan(plan):
         source = assemble(tree, plan)
-        _check_root_roles(tree, plan)
+        validate_root_roles(tree, plan)
         return source
 
     def validate(plan):
