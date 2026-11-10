@@ -20,6 +20,10 @@ PAIRS = (
     ('docs/operations/corpus.md', 'docs/operations/corpus.zh-CN.md'),
     ('docs/operations/review.md', 'docs/operations/review.zh-CN.md'),
     ('validation/README.md', 'validation/README.zh-CN.md'),
+    ('tools/README.md', 'tools/README.zh-CN.md'),
+    ('tests/README.md', 'tests/README.zh-CN.md'),
+    ('tests/golden/README.md', 'tests/golden/README.zh-CN.md'),
+    ('schemas/README.md', 'schemas/README.zh-CN.md'),
     ('CONTRIBUTING.md', 'CONTRIBUTING.zh-CN.md'),
     ('SECURITY.md', 'SECURITY.zh-CN.md'),
 )

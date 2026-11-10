@@ -1,5 +1,7 @@
 # Test layout
 
+> **English** · [中文](README.zh-CN.md)
+
 Tests use the standard library `unittest` runner and do not require a separate
 test dependency.
 

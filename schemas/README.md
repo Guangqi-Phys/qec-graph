@@ -1,5 +1,7 @@
 # Schema paths
 
+> **English** · [中文](README.zh-CN.md)
+
 Current JSON Schema files live in the [packaged schema directory](../qecgraph/validators/schemas/).
 Checkout consumers can replace the old `schemas/<name>.schema.json` path with
 `qecgraph/validators/schemas/<name>.schema.json`. Installed Python consumers

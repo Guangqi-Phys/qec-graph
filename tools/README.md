@@ -1,5 +1,7 @@
 # Repository tools
 
+> **English** · [中文](README.zh-CN.md)
+
 Helper scripts run from the repository root. They are development/release
 tooling, not part of the installed `qecgraph` package.
 

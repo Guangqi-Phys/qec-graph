@@ -1,5 +1,7 @@
 # Pinned arXiv regression set
 
+> **English** · [中文](README.zh-CN.md)
+
 The [manifest](arxiv_sources.json) records six exact arXiv versions, the
 SHA-256 of each source archive, the normalized source tree hash, and expected
 entrypoints and graph labels. It links to the license listed for each version
