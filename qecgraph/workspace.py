@@ -177,6 +177,27 @@ def _toml_location(exc, text):
     return None
 
 
+def init_directory_error(root):
+    """Return why *root* is not a clean new workspace, or None when it is."""
+    root = Path(root)
+    if root.exists() and not root.is_dir():
+        return 'cannot initialize: the target path is not a directory'
+    if not root.exists():
+        return None
+    entries = sorted((path for path in root.iterdir() if not path.name.startswith('.')),
+                     key=lambda path: path.name)
+    other = [path.name for path in entries if path.name != 'inputs']
+    if other:
+        shown = ', '.join(other[:8]) + ('...' if len(other) > 8 else '')
+        return ('cannot initialize: the target directory contains other entries: '
+                f'{shown}; use an empty directory or one containing only inputs/')
+    inputs = root / 'inputs'
+    if inputs.exists() or inputs.is_symlink():
+        if inputs.is_symlink() or not inputs.is_dir():
+            return 'cannot initialize: inputs must be a real directory'
+    return None
+
+
 class Workspace:
     def __init__(self, root=None):
         self.root = locate(root)
@@ -237,6 +258,36 @@ class Workspace:
                 cfg = self.config()
             return self._run(cfg, scan_inputs=not no_ingest, rebuild=False,
                              keep_inputs=no_ingest or keep_inputs, progress=progress)
+
+    def prepare(self):
+        """Create the config and inbox without publishing an empty release."""
+        configured = self.path(CONFIG).is_file()
+        if not configured:
+            problem = init_directory_error(self.root)
+            if problem:
+                raise ValueError(problem)
+        else:
+            inputs = self.path('inputs')
+            if (inputs.exists() or inputs.is_symlink()) and (inputs.is_symlink() or not inputs.is_dir()):
+                raise ValueError('cannot initialize: inputs must be a real directory')
+        self.root.mkdir(parents=True, exist_ok=True)
+        with writer_lock(self.path('.qecgraph')):
+            for path in ('inputs/.processing', 'archive/blobs/sha256', 'archive/receipts', 'sources', 'machine'):
+                self.path(path).mkdir(parents=True, exist_ok=True)
+            target = self.path(CONFIG)
+            if not target.exists():
+                workspace_id = 'workspace:' + uuid.uuid4().hex
+                atomic_bytes(target, f'format = "{FORMAT}"\nworkspace_id = "{workspace_id}"\n'.encode())
+            cfg = self.config()
+        return {'status': 'initialized', 'workspace_id': cfg['workspace_id'],
+                'next': 'qec-graph sync',
+                'message': 'Add LaTeX source packages to inputs/ and run qec-graph sync.'}
+
+    def inbox_has_content(self):
+        try:
+            return any(True for _ in self._inbox())
+        except (FileNotFoundError, NotADirectoryError):
+            return False
 
     def sync(self, *, dry_run=False, keep_inputs=False, progress=None):
         if dry_run:

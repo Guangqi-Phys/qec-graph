@@ -29,13 +29,13 @@ Install the actual wheel in a Python 3.11+ POSIX environment. No API key is requ
 
 ```bash
 python -m pip install /path/to/qec_graph-0.5.1-py3-none-any.whl
-mkdir -p ~/qec/inputs
+mkdir -p ~/qec
 cd ~/qec
-# 把下载完成的 TeX 源包放进 inputs（下载时先用临时名）。
 qec-graph init
-qec-graph status
+# Add downloaded source packages to inputs/ before syncing.
 qec-graph sync --dry-run
 qec-graph sync
+qec-graph status
 qec-graph rebuild
 qec-graph validate
 ```
@@ -43,9 +43,10 @@ qec-graph validate
 Daily use is `qec-graph sync`, `qec-graph status` and `qec-graph validate`.
 The terminal updates one progress line and ends with success or an error. `sync`
 clears copies in `inputs/` only after successful archive and publication;
-failed files stay for retry. Add `--json` for the detailed report. Commands
-prefer an explicit `--workspace`, then the current directory and its parents,
-then `QECGRAPH_WORKSPACE`.
+failed files stay for retry. Add `--json` for the detailed report. Except
+`init`, commands prefer an explicit `--workspace`, then the current directory
+and its parents, then `QECGRAPH_WORKSPACE`. `init` uses only the current
+directory unless `--workspace` names another one.
 
 A second `init` does not overwrite configuration. `--no-ingest` only initialises;
 when running `sync` with other flags, `--keep-inputs` preserves successful

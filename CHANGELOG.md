@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `qec-graph init` now initializes only the current directory unless
+  `--workspace` is explicit. It accepts an empty directory or one containing
+  only `inputs/`, creates `inputs/` and `qecgraph.toml` when there is nothing to
+  import, and otherwise imports the existing inbox immediately.
+
 ## 0.5.1 — 2026-11-10
 
 - Removed the `legacy/knowledge_starter` sample and all dependent matrix tests,

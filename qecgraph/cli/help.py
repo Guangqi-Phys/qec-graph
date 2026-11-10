@@ -10,7 +10,7 @@ EXAMPLES = {
     'doctor': '--workspace ./qec --json',
     'snapshot': 'list --workspace ./qec',
     'inputs': 'quarantine paper.zip --workspace ./qec',
-    'init': '--workspace ./qec',
+    'init': '',
     'sync': '--dry-run',
     'rebuild': '--include-inputs --json',
     'status': '--json',

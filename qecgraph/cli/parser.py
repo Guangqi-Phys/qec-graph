@@ -173,13 +173,14 @@ def _register_commands(add):
         help='Path to the QEC workspace; omit to use local discovery where supported')
     add('snapshot', help='Inspect local snapshots and stored registry states')
     add('inputs', help='List, quarantine, or restore inbox packages')
-    for action, description in (('init', 'Create a workspace and import its inbox'),
+    for action, description in (('init', 'Create a workspace and import inputs/ when non-empty'),
                                 ('sync', 'Import new source packages from inputs/'),
                                 ('rebuild', 'Verify and replay all archived source packages'),
                                 ('status', 'Report indexed, pending, and failed packages')):
         workspace = add(action, help=description)
         workspace.add_argument('--workspace',
-            help='Path to the QEC workspace; omit to use local discovery where supported')
+            help='Path to the QEC workspace; omit to use the current directory' if action == 'init'
+            else 'Path to the QEC workspace; omit to use local discovery where supported')
         if action != 'status':
             workspace.add_argument('--keep-inputs', action='store_true',
                 help='Retain successfully archived packages in the inbox')

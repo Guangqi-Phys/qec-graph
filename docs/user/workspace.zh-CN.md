@@ -26,21 +26,22 @@ Git history。
 
 ```bash
 python -m pip install /path/to/qec_graph-0.5.1-py3-none-any.whl
-mkdir -p ~/qec/inputs
+mkdir -p ~/qec
 cd ~/qec
-# 把下载完成的 TeX 源包放进 inputs（下载时先用临时名）。
 qec-graph init
-qec-graph status
+# Add downloaded source packages to inputs/ before syncing.
 qec-graph sync --dry-run
 qec-graph sync
+qec-graph status
 qec-graph rebuild
 qec-graph validate
 ```
 
 日常使用 `qec-graph sync`、`qec-graph status` 和 `qec-graph validate`。
 终端更新同一条进度行，结束时显示成功或错误。`sync` 在成功归档并发布后清理 `inputs/` 中的副本，失败件留待重试。
-加 `--json` 可查看详细报告。命令优先使用显式的 `--workspace`，其次查找当前目录及其父目录，
-最后使用环境变量 `QECGRAPH_WORKSPACE`。
+加 `--json` 可查看详细报告。除 `init` 外，命令优先使用显式的 `--workspace`，
+其次查找当前目录及其父目录，最后使用环境变量 `QECGRAPH_WORKSPACE`。
+`init` 只使用当前目录，除非用 `--workspace` 指定其他目录。
 
 再次 init 不覆盖配置。`--no-ingest` 只初始化，带其他参数执行 `sync` 时可用
 `--keep-inputs` 保留成功件，`--no-human` 跳过人类渲染。

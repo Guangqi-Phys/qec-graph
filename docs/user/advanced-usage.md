@@ -97,10 +97,11 @@ are available. [How to read and reproduce a query](data-and-search.md#read-and-r
 
 ## Maintain a workspace
 
-Commands find the workspace from the current directory or its parents. Pass
-`--workspace /path/to/workspace` to select one explicitly. For the daily
-commands `sync`, `status`, and `validate`, `QECGRAPH_WORKSPACE` can serve as a
-fallback when the current directory is outside an initialized workspace.
+Except for `init`, commands find the workspace from the current directory or
+its parents. Pass `--workspace /path/to/workspace` to select one explicitly.
+`init` uses only the current directory unless `--workspace` is explicit. For the
+daily commands `sync`, `status`, and `validate`, `QECGRAPH_WORKSPACE` can serve
+as a fallback when the current directory is outside an initialized workspace.
 
 Workspace maintenance commands print one outcome line by default. In a
 terminal, longer operations also show their progress on that line. Pass

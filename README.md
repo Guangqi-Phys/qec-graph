@@ -23,18 +23,22 @@ Downloads are available for macOS (Apple Silicon) and Linux (x86_64 and arm64).
 
 ## Quick start
 
-Run these commands in the folder you want to use as your workspace.
+Run these commands in an empty folder, or one containing only `inputs/`. Other
+entries make `init` stop before writing anything.
 
 ```sh
-mkdir -p inputs
-# Put downloaded LaTeX source packages in inputs/.
-qec-graph init --workspace .
-
-# After adding more packages
+mkdir my-qec
+cd my-qec
+qec-graph init
+# The command creates inputs/ and qecgraph.toml.
+# Put downloaded LaTeX source packages in inputs/, then run:
 qec-graph sync
 qec-graph status
 qec-graph validate
 ```
+
+If `inputs/` already contains packages, `qec-graph init` imports them
+immediately instead of waiting for `sync`.
 
 Successful imports keep the original package in `archive/` and clear its inbox
 copy. Open `human/` as an Obsidian vault and start at `Index.md`.

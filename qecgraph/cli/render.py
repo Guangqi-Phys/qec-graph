@@ -116,6 +116,8 @@ def _input_problem(row):
 def workspace_summary(action, result, code):
     if result['status'] == 'already_initialized':
         return 'workspace already initialized', code
+    if result['status'] == 'initialized':
+        return 'add source packages to inputs/ and run qec-graph sync', code
     if result['status'] == 'planned':
         return f"{len(result['inputs'])} inbox files, {result['pending_claims']} pending claims", code
     if action == 'validate':

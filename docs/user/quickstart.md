@@ -18,15 +18,16 @@
 | Step | Action | Expected result |
 |---|---|---|
 | 1 | Install via the [installation instructions](../../README.md#install) | `qec-graph --version` prints a version |
-| 2 | Enter a working directory and create `inputs/` | The directory contains `inputs/` |
-| 3 | Put a LaTeX source package there and run `qec-graph init` | The terminal reports a published or partial batch |
-| 4 | Run `qec-graph sync` | Successful packages enter `archive/`; inbox copies are cleared |
+| 2 | Enter an empty directory and run `qec-graph init` | `inputs/` and `qecgraph.toml` are created; the command asks you to add packages |
+| 3 | Put a LaTeX source package in `inputs/` and run `qec-graph sync` | Successful packages enter `archive/`; inbox copies are cleared |
+| 4 | Or put packages in `inputs/` before `init` | `init` imports them directly and reports a published or partial batch |
 | 5 | Run `qec-graph status` / `validate` | Indexed counts and integrity results are shown |
 
 ```sh
-mkdir -p inputs
-# Put downloaded TeX source packages in inputs/
-qec-graph init --workspace .
+mkdir my-qec
+cd my-qec
+qec-graph init
+# Add downloaded TeX source packages to inputs/, then:
 qec-graph sync
 qec-graph status
 qec-graph validate

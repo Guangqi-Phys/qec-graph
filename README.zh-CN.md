@@ -21,18 +21,20 @@ curl -fsSL https://raw.githubusercontent.com/Guangqi-Phys/qec-graph/main/install
 
 ## 快速开始
 
-把下面的命令放在你想作为工作区的目录中运行。
+在一个空目录中运行，或只保留 `inputs/`。有其他条目时 `init` 会在写入前停止。
 
 ```sh
-mkdir -p inputs
-# Put downloaded LaTeX source packages in inputs/.
-qec-graph init --workspace .
-
-# After adding more packages
+mkdir my-qec
+cd my-qec
+qec-graph init
+# The command creates inputs/ and qecgraph.toml.
+# Put downloaded LaTeX source packages in inputs/, then run:
 qec-graph sync
 qec-graph status
 qec-graph validate
 ```
+
+如果 `inputs/` 里已经有源包，`qec-graph init` 会立即导入，不需要再等 `sync`。
 
 成功导入后原始包留在 `archive/`，收件箱副本被清除。把 `human/` 作为 Obsidian
 vault 打开，从 `Index.md` 开始。反复失败的包用

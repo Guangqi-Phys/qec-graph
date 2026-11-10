@@ -89,9 +89,10 @@ qec-graph query search HGP --workspace "$workspace" --limit 2
 
 ## 维护工作区
 
-命令从当前目录及其父目录查找工作区。用 `--workspace /path/to/workspace` 显式选择。
-日常命令 `sync`、`status` 和 `validate` 在当前目录不在已初始化工作区时，可用
-`QECGRAPH_WORKSPACE` 作为回退。
+除 `init` 外，命令从当前目录及其父目录查找工作区。用
+`--workspace /path/to/workspace` 显式选择。`init` 只使用当前目录，除非显式传入
+`--workspace`。日常命令 `sync`、`status` 和 `validate` 在当前目录不在已初始化
+工作区时，可用 `QECGRAPH_WORKSPACE` 作为回退。
 
 工作区维护命令默认打印一行结果。终端中，较长操作还会在这一行显示进度。
 脚本中请传 `--json` 获取完整报告，包括使用 `--workspace` 或重定向输出时。

@@ -84,6 +84,79 @@ class WorkspaceTests(unittest.TestCase):
             self.assertEqual((code, stderr), (0, ''))
             self.assertIn('1 inbox files, 0 pending claims', stdout)
 
+    def test_cli_init_prepares_an_empty_directory_without_publishing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                code = main(['init', '--workspace', str(root), '--json'])
+            self.assertEqual((code, stderr.getvalue()), (0, ''))
+            result = json.loads(stdout.getvalue())
+            self.assertEqual(result['status'], 'initialized')
+            self.assertEqual(result['next'], 'qec-graph sync')
+            self.assertTrue((root / 'inputs').is_dir())
+            self.assertTrue((root / 'qecgraph.toml').is_file())
+            self.assertFalse((root / 'machine/CURRENT.json').exists())
+
+            (root / 'inputs/paper.tex').write_bytes(TEX)
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                code = main(['init', '--workspace', str(root), '--json'])
+            self.assertEqual((code, stderr.getvalue()), (0, ''))
+            self.assertEqual(json.loads(stdout.getvalue())['counts']['processed'], 1)
+            self.assertTrue((root / 'machine/CURRENT.json').is_file())
+            self.assertFalse((root / 'inputs/paper.tex').exists())
+
+    def test_cli_init_imports_existing_inputs_and_prepared_workspace_can_sync(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'inputs').mkdir()
+            (root / 'inputs/paper.tex').write_bytes(TEX)
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                code = main(['init', '--workspace', str(root), '--json'])
+            self.assertEqual((code, stderr.getvalue()), (0, ''))
+            result = json.loads(stdout.getvalue())
+            self.assertEqual(result['counts']['processed'], 1)
+            self.assertTrue((root / 'machine/CURRENT.json').is_file())
+            self.assertFalse((root / 'inputs/paper.tex').exists())
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                self.assertEqual(main(['init', '--workspace', str(root)]), 0)
+            (root / 'inputs/paper.tex').write_bytes(TEX)
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                code = main(['sync', '--workspace', str(root)])
+            self.assertEqual((code, stderr.getvalue()), (0, ''))
+            self.assertIn('1/1 packages indexed', stdout.getvalue())
+
+    def test_cli_init_uses_the_current_directory_and_rejects_other_entries(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'other').mkdir()
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                code = main(['init', '--workspace', str(root)])
+            self.assertEqual((code, stdout.getvalue()), (1, ''))
+            self.assertIn('other entries: other', stderr.getvalue())
+            self.assertFalse((root / 'qecgraph.toml').exists())
+            self.assertFalse((root / '.qecgraph').exists())
+
+        with tempfile.TemporaryDirectory() as directory:
+            parent, child = Path(directory), Path(directory) / 'child'
+            child.mkdir()
+            Workspace(parent).init(no_ingest=True)
+            with patch('qecgraph.cli.commands.workspace.Path.cwd', return_value=child):
+                stdout, stderr = io.StringIO(), io.StringIO()
+                with redirect_stdout(stdout), redirect_stderr(stderr):
+                    code = main(['init', '--json'])
+            self.assertEqual((code, stderr.getvalue()), (0, ''))
+            self.assertEqual(json.loads(stdout.getvalue())['status'], 'initialized')
+            self.assertTrue((child / 'qecgraph.toml').is_file())
+            self.assertTrue((parent / 'qecgraph.toml').is_file())
+
     def test_partial_batch_dedup_and_rebuild_from_full_inventory(self):
         (self.inbox / 'good.zip').write_bytes(TEX)
         (self.inbox / 'broken').write_bytes(b'PK\x03\x04broken')
