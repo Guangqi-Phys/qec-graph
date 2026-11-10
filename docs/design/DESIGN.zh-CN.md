@@ -108,8 +108,8 @@ release，绝不在会话中途读取移动的 `CURRENT`。
 - 运行时依赖 `pylatexenc==2.10` 和 `jsonschema==4.26.0`。
 - 安装：GitHub Releases 的单文件可执行程序、本地 wheel/sdist，或从 checkout
   执行 `pip install -e .`。
-- research Compose profile 和 macOS 只读 MCP 隔离 profile 已在本地验证；见
-  `validation/README.md`。Linux profile 使用替代的本地 Ubuntu base，因为默认
+- research Compose profile 和 macOS 只读 MCP 隔离 profile 是发布检查；用
+  `validation/README.md` 中的命令重新运行。Linux profile 使用替代的本地 Ubuntu base，因为默认
   Docker Hub 查询超时。没有新验证时，不要声称通用 Docker Hub 构建或 Windows 支持。
 - 包版本与 graph/record schema、Lean toolchain 独立。`qec-graph --version` 是
   已安装包版本的权威来源。
@@ -129,7 +129,7 @@ flowchart TB
 |---|---|---|
 | 入口 | `qecgraph/cli`、`qecgraph/mcp/server.py`、`qecgraph/source/splitter.py` | 可导入应用模块；包导入不得加载 CLI |
 | 应用 | `store.py`、`workspace.py`、`workspace_*.py`、`corpus.py`、`registry.py`、`review.py`、`query.py`、`domain/*` | 拥有事务和策略；不得导入开发层 |
-| 内核 | `core/graph.py`、`core/transactions.py`、`core/coordinates.py`、`source/*`、`validators/*` | 纯逻辑或本地副作用；不得导入 tests/tools/legacy/validation |
+| 内核 | `core/graph.py`、`core/transactions.py`、`core/coordinates.py`、`source/*`、`validators/*` | 纯逻辑或本地副作用；不得导入 tests/tools/validation |
 | 输出 | `render/human.py`、`domain/status.py`、`domain/software.py`、`mcp/*` | 从固定 release 渲染/读取；不得通过 `human/` 写回 |
 | 延期 | `lean/*` | 仅实验；数据库、查询或 MCP 读取绝不依赖 |
 
@@ -483,7 +483,7 @@ Python、CLI 和 MCP 共享。MCP protocol errors 和 business-query errors 保�
 > [!WARNING]
 > **Lean 在 0.5.x 中延期。** 它不是受支持的数据库、查询或 MCP 流程的一部分。
 > `lean` CLI 组、`qecgraph/lean/`、`lean/` 项目和
-> `validation/lean-experimental` fixtures 只作为实验性回归材料保留。它们不是
+> `tests/fixtures/lean/` 只作为实验性回归材料保留。它们不是
 > 验证声明，不得被呈现为已完成的产品能力。
 
 **当前状态：** 延期。此前的 Lean 实验回答了一些工程问题（toolchain pinning、
@@ -496,7 +496,7 @@ export shape、axiom visibility），但它们不是受支持的语义契约。�
 |---|---|
 | `qecgraph/lean/core.py`、`qecgraph/lean/integration.py`、`qecgraph/cli/commands/lean.py` | 保留实验代码，使历史回归仍可测试；不在支持契约内 |
 | `lean/` 项目和 `lean/axiom-policy.json` | 固定实验 fixture；普通 Python 环境不安装 toolchain |
-| `validation/lean-experimental/` 和 Lean test fixtures | 历史/实验证据；不是当前验证声明 |
+| `tests/fixtures/lean/` | 记录下来的实验性 Lean 产物；不是当前验证声明 |
 | Query/MCP 路径 | 不导入、不执行、不要求 Lean；数据库构建和 MCP 不受影响 |
 
 ### 明确不声称什么
@@ -603,7 +603,7 @@ build evidence 或 semantic equivalence。
 
 ## 14. 验证和变更规则
 
-- 测试套件和 `tools/reproduce*.py` 是可执行检查；`validation/README.md` 索引记录运行及其源码修订。
+- 测试套件和 `tools/reproduce*.py` 是可执行检查；`validation/README.md` 列出当前检查。
 - `python -m unittest discover -s tests -v`、`python tools/reproduce.py --out build/reproduce` 和 CLI/MCP 检查是标准本地门禁。
 - CI 只运行 ruff、mypy、advisory pyright 和 unit 测试层。integration/contract 测试、覆盖率、distribution、installed-wheel、Docker 和隔离检查是本地/手动检查。
 - 任何 identity、source coordinates、evidence semantics、review binding、publication order 或 MCP scope 变化都要求新 invariant test，并在兼容性受影响时写迁移说明。

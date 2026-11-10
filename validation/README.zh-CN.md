@@ -1,57 +1,26 @@
 # 验证证据
 
-> **状态：证据索引。** 报告描述针对特定源码修订的运行；它们不能替代当前设计或
-> 新的测试运行。
+> **状态：当前（0.5.x）。** 这里是可执行检查的索引，不是历史运行归档。
 
 > **中文** · [English](README.md)
 
-> [!NOTE]
-> Lean 在 0.5.x 中**延期/实验性**。`validation/lean-experimental/` 下的内容只是
-> 回归证据，不是受支持的验证结论。数据库、查询和 MCP 路径不调用 Lean。
+仓库不再携带历史运行产物。早期 release 的证据保留在 Git history；本目录只保留
+当前索引，避免把过期报告误当成对当前代码的结论。
 
-- [验证矩阵](index.json) 以机器可读形式列出领域/生命周期/路径。
+## 当前检查
 
-## 如何使用这棵树
-
-- **最近一次记录的 release 证据**在 `audit/0.4.0rc1/` 和 `workspace-0.4.0rc1/`；0.5.0 证据只在其发布检查运行后记录。
-- **旧阶段**按所验证的子系统分组：baseline、corpus、review、incremental 和 MCP。
-- **Lean 实验**隔离在 `lean-experimental/`，只用于保持历史回归测试有意义。
-- **`legacy-report-0.3.0.md`** 是旧的阶段式报告，仅保留来源；其链接只作历史上下文。
-- **`archive.sha256`** 是已删除批量证据的清单，保留用于审计；字节可从 Git history 取。
-
-## 已记录的 0.4.0rc1 证据
-
-| 领域 | 证据 |
+| 检查 | 命令 |
 |---|---|
-| 测试/覆盖率日志 | [unit-tests.log](audit/0.4.0rc1/unit-tests.log) |
-| 审计批次 | [batch-3](audit/0.4.0rc1/batch-3.json)、[batch-4](audit/0.4.0rc1/batch-4.json)、[batch-5](audit/0.4.0rc1/batch-5.json)、[batch-6](audit/0.4.0rc1/batch-6.json) |
-| 分发包检查 | [summary.json](audit/0.4.0rc1/summary.json) |
-| Linux MCP 隔离 | [linux-isolation.json](audit/0.4.0rc1/linux-isolation.json) |
-| macOS MCP 隔离 | [macos-isolation.json](audit/0.4.0rc1/macos-isolation.json) |
-| Obsidian 阅读视图 | [obsidian.json](audit/0.4.0rc1/obsidian.json)、[截图](audit/0.4.0rc1/obsidian-theorem.png) |
-| 固定 arXiv corpus | [golden-arxiv.json](audit/0.4.0rc1/golden-arxiv.json) |
-| 性能基线 | [benchmark.json](audit/0.4.0rc1/benchmark.json) |
-| 文档/架构检查 | [docs-architecture.json](audit/0.4.0rc1/docs-architecture.json)：237 项测试、markdownlint 0、构建/元数据通过 |
-| 工作区验收 | [report.md](workspace-0.4.0rc1/report.md)、[installed.json](workspace-0.4.0rc1/installed.json)、[distributions.json](workspace-0.4.0rc1/distributions.json) |
+| 单元、集成和契约测试 | `python -m unittest discover -s tests` |
+| 端到端抽取和查询复现 | `python tools/reproduce.py --out build/reproduce` |
+| Workspace、MCP 和隔离检查 | `python tools/reproduce_workspace.py` 和 `python tools/reproduce_mcp.py` |
+| 发行分发包 | `python -m build` 后运行 `python tools/check_distribution.py dist/` |
+| 发行二进制 | `Standalone Release` GitHub workflow |
 
-## 功能证据
+检查只对实际运行它的源码修订和环境构成证据。测试通过不代表论文定理为真、
+距离界已被数学验证，或 Lean 声明已语义匹配。
 
-| 目录 | 覆盖内容 |
-|---|---|
-| [`baseline-0.3.0/`](baseline-0.3.0/) | 原始原型安装/复现基线 |
-| [`corpus/`](corpus/) | 多文档 registry 导入和迁移 |
-| [`review/`](review/) | 类型化记录验证、审核决定和 apply |
-| [`incremental/`](incremental/) | 全量/增量等价与恢复 |
-| [`mcp/`](mcp/) | 只读 stdio 客户端会话 |
-| [`lean-experimental/`](lean-experimental/) | 不受支持的 Lean export/mapping/trust 实验 |
-| [`workspace-0.4.0rc1/`](workspace-0.4.0rc1/) | 当前工作区验收和安装回放 |
+## 添加证据
 
-## 历史 release
-
-| 目录 | 覆盖内容 |
-|---|---|
-| [`release-0.3.0/`](release-0.3.0/) | 固定 commit 的 0.3.0 回放和安装检查 |
-| [`handoff-0.3.0/`](handoff-0.3.0/) | 初始交接证据 |
-| [`legacy-report-0.3.0.md`](legacy-report-0.3.0.md) | 阶段式历史报告 |
-
-历史报告及其链接可能描述已被替代的路径。当前行为见[文档索引](../docs/README.zh-CN.md)。
+把新日志或报告附在产生它的 release/CI 运行上；或者仅在该版本仍是当前版本时
+新增版本化目录。不要把旧报告复制到新版本，也不要修改已记录的结果来匹配新代码。

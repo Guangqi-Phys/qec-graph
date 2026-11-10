@@ -45,16 +45,8 @@ Installation needs the relevant package sources. Record the actual Python,
 SQLite, OS and installed dependencies; do not assume the example environment is
 already installed. Runtime dependencies are pinned to `pylatexenc==2.10` and
 `jsonschema==4.26.0`; upgrade the parser in a separate commit and inspect the
-semantic output diff. The legacy knowledge sample can be verified independently;
-the call below also recomputes a finite HGP instance and does not invoke Lean:
-
-```bash
-python legacy/knowledge_starter/tools/qec_kb.py verify
-```
-
-Use `verify --json-schema` to opt into schema checks for the old sample. The
-references, assets and computation checks in a normal verify run must not be
-reported as "full JSON Schema validation was performed".
+semantic output diff. The test suite and reproduction tools are the executable
+checks; they do not require a separate knowledge sample.
 
 ## 2. Daily ingest and queries
 
@@ -70,10 +62,9 @@ qecgraph context thm:hgp-length --store build/demo
 ```
 
 Use the `qecgraph split` workflow described in the [splitter reference](../user/splitter.md)
-when you only need source blocks. To load the legacy knowledge sample, add
-`--catalog legacy/knowledge_starter/records` to ingest; it imports JSON records
-only. The matrices, validation scripts and reports referenced by those records
-remain in the complete `legacy/knowledge_starter/` tree and must be preserved.
+when you only need source blocks. A standalone catalog can be attached with
+`--catalog <records-dir>`; it imports JSON records only and does not copy their
+external assets.
 
 For every run, record the input path, command, exit code, snapshot ID and
 diagnostics. Exit code 2 means extraction is partial; even if a snapshot was
@@ -185,7 +176,6 @@ the exact snapshot used for a rollback; "latest" is not a reproducible reference
 | Matrices, certificates, manual corrections and expensive results | Cannot be recreated automatically from a Git remote or summary |
 | Run configuration, raw statistics, execution environment and evidence | Re-check estimators and applicable inputs |
 | Published snapshots and reports, or enough complete rebuild inputs | Restore a referenced query state |
-| Complete `legacy/knowledge_starter/` | Catalog import does not copy its referenced assets |
 
 Backup is not Git push; untracked large files and container volumes need a
 separate inventory. Save human changes daily, save results immediately after an
@@ -204,11 +194,9 @@ Run a recovery drill in this order:
    integrity.
 4. Re-ingest archived inputs with the corresponding tool versions in another
    directory and compare nodes, source locators and the expected snapshot.
-5. Re-run key structured queries and bounded context; for the legacy sample run
-   `python legacy/knowledge_starter/tools/qec_kb.py verify`.
-6. Lean is deferred; do not include it in current recovery acceptance. Read
+5. Lean is deferred; do not include it in current recovery acceptance. Read
    experimental records only as history and do not claim verification.
-7. Record recovery duration, missing assets, differences and fixes; switch the
+6. Record recovery duration, missing assets, differences and fixes; switch the
    production read entry only after they pass.
 
 If a recovery test fails, first fix the backup or the procedure; never mark
@@ -255,4 +243,4 @@ the official SQLite guidance for local and concurrency boundaries.[3]
 2. [Docker storage](https://docs.docker.com/engine/storage/)
 3. [When to use SQLite](https://www.sqlite.org/whentouse.html)
 4. Actual implementation in this package: `qecgraph/store.py`, `qecgraph/cli/`, `tests/`.
-5. Legacy sample and evidence: `legacy/knowledge_starter/tools/qec_kb.py`, `legacy/knowledge_starter/docs/VALIDATION.md`.
+5. Validation index: `validation/README.md`.

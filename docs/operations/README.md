@@ -19,7 +19,7 @@
 
 | Page | Surface | Type | Use when |
 |---|---|---|---|
-| [Legacy store and corpus maintenance](maintenance.md) | Legacy store/corpus | How-to | Ingest, validate or recover a single-paper store or corpus |
+| [Store and corpus maintenance](maintenance.md) | Store/corpus | How-to | Ingest, validate or recover a single-paper store or corpus |
 | [Corpus](corpus.md) | Corpus | Reference | Register works/versions, map sources, run fixed-revision queries |
 | [Review](review.md) | Corpus | How-to / reference | Validate typed records, bind evidence, apply reviewed proposals |
 | [Workspace guide](../user/workspace.md) | Workspace | How-to | Current daily workflow (linked here for convenience) |
@@ -31,7 +31,6 @@ Validation reports are evidence of their recorded inputs, commands and commits.
 Check the report's scope before applying it to a newer build.
 
 - [Validation index](../../validation/README.md)
-- [0.4.0rc1 workspace acceptance report](../../validation/workspace-0.4.0rc1/report.md)
 - [Pinned arXiv fixture instructions](../../tests/golden/README.md)
 
 ## Benchmarks
@@ -40,4 +39,4 @@ Run `python tools/bench.py --out build/benchmark.json` for the generated
 incremental workload. Pass `--archive-dir` to measure the six pinned arXiv
 inputs. The report records raw samples, medians, runtime versions and query
 settings; “fresh” means a new application store under ordinary OS caches.
-See the [0.4.0rc1 measured baseline](../../validation/audit/0.4.0rc1/benchmark.json).
+The generated benchmark report records the measured baseline for that run.

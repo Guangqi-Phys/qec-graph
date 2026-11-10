@@ -9,9 +9,8 @@
 DataGraph views remain available; Lean is a deferred experimental capability,
 see [the system design](../design/DESIGN.md#10-lean-deferred-not-supported).
 This guide describes the supported workflow; [the system design](../design/DESIGN.md)
-defines the contract. The
-[0.4.0rc1 workspace acceptance report](../../validation/workspace-0.4.0rc1/report.md)
-records the tested baseline and remaining gaps.
+defines the contract. The [validation index](../../validation/README.md) lists the
+current executable checks; historical run artifacts remain in Git history.
 
 > [!WARNING]
 > `human/notes/` is private. Generators, queries and MCP never read it; do not
@@ -142,9 +141,8 @@ python tools/mcp_isolated_macos.py --python /path/to/installed-venv/bin/python -
 The container configuration uses `compose.mcp-isolated.yaml`; set
 `QEC_MACHINE_DIR`, `QEC_MCP_UID` and `QEC_MCP_GID` and mount only the machine
 directory read-only. The Linux profile was verified with an alternate local
-Ubuntu base; see
-[the 0.4.0rc1 isolation record](../../validation/audit/0.4.0rc1/linux-isolation.json).
-That is not a claim of a generic Docker Hub build. Do not treat MCP roots or a
+Ubuntu base; the [validation index](../../validation/README.md) lists the current
+isolation check commands. That is not a claim of a generic Docker Hub build. Do not treat MCP roots or a
 plain `--workspace` argument as operating-system isolation.
 
 ## Import an existing corpus

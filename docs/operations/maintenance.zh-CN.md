@@ -41,14 +41,7 @@ python -m unittest discover -s tests -v
 
 安装步骤需要相应包源可用。记录实际 Python、SQLite、操作系统和安装依赖，不能把示例环境假设为已安装。
 运行依赖固定 `pylatexenc==2.10` 和 `jsonschema==4.26.0`；升级解析器应单独提交并检查语义输出差异。
-旧领域样例可以独立验证；以下调用也重新计算有限 HGP 实例，不调用 Lean：
-
-```bash
-python legacy/knowledge_starter/tools/qec_kb.py verify
-```
-
-使用 `verify --json-schema` 可显式开启旧样例的 Schema 检查。
-普通 verify 的引用、资产和计算检查不应被报告为“已执行完整 JSON Schema 验证”。
+测试套件和复现工具就是可执行检查，不需要单独的 knowledge 样例。
 
 ## 2. 日常 ingest 与查询
 
@@ -63,8 +56,7 @@ qecgraph context thm:hgp-length --store build/demo
 ```
 
 只需要原文切块时使用 [切割器参考](../user/splitter.zh-CN.md) 的 `qecgraph split` 流程。
-接入旧领域样例时可给 ingest 增加 `--catalog legacy/knowledge_starter/records`；它只导入 JSON 记录。
-旧记录引用的矩阵、验证脚本与报告依旧位于完整 `legacy/knowledge_starter/` 中，必须一起保存。
+可用 `--catalog <records-dir>` 接入独立 catalog；它只导入 JSON 记录，不复制外部资产。
 每次运行记录输入路径、命令、退出码、snapshot ID 和 diagnostics。
 退出码 2 表示抽取为 partial；即使已经产生快照，也不能对外宣称完整抽取。
 `validate` 检查哈希、定位、边端点与 SQLite 一致性，不检验定理、矩阵语义或 Lean 证明。
@@ -140,7 +132,6 @@ pointer 包含 `format: qecgraph.current`、目标 `snapshot_id` 和 `path: snap
 | 矩阵、证书、人工校正和高成本结果 | 无法由 Git 远端或摘要自动恢复 |
 | run 的配置、原始统计、执行环境和证据 | 能复核估计量和适用输入 |
 | 已发布快照及其报告，或足够的完整重建输入 | 恢复已引用的查询状态 |
-| 完整 `legacy/knowledge_starter/` | catalog 导入没有复制它的引用资产 |
 
 备份不等于 Git push；未追踪的大文件和容器 volume 必须纳入独立清单。
 建议每日保存人工变更、重要运行结束后立即保存成果，并保留至少一份独立故障域的备份。
@@ -153,9 +144,8 @@ pointer 包含 `format: qecgraph.current`、目标 `snapshot_id` 和 `path: snap
 2. 核对原始资产字节哈希，并确认来源版本、sidecar 和 catalog 相对路径可以解析。
 3. 运行 `qecgraph validate --store <恢复的store路径>`，检查诊断和完整性。
 4. 使用归档输入与对应工具版本在另一目录重新 ingest，核对节点、来源定位和预期快照。
-5. 重跑关键结构化查询及有界上下文；对本包旧例运行 `python legacy/knowledge_starter/tools/qec_kb.py verify`。
-6. Lean 为延期能力；不要把它纳入当前恢复验收。实验记录只按历史读取，不宣称已验证。
-7. 记录恢复耗时、缺失资产、差异与修复动作，通过后再切换正式读取入口。
+5. Lean 为延期能力；不要把它纳入当前恢复验收。实验记录只按历史读取，不宣称已验证。
+6. 记录恢复耗时、缺失资产、差异与修复动作，通过后再切换正式读取入口。
 
 恢复测试失败时先补齐备份或修复流程，不能仅因为备份任务退出成功就标记“可恢复”。
 
@@ -190,4 +180,4 @@ Docker 可写层随容器销毁而消失，volume 生命周期独立；永久成
 2. [Docker 存储](https://docs.docker.com/engine/storage/)
 3. [SQLite 适用场景](https://www.sqlite.org/whentouse.html)
 4. 本包实际实现：`qecgraph/store.py`、`qecgraph/cli/`、`tests/`。
-5. 旧样例运行与证据：`legacy/knowledge_starter/tools/qec_kb.py`、`legacy/knowledge_starter/docs/VALIDATION.md`。
+5. 验证索引：`validation/README.md`。

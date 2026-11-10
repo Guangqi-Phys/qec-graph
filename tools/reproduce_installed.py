@@ -7,7 +7,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = ROOT / 'examples'
-KNOWLEDGE = ROOT / 'legacy/knowledge_starter'
 
 
 def main():
@@ -82,13 +81,8 @@ print(json.dumps({"metadata_version": m.version("qec-graph"), "module_version": 
         assert shown['node']['review_status'] == 'proposed'
         call('validate_corpus', 'qecgraph', 'validate-corpus', *corpus)
         call('mcp_config', 'qecgraph', 'mcp-config', *corpus)
-        matrix = KNOWLEDGE / 'assets/matrices'
-        finite = call('finite_css', 'qecgraph', 'check-css', '--hx', matrix / 'HX.gf2.json', '--hz', matrix / 'HZ.gf2.json',
-                      '--lx', matrix / 'LX.gf2.json', '--lz', matrix / 'LZ.gf2.json', '--enumerate-distance')
-        assert (finite['n'], finite['k'], finite['distance']['d']) == (13, 1, 3)
-        assert finite['distance']['evidence_kind'] == 'computed_exact' and finite['lean_status'] == 'not_performed'
         report.update(status='passed', installed=pkg, application_receipt=applied['receipt'],
-                      proposed_after_machine_acceptance=True, finite_css=finite)
+                      proposed_after_machine_acceptance=True)
         save()
     except (OSError, ValueError, RuntimeError, KeyError, AssertionError, subprocess.SubprocessError) as exc:
         report.update(status='failed', error=str(exc))

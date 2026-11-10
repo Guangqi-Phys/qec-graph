@@ -98,7 +98,7 @@ New work should target the workspace surface. Store and corpus remain available 
 - Python 3.11+ on a POSIX filesystem; SQLite with FTS5.
 - `pylatexenc==2.10` and `jsonschema==4.26.0` are runtime dependencies.
 - Installation: standalone executable from GitHub Releases, local wheel/sdist, or `pip install -e .` from a checkout.
-- The research Compose profile and the macOS read-only MCP isolation profile are verified locally; see `validation/README.md`. The Linux profile uses an alternate local Ubuntu base because the default Docker Hub lookup timed out. Do not claim a generic Docker Hub build or Windows support without a new verification.
+- The research Compose profile and the macOS read-only MCP isolation profile are release checks; re-run them with the commands in `validation/README.md`. The Linux profile uses an alternate local Ubuntu base because the default Docker Hub lookup timed out. Do not claim a generic Docker Hub build or Windows support without a new verification.
 - The package is versioned independently from graph/record schemas and the Lean toolchain. `qec-graph --version` is authoritative for the installed package version.
 
 ### 2.4 Module boundaries
@@ -116,7 +116,7 @@ flowchart TB
 |---|---|---|
 | Entry points | `qecgraph/cli`, `qecgraph/mcp/server.py`, `qecgraph/source/splitter.py` | May import application modules; package import must not load the CLI |
 | Application | `store.py`, `workspace.py`, `workspace_*.py`, `corpus.py`, `registry.py`, `review.py`, `query.py`, `domain/*` | Own transactions and policy; do not import development layers |
-| Kernel | `core/graph.py`, `core/transactions.py`, `core/coordinates.py`, `source/*`, `validators/*` | Pure or local side effects; no tests/tools/legacy/validation imports |
+| Kernel | `core/graph.py`, `core/transactions.py`, `core/coordinates.py`, `source/*`, `validators/*` | Pure or local side effects; no tests/tools/validation imports |
 | Output | `render/human.py`, `domain/status.py`, `domain/software.py`, `mcp/*` | Render/read from a pinned release; never write back through `human/` |
 | Deferred | `lean/*` | Experimental only; never required by database, query or MCP reads |
 
@@ -426,7 +426,7 @@ The typed JSON envelope (`ok/data` or `error/code/message/details/scope`) is sha
 > [!WARNING]
 > **Lean is deferred in 0.5.x.** It is not part of the supported database,
 > query, or MCP workflow. The `lean` CLI group, `qecgraph/lean/`, `lean/`
-> project, and `validation/lean-experimental` fixtures remain only as experimental regression
+> project, and `tests/fixtures/lean/` remain only as experimental regression
 > material. They are not a verification claim and must not be presented as a
 > finished product capability.
 
@@ -441,7 +441,7 @@ from the supported release scope until a new design is written and approved.
 |---|---|
 | `qecgraph/lean/core.py`, `qecgraph/lean/integration.py`, `qecgraph/cli/commands/lean.py` | Experimental code retained so historical regressions remain testable; not covered by the support contract |
 | `lean/` project and `lean/axiom-policy.json` | Pinned experimental fixture; no toolchain is installed in the normal Python environment |
-| `validation/lean-experimental/` and Lean test fixtures | Historical/experimental evidence; not a current verification claim |
+| `tests/fixtures/lean/` | Recorded experimental Lean artifacts; not a current verification claim |
 | Query/MCP path | Does not import, execute, or require Lean; database construction and MCP are unaffected |
 
 ### What is explicitly not claimed
@@ -544,7 +544,7 @@ These are limits of the current release, not permission to fill gaps with plausi
 
 ## 14. Verification and change rules
 
-- The test suite and `tools/reproduce*.py` are the executable checks; `validation/README.md` indexes recorded runs and their source revisions.
+- The test suite and `tools/reproduce*.py` are the executable checks; `validation/README.md` lists the current checks.
 - `python -m unittest discover -s tests -v`, `python tools/reproduce.py --out build/reproduce`, and the CLI/MCP checks are the standard local gates.
 - CI runs ruff, mypy, advisory pyright and the unit-test layer only. Integration/contract tests, coverage, distribution, installed-wheel, Docker and isolation checks are local/manual checks.
 - Any change to identity, source coordinates, evidence semantics, review binding, publication order, or MCP scope requires a new invariant test and a migration note when compatibility is affected.

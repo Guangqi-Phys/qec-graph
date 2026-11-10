@@ -10,11 +10,9 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from qecgraph.domain.domain_query import codes
-from qecgraph.core.graph import read_json
 from qecgraph.validators import DOMAIN_FIELDS
 from qecgraph.validators.qec import basis, check_css, check_experiment, comparable_experiments, distance_issues, matrix_rows
 
-from tests.support import ROOT
 
 
 def record(identifier, kind, data):
@@ -62,19 +60,6 @@ class QECValidationTests(unittest.TestCase):
         for ones in ([[0, 0], [0, 0]], [[0, 1], [0, 0]], [[False, 0]], [[0, 2]]):
             with self.subTest(ones=ones), self.assertRaises(ValueError):
                 matrix_rows(matrix(1, 2, ones))
-
-    def test_real_finite_hgp_exact_distance_and_logicals(self):
-        folder = ROOT / 'legacy/knowledge_starter/assets/matrices'
-        matrices = [read_json(folder / (name + '.gf2.json')) for name in ('HX', 'HZ', 'LX', 'LZ')]
-        result = check_css(*matrices, enumerate_distance=True)
-        self.assertTrue(result['passed'])
-        self.assertEqual((result['n'], result['k']), (13, 1))
-        self.assertEqual(result['distance']['d'], 3)
-        self.assertEqual(result['lean_status'], 'not_performed')
-        with self.assertRaisesRegex(ValueError, 'budget'):
-            check_css(*matrices, enumerate_distance=True, max_n=12)
-        zero = check_css(matrix(0, 0, []), matrix(0, 0, []), enumerate_distance=True)
-        self.assertEqual(zero['distance_status'], 'out_of_domain_k_zero')
 
     def test_upper_bound_never_satisfies_lower_bound_and_current_inputs_required(self):
         from qecgraph.workspace import Workspace

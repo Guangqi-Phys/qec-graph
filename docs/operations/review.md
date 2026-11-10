@@ -23,9 +23,7 @@ Records use the single current `qecgraph.record` format. The authoritative schem
 ships with the Python package under
 [`qecgraph/validators/schemas/`](../../qecgraph/validators/schemas); use that
 packaged path directly. Unknown schemas are rejected and are never reinterpreted
-with the current fields. The optional `legacy/knowledge_starter` importer is a
-one-off development adapter for the historical sample, not a runtime
-compatibility layer. New writes always produce the current format.
+with the current fields. New writes always produce the current format.
 
 `qecgraph.record` also contains an experimental `lean_declaration` kind and
 relation fields; Lean is deferred in 0.5.x, is not part of the supported workflow
@@ -64,7 +62,7 @@ rules.
 ## Math plugins and hard conditions
 
 ```bash
-qecgraph check-css --hx legacy/knowledge_starter/assets/matrices/HX.gf2.json --hz legacy/knowledge_starter/assets/matrices/HZ.gf2.json --lx legacy/knowledge_starter/assets/matrices/LX.gf2.json --lz legacy/knowledge_starter/assets/matrices/LZ.gf2.json --enumerate-distance
+qecgraph check-css --hx build/demo/HX.json --hz build/demo/HZ.json --lx build/demo/LX.json --lz build/demo/LZ.json --enumerate-distance
 qecgraph codes --corpus build/corpus --n-min 13 --n-max 13 --distance-at-least 3 --metric-id definition:css-distance
 ```
 
@@ -74,9 +72,8 @@ bound explicitly. The CSS plugin supports only the binary CSS convention with +1
 explicit shape, coordinates, GF(2) rank, commutation and logical pairing. Finite
 distance enumeration must be requested explicitly, defaults to n≤20 and has an
 absolute cap of 22; k=0 is outside the domain and never fabricates a distance.
-The ordinary HGP example actually yields n=13, k=1, dX=dZ=3
-(validation/review/css-check.json) and remains Python computed_exact. Non-
-commuting matrices never receive a valid CSS result. This interface does not run
+A successful run remains Python computed_exact; non-commuting matrices never
+receive a valid CSS result. This interface does not run
 Lean and does not write review records.
 
 Hard filtering first matches an explicit metric_id and sector

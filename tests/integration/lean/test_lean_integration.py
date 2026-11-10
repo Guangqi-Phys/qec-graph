@@ -77,7 +77,7 @@ class LeanIntegrationTests(unittest.TestCase):
 
     def test_build_only_and_altered_inputs_cannot_be_imported(self):
         with self.assertRaisesRegex(ValueError, 'actual validated build'):
-            inspect_build(ROOT / 'validation/lean-experimental/fixed-build/report.json')
+            inspect_build(ROOT / 'tests/fixtures/lean/fixed-build/report.json')
         altered = self.root / 'altered'
         shutil.copytree(ARTIFACTS, altered)
         (altered / 'inputs/QEC/Binary.lean').write_text('-- altered', encoding='utf-8')

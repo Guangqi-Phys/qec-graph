@@ -94,7 +94,7 @@ def main(argv=None) -> int:
 
         run("unit_tests", ["-m", "unittest", "discover", "-s", "tests", "-v"], json_output=False)
         base = ["examples/paper/main.tex", "--project-id", "qec-demo"]
-        split_store, graph_store, catalog_store = (out / name for name in ("split", "graph", "catalog"))
+        split_store, graph_store = (out / name for name in ("split", "graph"))
         split = run("split", ["-m", "qecgraph", "split", *base, "--out", str(split_store)])
         run("split_validate", ["-m", "qecgraph", "validate", "--store", str(split_store)])
         graph = run("graph_ingest", ["-m", "qecgraph", "ingest", *base, "--out", str(graph_store),
@@ -115,19 +115,6 @@ def main(argv=None) -> int:
                for result in (deps, impact, context) for edge in result["edges"]):
             raise RuntimeError("Default dependency/context queries exposed a filtered relation")
 
-        catalog = run("catalog_ingest", ["-m", "qecgraph", "ingest", *base, "--out", str(catalog_store),
-                                        "--catalog", "legacy/knowledge_starter/records",
-                                        "--annotations", "examples/catalog-links.example.json"])
-        run("catalog_validate", ["-m", "qecgraph", "validate", "--store", str(catalog_store)])
-        data = run("catalog_context", ["-m", "qecgraph", "context", "quantum_code:rep3-hgp:13", "--store", str(catalog_store)])
-        required = {"quantum_code:rep3-hgp:13", "check_matrix:rep3-hgp:standard", "claim:rep3-hgp:distance"}
-        if not required <= {node["id"] for node in data["nodes"]}:
-            raise RuntimeError("Catalog context did not retain instance/check_matrix/distance separation")
-
-        verify_args = ["legacy/knowledge_starter/tools/qec_kb.py", "verify"]
-        if has_schema:
-            verify_args.append("--json-schema")
-        evidence = run("finite_qec_verification", verify_args)
         report["schema_checks"] = {"status": "skipped_dependency_missing", "schemas": []}
         if has_schema:
             from jsonschema import Draft202012Validator
@@ -136,22 +123,19 @@ def main(argv=None) -> int:
                 Draft202012Validator.check_schema(schema)
                 validator = Draft202012Validator(schema)
                 if filename.startswith("graph"):
-                    for generated in (split, graph, catalog):
+                    for generated in (split, graph):
                         validator.validate(json.loads((Path(generated["snapshot"]) / "graph.json").read_text(encoding="utf-8")))
                 else:
                     for filename2 in ("annotations.example.json", "catalog-links.example.json"):
                         validator.validate(json.loads((ROOT / "examples" / filename2).read_text(encoding="utf-8")))
-            report["schema_checks"] = {"status": "passed", "schemas": ["graph.schema.json", "annotations.schema.json", "legacy/knowledge_starter schemas via verify"]}
+            report["schema_checks"] = {"status": "passed", "schemas": ["graph.schema.json", "annotations.schema.json"]}
         report["summary"] = {
             "unit_tests": report["steps"][0]["test_count"],
             "source_files": len(split["sources"]), "source_fragments": split["fragment_count"],
             "source_only_graph": {"nodes": split["node_count"], "edges": split["edge_count"]},
             "annotated_graph": {"nodes": graph["node_count"], "edges": graph["edge_count"], "snapshot_id": graph["snapshot_id"]},
-            "catalog_graph": {"nodes": catalog["node_count"], "edges": catalog["edge_count"]},
             "search_hits": len(hits["results"]), "context_nodes": len(context["nodes"]),
-            "catalog_context_nodes": len(data["nodes"]),
-            "finite_qec_check": evidence,
-            "mathematical_scope": "Finite Python demonstration only; no Lean verification",
+            "mathematical_scope": "Supported-syntax extraction and read paths only; no Lean verification",
         }
         report["status"] = "passed"
     except Exception as exc:

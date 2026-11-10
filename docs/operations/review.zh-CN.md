@@ -21,9 +21,7 @@
 
 记录使用唯一的当前 `qecgraph.record` 格式。权威 Schema 随 Python 包发布于
 [`qecgraph/validators/schemas/`](../../qecgraph/validators/schemas)，直接使用打包路径。
-未知 Schema 被拒绝，绝不用当前字段重新解释。可选的
-`legacy/knowledge_starter` 导入器只是历史样例的一次性开发适配器，不是运行时兼容层；
-新写入始终产生当前格式。
+未知 Schema 被拒绝，绝不用当前字段重新解释。新写入始终产生当前格式。
 
 `qecgraph.record` 还包含实验性的 `lean_declaration` kind 与关系字段；Lean 在 0.5.x
 中延期，不属于受支持工作流，也不是验证结论。见
@@ -53,7 +51,7 @@ Corpus 验证还检查悬空引用、修订绑定、受管理资产字节和来�
 ## 数学插件和硬条件
 
 ```bash
-qecgraph check-css --hx legacy/knowledge_starter/assets/matrices/HX.gf2.json --hz legacy/knowledge_starter/assets/matrices/HZ.gf2.json --lx legacy/knowledge_starter/assets/matrices/LX.gf2.json --lz legacy/knowledge_starter/assets/matrices/LZ.gf2.json --enumerate-distance
+qecgraph check-css --hx build/demo/HX.json --hz build/demo/HZ.json --lx build/demo/LX.json --lz build/demo/LZ.json --enumerate-distance
 qecgraph codes --corpus build/corpus --n-min 13 --n-max 13 --distance-at-least 3 --metric-id definition:css-distance
 ```
 
@@ -61,7 +59,7 @@ qecgraph codes --corpus build/corpus --n-min 13 --n-max 13 --distance-at-least 3
 `--evidence-policy source_reported --metric-revision REV`。CSS 插件只支持 +1 相位的
 二元 CSS 约定；校验显式形状、坐标、GF(2) 秩、对易及逻辑配对。
 有限距离检查必须显式开启，默认 n≤20，绝对上限 22；k=0 返回定义域外，不补造距离。
-普通 HGP 示例实际得到 n=13、k=1、dX=dZ=3（validation/review/css-check.json），仍是 Python computed_exact。
+成功运行仍是 Python computed_exact。
 非对易矩阵不会获得 CSS 有效结果。此接口不运行 Lean，不写审核记录。
 
 硬筛选先匹配明确 metric_id 和 sector（joint/X/Z），再检查 exact/lower_bound/interval 的已知下界；

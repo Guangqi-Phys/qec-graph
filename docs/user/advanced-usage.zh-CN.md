@@ -181,7 +181,6 @@ vault 的派生页面。[Vault 布局和 MCP 隔离](workspace.zh-CN.md#obsidian
 数据区。从 vault 索引打开 **Release status and legend**，查看固定 release 的
 覆盖范围和各证据状态含义。**Recent changes** 将该 release 与上一次渲染的
 release 比较。第一次渲染建立基线；重新渲染同一 release 时比较仍保留。
-[查看审计记录中生成的定理](../../validation/audit/0.4.0rc1/obsidian-theorem.png)
 
 升级后第一次渲染时，旧生成页面路径变成指向替代页面的链接。已删除实体保留
 归档页以支持已有链接。个人笔记保持原位。需要运行旧渲染器时，从同一 vault

@@ -214,7 +214,6 @@ fixed release's coverage and what each evidence status means.
 **Recent changes** compares that release with the previous rendered release.
 The first render establishes a baseline; rerendering the same release keeps
 the comparison intact.
-[See a generated theorem from the recorded audit](../../validation/audit/0.4.0rc1/obsidian-theorem.png)
 
 On the first render after upgrading, old generated page paths become links
 to their replacements. Removed entities retain an archived page for existing

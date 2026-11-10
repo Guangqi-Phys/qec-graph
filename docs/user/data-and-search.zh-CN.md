@@ -55,7 +55,6 @@ QEC Graph 保存原始来源、从来源抽取的图，以及带版本的研究�
 
 这些记录让你在 `code_ref` 解析后，从论文记法追到具体实例，再检查矩阵和
 距离证据。历史 HGP 示例包含有限枚举检查。
-[有限距离示例](../../legacy/knowledge_starter/records/claim_rep3_hgp_distance.json)
 
 ### 电路、实验和结果
 
