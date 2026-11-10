@@ -72,8 +72,9 @@ reference table.
 
 ## Language and status
 
-Every current page is bilingual: `page.md` is English and `page.zh-CN.md` is
-Simplified Chinese, with matching headings, tables and executable examples.
+Documentation pages under `docs/` are bilingual: `page.md` is English and
+`page.zh-CN.md` is Simplified Chinese, with matching headings, tables and
+executable examples. Root contributor and security policies are English-only.
 Each page declares its status at the top. **Only Current pages describe 0.5.x.**
 
 There are no redirect-only or archive pages. Superseded material lives in Git

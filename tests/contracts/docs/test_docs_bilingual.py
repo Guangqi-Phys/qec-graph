@@ -23,8 +23,6 @@ PAIRS = (
     ('tools/README.md', 'tools/README.zh-CN.md'),
     ('tests/README.md', 'tests/README.zh-CN.md'),
     ('tests/golden/README.md', 'tests/golden/README.zh-CN.md'),
-    ('CONTRIBUTING.md', 'CONTRIBUTING.zh-CN.md'),
-    ('SECURITY.md', 'SECURITY.zh-CN.md'),
 )
 LINK = re.compile(r'\[[^\]\n]+\]\(([^\s)]+)\)')
 

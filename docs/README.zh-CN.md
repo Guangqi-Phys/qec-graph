@@ -60,7 +60,7 @@ flowchart TD
 | [运维](operations/README.zh-CN.md) | 当前 | How-to / reference | 旧 store/corpus 维护、corpus/review 流程和验证入口 |
 | [验证证据](../validation/README.zh-CN.md) | 证据 | Evidence | 已记录的输入、命令、修订和结果；不是设计契约 |
 | [变更日志](../CHANGELOG.md) | 当前 | Reference | 兼容性和行为变化 |
-| [贡献规则](../CONTRIBUTING.zh-CN.md#文档规则) | 当前 | Reference | 文档位置、状态/TOC 规则和 docs 测试 |
+| [贡献规则](../CONTRIBUTING.md#documentation-rules) | 当前 | Reference | 文档位置、状态/TOC 规则和 docs 测试 |
 
 ## 文档类型
 
@@ -70,8 +70,8 @@ flowchart TD
 
 ## 语言和状态
 
-当前页面保持中英双语：每篇英文页都有同名 `.zh-CN.md` 中文页，结构和代码示例
-保持一致，并在页首提供语言切换。每篇页面顶部声明状态；**只有当前状态页面描述
-0.5.x 版本**。
+`docs/` 下的文档页保持中英双语：每篇英文页都有同名 `.zh-CN.md` 中文页，结构和
+代码示例保持一致，并在页首提供语言切换。主目录的贡献和安全政策只保留英文。
+每篇页面顶部声明状态；**只有当前状态页面描述 0.5.x 版本**。
 
 当前文档树没有重定向页或归档页。被替代的内容只保留在 Git history 中。

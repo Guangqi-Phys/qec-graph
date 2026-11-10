@@ -22,8 +22,7 @@ USER_DOCS = ('README.md', 'README.zh-CN.md', *CURRENT_DOCS,
              'docs/operations/README.zh-CN.md', 'docs/operations/maintenance.zh-CN.md',
              'docs/operations/corpus.zh-CN.md', 'docs/operations/review.zh-CN.md',
              'validation/README.md', 'validation/README.zh-CN.md',
-             'CONTRIBUTING.md', 'CONTRIBUTING.zh-CN.md',
-             'SECURITY.md', 'SECURITY.zh-CN.md')
+             'CONTRIBUTING.md', 'SECURITY.md')
 LINK = re.compile(r'\[[^\]\n]+\]\(([^\s)]+)\)')
 INLINE_COMMAND = re.compile(r'`qec-graph ([^`\n]+)`')
 PUBLIC_REDIRECTS = set()

@@ -1,7 +1,5 @@
 # Contributing to QEC Graph
 
-> **English** · [中文](CONTRIBUTING.zh-CN.md)
-
 Use Python 3.11 or later on a POSIX system with SQLite FTS5. From a checkout:
 
 ```sh
@@ -36,11 +34,12 @@ the [changelog](CHANGELOG.md) for compatibility changes, and the
   are recovered from Git history.
 - `docs/design/DESIGN.md` is the only design document. Extend it in the same
   change as the implementation instead of adding a parallel design page.
-- Every current page is bilingual: `page.md` is English and `page.zh-CN.md` is
-  Simplified Chinese. Both start with a one-line status marker, carry a language
-  switch, and keep the same heading levels, table shape and executable code
-  blocks. Pages with more than one `##` section include a table of contents
-  whose anchors match the headings.
+- Every documentation page under `docs/` is bilingual: `page.md` is English and
+  `page.zh-CN.md` is Simplified Chinese. Both start with a one-line status
+  marker, carry a language switch, and keep the same heading levels, table shape
+  and executable code blocks. Pages with more than one `##` section include a
+  table of contents whose anchors match the headings. Root contributor and
+  security policies are English-only.
 - Prefer small tables, GitHub alerts (`> [!NOTE]`, `> [!TIP]`, `> [!WARNING]`)
   and Mermaid diagrams where they clarify a branch or workflow. Do not add
   decorative markup that repeats the prose.

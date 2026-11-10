@@ -37,9 +37,9 @@ class ContainerAndManifestTests(unittest.TestCase):
                 with self.subTest(instruction=instruction, source=source):
                     self.assertTrue((ROOT / source).exists(), f'{source} is copied but missing from the checkout')
 
-    def test_source_distribution_manifest_ships_both_languages(self):
+    def test_source_distribution_manifest_ships_the_chinese_readme(self):
         manifest = (ROOT / 'MANIFEST.in').read_text(encoding='utf-8')
-        for name in ('README.zh-CN.md', 'CONTRIBUTING.zh-CN.md', 'SECURITY.zh-CN.md'):
+        for name in ('README.zh-CN.md',):
             with self.subTest(name=name):
                 self.assertIn(name, manifest)
 
