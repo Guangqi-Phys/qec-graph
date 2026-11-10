@@ -9,7 +9,8 @@
     ".venv/bin/python tools/reproduce.py --out build/reproduce",
     ".venv/bin/python -m build --no-isolation",
     ".venv/bin/python -m twine check --strict dist/*",
-    ".venv/bin/python tools/check_distribution.py dist"
+    ".venv/bin/python tools/check_distribution.py dist",
+    ".venv/bin/python -m coverage report --fail-under=80"
   ],
   "result": {
     "unit_tests": 237,
@@ -17,7 +18,8 @@
     "reproduce": "passed",
     "distribution_build": "passed",
     "twine": "passed",
-    "distribution_metadata": "passed"
+    "distribution_metadata": "passed",
+    "branch_coverage": "80.42%"
   },
   "not_run": [
     "Docker image build",
