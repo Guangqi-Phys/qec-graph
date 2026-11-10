@@ -108,7 +108,7 @@ AI/program approve 只产生 machine_accepted，最终记录保持 draft/propose
 qecgraph apply <proposal_id> --review-id <review_id> --corpus build/review-demo
 ```
 
-apply 在同一写者锁内核对 corpus、整个 registry 基线、review 提案哈希、旧记录内容和实际资产，
+apply 在同一写者锁内核对 corpus、整个 registry 基线、review 提案哈希、当前记录内容和实际资产，
 再写入完整新修订，执行端点／跨记录检查，最后原子发布一个 registry state。
 保守的整个 registry CAS 会拒绝并行的无关改动；需要重新取差异和创建提案，不自动刷新 expected hash。
 缺失目标或类型错误使整个批次失败；历史证据过期保留为可见 warning，不删除或重绑旧证据。

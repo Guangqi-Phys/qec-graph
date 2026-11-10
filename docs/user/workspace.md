@@ -96,8 +96,9 @@ qec-graph mcp config --workspace ~/qec
 qec-graph mcp serve --workspace ~/qec
 ```
 
-`mcp-config` generates a client configuration pinned to one release. Source
-queries use registered occurrence IDs and half-open Unicode codepoint ranges;
+`mcp-config` generates a client configuration pinned to one release. See
+[MCP setup](../../README.md#mcp) for Codex, Claude Code and OpenCode examples.
+Source queries use registered occurrence IDs and half-open Unicode codepoint ranges;
 MCP resource URIs are fixed identifiers and cannot be rewritten as file paths.
 The CLI can call the same query layer with
 `query-tool TOOL --workspace ~/qec --arguments request.json`. Performance queries

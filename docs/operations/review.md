@@ -143,7 +143,7 @@ qecgraph apply <proposal_id> --review-id <review_id> --corpus build/review-demo
 ```
 
 `apply` holds one writer lock while checking the corpus, the complete registry
-baseline, the review proposal hash, old record content and actual assets, then
+baseline, the review proposal hash, current record content and actual assets, then
 writes a complete new revision, performs endpoint/cross-record checks and
 atomically publishes one registry state. The conservative whole-registry CAS
 rejects unrelated parallel changes; re-fetch the diff and create a new proposal

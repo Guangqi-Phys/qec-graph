@@ -4,31 +4,87 @@
 
 > **中文** · [English](README.md)
 
-QEC Graph 归档原始源包，按精确字符区间抽取 LaTeX 结构，把审核过的研究记录和证据
-链接起来，并从不可变机器 release 提供服务。
+QEC Graph 归档原始 LaTeX 源包，按精确来源区间抽取结构，把类型化的 QEC 研究记录
+和字段级证据链接起来，并发布不可变机器 release。同一个 release 同时服务 CLI、
+只读 MCP 服务器和生成的 Obsidian 视图；人类视图不是权威来源，`human/notes/`
+永不被读取。
+
+## 工作流程
 
 ```mermaid
-flowchart LR
-    A[LaTeX 源包] --> B[archive/ + machine release]
-    B --> C[CLI 查询]
-    B --> D[Obsidian vault]
-    B --> E[只读 MCP]
+flowchart TB
+    subgraph Ingest["1. 认领、归档和解包"]
+        A["inputs/ 源包<br/>TeX · tar · tar.gz · ZIP · gzip"]
+        B{"内容检查 + 安全解包<br/>路径、链接、成员和大小限制"}
+        C["archive/blobs/sha256<br/>+ 不可变 receipts"]
+        D["已验证来源树"]
+        E{"入口点<br/>配置覆盖或唯一 document"}
+        A --> B --> C --> D --> E
+    end
+
+    subgraph Extract["2. 抽取和建模"]
+        F["LaTeX parser<br/>sections · environments · labels · refs · includes"]
+        G["不可变抽取快照<br/>graph.json · SQLite/FTS5"]
+        H["研究记录<br/>quantum_code · check_matrix · distance_estimate<br/>syndrome_measurement_circuit · noise_model_instance"]
+        I["字段证据 · proposal · 哈希绑定审核"]
+        E --> F --> G --> H --> I
+    end
+
+    subgraph Publish["3. 验证和发布"]
+        J["候选机器 release"]
+        K{"验证哈希、区间、<br/>引用、审核、资产、SQLite"}
+        L["CURRENT pointer<br/>机器 release"]
+        M["保留旧 release"]
+        I --> J --> K
+        K -->|通过| L
+        K -->|失败| M
+    end
+
+    subgraph Read["4. 固定 release 的读取面"]
+        N["CLI 和 Python 查询<br/>search · show · deps · impact · context<br/>codes · performance · software"]
+        O["stdio 只读 MCP<br/>13 tools · qec:// source resources"]
+        P["human/generated Obsidian 页面<br/>Index · Status · Changes · entities"]
+        Q["human/notes<br/>私有，永不读取"]
+        L --> N
+        L --> O
+        L --> P
+        Q -.-> P
+    end
 ```
 
-## 一览
-
-| 能力 | 你得到什么 |
-|---|---|
-| 来源导入 | TeX/gzip/tar/ZIP 识别、安全解包、SHA-256 归档、入口选择 |
-| 来源保真 | UTF-8 字节哈希、Unicode 半开区间、行号从 1 开始、稳定 ID 和修订 |
-| 研究模型 | `qecgraph.research` 记录、字段级证据、显式 unknown/conflict 状态 |
-| 查询 | 精确过滤、有界上下文、依赖/影响遍历、固定 release 的 MCP 工具 |
-| 人类视图 | 带稳定链接的生成 Obsidian 页面；私有 `human/notes/` 永不被读取 |
-| 兼容 | 继续支持旧单篇 store 和多篇 corpus |
+单个 workspace writer 认领收件箱文件、归档原始字节、准备候选 release、验证、
+发布 `CURRENT`，之后才消费认领的输入副本。查询和 MCP 会话固定一个 release，
+后续 `sync` 不会改变已打开会话的答案。发布失败时旧 release 保持可读。
 
 > [!NOTE]
 > QEC Graph 不是 TeX 引擎、PDF/OCR 流水线、大规模码距求解器或 Lean 验证器。
-> Lean 在 0.4.x 中为**延期/实验性**能力；数据库、查询和 MCP 路径不调用它。
+> Lean 是**延期/实验性**能力；数据库、查询和 MCP 路径不导入也不调用它。
+
+## 一览
+
+| 能力 | 已实现内容 |
+|---|---|
+| 导入 | TeX/gzip/tar/tar.gz/ZIP 识别、安全解包、SHA-256 blob 和 receipt、入口点选择 |
+| 来源保真 | UTF-8 字节哈希、Unicode codepoint 半开区间、行号从 1 开始、稳定 ID 和修订 |
+| 研究模型 | `qecgraph.research` 记录、26 kinds、41 typed relations、字段证据、显式 unknown/conflict 状态 |
+| 审核 | proposal/diff、显式 decide、哈希绑定 apply、stale review 检测 |
+| 查询 | 精确过滤、有界上下文、依赖/影响遍历、code/performance/software 查询 |
+| MCP | 13 个固定作用域只读工具、`qec://source/...` resources、budgets、每会话固定 release |
+| 人类视图 | 带稳定链接和 tombstone 的生成 Obsidian 页面；`human/notes/` 私有 |
+| 接口面 | workspace 为主；单篇 store 和多篇 corpus 仍可用 |
+
+## 已实现接口面
+
+| 接口面 | 当前实现 |
+|---|---|
+| 工作区事务 | claim → archive → unpack → entry point → extract → stage → validate → publish → consume，带 POSIX writer lock 和崩溃恢复 |
+| 来源抽取 | `pylatexenc==2.10`、来源保真区间、include/resource 解析、显式 diagnostics、内容校验的增量 AST cache |
+| 研究记录 | `qecgraph.research` kinds，例如 `quantum_code`、`check_matrix`、`distance_estimate`、`performance_curve`、`experiment` 和 `software_usage` |
+| 审核与证据 | `proposal` / `review` envelope、字段级证据、reviewed dependency closure；stale/unbound 默认排除 |
+| 读取查询 | `search`、`show`、`deps`、`impact`、`context`、`codes`、`performance`、`software`；SQLite/FTS5 加确定性 fallback |
+| MCP 服务 | 本地 stdio JSON-RPC `2025-06-18`、只读工具、source resources、每调用 budget、不接受路径或 shell 参数 |
+| 人类视图 | 确定性的 `human/Index.md` 和 `human/generated/` 页面、逐页原子写、tombstone、`human_stale` 恢复 |
+| 分发 | wheel/sdist、standalone executable、research Compose profile 和只读 MCP 隔离 profile |
 
 ## 安装
 
@@ -59,6 +115,122 @@ qec-graph validate
 vault 打开，从 `Index.md` 开始。反复失败的包用
 `qec-graph inputs quarantine <name>` 处理。
 
+## MCP
+
+MCP 服务器是固定到一个机器 release 的本地 stdio 进程。它只读：工具不能传入
+文件系统路径、SQL、shell 命令、其他 workspace 或其他 release。来源文本作为
+数据处理，绝不作为指令。
+
+### 启动服务器
+
+在工作区根目录：
+
+```sh
+qec-graph mcp config --workspace .
+```
+
+它会打印一个 `mcpServers.qecgraph` 对象，command 和 `--machine` 路径指向当前
+固定 release。把这个对象放进客户端配置，或直接启动：
+
+```sh
+qec-graph mcp serve --machine "$PWD/machine"
+```
+
+严格部署只挂载 `machine/` 并传 `--machine`。`--workspace` 在本地方便，但不是
+操作系统隔离边界。严格部署中 `human/`、`inputs/`，尤其是 `human/notes/`，必须
+不可读。
+
+### 读取工具
+
+| 工具组 | 可用工具 |
+|---|---|
+| 图读取 | `qecgraph_search`、`qecgraph_show`、`qecgraph_context`、`qecgraph_deps`、`qecgraph_impact` |
+| Workspace 记录和来源 | `qec_workspace_status`、`qec_get_entity`、`qec_get_context`、`qec_get_source`、`qec_get_asset` |
+| 结构化 QEC 查询 | `qec_find_codes`、`qec_find_performance`、`qec_find_software` |
+
+所有工具都接受会话 budget 内的 `max_chars`。Search 和三个 `qec_find_*` 还接受
+`limit`/`offset`。来源文本使用半开 Unicode codepoint 区间；受管理资产字节使用
+byte offset。结果说明 scope、证据状态和是否截断。无结果只表示固定作用域内无匹配，
+不表示定理或码不存在。
+
+### 接入客户端
+
+下面的例子使用 shell command；把 `/absolute/path/to/qec-graph` 和
+`/absolute/path/to/machine` 换成已安装可执行文件和 workspace 的 machine 目录。
+要固定特定 release，加 `--release <release-id>`。
+
+#### Codex
+
+```sh
+codex mcp add qecgraph -- "$(command -v qec-graph)" mcp serve --machine "$PWD/machine"
+codex mcp list
+```
+
+等价的 `~/.codex/config.toml`：
+
+```toml
+[mcp_servers.qecgraph]
+command = "/absolute/path/to/qec-graph"
+args = ["mcp", "serve", "--machine", "/absolute/path/to/machine"]
+```
+
+添加后打开新的 Codex 会话。Codex 启动 stdio 进程，把只读工具暴露给 agent。
+
+#### Claude Code
+
+```sh
+claude mcp add --transport stdio qecgraph -- "$(command -v qec-graph)" mcp serve --machine "$PWD/machine"
+claude mcp list
+```
+
+等价的项目 `.mcp.json`：
+
+```json
+{
+  "mcpServers": {
+    "qecgraph": {
+      "type": "stdio",
+      "command": "/absolute/path/to/qec-graph",
+      "args": ["mcp", "serve", "--machine", "/absolute/path/to/machine"]
+    }
+  }
+}
+```
+
+Claude Code 每会话启动服务器；出现提示时批准项目级 `.mcp.json`。
+
+#### OpenCode
+
+```sh
+opencode mcp add qecgraph -- qec-graph mcp serve --machine "$PWD/machine"
+opencode mcp list
+```
+
+等价的 `opencode.json` 或 `opencode.jsonc`：
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "qecgraph": {
+        "type": "local",
+        "command": ["/absolute/path/to/qec-graph", "mcp", "serve", "--machine", "/absolute/path/to/machine"]
+      }
+    }
+  }
+}
+```
+
+用 `disabled: true` 可以保留配置但不连接。
+
+### 固定和刷新
+
+`qec-graph mcp config --workspace .` 默认带 `--release`，客户端得到生成配置时的
+当前 release。`qec-graph sync` 发布新 release 后，重新运行该命令并替换客户端
+条目；已有会话在重启前保持旧 release。只用 machine 挂载时使用
+`qec-graph mcp config --machine /path/to/machine`。
+
 ## 文档地图
 
 | 我想…… | 阅读 |
@@ -68,20 +240,8 @@ vault 打开，从 `Index.md` 开始。反复失败的包用
 | 搜索记录、码或性能点 | [数据与检索](docs/user/data-and-search.zh-CN.md) |
 | 查命令、退出码或发布检查 | [进阶用法](docs/user/advanced-usage.zh-CN.md) |
 | 理解身份、证据和发布 | [系统设计](docs/design/DESIGN.zh-CN.md) |
-| 维护旧 store/corpus | [运维](docs/operations/README.zh-CN.md) |
 | 浏览文档索引 | [docs/README.zh-CN.md](docs/README.zh-CN.md) |
-
-## MCP
-
-在已初始化工作区根目录，把只读服务注册到 Codex。
-
-```sh
-codex mcp add qecgraph -- "$(command -v qec-graph)" mcp serve --machine "$PWD/machine"
-```
-
-注册后打开新的 Codex 会话。其他 MCP 客户端运行
-`qec-graph mcp config --workspace .`，打印绑定当前快照的配置。
-[数据与检索](docs/user/data-and-search.zh-CN.md)
+| 运维 store 或 corpus | [运维](docs/operations/README.zh-CN.md) |
 
 ## 许可证
 

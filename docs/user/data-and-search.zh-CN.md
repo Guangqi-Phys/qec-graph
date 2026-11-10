@@ -130,7 +130,7 @@ research schema 列出受支持 kinds、每种 kind 必填字段，以及可空 
 速率等可移植值约束。QEC Graph 检查相关值的一致性、精确目标修订是否存在、
 指针是否解析到该值，以及记录是否一致。
 
-[研究记录 schema](../../qecgraph/validators/schemas/research.schema.json) · [旧记录 schema](../../qecgraph/validators/schemas/record.schema.json)
+[研究记录 schema](../../qecgraph/validators/schemas/research.schema.json) · [corpus 记录 schema](../../qecgraph/validators/schemas/record.schema.json)
 
 ## 按关键词、来源或结构化字段检索
 

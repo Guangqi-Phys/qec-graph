@@ -20,7 +20,7 @@ from the package root and complete each step before the next.
 - [3. Order of operations for every change](#3-order-of-operations-for-every-change)
 - [4. Failure propagation and review](#4-failure-propagation-and-review)
 - [5. Index rebuild and atomic publication](#5-index-rebuild-and-atomic-publication)
-- [6. Schema migration and rollback](#6-schema-migration-and-rollback)
+- [6. Schema change and rollback](#6-schema-change-and-rollback)
 - [7. Backup and recovery drill](#7-backup-and-recovery-drill)
 - [8. Optional container deployment](#8-optional-container-deployment)
 - [Primary sources](#primary-sources)
@@ -157,24 +157,16 @@ saved complete input into another store to rebuild the projection. If SQLite
 later stores unique data that cannot be rebuilt, use a consistent snapshot or
 the official Backup API to back up a running database.[1]
 
-## 6. Schema migration and rollback
+## 6. Schema change and rollback
 
-First decide whether a change affects record structure, field meaning, hash
-protocol, graph view or execution environment. Implement a one-way migration on
-a dedicated branch and copy, preserving the old schema, old data and conversion
-mapping. The migration report records at least input/output versions, processed
-count, rejected records, ID mapping and field-meaning changes. Check required
-fields, enums, unique IDs, referential integrity, asset hashes, review bindings
-and representative queries. Add a definition revision when a mathematical metric
-or unit changes; never reuse old evidence by only renaming a field. Migrate old
-`0.1.0` records and `qecgraph.graph` separately; they are not one version axis.
-Preserve the protocol identifier while old and new canonicalisation coexist; do
-not batch-recompute hashes and claim old reviews remain valid. Validate at the
-new output location before switching readers; update writers at the same time so
-old writers cannot keep producing the old format.
+A schema change is a breaking release: update the schema, code, fixtures and this
+documentation together. There is no in-tree legacy reader or record migration;
+old data is not reinterpreted with the current schema. Back up the complete
+store, corpus or workspace and the matching input/tool versions before upgrading.
+Validate at the new location before switching readers, and update writers at the
+same time so an old writer cannot keep producing the old format.
 
-There is no in-tree legacy record migration; register current-format records or
-restore a backup. old formats into a new directory. For rollback, prefer a verified historical
+For rollback, prefer a verified historical
 snapshot or registry revision; if necessary restore the whole store and the
 matching input/tool versions. If a maintainer manually rolls back CURRENT, stop
 writers, validate the target snapshot, then atomically replace it using the

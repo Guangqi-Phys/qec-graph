@@ -145,7 +145,7 @@ QEC Graph checks consistency between related values, that the exact target
 revision is present, that the pointer resolves to the value, and that the
 records agree.
 
-[Research record schema](../../qecgraph/validators/schemas/research.schema.json) · [Legacy record schema](../../qecgraph/validators/schemas/record.schema.json)
+[Research record schema](../../qecgraph/validators/schemas/research.schema.json) · [Corpus record schema](../../qecgraph/validators/schemas/record.schema.json)
 
 ## Search by keyword, source, or structured fields
 

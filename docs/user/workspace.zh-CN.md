@@ -80,8 +80,9 @@ qec-graph mcp config --workspace ~/qec
 qec-graph mcp serve --workspace ~/qec
 ```
 
-`mcp-config` 生成固定 release 的客户端配置。源查询通过登记的 occurrence ID 和 Unicode
-代码点半开区间定位；MCP 资源 URI 是固定标识，不能改写成文件路径。
+`mcp-config` 生成固定 release 的客户端配置。Codex、Claude Code 和 OpenCode 的
+配置示例见 [MCP 设置](../../README.zh-CN.md#mcp)。源查询通过登记的 occurrence ID 和
+Unicode 代码点半开区间定位；MCP 资源 URI 是固定标识，不能改写成文件路径。
 CLI 可用 `query-tool TOOL --workspace ~/qec --arguments request.json` 调用同一查询层。
 性能查询返回具体实验和曲线修订、未决条件、实际坐标；不会跨实验给出统一排名。
 研究记录只使用当前 `qecgraph.research` 格式。
