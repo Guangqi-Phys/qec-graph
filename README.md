@@ -24,15 +24,36 @@ Downloads are available for macOS (Apple Silicon) and Linux (x86_64 and arm64).
 ## How it works
 
 ```text
-inputs/ --> archive/ --> source tree --> parser --> snapshot
-snapshot --> research records --> review --> candidate release
-candidate release --> validate --> CURRENT
-CURRENT --> CLI / MCP / human/generated
+inputs/            TeX, tar, tar.gz, ZIP source packages
+   |
+   v
+archive/           original bytes + SHA-256 blob + receipt
+   |
+   v
+source tree        verified files + selected entry point
+   |
+   v
+parser             sections, environments, labels, refs, includes
+   |
+   v
+snapshot           graph.json + SQLite/FTS5 + exact source spans
+   |
+   v
+research records   quantum_code, check_matrix, distance_estimate, ...
+   |
+   v
+review             proposal -> decide -> apply (hash-bound)
+   |
+   v
+release            candidate -> validate -> CURRENT (pinned)
+   |
+   +--> CLI          search / show / deps / context / codes / performance
+   +--> MCP          13 read tools + qec:// source resources
+   +--> human/       Index, Status, Changes, generated entity pages
 ```
 
-One writer archives source bytes, extracts structure, records evidence, validates
-a candidate release, then publishes `CURRENT`. Readers pin that release; a failed
-publication keeps the previous one.
+One writer owns the pipeline. Readers pin one `CURRENT` release; a failed
+validation leaves the previous release readable. `human/notes/` is never read.
 
 > [!NOTE]
 > QEC Graph is not a TeX engine, a PDF/OCR pipeline, a large-code distance

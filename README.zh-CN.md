@@ -22,14 +22,36 @@ curl -fsSL https://raw.githubusercontent.com/Guangqi-Phys/qec-graph/main/install
 ## 工作流程
 
 ```text
-inputs/ --> archive/ --> source tree --> parser --> snapshot
-snapshot --> research records --> review --> candidate release
-candidate release --> validate --> CURRENT
-CURRENT --> CLI / MCP / human/generated
+inputs/            TeX、tar、tar.gz、ZIP 源包
+   |
+   v
+archive/           原始字节 + SHA-256 blob + receipt
+   |
+   v
+source tree        已验证文件 + 选中的入口点
+   |
+   v
+parser             sections、environments、labels、refs、includes
+   |
+   v
+snapshot           graph.json + SQLite/FTS5 + 精确来源区间
+   |
+   v
+research records   quantum_code、check_matrix、distance_estimate 等
+   |
+   v
+review             proposal -> decide -> apply（哈希绑定）
+   |
+   v
+release            candidate -> validate -> CURRENT（固定）
+   |
+   +--> CLI          search / show / deps / context / codes / performance
+   +--> MCP          13 个只读工具 + qec:// source resources
+   +--> human/       Index、Status、Changes、生成的实体页面
 ```
 
-单个 writer 归档源字节、抽取结构、记录证据、验证候选 release，然后发布
-`CURRENT`；读取端固定该 release，发布失败保留旧 release。
+单个 writer 拥有整条流水线。读取端固定一个 `CURRENT` release；验证失败时旧
+release 保持可读。`human/notes/` 永不被读取。
 
 > [!NOTE]
 > QEC Graph 不是 TeX 引擎、PDF/OCR 流水线、大规模码距求解器或 Lean 验证器。
