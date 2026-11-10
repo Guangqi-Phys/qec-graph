@@ -265,7 +265,7 @@ A Python installation also provides `qec-latex-split`. The `qecgraph` and
 To copy an existing corpus into a new workspace, use
 `qec-graph workspace-migrate --corpus /path/to/corpus --workspace /path/to/new-workspace`.
 The migration preserves source snapshots, record revisions, and review bindings.
-[Migration guide](workspace.md#migrate-from-a-legacy-corpus)
+[Migration guide](workspace.md#import-an-existing-corpus)
 
 ## Reproduce the checks
 

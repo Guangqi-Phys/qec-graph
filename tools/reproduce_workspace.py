@@ -85,8 +85,8 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
                   '((n,K,R,d))': ('quantum', 'subsystem_dimensions', None, None, None, None)}
         for notation, expected in golden.items():
             assert any(row['data']['reported_notation'] == notation
-                       and tuple(row['data'].get(field) for field in ('coding_domain', 'parameter_semantics', 'n_data',
-                                                                     'k_logical', 'r_gauge', 'k_classical')) == expected
+                       and tuple(row['data'].get(field) for field in ('code_type', 'parameter_kind', 'n',
+                                                                     'k', 'r', 'k_classical')) == expected
                        and row['data']['distance_interpretation'] is None for row in review['proposals']), notation
     search_args = {'query': 'CSS code', 'limit': 10}
     (workspace / 'args.json').write_text(json.dumps(search_args), encoding='utf-8')
@@ -138,7 +138,7 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
         legacy('ingest', ['ingest', 'legacy.tex', '--project-id', 'legacy-demo', '--out', 'legacy-store'])
         legacy('register', ['register', '--corpus', 'legacy-corpus', '--store', 'legacy-store',
                             '--work-id', 'work:legacy', '--source-version-id', 'source:legacy'])
-        base = {'schema_version': 'qecgraph.record.v3', 'id': 'claim:legacy', 'kind': 'claim',
+        base = {'schema_version': 'qecgraph.record', 'id': 'claim:legacy', 'kind': 'claim',
                 'title': 'Legacy claim', 'revision': 'original',
                 'data': {'statement': 'Legacy draft wording', 'hypotheses': [], 'quantifiers': []}}
         put('legacy-claim.json', base)

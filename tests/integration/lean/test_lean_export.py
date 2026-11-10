@@ -8,7 +8,7 @@ from tests.support import ROOT
 
 class LeanExportTests(unittest.TestCase):
     def setUp(self):
-        self.export = read_json(ROOT / 'validation/lean-experimental/declaration-export/export.json')
+        self.export = read_json(ROOT / 'tests/fixtures/lean/declaration-export/export.json')
         self.policy = read_json(ROOT / 'lean/axiom-policy.json')
         self.targets = read_json(ROOT / 'lean/targets.json')
 
@@ -43,7 +43,7 @@ class LeanExportTests(unittest.TestCase):
         self.assertEqual(fixed['declaration_export'], 'not_performed')
 
     def test_build_of_another_target_is_not_sufficient(self):
-        targets = {'schema_version': 'qecgraph.lean-targets.v1', 'required_declarations': {
+        targets = {'schema_version': 'qecgraph.lean-targets', 'required_declarations': {
             'QEC.Missing.target': {'kind': 'theorem', 'module': 'QEC.Missing'}}}
         audit = audit_export(self.export, self.policy, targets)
         self.assertEqual(audit['status'], 'rejected')

@@ -23,7 +23,7 @@ flowchart LR
 |---|---|
 | Source ingestion | TeX/gzip/tar/ZIP detection, safe unpacking, SHA-256 archive, entry-point selection |
 | Provenance | UTF-8 byte hashes, Unicode half-open spans, 1-based lines, stable IDs and revisions |
-| Research model | `research.v1` records, field-level evidence, explicit unknown/conflict states |
+| Research model | `qecgraph.research` records, field-level evidence, explicit unknown/conflict states |
 | Query | Exact filters, bounded context, dependency/impact traversal, fixed-release MCP tools |
 | Human view | Generated Obsidian pages with stable links; private `human/notes/` is never read |
 | Compatibility | Legacy single-paper store and multi-paper corpus remain supported |
@@ -68,7 +68,7 @@ Use `qec-graph inputs quarantine <name>` for a package that keeps failing.
 |---|---|
 | Run the shortest example | [Quick start](docs/user/quickstart.md) |
 | Configure a workspace, archive or Obsidian | [Workspace guide](docs/user/workspace.md) |
-| Search records, codes or performance points | [Data and search](docs/user/data-and-search.md) |
+| Search records, codes or performance data points | [Data and search](docs/user/data-and-search.md) |
 | Look up commands, exit codes or release checks | [Advanced usage](docs/user/advanced-usage.md) |
 | Understand identities, evidence and publication | [System design](docs/design/DESIGN.md) |
 | Maintain a legacy store/corpus | [Operations](docs/operations/README.md) |

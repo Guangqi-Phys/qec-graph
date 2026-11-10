@@ -23,7 +23,7 @@ from .core.coordinates import SourceLines
 from .core.transactions import ManagedDataError, atomic_json, publish_pointer, read_pointer, writer_lock
 
 
-CURRENT_FORMAT = 'qecgraph.current.v1'
+CURRENT_FORMAT = 'qecgraph.current'
 
 
 def _is_snapshot_id(value):
@@ -195,7 +195,7 @@ def check_output_directory(out, *, allow_lock=False):
         if marker.is_symlink():
             raise ValueError('The store marker must be a regular local file')
         if marker.exists():
-            if read_json(marker) != {'format': 'qecgraph.store.v1'}:
+            if read_json(marker) != {'format': 'qecgraph.store'}:
                 raise ValueError('Incompatible qecgraph store marker')
         elif any(not (allow_lock and path.name == '.writer.lock') for path in out.iterdir()):
             raise ValueError('Refusing to write into an unrecognized nonempty directory; choose a new --out')
@@ -228,7 +228,7 @@ def ingest(entry, project_id, out, project_root=None, config_path=None, annotati
                     raise ValueError("CURRENT includes annotations or a catalog. Choose a separate --out or pass --force.")
                 previous_enriched = snapshot.name
         if not (out / '.qecgraph-store.json').exists():
-            atomic_json(out / '.qecgraph-store.json', {'format': 'qecgraph.store.v1'})
+            atomic_json(out / '.qecgraph-store.json', {'format': 'qecgraph.store'})
         result = _ingest_locked(entry, project_id, out, project_root, config_path, annotations_path, catalog_dir,
                                 strict=strict, incremental=incremental, tool_identity=_tool_identity)
         if previous_enriched is not None:
@@ -293,12 +293,12 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
     out.mkdir(parents=True, exist_ok=True)
     marker = out / ".qecgraph-store.json"
     if marker.exists():
-        if read_json(marker) != {"format": "qecgraph.store.v1"}:
+        if read_json(marker) != {"format": "qecgraph.store"}:
             raise ValueError("Output directory has an incompatible qecgraph marker")
     else:
         if (out / "CURRENT.json").exists() or (out / "snapshots").exists():
             raise ValueError("Refusing to replace an unrecognized output directory; choose a new --out")
-        write_json(marker, {"format": "qecgraph.store.v1"})
+        write_json(marker, {"format": "qecgraph.store"})
     previous_graph = None
     if (out / "CURRENT.json").exists():
         previous_graph, _ = load_graph(out)
@@ -306,10 +306,10 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
             raise ValueError("Use a separate output store for a different project-id")
     project_marker = out / '.qecgraph-project.json'
     if project_marker.exists():
-        if read_json(project_marker) != {'format': 'qecgraph.store-project.v1', 'project_id': project_id}:
+        if read_json(project_marker) != {'format': 'qecgraph.store-project', 'project_id': project_id}:
             raise ValueError('Use a separate output store for a different project-id')
     else:
-        atomic_json(project_marker, {'format': 'qecgraph.store-project.v1', 'project_id': project_id})
+        atomic_json(project_marker, {'format': 'qecgraph.store-project', 'project_id': project_id})
     staged = bool(strict and graph['extraction_status'] == 'partial')
     target = safe_relative(out, ('staging/' if staged else 'snapshots/') + snapshot_id)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -328,7 +328,7 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
             write_output(relative, _json_bytes(value))
 
         try:
-            write_json(temporary / '.qecgraph-building.json', {'format': 'qecgraph.building.v1', 'snapshot_id': snapshot_id})
+            write_json(temporary / '.qecgraph-building.json', {'format': 'qecgraph.building', 'snapshot_id': snapshot_id})
             for directory, files in (("sources", source_bytes), ("assets", resource_bytes)):
                 for rel, raw in files.items():
                     path = safe_relative(temporary / directory, rel)
@@ -372,7 +372,7 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
             (temporary / '.qecgraph-building.json').unlink()
             outputs = [{"path": relative, "sha256": output_hashes[relative]}
                        for relative in sorted(output_hashes, key=lambda relative: Path(relative).parts)]
-            write_json(temporary / "manifest.json", {"format": "qecgraph.manifest.v1", "snapshot_id": snapshot_id,
+            write_json(temporary / "manifest.json", {"format": "qecgraph.manifest", "snapshot_id": snapshot_id,
                         "fingerprint_inputs": fingerprint, "source_files": source_manifest,
                         "resources": resource_manifest, "outputs": outputs,
                         "coordinate_system": "Unicode codepoints, [start,end); line numbers 1-based inclusive"})
@@ -426,7 +426,7 @@ def _recoverable_build(path):
         if len(raw) > 4096:
             return False
         binding = strict_json_loads(raw.decode('utf-8'), source=str(marker))
-        return (isinstance(binding, dict) and binding.get('format') == 'qecgraph.building.v1'
+        return (isinstance(binding, dict) and binding.get('format') == 'qecgraph.building'
                 and _is_snapshot_id(binding.get('snapshot_id')))
     except FileNotFoundError:
         if not (path / 'manifest.json').is_file():

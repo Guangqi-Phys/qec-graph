@@ -153,8 +153,8 @@ class WorkspaceQueryTests(unittest.TestCase):
     def test_query_arguments_are_distinct_from_a_failed_release_read(self):
         for tool, args in (('qecgraph_search', {'query': '  '}),
                            ('qec_find_codes', {'distance_at_least': 3}),
-                           ('qec_find_codes', {'metric_definition_id': 'metric:test', 'metric_revision': '1'}),
-                           ('qec_find_codes', {'distance_at_least': 3, 'metric_definition_id': 'metric:test',
+                           ('qec_find_codes', {'metric_id': 'metric:test', 'metric_revision': '1'}),
+                           ('qec_find_codes', {'distance_at_least': 3, 'metric_id': 'metric:test',
                                                'evidence_policy': 'source_reported'}),
                            ('qec_find_performance', {'coordinate_name': 'p', 'coordinate': float('nan')}),
                            ('qec_find_performance', {'coordinate_name': 'p', 'coordinate': float('inf')})):
@@ -188,7 +188,7 @@ class WorkspaceQueryTests(unittest.TestCase):
         source = {'id': version['id'], 'revision': version['snapshot_id']}
         identifier = 'seed:multiple-revisions'
         publish_records(self.ws.registry, [
-            make_record('classical_seed', identifier, revision, {'n_data': n},
+            make_record('classical_code', identifier, revision, {'n': n},
                         source=source, method='test_fixture')
             for revision, n in [('r1', 3), ('r2', 5)]
         ])
@@ -199,7 +199,7 @@ class WorkspaceQueryTests(unittest.TestCase):
                 self.assertEqual(response['error']['code'], 'AMBIGUOUS_REVISION')
                 self.assertEqual(response['error']['details']['revisions'], ['r1', 'r2'])
         first = session.invoke('qec_get_entity', {'identifier': identifier, 'revision': 'r1'})
-        self.assertEqual(first['data']['entity']['data']['n_data'], 3)
+        self.assertEqual(first['data']['entity']['data']['n'], 3)
         self.assert_research_cli_matches_tool(session, ['show', identifier, '--revision', 'r1'], 'qec_get_entity',
                                               {'identifier': identifier, 'revision': 'r1'})
         self.assert_research_cli_matches_tool(session, ['context', identifier, '--revision', 'r2'], 'qec_get_context',
@@ -294,22 +294,22 @@ class WorkspaceQueryTests(unittest.TestCase):
             return make_record(kind, binding['id'], binding['revision'], data,
                                source=origin, method='test_input', evidence=evidence)
         publish_records(self.ws.registry, [
-            record('metric_definition', metric, {'name': 'joint Pauli weight'}),
-            record('code_instance', code_ref, {'coding_domain': 'quantum', 'n_data': 13, 'k_logical': 1,
-                                               'distance_claim_refs': [claim_ref]}),
-            record('distance_claim', claim_ref, {'subject_ref': code_ref, 'metric_definition_ref': metric,
+            record('metric', metric, {'name': 'joint Pauli weight'}),
+            record('quantum_code', code_ref, {'code_type': 'quantum', 'n': 13, 'k': 1,
+                                               'distance_estimate_refs': [claim_ref]}),
+            record('distance_estimate', claim_ref, {'subject_ref': code_ref, 'metric_ref': metric,
                    'relation': 'upper_bound', 'upper_bound': 12, 'lower_bound': None,
                    'sector': 'joint', 'method': 'witness', 'conditions': []},
                    {'/data/upper_bound': {'status': 'known', 'source_ref': origin, 'method': 'test_input',
                                           'source_locator': locator}}),
         ])
         session = WorkspaceSession(self.ws.registry.root)
-        filters = {'distance_at_least': 12, 'metric_definition_id': metric['id'],
+        filters = {'distance_at_least': 12, 'metric_id': metric['id'],
                    'metric_revision': metric['revision'], 'evidence_policy': 'source_reported'}
         response = session.invoke('qec_find_codes', filters)
         self.assertTrue(response['ok'])
         self.assertEqual(response['data']['results'], [])
-        self.assert_research_cli_matches_tool(session, ['codes', '--distance-at-least', '12', '--metric-definition-id',
+        self.assert_research_cli_matches_tool(session, ['codes', '--distance-at-least', '12', '--metric-id',
                                                       metric['id'], '--metric-revision', metric['revision'],
                                                       '--evidence-policy', 'source_reported'], 'qec_find_codes', filters)
         context = session.invoke('qec_get_context', {'identifier': code_ref['id'], 'depth': 2})
@@ -325,7 +325,7 @@ class WorkspaceQueryTests(unittest.TestCase):
         with writer_lock(registry.root):
             state, _ = registry.read()
             for i in range(201):
-                registry._put_record(state, record(f'legacy:code-{i:03d}', 'code_instance',
+                registry._put_record(state, record(f'legacy:code-{i:03d}', 'quantum_code',
                                                    {'parameters': {'n': i + 1, 'k': 1}}))
             release = registry._publish(state)
         legacy = codes(registry.root, registry_revision=release, limit=200)
@@ -347,18 +347,18 @@ class WorkspaceQueryTests(unittest.TestCase):
         origin = {'id': version, 'revision': state['versions'][version]['snapshot_id']}
         def make(kind, name, data):
             return make_record(kind, name, 'r1', data, source=origin, method='reported_fixture')
-        exp = make('reported_experiment', 'exp:test', {'source_ref': origin, 'code_ref': None, 'presentation_ref': None,
+        exp = make('experiment', 'exp:test', {'source_ref': origin, 'code_ref': None, 'check_matrix_ref': None,
                                                        'circuit_ref': None, 'noise_model_ref': None, 'decoder_ref': None})
-        metric = make('metric_definition', 'metric:test', {'event': 'logical failure', 'denominator': 'block', 'unit': 'rate'})
-        series = make('performance_series', 'series:test', {'experiment_ref': ref(exp), 'metric_definition_ref': ref(metric)})
+        metric = make('metric', 'metric:test', {'event': 'logical failure', 'denominator': 'block', 'unit': 'rate'})
+        series = make('performance_curve', 'series:test', {'experiment_ref': ref(exp), 'metric_ref': ref(metric)})
         rows = [exp, metric, series]
         discrete = 9007199254740993
         for i, coordinate in enumerate((0.01, 0.03)):
-            noise = make('noise_instantiation', 'noise:' + str(i),
+            noise = make('noise_model_instance', 'noise:' + str(i),
                          {'model_ref': None, 'reported_coordinates': {'p': coordinate, 'index': discrete + i},
                           'resolved_channel_parameters': None})
-            point = make('performance_point', 'point:' + str(i), {'experiment_ref': ref(exp), 'noise_instantiation_ref': ref(noise),
-                           'metric_definition_ref': ref(metric), 'curve_ref': ref(series), 'value': None})
+            point = make('performance_data_point', 'point:' + str(i), {'experiment_ref': ref(exp), 'noise_model_instance_ref': ref(noise),
+                           'metric_ref': ref(metric), 'performance_curve_ref': ref(series), 'value': None})
             rows.extend([noise, point])
         publish_records(self.ws.registry, rows)
         session = WorkspaceSession(self.ws.registry.root)
@@ -413,8 +413,8 @@ class WorkspaceQueryTests(unittest.TestCase):
         state, _ = self.ws.registry.read()
         version, = state['versions']
         origin = {'id': version, 'revision': state['versions'][version]['snapshot_id']}
-        record = make_record('code_presentation', 'presentation:matrix', 'r1',
-                             {'code_ref': None, 'check_weight_metrics': None,
+        record = make_record('check_matrix', 'check_matrix:matrix', 'r1',
+                             {'code_ref': None, 'check_weight_statistics': None,
                               'generator_asset_refs': [uri], 'reconstruction_status': 'complete'},
                              source=origin, method='fixture')
         publish_records(self.ws.registry, [record])

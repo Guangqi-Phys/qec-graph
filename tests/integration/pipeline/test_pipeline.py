@@ -98,7 +98,7 @@ class PipelineSemanticsTests(unittest.TestCase):
     def _sidecar(self, content):
         path = self.work / "annotations.json"
         path.write_text(
-            json.dumps({"schema_version": "qecgraph.annotations.v1", **content}, ensure_ascii=False),
+            json.dumps({"schema_version": "qecgraph.annotations", **content}, ensure_ascii=False),
             encoding="utf-8",
         )
         return path
@@ -431,13 +431,13 @@ Let $n=13$. Then $n$ is positive.
 
     def test_only_explicit_sidecar_creates_a_code_entity_from_a_parameter_table(self):
         _, graph, _ = self._demo()
-        self.assertFalse(any(node["kind"] == "code_instance" for node in graph["nodes"]))
+        self.assertFalse(any(node["kind"] == "quantum_code" for node in graph["nodes"]))
         self.assertEqual(self._node(graph, "tab:rep3")["kind"], "table")
         code_id = "code:fixture:rep3"
         sidecar = self._sidecar({
             "nodes": [{
                 "id": code_id,
-                "kind": "code_instance",
+                "kind": "quantum_code",
                 "title": "Rep3 ordinary HGP example",
                 "source_labels": ["tab:rep3", "ex:rep3-parameters"],
                 "data": {"n": 13, "k": 1, "distance_claimed": 3},
@@ -445,7 +445,7 @@ Let $n=13$. Then $n$ is positive.
         })
         _, extended, _ = self._ingest(sidecar)
         code = query.show(self.store, code_id)["node"]
-        self.assertEqual(code["kind"], "code_instance")
+        self.assertEqual(code["kind"], "quantum_code")
         self.assertEqual(code["origin"], "sidecar")
         self.assertEqual(code["verification_status"], "not_rechecked")
         self.assertEqual(code["data"]["distance_claimed"], 3)
@@ -454,7 +454,7 @@ Let $n=13$. Then $n$ is positive.
             links = self._edges(extended, source["id"], code_id, "describes")
             self.assertEqual(len(links), 1)
             self.assertEqual(links[0]["status"], "declared")
-        hits = query.search(self.store, "Rep3", kind="code_instance")["results"]
+        hits = query.search(self.store, "Rep3", kind="quantum_code")["results"]
         self.assertEqual([hit["id"] for hit in hits], [code_id])
 
     def test_default_dependencies_exclude_candidates_and_context_keeps_explicit_proof(self):
@@ -587,7 +587,7 @@ Apply \Cref{asmp:bound} to the quantity in \ref{def:bound}.
     def test_data_context_expands_explicit_matrix_and_configuration_links(self):
         self._demo()
         sidecar = self._sidecar({"nodes": [
-            {"id": "code:context-demo", "kind": "code_instance", "title": "Code"},
+            {"id": "code:context-demo", "kind": "quantum_code", "title": "Code"},
             {"id": "matrix:context-demo", "kind": "matrix", "title": "Matrix"},
             {"id": "circuit:context-demo", "kind": "circuit", "title": "Circuit"},
         ], "edges": [

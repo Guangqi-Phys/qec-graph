@@ -21,7 +21,7 @@ flowchart LR
 |---|---|
 | 来源导入 | TeX/gzip/tar/ZIP 识别、安全解包、SHA-256 归档、入口选择 |
 | 来源保真 | UTF-8 字节哈希、Unicode 半开区间、行号从 1 开始、稳定 ID 和修订 |
-| 研究模型 | `research.v1` 记录、字段级证据、显式 unknown/conflict 状态 |
+| 研究模型 | `qecgraph.research` 记录、字段级证据、显式 unknown/conflict 状态 |
 | 查询 | 精确过滤、有界上下文、依赖/影响遍历、固定 release 的 MCP 工具 |
 | 人类视图 | 带稳定链接的生成 Obsidian 页面；私有 `human/notes/` 永不被读取 |
 | 兼容 | 继续支持旧单篇 store 和多篇 corpus |

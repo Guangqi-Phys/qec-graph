@@ -1,5 +1,5 @@
 {
-  "schema_version": "qecgraph.axiom-policy.v1",
+  "schema_version": "qecgraph.axiom-policy",
   "policy_id": "core-boolean-propext-only-v1",
   "allowed_axioms": ["propext"],
   "note": "Explicitly permit Lean's foundational propositional extensionality, observed in the actual export. Reject sorryAx and every unlisted axiom, including native computation axioms. This is not a claim of no axioms."

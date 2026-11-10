@@ -55,7 +55,7 @@ print(json.dumps({"metadata_version": m.version("qec-graph"), "module_version": 
 ''')
         assert not Path(pkg['module_path']).resolve().is_relative_to(ROOT / 'qecgraph')
         assert pkg['metadata_version'] == pkg['module_version']
-        assert {'record.v3.schema.json', 'lean-export.v1.schema.json'} <= set(pkg['schemas'])
+        assert {'record.schema.json', 'lean-export.schema.json'} <= set(pkg['schemas'])
         source = EXAMPLES / 'paper/main.tex'
         split = call('split', 'qec-latex-split', source, '--project-id', 'demo', '--out', 'split')
         assert split['fragment_count'] == 26

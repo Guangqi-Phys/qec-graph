@@ -125,14 +125,14 @@ SQLite 若以后保存不可重建的独有数据，应采用一致性快照或�
 迁移报告至少记录输入／输出版本、处理数量、被拒绝记录、ID 映射和字段含义变化。
 检查必填字段、枚举、唯一 ID、引用完整性、资产哈希、审核绑定及代表性查询。
 数学度量或单位改变时新增定义修订；不能只修改字段名而复用旧证据。
-旧 `0.1.0` records 和 `qecgraph.graph.v1` 的迁移分别处理，不把它们当同一版本轴。
+旧 `0.1.0` records 和 `qecgraph.graph` 的迁移分别处理，不把它们当同一版本轴。
 新旧 canonicalization 并存期间保存协议标识；不得批量重算哈希后宣称旧审核仍然有效。
 在新输出位置完成验证后再切换读取端；写入端同时更新，避免旧写入器继续产生旧格式。
 
 使用 [migrate / migration-import](corpus.zh-CN.md#显式迁移和资产) 将旧格式适配到新目录。
 回退优先固定到已验证的历史快照或 registry revision，必要时恢复整套 store 和对应输入／工具版本。
 若由维护者手工回退 CURRENT，先停止写者并验证目标快照，再按现有 pointer 格式原子替换。
-pointer 包含 `format: qecgraph.current.v1`、目标 `snapshot_id` 和 `path: snapshots/<snapshot_id>`。
+pointer 包含 `format: qecgraph.current`、目标 `snapshot_id` 和 `path: snapshots/<snapshot_id>`。
 不要删除新快照来完成回退；保留故障证据与回退原因。数据库迁移不可逆时恢复备份副本。
 对外记录回退的准确快照；“最新版”不是可复现引用。
 

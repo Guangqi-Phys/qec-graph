@@ -8,8 +8,8 @@ from ..core.transactions import ManagedDataError, immutable_json, writer_lock
 from ..workspace import HEX, Workspace
 from ..workspace_query import WorkspaceSession
 
-REQUEST = 'qecgraph.extraction_request.v1'
-PROPOSAL = 'qecgraph.extraction_proposal.v1'
+REQUEST = 'qecgraph.extraction_request'
+PROPOSAL = 'qecgraph.extraction_proposal'
 SOURCE_KINDS = {'paragraph', 'definition', 'theorem', 'lemma', 'proposition', 'corollary',
                 'table', 'equation', 'figure', 'remark'}
 PROPOSABLE = KINDS - {'paper_version', 'catalog_source', 'software_project', 'software_distribution',

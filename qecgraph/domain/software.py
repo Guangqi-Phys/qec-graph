@@ -6,7 +6,7 @@ from importlib.resources import files
 from ..core.graph import canonical, hash_text, strict_json_loads
 from .research import make_record, ref, validate_bundle
 
-SEED_SCHEMA = 'qecgraph.software_catalog.seed.v1'
+SEED_SCHEMA = 'qecgraph.software_catalog.seed'
 
 
 def adapt_seed(seed):

@@ -14,7 +14,7 @@ from .validators import DOMAIN_FIELDS
 
 def _distance_unknowns(data):
     if data.get('relation') in {'exact', 'lower_bound', 'upper_bound', 'interval'}:
-        for field in ('subject_id', 'presentation_id', 'metric_definition_id', 'sector', 'method', 'assumptions', 'lower_bound', 'upper_bound'):
+        for field in ('subject_id', 'check_matrix_id', 'metric_id', 'sector', 'method', 'assumptions', 'lower_bound', 'upper_bound'):
             data.setdefault(field, None)
         data.setdefault('unknown_reason', 'Legacy distance scope is not fully specified')
 
@@ -46,6 +46,25 @@ def _copy_asset(source_root, out, asset):
     return binding
 
 
+KIND_ALIASES = {'code_instance': 'quantum_code', 'presentation': 'check_matrix'}
+FIELD_ALIASES = {
+    'n_data': 'n', 'k_logical': 'k', 'r_gauge': 'r',
+    'matrix_definition_id': 'metric_id', 'metric_definition_id': 'metric_id',
+    'presentation_id': 'check_matrix_id', 'presentation_ids': 'check_matrix_ids',
+    'input_presentation_id': 'check_matrix_id', 'distance_claim_ids': 'distance_estimate_ids',
+}
+ID_PREFIXES = {'code:': 'quantum_code:', 'presentation:': 'check_matrix:'}
+
+
+def _legacy_id(value):
+    if not isinstance(value, str):
+        return value
+    for old, new in ID_PREFIXES.items():
+        if value.startswith(old):
+            return new + value[len(old):]
+    return value
+
+
 def adapt_legacy_record(record, source_digest, *, source_root=None, out):
     if record.get('schema_version') != '0.1.0':
         raise ValueError('Unsupported legacy record version')
@@ -54,20 +73,23 @@ def adapt_legacy_record(record, source_digest, *, source_root=None, out):
 
     def managed(value):
         if isinstance(value, dict):
-            return {k: managed(v) for k, v in value.items()}
+            return {FIELD_ALIASES.get(k, k): managed(v) for k, v in value.items()}
         if isinstance(value, list):
             return [managed(v) for v in value]
-        return path_map.get(value, value) if isinstance(value, str) else value
+        if isinstance(value, str):
+            return path_map.get(value, _legacy_id(value))
+        return value
 
     data = managed(record['data'])
+    kind = KIND_ALIASES.get(record['kind'], record['kind'])
     # Missing legacy fields remain explicitly unknown, never guessed from names.
-    missing = [field for field in DOMAIN_FIELDS[record['kind']] if field not in data]
+    missing = [field for field in DOMAIN_FIELDS[kind] if field not in data]
     for field in missing:
         data[field] = None
-    unspecified = [field for field in DOMAIN_FIELDS[record['kind']] if data[field] is None]
+    unspecified = [field for field in DOMAIN_FIELDS[kind] if data[field] is None]
     if unspecified:
         data.setdefault('unknown_reason', 'Legacy input does not specify: ' + ', '.join(unspecified))
-    if record['kind'] == 'claim':
+    if kind == 'claim':
         if data['statement'] is None:
             data['statement'] = data.get('statement_latex')
         data.setdefault('hypotheses', None)
@@ -75,10 +97,10 @@ def adapt_legacy_record(record, source_digest, *, source_root=None, out):
         data.setdefault('unknown_reason', 'Legacy record does not explicitly enumerate all quantifiers')
         data.pop('evidence_ids', None)  # v3 stores this once, in the record envelope.
         _distance_unknowns(data)
-    adapted = {'schema_version': RECORD_SCHEMA, 'id': record['id'], 'kind': record['kind'],
+    adapted = {'schema_version': RECORD_SCHEMA, 'id': _legacy_id(record['id']), 'kind': kind,
                'revision': 'legacy-0.1.0-' + source_digest, 'title': record.get('title', record['id']),
                'data': data, 'assets': assets,
-               'refs': [{'relation': 'catalog:' + ref['relation'], 'target': ref['target_id'], 'status': 'declared'}
+               'refs': [{'relation': 'catalog:' + ref['relation'], 'target': _legacy_id(ref['target_id']), 'status': 'declared'}
                         for ref in record.get('refs', [])],
                'evidence_ids': record.get('data', {}).get('evidence_ids', []),
                'provenance': {'method': 'legacy_adapter_v1', 'input_schema': '0.1.0',
@@ -94,7 +116,7 @@ def migrate(source, out, *, source_root=None):
     if out.exists() and any(out.iterdir()):
         raise ValueError('Migration output must be new or empty')
     out.mkdir(parents=True, exist_ok=True)
-    report = {'schema_version': 'qecgraph.migration.v1', 'adapter_version': '1',
+    report = {'schema_version': 'qecgraph.migration', 'adapter_version': '1',
               'source': str(source), 'accepted': [], 'rejected': [], 'id_map': {},
               'semantic_changes': ['Explicit v3 envelope; legacy relations retain catalog: prefix',
                                    'External paths become managed content-addressed asset URIs',
@@ -120,33 +142,7 @@ def migrate(source, out, *, source_root=None):
                     raise ValueError('Duplicate legacy ID in migration input')
                 report['id_map'][record['id']] = {'id': record['id'], 'revision': record['revision'],
                                                 'content_sha256': record['content_sha256']}
-            elif schema == 'qecgraph.record.v2':
-                old = prepare_record(value, allow_legacy=True)
-                record = dict(old)
-                record['schema_version'] = RECORD_SCHEMA
-                record['revision'] = 'strict-v3-' + digest
-                record.pop('content_sha256', None)
-                record['extensions'] = {**record['extensions'], 'pre_validation_record': old}
-                record['review'] = {'status': 'imported'}
-                record['assets'] = [_copy_asset(source_root, out, asset) for asset in old['assets']]
-                record['data'] = dict(record['data'])
-                nested_evidence = record['data'].pop('evidence_ids', None)
-                if nested_evidence is not None:
-                    if record['evidence_ids'] and record['evidence_ids'] != nested_evidence:
-                        raise ValueError('Conflicting legacy evidence_ids owners require explicit resolution')
-                    record['evidence_ids'] = nested_evidence
-                for field in DOMAIN_FIELDS[record['kind']]:
-                    record['data'].setdefault(field, None)
-                record['data'].setdefault('unknown_reason', 'Explicit v2 to v3 migration; unspecified fields remain unknown')
-                if record['kind'] == 'claim':
-                    _distance_unknowns(record['data'])
-                record = prepare_record(record)
-                relative = 'records/' + hash_text(record['id']) + '.json'
-                immutable_json(out / relative, record)
-                item.update({'output_path': relative, 'output_schema': RECORD_SCHEMA, 'id': record['id']})
-                report['id_map'][record['id']] = {'id': record['id'], 'revision': record['revision'],
-                                                'content_sha256': record['content_sha256']}
-            elif schema in {'qecgraph.graph.v1', 'qecgraph.annotations.v1'}:
+            elif schema in {'qecgraph.graph', 'qecgraph.annotations'}:
                 # A syntactic source block remains a source block. All fields,
                 # including unknown extensions and evidence, remain verbatim.
                 relative = 'passthrough/' + digest + '.json'

@@ -1,36 +1,36 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://qec-graph.local/schemas/research.v1.schema.json",
+  "$id": "https://qec-graph.local/schemas/research.schema.json",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "id", "revision", "kind", "data", "field_evidence", "is_synthetic"],
   "properties": {
-    "schema_version": {"const": "qecgraph.research.v1"},
+    "schema_version": {"const": "qecgraph.research"},
     "id": {"type": "string", "minLength": 1},
     "revision": {"type": "string", "minLength": 1},
     "kind": {
       "enum": [
         "algorithm",
         "catalog_source",
-        "circuit_protocol",
-        "classical_seed",
+        "syndrome_measurement_circuit",
+        "classical_code",
         "code_family",
-        "code_instance",
-        "code_mention",
-        "code_presentation",
+        "quantum_code",
+        "code_parameters_mention",
+        "check_matrix",
         "construction",
-        "decoder_configuration",
-        "distance_claim",
+        "decoder",
+        "distance_estimate",
         "execution_environment",
         "execution_run",
-        "hardware_assumptions",
-        "metric_definition",
-        "noise_instantiation",
+        "hardware_model",
+        "metric",
+        "noise_model_instance",
         "noise_model",
         "paper_version",
-        "performance_point",
-        "performance_series",
-        "reported_experiment",
+        "performance_data_point",
+        "performance_curve",
+        "experiment",
         "software_catalog_observation",
         "software_distribution",
         "software_project",
@@ -92,47 +92,47 @@
       "$defs": {
         "algorithm": {},
         "catalog_source": {},
-        "circuit_protocol": {
+        "syndrome_measurement_circuit": {
           "properties": {
-            "presentation_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["code_presentation"]},
+            "check_matrix_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["check_matrix"]},
             "depth_metrics": {"type": ["array", "null"], "items": {"$ref": "#/$defs/depth_metric"}},
             "circuit_asset_ref": {"$ref": "#/$defs/nullable_managed_asset", "x-qec-managed-asset": "single"}
           }
         },
-        "classical_seed": {
+        "classical_code": {
           "properties": {
-            "n_data": {"$ref": "#/$defs/positive_integer"},
+            "n": {"$ref": "#/$defs/positive_integer"},
             "K": {"$ref": "#/$defs/positive_integer"},
-            "k_logical": {"$ref": "#/$defs/nonnegative_integer"},
-            "r_gauge": {"$ref": "#/$defs/nonnegative_integer"}
+            "k": {"$ref": "#/$defs/nonnegative_integer"},
+            "r": {"$ref": "#/$defs/nonnegative_integer"}
           }
         },
         "code_family": {},
-        "code_instance": {
-          "required": ["coding_domain", "n_data", "k_logical"],
+        "quantum_code": {
+          "required": ["code_type", "n", "k"],
           "properties": {
             "construction_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["construction"]},
-            "presentation_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["code_presentation"]},
-            "distance_claim_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["distance_claim"]},
-            "coding_domain": {"enum": ["quantum", null]},
-            "n_data": {"$ref": "#/$defs/positive_integer"},
+            "check_matrix_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["check_matrix"]},
+            "distance_estimate_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["distance_estimate"]},
+            "code_type": {"enum": ["quantum", null]},
+            "n": {"$ref": "#/$defs/positive_integer"},
             "K": {"$ref": "#/$defs/positive_integer"},
-            "k_logical": {"$ref": "#/$defs/nonnegative_integer"},
-            "r_gauge": {"$ref": "#/$defs/nonnegative_integer"}
+            "k": {"$ref": "#/$defs/nonnegative_integer"},
+            "r": {"$ref": "#/$defs/nonnegative_integer"}
           }
         },
-        "code_mention": {
+        "code_parameters_mention": {
           "properties": {
             "source_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["paper_version"]},
-            "code_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["code_instance"]}
+            "code_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["quantum_code"]}
           }
         },
-        "code_presentation": {
-          "required": ["code_ref", "check_weight_metrics"],
+        "check_matrix": {
+          "required": ["code_ref", "check_weight_statistics"],
           "properties": {
-            "code_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["code_instance"]},
+            "code_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["quantum_code"]},
             "construction_recipe_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["construction"]},
-            "check_weight_metrics": {"type": ["array", "null"], "items": {"$ref": "#/$defs/weight_metric"}},
+            "check_weight_statistics": {"type": ["array", "null"], "items": {"$ref": "#/$defs/weight_metric"}},
             "generator_asset_refs": {"$ref": "#/$defs/nullable_managed_assets", "x-qec-managed-asset": "multiple"}
           },
           "allOf": [
@@ -157,7 +157,7 @@
           ]
         },
         "construction": {
-          "properties": {"seed_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["classical_seed"]}},
+          "properties": {"seed_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["classical_code"]}},
           "allOf": [
             {
               "if": {
@@ -171,20 +171,20 @@
             }
           ]
         },
-        "decoder_configuration": {
+        "decoder": {
           "properties": {
             "algorithm_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["algorithm"]},
             "software_usage_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["software_usage"]}
           }
         },
-        "distance_claim": {
-          "required": ["subject_ref", "metric_definition_ref", "relation", "lower_bound", "upper_bound"],
+        "distance_estimate": {
+          "required": ["subject_ref", "metric_ref", "relation", "lower_bound", "upper_bound"],
           "properties": {
             "subject_ref": {
               "$ref": "#/$defs/nullable_ref",
-              "x-qec-target-kinds": ["code_instance", "code_presentation", "circuit_protocol"]
+              "x-qec-target-kinds": ["quantum_code", "check_matrix", "syndrome_measurement_circuit"]
             },
-            "metric_definition_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["metric_definition"]},
+            "metric_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["metric"]},
             "lower_bound": {"$ref": "#/$defs/positive_integer"},
             "upper_bound": {"$ref": "#/$defs/positive_integer"},
             "relation": {"enum": [null, "reported_unspecified", "exact", "lower_bound", "upper_bound", "interval"]}
@@ -217,19 +217,19 @@
         "execution_run": {
           "required": ["environment_ref", "execution_evidence"],
           "properties": {
-            "reported_experiment_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["reported_experiment"]},
+            "experiment_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["experiment"]},
             "environment_ref": {"$ref": "#/$defs/ref", "x-qec-target-kinds": ["execution_environment"]},
             "software_usage_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["software_usage"]},
             "execution_asset_refs": {"$ref": "#/$defs/nullable_managed_assets", "x-qec-managed-asset": "multiple"}
           }
         },
-        "hardware_assumptions": {},
-        "metric_definition": {},
-        "noise_instantiation": {
+        "hardware_model": {},
+        "metric": {},
+        "noise_model_instance": {
           "required": ["model_ref", "reported_coordinates", "resolved_channel_parameters"],
           "properties": {
             "model_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["noise_model"]},
-            "circuit_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["circuit_protocol"]}
+            "circuit_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["syndrome_measurement_circuit"]}
           }
         },
         "noise_model": {
@@ -244,13 +244,13 @@
         "paper_version": {
           "properties": {"asset_refs": {"$ref": "#/$defs/nullable_managed_assets", "x-qec-managed-asset": "multiple"}}
         },
-        "performance_point": {
-          "required": ["experiment_ref", "noise_instantiation_ref", "metric_definition_ref", "value"],
+        "performance_data_point": {
+          "required": ["experiment_ref", "noise_model_instance_ref", "metric_ref", "value"],
           "properties": {
-            "experiment_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["reported_experiment"]},
-            "noise_instantiation_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["noise_instantiation"]},
-            "metric_definition_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["metric_definition"]},
-            "curve_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["performance_series"]},
+            "experiment_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["experiment"]},
+            "noise_model_instance_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["noise_model_instance"]},
+            "metric_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["metric"]},
+            "performance_curve_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["performance_curve"]},
             "value": {"$ref": "#/$defs/rate"},
             "confidence_interval": {"$ref": "#/$defs/confidence_interval"},
             "shots": {"$ref": "#/$defs/nonnegative_integer"},
@@ -258,23 +258,23 @@
             "discards": {"$ref": "#/$defs/nonnegative_integer"}
           }
         },
-        "performance_series": {
+        "performance_curve": {
           "properties": {
-            "experiment_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["reported_experiment"]},
-            "metric_definition_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["metric_definition"]},
+            "experiment_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["experiment"]},
+            "metric_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["metric"]},
             "data_asset_ref": {"$ref": "#/$defs/nullable_managed_asset", "x-qec-managed-asset": "single"}
           }
         },
-        "reported_experiment": {
-          "required": ["source_ref", "code_ref", "presentation_ref", "circuit_ref", "noise_model_ref", "decoder_ref"],
+        "experiment": {
+          "required": ["source_ref", "code_ref", "check_matrix_ref", "circuit_ref", "noise_model_ref", "decoder_ref"],
           "properties": {
             "source_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["paper_version"]},
-            "code_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["code_instance"]},
-            "presentation_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["code_presentation"]},
-            "circuit_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["circuit_protocol"]},
+            "code_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["quantum_code"]},
+            "check_matrix_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["check_matrix"]},
+            "circuit_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["syndrome_measurement_circuit"]},
             "noise_model_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["noise_model"]},
-            "decoder_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["decoder_configuration"]},
-            "hardware_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["hardware_assumptions"]},
+            "decoder_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["decoder"]},
+            "hardware_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["hardware_model"]},
             "software_usage_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["software_usage"]},
             "execution_run_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["execution_run"]}
           }
@@ -297,7 +297,7 @@
             "project_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["software_project"]},
             "release_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["software_release"]},
             "source_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["paper_version"]},
-            "experiment_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["reported_experiment"]},
+            "experiment_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["experiment"]},
             "execution_run_ref": {"$ref": "#/$defs/nullable_ref", "x-qec-target-kinds": ["execution_run"]},
             "usage_kind": {"enum": ["mention", "citation", "source_reported_use", "locally_observed_use"]}
           }
@@ -385,44 +385,44 @@
   },
   "allOf": [
     {
-      "if": {"properties": {"kind": {"const": "circuit_protocol"}}},
-      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/circuit_protocol"}}}
+      "if": {"properties": {"kind": {"const": "syndrome_measurement_circuit"}}},
+      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/syndrome_measurement_circuit"}}}
     },
     {
-      "if": {"properties": {"kind": {"const": "classical_seed"}}},
-      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/classical_seed"}}}
+      "if": {"properties": {"kind": {"const": "classical_code"}}},
+      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/classical_code"}}}
     },
     {
-      "if": {"properties": {"kind": {"const": "code_instance"}}},
-      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/code_instance"}}}
+      "if": {"properties": {"kind": {"const": "quantum_code"}}},
+      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/quantum_code"}}}
     },
     {
-      "if": {"properties": {"kind": {"const": "code_mention"}}},
-      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/code_mention"}}}
+      "if": {"properties": {"kind": {"const": "code_parameters_mention"}}},
+      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/code_parameters_mention"}}}
     },
     {
-      "if": {"properties": {"kind": {"const": "code_presentation"}}},
-      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/code_presentation"}}}
+      "if": {"properties": {"kind": {"const": "check_matrix"}}},
+      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/check_matrix"}}}
     },
     {
       "if": {"properties": {"kind": {"const": "construction"}}},
       "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/construction"}}}
     },
     {
-      "if": {"properties": {"kind": {"const": "decoder_configuration"}}},
-      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/decoder_configuration"}}}
+      "if": {"properties": {"kind": {"const": "decoder"}}},
+      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/decoder"}}}
     },
     {
-      "if": {"properties": {"kind": {"const": "distance_claim"}}},
-      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/distance_claim"}}}
+      "if": {"properties": {"kind": {"const": "distance_estimate"}}},
+      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/distance_estimate"}}}
     },
     {
       "if": {"properties": {"kind": {"const": "execution_run"}}},
       "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/execution_run"}}}
     },
     {
-      "if": {"properties": {"kind": {"const": "noise_instantiation"}}},
-      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/noise_instantiation"}}}
+      "if": {"properties": {"kind": {"const": "noise_model_instance"}}},
+      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/noise_model_instance"}}}
     },
     {
       "if": {"properties": {"kind": {"const": "noise_model"}}},
@@ -433,16 +433,16 @@
       "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/paper_version"}}}
     },
     {
-      "if": {"properties": {"kind": {"const": "performance_point"}}},
-      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/performance_point"}}}
+      "if": {"properties": {"kind": {"const": "performance_data_point"}}},
+      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/performance_data_point"}}}
     },
     {
-      "if": {"properties": {"kind": {"const": "performance_series"}}},
-      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/performance_series"}}}
+      "if": {"properties": {"kind": {"const": "performance_curve"}}},
+      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/performance_curve"}}}
     },
     {
-      "if": {"properties": {"kind": {"const": "reported_experiment"}}},
-      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/reported_experiment"}}}
+      "if": {"properties": {"kind": {"const": "experiment"}}},
+      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/experiment"}}}
     },
     {
       "if": {"properties": {"kind": {"const": "software_catalog_observation"}}},

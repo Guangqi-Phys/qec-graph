@@ -70,7 +70,7 @@ def check_css(hx, hz, lx=None, lz=None, *, enumerate_distance=False, max_n=20):
         raise ValueError('HX and HZ have different qubit column counts')
     bx, bz = basis(x), basis(z)
     commutes = _orthogonal(x, z)
-    result = {'checker': 'qecgraph.binary-css.v1', 'n': n, 'rank_HX_gf2': len(bx), 'rank_HZ_gf2': len(bz),
+    result = {'checker': 'qecgraph.binary-css', 'n': n, 'rank_HX_gf2': len(bx), 'rank_HZ_gf2': len(bz),
               'commutes': commutes, 'passed': commutes, 'k': n - len(bx) - len(bz) if commutes else None,
               'distance': None, 'phase_convention': '+1 binary CSS stabilizers',
               'lean_status': 'not_performed', 'human_review': 'not_performed'}
@@ -127,7 +127,7 @@ def distance_issues(data):
         issues.append('Exact distance needs equal known lower and upper bounds')
     if relation == 'interval' and (lower is None or upper is None or lower > upper):
         issues.append('Distance interval needs ordered known endpoints')
-    for field in ('subject_id', 'presentation_id', 'metric_definition_id', 'sector', 'method', 'assumptions'):
+    for field in ('subject_id', 'check_matrix_id', 'metric_id', 'sector', 'method', 'assumptions'):
         if data.get(field) is None:
             issues.append('Distance claim missing ' + field)
     if data.get('sector') not in {'X', 'Z', 'joint'}:
@@ -149,8 +149,8 @@ def check_experiment(record, metric):
         if definition.get(field) is None:
             raise ValueError('Metric missing ' + field)
     bindings = data.get('input_revisions')
-    if not isinstance(bindings, dict) or not {'code', 'presentation', 'circuit', 'noise', 'decoder', 'metric'} <= bindings.keys():
-        raise ValueError('Experiment must bind code/presentation/circuit/noise/decoder/metric revisions')
+    if not isinstance(bindings, dict) or not {'code', 'check_matrix', 'circuit', 'noise', 'decoder', 'metric'} <= bindings.keys():
+        raise ValueError('Experiment must bind code/check_matrix/circuit/noise/decoder/metric revisions')
     for name, binding in bindings.items():
         if not isinstance(binding, dict) or not all(isinstance(binding.get(k), str) and binding[k].strip()
                                                     for k in ('id', 'revision', 'content_sha256')):
@@ -158,8 +158,8 @@ def check_experiment(record, metric):
         if not re.fullmatch('[0-9a-f]{64}', binding['content_sha256']):
             raise ValueError(f'Experiment {name} binding needs a lowercase SHA-256 digest')
     method = sampling.get('method')
-    result = {'checker': 'qecgraph.experiment.v1', 'sampling_method': method,
-              'metric_definition_id': metric['id'], 'estimate': None, 'lean_status': 'not_performed',
+    result = {'checker': 'qecgraph.experiment', 'sampling_method': method,
+              'metric_id': metric['id'], 'estimate': None, 'lean_status': 'not_performed',
               'input_binding_validation': 'structure_only; resolve referenced inputs separately'}
     if data.get('metric') != metric['id'] or bindings['metric']['id'] != metric['id']:
         raise ValueError('Experiment and metric input IDs disagree')
@@ -214,7 +214,7 @@ def comparable_experiments(first, second, first_metric, second_metric):
     if any(not isinstance(config, dict) or not config or _has_unknown(config) for config in configurations):
         differences.append('configuration_unknown')
     if canonical(first_metric) != canonical(second_metric):
-        differences.append('metric_definition')
+        differences.append('metric')
     if canonical(first['data']['sampling']) != canonical(second['data']['sampling']):
         differences.append('sampling')
     return {'comparable': not differences, 'differences': differences, 'conversion': 'none'}

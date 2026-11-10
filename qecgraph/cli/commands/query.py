@@ -20,7 +20,7 @@ def _workspace_session(args, **budgets):
 
 def research_query(args):
     fields = {
-        'codes': ('n_min', 'n_max', 'distance_at_least', 'metric_definition_id', 'metric_revision',
+        'codes': ('n_min', 'n_max', 'distance_at_least', 'metric_id', 'metric_revision',
                   'evidence_policy', 'sector'),
         'performance': ('code_id', 'decoder_id', 'noise_model_id', 'metric_id', 'complete_only',
                         'coordinate_name', 'coordinate', 'selection'),

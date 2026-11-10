@@ -1,6 +1,6 @@
 # Corpus: registration, identity and queries
 
-> **Status: Current for the legacy corpus surface.** The workspace surface is the primary product; see the [workspace guide](../user/workspace.md).
+> **Status: Current for the corpus surface.** The workspace surface is the primary product; see the [workspace guide](../user/workspace.md).
 
 > **English** · [中文](corpus.zh-CN.md)
 
@@ -52,8 +52,8 @@ qecgraph record-add examples/claim.example.json --corpus build/corpus
 qecgraph claim-link examples/claim-link.example.json --corpus build/corpus
 ```
 
-P1 introduced `qecgraph.record.v2`; new P2 writes use strict
-`qecgraph.record.v3`, with migration described in the [review guide](review.md).
+P1 introduced `qecgraph.record`; new P2 writes use strict
+`qecgraph.record`, with migration described in the [review guide](review.md).
 The author supplies `id` and `revision`; the program fills content hashes and
 protocol fields. The same ID/revision cannot overwrite different content; a new
 revision preserves the old file. Different IDs remain independent even when
@@ -65,8 +65,8 @@ mapping between a source block and an independent claim. Each mapping binds the
 source version, snapshot, exact node and both hashes, claim revision, assumptions
 and notation scope. Many-to-many mappings are allowed; this does not turn a
 source lemma into a claim and does not claim the two statements are equivalent.
-Existing graph.v1 relation meanings are unchanged. Unknown schemas are rejected
-and require an explicit migration; new records do not reinterpret old formats.
+Existing graph relation meanings are unchanged. Unknown schemas are rejected;
+new records do not reinterpret old formats.
 
 ## Fixed-revision queries
 
@@ -102,7 +102,7 @@ records, run source code or promote mathematical evidence.
 ```bash
 qecgraph migrate legacy/knowledge_starter/records --source-root legacy/knowledge_starter --out build/migration
 qecgraph migration-import build/migration --corpus build/corpus
-qecgraph context code:rep3-hgp:13 --corpus build/corpus
+qecgraph context quantum_code:rep3-hgp:13 --corpus build/corpus
 ```
 
 Migration output must be a separate new directory. `migration-report.json`
@@ -115,8 +115,8 @@ Old `0.1.0` records enter the current version through a separate envelope,
 preserving the original ID, all record fields, original evidence categories and
 not-executed status. Old refs use the `catalog:` prefix so they are never
 implicitly promoted to review dependencies. When an old claim does not state a
-quantifier, it becomes null with a reason. `qecgraph.graph.v1` and
-`qecgraph.annotations.v1` use byte-preserving passthrough adapters, preserving
+quantifier, it becomes null with a reason. `qecgraph.graph` and
+`qecgraph.annotations` use byte-preserving passthrough adapters, preserving
 source-block and review-binding meaning; a source theorem is not converted into
 a claim. Use register for cross-document access to a complete store.
 

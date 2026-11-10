@@ -72,10 +72,10 @@ class WatchTests(unittest.TestCase):
 
     def test_external_sidecar_is_tracked_and_cli_once_uses_the_same_pipeline(self):
         annotations = self.root / 'annotations.json'
-        annotations.write_text('{"schema_version":"qecgraph.annotations.v1"}')
+        annotations.write_text('{"schema_version":"qecgraph.annotations"}')
         watcher = self.watcher(debounce=0, annotations_path=annotations)
         first = watcher.poll(0)
-        annotations.write_text(json.dumps({'schema_version': 'qecgraph.annotations.v1', 'annotations': [
+        annotations.write_text(json.dumps({'schema_version': 'qecgraph.annotations', 'annotations': [
             {'target': 'label:a', 'review_status': 'draft', 'data': {'note': 'changed'}}]}))
         second = watcher.poll(1)
         self.assertNotEqual(first['result']['snapshot_id'], second['result']['snapshot_id'])

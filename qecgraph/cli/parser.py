@@ -335,7 +335,7 @@ def _register_commands(add):
     cmd.add_argument('--n-min', type=int, help='Minimum physical qubit count')
     cmd.add_argument('--n-max', type=int, help='Maximum physical qubit count')
     cmd.add_argument('--distance-at-least', type=int, help='Require current evidence for at least this distance')
-    cmd.add_argument('--metric-definition-id', help='Exact metric ID for the distance filter')
+    cmd.add_argument('--metric-id', help='Exact metric ID for the distance filter')
     cmd.add_argument('--metric-revision', help='Exact metric revision for source-reported distance bounds')
     cmd.add_argument('--evidence-policy', choices=['verified', 'source_reported'],
                      help='Distance evidence policy; source_reported requires an exact metric revision (default: verified)')

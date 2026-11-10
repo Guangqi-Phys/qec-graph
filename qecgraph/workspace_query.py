@@ -174,7 +174,7 @@ class WorkspaceSession:
                                'length': _integer(1, 32768)}, ['identifier']),
             'qec_get_source': ({'identifier': _string(4096), 'char_start': _integer(), 'char_end': _integer()}, ['identifier']),
             'qec_find_codes': ({'n_min': _integer(), 'n_max': _integer(), 'distance_at_least': _integer(),
-                                'metric_definition_id': _string(), 'metric_revision': _string(),
+                                'metric_id': _string(), 'metric_revision': _string(),
                                 'evidence_policy': {'enum': ['verified', 'source_reported']},
                                 'sector': {'enum': ['X', 'Z', 'joint']}}, []),
             'qec_find_performance': ({'code_id': _string(), 'decoder_id': _string(), 'noise_model_id': _string(),
@@ -218,7 +218,7 @@ class WorkspaceSession:
         return {'registered': len(materials),
                 'structure_complete': sum(bool(r['processing_completed']) for r in materials),
                 'semantic': 'pending',
-                'code_mention_proposals': sum(x['code_mentions'] for x in self.state.get('generated_research', {}).values()),
+                'code_mention_proposals': sum(x['code_parameters_mentions'] for x in self.state.get('generated_research', {}).values()),
                 'source_version_conflicts': sum(bool(r['source_version_conflict']) for r in materials),
                 'excluded_synthetic': sum(r['is_synthetic'] for r in self.records.values()),
                 'excluded_stale_provider_reviews': sum(r['status'] == 'stale' for r in self.review_states.values())}
@@ -358,14 +358,14 @@ class WorkspaceSession:
 
     def _reported_distance(self, record, args):
         matching = []
-        for binding in record['data'].get('distance_claim_refs') or []:
+        for binding in record['data'].get('distance_estimate_refs') or []:
             claim = self.visible.get(key(binding))
             if not claim:
                 continue
             data = claim['data']
             bound = data['lower_bound']
             if (data.get('subject_ref') != {'id': record['id'], 'revision': record['revision']}
-                    or data.get('metric_definition_ref') != {'id': args['metric_definition_id'], 'revision': args['metric_revision']}
+                    or data.get('metric_ref') != {'id': args['metric_id'], 'revision': args['metric_revision']}
                     or data.get('sector') != args.get('sector', 'joint')
                     or data.get('relation') not in {'exact', 'lower_bound', 'interval'}
                     or bound is None or bound < args['distance_at_least']
@@ -386,31 +386,31 @@ class WorkspaceSession:
         axis = args.get('coordinate_name')
         nearest = {}
         for record in self.visible.values():
-            if record['kind'] != 'performance_point':
+            if record['kind'] != 'performance_data_point':
                 continue
             point = record['data']
             def get(binding):
                 return self.visible.get(key(binding)) if binding else None
 
             experiment = get(point.get('experiment_ref'))
-            noise_instance = get(point.get('noise_instantiation_ref'))
-            metric = get(point.get('metric_definition_ref'))
+            noise_instance = get(point.get('noise_model_instance_ref'))
+            metric = get(point.get('metric_ref'))
             data = experiment['data'] if experiment else {}
             filters = {'code_id': data.get('code_ref'), 'decoder_id': data.get('decoder_ref'),
-                       'noise_model_id': data.get('noise_model_ref'), 'metric_id': point.get('metric_definition_ref')}
+                       'noise_model_id': data.get('noise_model_ref'), 'metric_id': point.get('metric_ref')}
             if any(field in args and (binding or {}).get('id') != args[field] for field, binding in filters.items()):
                 continue
-            bindings = {'code': get(data.get('code_ref')), 'presentation': get(data.get('presentation_ref')),
+            bindings = {'code': get(data.get('code_ref')), 'check_matrix': get(data.get('check_matrix_ref')),
                         'circuit': get(data.get('circuit_ref')), 'noise_model': get(data.get('noise_model_ref')),
                         'decoder': get(data.get('decoder_ref')), 'source': get(data.get('source_ref')),
-                        'metric': metric, 'noise_instantiation': noise_instance, 'experiment': experiment}
+                        'metric': metric, 'noise_model_instance': noise_instance, 'experiment': experiment}
             missing = [name for name, value in bindings.items() if value is None]
             if point['value'] is None:
                 missing.append('value')
             if not noise_instance or noise_instance['data'].get('resolved_channel_parameters') is None:
                 missing.append('resolved_channel_parameters')
             if not metric or any(metric['data'].get(k) is None for k in ('event', 'denominator', 'unit')):
-                missing.append('metric_definition')
+                missing.append('metric')
             if args.get('complete_only') and missing:
                 continue
             row = {'point': record, 'context': bindings, 'unresolved': missing,
@@ -426,8 +426,8 @@ class WorkspaceSession:
                                 'reported': coordinate, 'is_interpolated': False}
             if selection == 'exact' and coordinate == requested:
                 rows.append(row)
-            elif selection == 'nearest_reported' and point.get('curve_ref') and get(point['curve_ref']):
-                curve = key(point['curve_ref'])
+            elif selection == 'nearest_reported' and point.get('performance_curve_ref') and get(point['performance_curve_ref']):
+                curve = key(point['performance_curve_ref'])
                 delta = abs(coordinate - requested)
                 best = nearest.get(curve)
                 if best is None or delta < best[0]:
@@ -539,8 +539,8 @@ class WorkspaceSession:
                 policy = args.pop('evidence_policy', 'verified')
                 if args.get('n_min', 0) > args.get('n_max', 1000000000):
                     raise ToolError('INVALID_ARGUMENT', 'n_min exceeds n_max')
-                if 'distance_at_least' in args and 'metric_definition_id' not in args:
-                    raise ToolError('INVALID_ARGUMENT', 'A distance hard condition needs an exact metric_definition_id')
+                if 'distance_at_least' in args and 'metric_id' not in args:
+                    raise ToolError('INVALID_ARGUMENT', 'A distance hard condition needs an exact metric_id')
                 if 'metric_revision' in args and 'distance_at_least' not in args:
                     raise ToolError('INVALID_ARGUMENT', 'metric_revision requires a distance hard condition')
                 if policy == 'source_reported':
@@ -553,9 +553,9 @@ class WorkspaceSession:
                                    limit=None, evidence_policy='verified', **args)
                 rows = legacy['results']
                 for record in self.visible.values():
-                    if record['kind'] != 'code_instance':
+                    if record['kind'] != 'quantum_code':
                         continue
-                    n = record['data'].get('n_data')
+                    n = record['data'].get('n')
                     if ('n_min' in args and (n is None or n < args['n_min'])) or (
                             'n_max' in args and (n is None or n > args['n_max'])):
                         continue
@@ -565,7 +565,7 @@ class WorkspaceSession:
                         matching = self._reported_distance(record, args)
                         if not matching:
                             continue
-                        rows.append({'record': record, 'distance_claims': matching})
+                        rows.append({'record': record, 'distance_estimates': matching})
                     else:
                         rows.append(record)
                 data = self._paginate(rows, {'offset': offset, 'limit': limit}, limit)

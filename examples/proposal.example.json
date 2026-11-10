@@ -5,7 +5,7 @@
       "expected_revision": null,
       "expected_content_sha256": null,
       "record": {
-        "schema_version": "qecgraph.record.v3",
+        "schema_version": "qecgraph.record",
         "id": "claim:demo:proposal-example",
         "revision": "1",
         "kind": "claim",

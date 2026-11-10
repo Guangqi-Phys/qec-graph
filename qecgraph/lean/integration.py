@@ -24,7 +24,7 @@ def _build_id(raw_report):
 
 
 def _verify_artifacts(report, load):
-    if report.get('schema_version') != 'qecgraph.lean-build.v1' or report.get('status') != 'validated_build':
+    if report.get('schema_version') != 'qecgraph.lean-build' or report.get('status') != 'validated_build':
         raise ValueError('Only an actual validated build/export/audit may be imported; build-only or rejected logs are insufficient')
     if report.get('build_status') != 'build_passed' or report.get('declaration_export') != 'exported' or report.get('axiom_audit') != 'allowed':
         raise ValueError('Build/export/axiom states are incomplete')
@@ -183,7 +183,7 @@ def import_build(corpus, report_path, *, project_id, project=None, mappings=None
                                    refs=refs, assets=record_assets, provenance=common, evidence_ids=[evidence_id]))
         mapping_records = []
         for mapping in mappings or []:
-            if mapping.get('schema_version') != 'qecgraph.lean-mapping.v1':
+            if mapping.get('schema_version') != 'qecgraph.lean-mapping':
                 raise ValueError('Unknown Lean mapping schema')
             claim = registry.record_from_state(state, mapping['claim_id'], mapping['claim_revision'])
             if claim['kind'] != 'claim' or claim['content_sha256'] != mapping['expected_claim_content_sha256']:

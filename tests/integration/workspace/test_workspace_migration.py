@@ -17,7 +17,7 @@ class WorkspaceMigrationTests(unittest.TestCase):
             root = Path(directory)
             legacy = Registry(root / 'corpus')
             cases = (
-                ('code:legacy', 'code_instance', {'parameters': {'n': 13, 'k': 1, 'd': 3}}, 'untyped_distance'),
+                ('code:legacy', 'quantum_code', {'parameters': {'n': 13, 'k': 1, 'd': 3}}, 'untyped_distance'),
                 ('noise:legacy', 'noise', {'idle': False}, 'unbound_negative_idle'),
                 ('decoder:legacy', 'decoder', {'software': 'Decoder name'}, 'unresolved_software_name'),
                 ('circuit:legacy', 'circuit', {'depth': 8}, 'unspecified_depth_definition'),

@@ -31,9 +31,9 @@ served the query, so you can trace a result back to the same data later.
 | Human views | `human/Index.md` and `human/generated/` are derived Obsidian pages. Personal notes live in `human/notes/`. Workspace MCP reads from `machine/`. |
 
 Importing a paper creates the source graph for supported TeX and can generate
-`code_mention` proposals for recognized parameter notation. A proposal carries
+`code_parameters_mention` proposals for recognized parameter notation. A proposal carries
 its source location and any unresolved fields. Structured code parameters,
-distance bounds, experimental conditions, and performance points depend on
+distance bounds, experimental conditions, and performance data points depend on
 explicit records and evidence. Source links preserve what the paper reports.
 Mathematical checks and semantic review carry separate evidence. Lean is
 deferred in 0.4.x; any experimental Lean fixture is not a verification claim.
@@ -42,7 +42,7 @@ deferred in 0.4.x; any experimental Lean fixture is not a verification claim.
 ## Research record types
 
 The code examples use the bundled 13-qubit hypergraph-product (HGP) example
-to illustrate `qecgraph.research.v1` records. The experiment below uses
+to illustrate `qecgraph.research` records. The experiment below uses
 hypothetical settings and counts. [Bundled HGP example](../../examples/paper/sections/hgp.tex)
 
 ### Papers and codes
@@ -50,13 +50,13 @@ hypothetical settings and counts. [Bundled HGP example](../../examples/paper/sec
 | Record kind | Example |
 | --- | --- |
 | `paper_version` | Stores `work_id`, `upstream_version`, and `source_snapshot_id`. An arXiv paper's `v2` and `v3` can have distinct source snapshots under the same work ID. |
-| `code_mention` | In a supported paragraph such as “A CSS quantum code has parameters `[[13,1,3]]`”, import can propose `n_data: 13` and `k_logical: 1`, preserve the full notation and its source span, and leave `code_ref` and `distance_interpretation` unresolved. |
-| `classical_seed` | Describes a classical input, such as the binary length-three repetition code with a `2 × 3` parity-check matrix. |
+| `code_parameters_mention` | In a supported paragraph such as “A CSS quantum code has parameters `[[13,1,3]]`”, import can propose `n: 13` and `k: 1`, preserve the full notation and its source span, and leave `code_ref` and `distance_interpretation` unresolved. |
+| `classical_code` | Describes a classical input, such as the binary length-three repetition code with a `2 × 3` parity-check matrix. |
 | `code_family` | Describes the class of ordinary hypergraph-product codes. A family can contain many instances with different seed choices. |
 | `construction` | Specifies the recipe for building HGP checks from two repetition seeds. A reconstructable `matrix_recipe` includes the field, shape, indexing, bit order, formula, recipe version, and exact seed revisions. |
-| `code_instance` | Identifies the particular quantum code constructed from those seeds, with `n_data: 13`, `k_logical: 1`, and links to its construction, presentations, and distance claims. |
-| `code_presentation` | Records a concrete representation of the instance, such as its `H_X` and `H_Z` check-matrix assets and qubit order. Check-weight statistics specify the check set, sector, and scope, such as X stabilizers. |
-| `distance_claim` | Binds a subject and a metric. For a joint CSS distance of 3, `relation: "exact"` has `lower_bound: 3` and `upper_bound: 3`. A weight-3 logical witness supports `relation: "upper_bound"` with `lower_bound: null`. |
+| `quantum_code` | Identifies the particular quantum code constructed from those seeds, with `n: 13`, `k: 1`, and links to its construction, check-matrix representations, and distance estimates. |
+| `check_matrix` | Records a concrete representation of the instance, such as its `H_X` and `H_Z` check-matrix assets and qubit order. Check-weight statistics specify the check set, sector, and scope, such as X stabilizers. |
+| `distance_estimate` | Binds a subject and a metric. For a joint CSS distance of 3, `relation: "exact"` has `lower_bound: 3` and `upper_bound: 3`. A weight-3 logical witness supports `relation: "upper_bound"` with `lower_bound: null`. |
 
 These records let you follow a paper's notation to a specific instance once
 `code_ref` is resolved, then inspect the matrices and the evidence for its
@@ -66,21 +66,21 @@ distance. The historical HGP example includes a finite enumeration check.
 ### Circuits, experiments, and results
 
 Suppose a paper describes a simulation of that code with three syndrome
-rounds and reports a logical failure rate at `p = 0.005`.
+rounds and reports a logical error rate at `p = 0.005`.
 
 | Record kind | Example |
 | --- | --- |
-| `circuit_protocol` | Links the code presentation to the three-round syndrome circuit, with its circuit asset and boundary conditions when supplied. A depth measurement gives its counting rule and unit, such as `two_qubit_layers` in `layers`. |
+| `syndrome_measurement_circuit` | Links the check-matrix representation to the three-round syndrome circuit, with its circuit asset and boundary conditions when supplied. A depth measurement gives its counting rule and unit, such as `two_qubit_layers` in `layers`. |
 | `noise_model` | Describes where errors occur, such as two-qubit depolarizing noise after each CNOT. It records whether idle errors, loss, erasure, and leakage are included or excluded when the source establishes this. An unresolved channel field stays `null`. |
-| `noise_instantiation` | Binds the model to the circuit and stores `reported_coordinates`, such as `{"p": 0.005}`. Fill `resolved_channel_parameters` when the source establishes what that axis value means for the gates or other channels. |
-| `decoder_configuration` | Binds the decoding algorithm and the settings used for this experiment, such as minimum-weight perfect matching with a specified weighting rule. |
-| `hardware_assumptions` | Records assumptions such as which qubits can interact and whether all CNOTs have the same duration, when the paper specifies them. |
-| `reported_experiment` | Links the paper revision, code, presentation, circuit, noise model, and decoder. An exact link identifies which circuit and decoder the reported result belongs to. |
-| `metric_definition` | Defines the event, denominator, and unit, such as a wrong final logical parity per accepted shot, expressed as a fraction. A per-round rate has its own metric definition. |
-| `performance_series` | Groups points on the same curve, such as logical failure rate versus `p` for the three-round experiment. It links the exact experiment and metric revisions. |
-| `performance_point` | Links the experiment, noise instantiation, metric, and optionally the series. For 20 failures in 10,000 shots with zero discards, the value is `0.002`. In real records, the reported value, counts, and confidence interval each need an exact source locator when supplied. |
+| `noise_model_instance` | Binds the model to the circuit and stores `reported_coordinates`, such as `{"p": 0.005}`. Fill `resolved_channel_parameters` when the source establishes what that axis value means for the gates or other channels. |
+| `decoder` | Binds the decoding algorithm and the settings used for this experiment, such as minimum-weight perfect matching with a specified weighting rule. |
+| `hardware_model` | Records assumptions such as which qubits can interact and whether all CNOTs have the same duration, when the paper specifies them. |
+| `experiment` | Links the paper revision, code, check-matrix representation, circuit, noise model, and decoder. An exact link identifies which circuit and decoder the reported result belongs to. |
+| `metric` | Defines the event, denominator, and unit, such as a wrong final logical parity per accepted shot, expressed as a fraction. A per-round rate has its own metric. |
+| `performance_curve` | Groups performance data points on the same curve, such as logical error rate versus `p` for the three-round experiment. It links the exact experiment and metric revisions. |
+| `performance_data_point` | Links the experiment, noise-model instance, metric, and optionally the performance curve. For 20 failures in 10,000 shots with zero discards, the value is `0.002`. In real records, the reported value, counts, and confidence interval each need an exact source locator when supplied. |
 | `execution_environment` | Describes the environment of an actual run, such as the operating system, CPU architecture, interpreter, and dependency versions. |
-| `execution_run` | Ties a specific execution to its environment and execution evidence, such as a saved log and output hash. A local reproduction can link back to the reported experiment through `reported_experiment_ref`. |
+| `execution_run` | Ties a specific execution to its environment and execution evidence, such as a saved log and output hash. A local reproduction can link back to the reported experiment through `experiment_ref`. |
 
 The synthetic fixture shows how partial data is stored. `demo:noise-point`
 has the axis coordinate but leaves the channel mapping unresolved. The
@@ -91,7 +91,7 @@ failure rate. [Linked synthetic fixture](../../tests/fixtures/performance_contex
 
 | Record kind | Example |
 | --- | --- |
-| `algorithm` | Minimum-weight perfect matching (`MWPM`) identifies the method that a `decoder_configuration` can reference. |
+| `algorithm` | Minimum-weight perfect matching (`MWPM`) identifies the method that a `decoder` can reference. |
 | `software_project` | `software:stim` identifies the Stim project and its repository. |
 | `software_distribution` | The `stim` package in the `pypi` ecosystem links back to the project through `project_ref`. |
 | `software_release` | Stores an exact package version, for example `version: "1.2.3"` when a manifest pins that version. Its `distribution_ref` identifies which package it belongs to. |
@@ -105,7 +105,7 @@ actually used, including the version when available. [Bundled software catalog](
 
 ### Fields, revisions, and evidence
 
-Each `qecgraph.research.v1` record has a `schema_version`, stable `id`, exact
+Each `qecgraph.research` record has a `schema_version`, stable `id`, exact
 `revision`, `kind`, `data`, `field_evidence`, and `is_synthetic` flag. A
 reference such as `{"id": "demo:source", "revision": "r1"}` names the exact
 source revision. Evidence can also specify the source location and the limits
@@ -114,9 +114,9 @@ the fixture supplies the qubit count, and the construction is still unknown.
 
 ```json
 {
-  "data": {"n_data": 13, "construction_ref": null},
+  "data": {"n": 13, "construction_ref": null},
   "field_evidence": {
-    "/data/n_data": {
+    "/data/n": {
       "status": "known",
       "source_ref": {"id": "demo:source", "revision": "r1"},
       "method": "synthetic_fixture"
@@ -132,7 +132,7 @@ requires a dated check of a specified part of the source. `not_applicable`
 and `conflicting` record why the field has no single value. Default workspace
 queries filter synthetic records and stale provider approvals. Proposed or draft
 records remain visible with their `review_status`; they are never treated as verified. Legacy
-`qecgraph.record.v3` records can also carry claims and evidence, plus
+`qecgraph.record` records can also carry claims and evidence, plus
 experimental Lean mapping fields. Lean is deferred and is not part of the
 supported 0.4.x workflow; see [the design note](../design/DESIGN.md#10-lean-deferred-not-supported).
 The research schema lists the supported kinds, the fields that must be present
@@ -145,7 +145,7 @@ QEC Graph checks consistency between related values, that the exact target
 revision is present, that the pointer resolves to the value, and that the
 records agree.
 
-[Research record schema](../../qecgraph/validators/schemas/research.v1.schema.json) · [Legacy record schema](../../qecgraph/validators/schemas/record.v3.schema.json)
+[Research record schema](../../qecgraph/validators/schemas/research.schema.json) · [Legacy record schema](../../qecgraph/validators/schemas/record.schema.json)
 
 ## Search by keyword, source, or structured fields
 
@@ -154,12 +154,12 @@ your MCP client or pass them to `qec-graph query-tool` with JSON arguments.
 
 | Goal | Tools | How to start |
 | --- | --- | --- |
-| Find a term, label, source, or record | `qecgraph_search` | Pass `query` and optionally `kind`, `limit`, and `offset`. The workspace search matches keywords case-insensitively. Use `kind: "code_mention"` to focus on notation proposals. |
+| Find a term, label, source, or record | `qecgraph_search` | Pass `query` and optionally `kind`, `limit`, and `offset`. The workspace search matches keywords case-insensitively. Use `kind: "code_parameters_mention"` to focus on notation proposals. |
 | Read a record and follow its links | `qec_get_entity`, `qec_get_context` | Pass the result's `id` as `identifier`. Supply `revision` to select an exact research record when several revisions are available. |
 | Read the original passage or asset | `qec_get_source`, `qec_get_asset` | Use the registered source occurrence ID or a record's asset ID. Source ranges use half-open Unicode code point offsets. Asset ranges use byte offsets. |
 | Inspect graph nodes and dependencies | `qecgraph_show`, `qecgraph_context`, `qecgraph_deps`, `qecgraph_impact` | Use the graph node ID or a unique label. `deps` follows what a result depends on. `impact` follows what depends on it. Inspect edge status before relying on a candidate or historical link. |
-| Filter code instances | `qec_find_codes` | Use `n_min` or `n_max` to filter code size. For a hard distance bound, specify the metric ID and choose a sector (`joint` by default). The default `verified` policy requires current bound evidence and accepts an exact `metric_revision`. The `source_reported` policy requires `metric_revision` for hard distance filters. |
-| Find performance points | `qec_find_performance` | Filter by `code_id`, `decoder_id`, `noise_model_id`, or `metric_id`. Use `complete_only: true` for points with the required context bound. Coordinate selection supports exact or nearest reported points and returns the actual reported coordinate. |
+| Filter quantum codes | `qec_find_codes` | Use `n_min` or `n_max` to filter code size. For a hard distance bound, specify the metric ID and choose a sector (`joint` by default). The default `verified` policy requires current bound evidence and accepts an exact `metric_revision`. The `source_reported` policy requires `metric_revision` for hard distance filters. |
+| Find performance data points | `qec_find_performance` | Filter by `code_id`, `decoder_id`, `noise_model_id`, or `metric_id`. Use `complete_only: true` for points with the required context bound. Coordinate selection supports exact or nearest reported points and returns the actual reported coordinate. |
 | Find software or an algorithm | `qec_find_software` | Search by `query` or `role`. A project entry describes the catalog. Follow its usage records for evidence that a paper or run used it. |
 | Inspect workspace status | `qec_workspace_status` | Pass `{}` to read the latest recorded operational status alongside the connection's fixed knowledge release. If the operational report is missing or malformed, `operational_status` is `null`; the fixed release and its coverage are still returned. |
 

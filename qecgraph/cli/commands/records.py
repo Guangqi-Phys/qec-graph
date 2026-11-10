@@ -110,7 +110,7 @@ def codes(args):
         raise UsageError('Workspace filters require --workspace or --machine')
     from ...domain.domain_query import codes
     result = codes(args.corpus, registry_revision=args.registry_revision, n_min=args.n_min, n_max=args.n_max,
-                   distance_at_least=args.distance_at_least, metric_definition_id=args.metric_definition_id,
+                   distance_at_least=args.distance_at_least, metric_id=args.metric_id,
                    metric_revision=args.metric_revision, sector=args.sector or 'joint',
                    construction=args.construction, limit=100 if args.limit is None else args.limit,
                    evidence_policy=args.evidence_policy or 'verified')

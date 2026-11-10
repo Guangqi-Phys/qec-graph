@@ -89,7 +89,7 @@ class IncrementalTests(unittest.TestCase):
         graph = read_json(Path(initial['snapshot']) / 'graph.json')
         hashes = {node['id']: node['content_sha256'] for node in graph['nodes']}
         sidecar = self.root / 'sidecar.json'
-        sidecar.write_text(json.dumps({'schema_version': 'qecgraph.annotations.v1', 'edges': [
+        sidecar.write_text(json.dumps({'schema_version': 'qecgraph.annotations', 'edges': [
             {'source': 'label:a', 'target': 'label:b', 'relation': 'depends_on_reviewed',
              'expected_project_source_hash': graph['project_source_hash'],
              'expected_hashes': {graph['labels'][label][0]: hashes[graph['labels'][label][0]] for label in ('a', 'b')}}]}))

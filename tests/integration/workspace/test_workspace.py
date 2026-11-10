@@ -442,8 +442,8 @@ class WorkspaceTests(unittest.TestCase):
         result = self.ws.init()
         self.assertEqual(result['counts']['code_mention_proposals'], 2)
         state, _ = self.ws.registry.read()
-        mentions = [r for r in load_records(self.ws.registry, state) if r['kind'] == 'code_mention']
-        self.assertEqual({r['data']['n_data'] for r in mentions}, {13, None})
+        mentions = [r for r in load_records(self.ws.registry, state) if r['kind'] == 'code_parameters_mention']
+        self.assertEqual({r['data']['n'] for r in mentions}, {13, None})
         self.assertTrue(all(r['data']['code_ref'] is None and r['data']['distance_interpretation'] is None for r in mentions))
         for mention in mentions:
             loc = mention['field_evidence']['/data/reported_notation']['source_locator']
@@ -455,9 +455,9 @@ class WorkspaceTests(unittest.TestCase):
         (self.inbox / 'example').write_bytes(raw)
         self.ws.init()
         state, _ = self.ws.registry.read()
-        row, = [r for r in load_records(self.ws.registry, state) if r['kind'] == 'code_mention']
+        row, = [r for r in load_records(self.ws.registry, state) if r['kind'] == 'code_parameters_mention']
         self.assertEqual(row['data']['K'], 12)
-        self.assertIsNone(row['data']['k_logical'])
+        self.assertIsNone(row['data']['k'])
         self.assertIsNone(row['data']['distance_interpretation'])
 
     def test_candidate_failure_leaves_old_release_and_claim_for_retry(self):

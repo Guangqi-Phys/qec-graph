@@ -125,7 +125,7 @@ class PublicationTests(unittest.TestCase):
         ingest(self.entry, 'publish', self.store)
         owned = self.store / 'snapshots/.building-owned'
         owned.mkdir()
-        (owned / '.qecgraph-building.json').write_text(json.dumps({'format': 'qecgraph.building.v1', 'snapshot_id': 'f' * 64}))
+        (owned / '.qecgraph-building.json').write_text(json.dumps({'format': 'qecgraph.building', 'snapshot_id': 'f' * 64}))
         unrelated = self.store / 'snapshots/.building-user-files'
         unrelated.mkdir()
         (unrelated / 'important.txt').write_text('keep')

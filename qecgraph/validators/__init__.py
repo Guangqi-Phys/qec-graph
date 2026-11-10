@@ -19,7 +19,7 @@ def _packaged_schema(name):
 STATEMENTS = {'lemma', 'theorem', 'proposition', 'corollary', 'conjecture', 'claim'}
 MATHEMATICS = STATEMENTS | {'definition', 'proof', 'equation'}
 DOMAIN_FIELDS = {entry['if']['properties']['kind']['const']: entry['then']['properties']['data']['required']
-                 for entry in _packaged_schema('record.v3')['allOf'] if 'data' not in entry['if']['properties']}
+                 for entry in _packaged_schema('record')['allOf'] if 'data' not in entry['if']['properties']}
 ENDPOINTS = {
     'proof_of': ({'proof'}, STATEMENTS),
     'proof_of_candidate': ({'proof'}, STATEMENTS),
@@ -29,9 +29,9 @@ ENDPOINTS = {
     'formalizes': ({'lean_declaration', 'formalization'}, MATHEMATICS),
     'supports': ({'evidence'}, {'claim'}),
     'contradicts': ({'evidence', 'claim'}, {'claim'}),
-    'has_matrix': ({'code_instance', 'presentation', 'classical_seed'}, {'matrix', 'asset'}),
-    'has_presentation': ({'code_instance'}, {'presentation'}),
-    'uses_circuit': ({'experiment', 'circuit', 'code_instance', 'presentation'}, {'circuit'}),
+    'has_matrix': ({'quantum_code', 'check_matrix', 'classical_code'}, {'matrix', 'asset'}),
+    'has_check_matrix': ({'quantum_code'}, {'check_matrix'}),
+    'uses_circuit': ({'experiment', 'circuit', 'quantum_code', 'check_matrix'}, {'circuit'}),
     'uses_noise': ({'experiment', 'circuit'}, {'noise'}),
     'uses_decoder': ({'experiment'}, {'decoder'}),
     'normalizes_to': (MATHEMATICS | {'paragraph', 'table', 'remark'}, {'claim'}),
@@ -50,13 +50,10 @@ def packaged_validator(name, *, check_formats=True):
 
 
 def validate_record(record):
-    name = 'record.v2' if record['schema_version'] == 'qecgraph.record.v2' else 'record.v3'
-    errors = sorted(packaged_validator(name, check_formats=False).iter_errors(record), key=lambda e: str(list(e.path)))
+    errors = sorted(packaged_validator('record', check_formats=False).iter_errors(record), key=lambda e: str(list(e.path)))
     if errors:
         error = errors[0]
         raise ValueError('Record schema at ' + '/'.join(map(str, error.path)) + ': ' + error.message)
-    if record['schema_version'] == 'qecgraph.record.v2':
-        return
     data = record['data']
     for field in DOMAIN_FIELDS[record['kind']]:
         if data[field] is None and not data.get('unknown_reason'):
@@ -76,7 +73,7 @@ def validate_record(record):
                       if not message.startswith(('Distance claim missing', 'Distance sector'))]
             if errors:
                 raise ValueError('; '.join(errors))
-    if record['kind'] == 'code_instance':
+    if record['kind'] == 'quantum_code':
         parameters = data['parameters']
         n, k = parameters['n'], parameters['k']
         if n is not None and k is not None and k > n:
@@ -116,7 +113,7 @@ def validate_graph_types(graph):
 def registry_issues(registry, records):
     issues = []
     for identifier, record in records.items():
-        if record['schema_version'] != 'qecgraph.record.v3':
+        if record['schema_version'] != 'qecgraph.record':
             issues.append({'code': 'legacy_record_requires_migration', 'record_id': identifier})
             continue
         for asset in record['assets']:
@@ -134,12 +131,12 @@ def registry_issues(registry, records):
             if evidence_id not in records or records[evidence_id]['kind'] != 'evidence':
                 issues.append({'code': 'unresolved_evidence', 'record_id': identifier, 'evidence_id': evidence_id})
         fields = {
-            'code_instance': {'construction_id': {'construction'}, 'presentation_ids': {'presentation'}, 'distance_claim_ids': {'claim'}},
-            'presentation': {'instance_id': {'code_instance'}, 'matrix_definition_id': {'definition'}},
+            'quantum_code': {'construction_id': {'construction'}, 'check_matrix_ids': {'check_matrix'}, 'distance_estimate_ids': {'claim'}},
+            'check_matrix': {'instance_id': {'quantum_code'}, 'matrix_definition_id': {'definition'}},
             'formalization': {'claim_id': {'claim'}},
-            'claim': {'subject_id': {'code_instance', 'presentation', 'circuit', 'family', 'construction',
-                                      'classical_seed'},
-                      'presentation_id': {'presentation'}, 'metric_definition_id': {'definition', 'metric'}},
+            'claim': {'subject_id': {'quantum_code', 'check_matrix', 'circuit', 'family', 'construction',
+                                      'classical_code'},
+                      'check_matrix_id': {'check_matrix'}, 'metric_id': {'definition', 'metric'}},
         }.get(record['kind'], {})
         for field, kinds in fields.items():
             values = record['data'].get(field)

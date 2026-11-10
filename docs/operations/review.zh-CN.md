@@ -1,12 +1,12 @@
 # 类型验证、证据与审核
 
-> **状态：当前，适用于旧 corpus 审核接口。** Workspace review/apply semantics are in the [system design](../design/DESIGN.zh-CN.md#6-审核证据和查询资格).
+> **状态：当前，适用于 corpus 审核接口。** Workspace review/apply semantics are in the [system design](../design/DESIGN.zh-CN.md#6-审核证据和查询资格).
 
 > [English](review.md) · **中文**
 
 ## On this page
 
-- [记录与 Schema 版本](#记录与-schema-版本)
+- [记录与 Schema](#记录与-schema)
 - [验证范围](#验证范围)
 - [数学插件和硬条件](#数学插件和硬条件)
 - [提案和决定](#提案和决定)
@@ -17,18 +17,17 @@
 > Schema/type validation is not mathematical verification. A passed check,
 > a bound distance witness, and a human review are separate evidence states.
 
-## 记录与 Schema 版本
+## 记录与 Schema
 
-P2 新记录使用 `qecgraph.record.v3`。相对 P1 v2，新增逐 kind 必填字段、显式未知原因、
-严格引用和受管理资产结构。权威 Schema 随 Python 包发布于
-[`qecgraph/validators/schemas/`](../../qecgraph/validators/schemas)。仓库根旧的
-`schemas/` 兼容路径已移除，直接使用打包路径。Legacy v3 还包含实验性的 `lean_declaration` kind 与关系字段；Lean 在 0.4.x
-中延期，不属于受支持工作流，也不是验证结论。见[系统设计 §10](../design/DESIGN.zh-CN.md#10-lean延期不支持)。
+记录使用唯一的当前 `qecgraph.record` 格式。权威 Schema 随 Python 包发布于
+[`qecgraph/validators/schemas/`](../../qecgraph/validators/schemas)，直接使用打包路径。
+未知 Schema 被拒绝，绝不用当前字段重新解释。可选的
+`legacy/knowledge_starter` 导入器只是历史样例的一次性开发适配器，不是运行时兼容层；
+新写入始终产生当前格式。
 
-原 v2 记录和历史哈希仍可读取，不就地改写。用 `migrate <旧记录目录> --out <新目录>`
-显式生成新 revision，完整旧对象及旧哈希保存在 `extensions.pre_validation_record`。
-有资产时提供准确的 `--source-root`。迁移把未知字段记为 null 和 unknown_reason，不补造数学值，
-不沿用旧审核。新写入只接受 v3。原 graph.v1、annotations.v1 与 0.1.0 适配继续保留。
+`qecgraph.record` 还包含实验性的 `lean_declaration` kind 与关系字段；Lean 在 0.4.x
+中延期，不属于受支持工作流，也不是验证结论。见
+[系统设计 §10](../design/DESIGN.zh-CN.md#10-lean延期不支持)。
 
 `jsonschema==4.26.0` 从可选验证依赖提升为固定运行依赖，保证所有写入入口执行相同结构验证。
 JSON 输入拒绝重复 key、NaN、Infinity 和溢出为非有限数的十进制指数。
@@ -55,7 +54,7 @@ Corpus 验证还检查悬空引用、修订绑定、受管理资产字节和来�
 
 ```bash
 qecgraph check-css --hx legacy/knowledge_starter/assets/matrices/HX.gf2.json --hz legacy/knowledge_starter/assets/matrices/HZ.gf2.json --lx legacy/knowledge_starter/assets/matrices/LX.gf2.json --lz legacy/knowledge_starter/assets/matrices/LZ.gf2.json --enumerate-distance
-qecgraph codes --corpus build/corpus --n-min 13 --n-max 13 --distance-at-least 3 --metric-definition-id definition:css-distance
+qecgraph codes --corpus build/corpus --n-min 13 --n-max 13 --distance-at-least 3 --metric-id definition:css-distance
 ```
 
 默认 `verified` 策略只接受 computed/certificate 证据；显式选择来源报告界时加上
@@ -65,13 +64,13 @@ qecgraph codes --corpus build/corpus --n-min 13 --n-max 13 --distance-at-least 3
 普通 HGP 示例实际得到 n=13、k=1、dX=dZ=3（validation/review/css-check.json），仍是 Python computed_exact。
 非对易矩阵不会获得 CSS 有效结果。此接口不运行 Lean，不写审核记录。
 
-硬筛选先匹配明确 metric_definition_id 和 sector（joint/X/Z），再检查 exact/lower_bound/interval 的已知下界；
+硬筛选先匹配明确 metric_id 和 sector（joint/X/Z），再检查 exact/lower_bound/interval 的已知下界；
 upper_bound、未知下界、缺失表示或无当前证据都不匹配。Evidence 的 `data.inputs` 必须绑定距离论断、
 实例、表示和度量各自的当前 ID、revision 与内容哈希。相关资产也必须可读且哈希一致。
 已有证据缺少论断绑定时仍可查阅。要在硬筛选中使用，需检查确切论断后登记新证据修订。
 输出保留来源报告、计算、证书等证据类别；Lean 不参与受支持流程。
-旧迁移样例的部分输入绑定和 sector 未说明，故默认不满足此严格筛选；应重新执行并登记准确证据，不能只刷新哈希。
-`evidence_ids` 在 v3 中唯一保存在记录信封；旧 data 中同名字段显式迁移，原值仍在历史对象中。
+历史样例的部分输入绑定和 sector 未说明，故默认不满足此严格筛选；应登记准确证据，不能只刷新哈希。
+`evidence_ids` 唯一保存在记录信封中。
 
 实验插件 `validators.qec.check_experiment(record, metric)` 或 `check-experiment <JSON>`
 验证错误事件、分母、sector、轮数、边界、后选择、超时和输入绑定结构。
@@ -100,7 +99,7 @@ AI/program approve 只产生 machine_accepted，最终记录保持 draft/propose
 人工审核绑定其完整提案和精确最终记录，改变陈述、假设、依赖或 revision 后不能复制旧审核。
 资产缺失或变化、输入 revision/hash 不符、另一个 corpus 或过期 registry 均拒绝决定。
 
-旧 v1 depends_on_reviewed 仍按原关系名和哈希绑定解释；新增领域 refs 无人工绑定时标为 unbound_review，
+`depends_on_reviewed` 按原关系名和哈希绑定解释；领域 refs 无人工绑定时标为 unbound_review，
 不会因 declared 状态或 include-candidates 而进入确认上下文。原始记录仍可 show 供审核。
 
 ## Apply 事务与恢复
@@ -127,7 +126,7 @@ POSIX flock 冲突明确报错，不破坏正在执行的写者。
 
 所有遍历、证明补入、结构补入、最终边集合及注释输出共用同一个状态策略。
 stale/unbound_review/unresolved 始终排除；include-candidates 只增加仍有效的候选。
-v1 depends_on_reviewed 的有效 status 可以是 declared，不错误要求旧数据必须写 reviewed。
+`depends_on_reviewed` 的有效 status 可以是 declared，不错误要求数据必须写 reviewed。
 
 人工决定保持不可变；查询根据其绑定的实际记录、来源和资产派生 review_binding。
 任何已绑定依赖 revision/hash 或资产变化，审核为 stale 并列出具体原因；

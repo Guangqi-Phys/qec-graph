@@ -14,7 +14,7 @@
 | 原子论断/定理 | `subject, predicate, value_or_statement, qualifiers, assumptions, evidence_ids` | 定理、猜想、实验观察、数值界、作者自己的推导 |
 | 码族与构造 | `family_id, construction_id, input_types, formula, conventions` | ordinary HGP、BB、lifted product 等不同构造 |
 | 经典种子 | `field, check_matrix, n, rank, dimension, distance_claims` | 同一经典码的不同校验矩阵；转置码也依赖矩阵表示 |
-| 码实例 | `construction_id, input_revisions, parameters, presentation_ids` | 固定构造输入产生的实例与整个码族 |
+| 码实例 | `construction_id, input_revisions, parameters, check_matrix_ids` | 固定构造输入产生的实例与整个码族 |
 | 校验表示 | `field, H_X, H_Z, signs, qubit_order, check_order, logical_basis` | 同一稳定子空间的不同生成元集合、冗余检查与排序 |
 | 软件实现 | `repository, commit, entrypoint, config, lockfile, image_digest` | 数学对象与生成它的某个程序版本 |
 | SEC 电路 | `presentation_id, circuit_artifact, schedule, ancillas, rounds, observables` | 码距、实际测量电路及其边界条件 |
@@ -89,7 +89,7 @@ d_X=\min\{\operatorname{wt}(e):e\in\ker H_Z\setminus\operatorname{row}H_X\},
 
 `d_Z` 交换 X、Z。零逻辑维数时的距离约定应另行声明。
 
-距离论断至少包含 `metric_definition_id, sector, lower_bound, upper_bound, method, evidence_ids`。找到重量 12 的非平凡逻辑算符，只证明上界 12；未搜索到重量小于 12 的算符，一般不证明下界 12。只有同一实例、同一定义下可靠的上下界相等，才可记录精确值；证据强度仍应保留。论文给出的精确值可登记为“原文声称”，不要自动升级为独立复现。
+距离论断至少包含 `metric_id, sector, lower_bound, upper_bound, method, evidence_ids`。找到重量 12 的非平凡逻辑算符，只证明上界 12；未搜索到重量小于 12 的算符，一般不证明下界 12。只有同一实例、同一定义下可靠的上下界相等，才可记录精确值；证据强度仍应保留。论文给出的精确值可登记为“原文声称”，不要自动升级为独立复现。
 
 上界证据保存具体逻辑算符或 fault witness；下界保存定理适用条件、穷举检查记录或可检查的无解证书。Stim 的启发式搜索与 `shortest_graphlike_error` 有不同保证，图状距离也不可直接冒充一般电路距离。尤其经过分解的 DEM 边需要检查是否能映回真实电路故障。[3]
 
@@ -109,7 +109,7 @@ IID Monte Carlo 保存总样本、保留样本、discard、失败数、停止规
 
 保存 noiseless 电路、带噪电路、生成配置、`.stim`、`.dem`、detector/observable 定义及 DEM 转换选项。DEM 的 detector 与 observable 是不同目标；`^` 标记建议分解，不表示独立物理故障。[6] 保存 `decompose_errors`、`approximate_disjoint_errors` 等设置，因为转换可能引入近似。[7]
 
-电路距离还须注明 admissible fault 集合、故障计数方式、轮数与边界。残余距离、ordered residual profile、DEM-proximity 各有独立 `metric_definition_id`；保存“恰好 r 阶”或“至多 r 阶”、图的邻接定义、半径、锚点、对称性约化依据和搜索截断参数。图局部邻域与物理几何邻域不可共用含糊的 `local` 标签。
+电路距离还须注明 admissible fault 集合、故障计数方式、轮数与边界。残余距离、ordered residual profile、DEM-proximity 各有独立 `metric_id`；保存“恰好 r 阶”或“至多 r 阶”、图的邻接定义、半径、锚点、对称性约化依据和搜索截断参数。图局部邻域与物理几何邻域不可共用含糊的 `local` 标签。
 
 ## 来源
 

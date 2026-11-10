@@ -37,9 +37,9 @@ def main(argv=None):
     marker = out / '.qecgraph-incremental-reproduce.json'
     if out.exists() and any(out.iterdir()) and not marker.exists():
         parser.error('--out must be empty or managed by this script')
-    if marker.exists() and read_json(marker) != {'format': 'qecgraph.incremental-reproduce.v1'}:
+    if marker.exists() and read_json(marker) != {'format': 'qecgraph.incremental-reproduce'}:
         parser.error('Incompatible output marker')
-    atomic_json(marker, {'format': 'qecgraph.incremental-reproduce.v1'})
+    atomic_json(marker, {'format': 'qecgraph.incremental-reproduce'})
     run = out / ('run-' + str(uuid.uuid4()))
     paper = run / 'input'
     paper.mkdir(parents=True)
@@ -53,7 +53,7 @@ def main(argv=None):
     asset = paper / 'figure.svg'
     asset.write_text('<svg>asset-A</svg>', encoding='utf-8')
     full, incremental = run / 'full', run / 'incremental'
-    report = {'format': 'qecgraph.incremental-reproduction.v1', 'status': 'running',
+    report = {'format': 'qecgraph.incremental-reproduction', 'status': 'running',
               'command': [sys.executable, str(Path(__file__).resolve()), *sys.argv[1:]],
               'script_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
               'runtime': {'python': platform.python_version(), 'platform': platform.platform(),
@@ -115,7 +115,7 @@ def main(argv=None):
         report['recovery']['rebuild_snapshot_id'] = rebuilt['snapshot_id']
         abandoned = backup_store / 'snapshots/.building-recovery-demo'
         abandoned.mkdir()
-        atomic_json(abandoned / '.qecgraph-building.json', {'format': 'qecgraph.building.v1', 'snapshot_id': '0' * 64})
+        atomic_json(abandoned / '.qecgraph-building.json', {'format': 'qecgraph.building', 'snapshot_id': '0' * 64})
         report['recovery']['abandoned_cleanup'] = recover_store(backup_store, remove_abandoned=True)
         if abandoned.exists():
             raise RuntimeError('Owned abandoned build was not cleaned')

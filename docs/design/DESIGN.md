@@ -47,7 +47,7 @@ QEC Graph turns LaTeX papers and explicit QEC research records into a provenance
 
 1. Where exactly was a statement, definition, proof, table, or parameter written?
 2. What does the source claim, what is explicitly recorded, what was reviewed, and what was computed?
-3. Which codes, presentations, circuits, noise models, decoders, experiments, and software versions are connected to a result?
+3. Which codes, check-matrix representations, circuits, noise models, decoders, experiments, and software versions are connected to a result?
 4. What can be handed to a read-only agent without silently turning candidates, upper bounds, or author claims into facts?
 
 **It is not:**
@@ -58,7 +58,7 @@ QEC Graph turns LaTeX papers and explicit QEC research records into a provenance
 - a multi-writer or distributed database; or
 - a service that executes source code, TeX, or Lean on read.
 
-The executable scope is the Python package, CLI, local MCP server, Obsidian renderer, and the legacy store/corpus compatibility layer. Lean code and fixtures exist only as deferred experimental material and are not part of the supported 0.4.x workflow.
+The executable scope is the Python package, CLI, local MCP server, Obsidian renderer, and the store/corpus surfaces. Lean code and fixtures exist only as deferred experimental material and are not part of the supported 0.4.x workflow.
 
 ---
 
@@ -70,7 +70,7 @@ The executable scope is the Python package, CLI, local MCP server, Obsidian rend
 flowchart LR
     Inputs["inputs/ source packages"] --> Archive["archive/ bytes + receipts"]
     Archive --> Extract["LaTeX extraction + source registry"]
-    Extract --> Records["research.v1 records + evidence"]
+    Extract --> Records["research records + evidence"]
     Records --> Validate["candidate release validation"]
     Validate --> Machine["machine/ immutable release"]
     Machine --> CLI["CLI query"]
@@ -88,8 +88,8 @@ Three storage/query generations exist, deliberately:
 | Surface | Purpose | Status |
 |---|---|---|
 | **Workspace** (`qecgraph/workspace.py`, `machine/`, `archive/`) | Primary product: source packages, research records, human view, workspace MCP | Current |
-| **Corpus** (`qecgraph/registry.py`, `corpus.py`) | Multi-document identity, review/apply, corpus queries, legacy MCP | Supported compatibility surface |
-| **Store** (`qecgraph/store.py`, `query.py`) | Single-paper immutable extraction snapshot and SQLite/FTS5 queries | Supported compatibility surface |
+| **Corpus** (`qecgraph/registry.py`, `corpus.py`) | Multi-document identity, review/apply, corpus queries, corpus MCP | Supported corpus surface |
+| **Store** (`qecgraph/store.py`, `query.py`) | Single-paper immutable extraction snapshot and SQLite/FTS5 queries | Supported store surface |
 
 New work should target the workspace surface. Store and corpus remain available for existing commands, migrations, Lean imports, and tests. When a feature exists in more than one surface, the workspace implementation defines current semantics; the older surfaces must not silently diverge on evidence or state filtering.
 
@@ -135,7 +135,7 @@ the documented module entry points.
 | Layer | Authoritative content | May be edited? | Rebuildable? |
 |---|---|---|---|
 | Raw assets | Original paper/TeX packages, PDFs, matrices, certificates, Lean source at a fixed commit | No (append a new version) | No |
-| Human records | `research.v1` JSON, review bindings, explicit relations, assets manifest | Yes, through explicit records/transactions | No |
+| Human records | `research` JSON, review bindings, explicit relations, assets manifest | Yes, through explicit records/transactions | No |
 | Execution evidence | Build logs, exports, computed checks, run outputs | No after publication | No |
 | Query projections | `graph.json`, views, SQLite/FTS5, human pages | No | Yes |
 
@@ -181,7 +181,7 @@ Store and corpus have their own managed roots. Do not merge their pointer format
 | `snapshot_id` / `release_id` | One extraction or publication state | paper version |
 | asset ID | Content-addressed managed bytes | source file path |
 
-Duplicate labels are ambiguous and must be resolved with an exact ID. Missing records do not prove that an object does not exist. `[n,k,d]` equality does not prove code identity; construction, presentation, logical basis, and evidence stay separate.
+Duplicate labels are ambiguous and must be resolved with an exact ID. Missing records do not prove that an object does not exist. `[n,k,d]` equality does not prove code identity; construction, check-matrix representation, logical basis, and evidence stay separate.
 
 ---
 
@@ -191,19 +191,18 @@ Duplicate labels are ambiguous and must be resolved with an exact ID. Missing re
 
 | Schema | Use | Location |
 |---|---|---|
-| `qecgraph.research.v1` | Current workspace research records (26 kinds, 41 typed relations) | `qecgraph/validators/schemas/research.v1.schema.json` |
-| `qecgraph.record.v3` | Legacy corpus records, still readable and migrated explicitly | `qecgraph/validators/schemas/record.v3.schema.json` |
-| `qecgraph.record.v2` | Older legacy records, read-only compatibility | packaged schema |
-| `qecgraph.graph.v1` | Extraction graph and three views | `qecgraph/validators/schemas/graph.schema.json` |
-| `qecgraph.annotations.v1` | Human/AI additions to an extraction store | packaged schema |
-| `proposal.v1`, `review.v1` | Review envelopes | packaged schemas |
-| `lean-export.v1` | Experimental/deferred Lean export envelope | packaged schema |
+| `qecgraph.research` | Current workspace research records (26 kinds, 41 typed relations) | `qecgraph/validators/schemas/research.schema.json` |
+| `qecgraph.record` | Corpus records (current format) | `qecgraph/validators/schemas/record.schema.json` |
+| `qecgraph.graph` | Extraction graph and three views | `qecgraph/validators/schemas/graph.schema.json` |
+| `qecgraph.annotations` | Human/AI additions to an extraction store | packaged schema |
+| `qecgraph.proposal`, `qecgraph.review` | Review envelopes | packaged schemas |
+| `qecgraph.lean-export` | Experimental/deferred Lean export envelope | packaged schema |
 
-Unknown schema versions are rejected or preserved as opaque historical input; never reinterpret them with the latest fields. Package version and data-schema version move independently. The canonical schemas are packaged resources; do not create a second editable copy at the repository root.
+Unknown schemas are rejected; no older format is reinterpreted with the current fields. Package version and data format move independently. The canonical schemas are packaged resources; do not create a second editable copy at the repository root.
 
 ### 4.2 Research record envelope
 
-A `research.v1` record carries:
+A `research` record carries:
 
 - `schema_version`, `id`, `revision`, `kind`, `is_synthetic`;
 - `data` with kind-specific fields;
@@ -225,31 +224,31 @@ The domain model is intentionally split; these are not interchangeable:
 
 | Concept | Distinction |
 |---|---|
-| `code_family` / `construction` / `code_instance` | A family or construction rule is not a concrete `[n,k,d]` instance |
-| `classical_seed` | A classical code/seed is not the quantum code derived from it |
-| `code_presentation` | A stabilizer space and a particular check matrix/generator set are different objects |
-| `distance_claim` | Subject, presentation, metric, sector, direction, assumptions, method, conditions, evidence |
-| `circuit_protocol` | Circuit distance and code distance are different; depth must state its counting definition |
-| `noise_model` / `noise_instantiation` | A channel model template is not a resolved probability point |
-| `decoder_configuration` | Algorithm, software/release, parameters, and version are distinct |
-| `reported_experiment` | A paper-reported result is not an `execution_run` performed locally |
-| `performance_series` / `performance_point` | A point belongs to one experiment/curve/metric revision; no cross-experiment ranking |
-| `hardware_assumptions` / `execution_environment` | Hardware claims and simulation CPU/GPU environments are separate |
+| `code_family` / `construction` / `quantum_code` | A family or construction rule is not a concrete `[n,k,d]` instance |
+| `classical_code` | A classical code/seed is not the quantum code derived from it |
+| `check_matrix` | A stabilizer space and a particular check matrix/generator set are different objects |
+| `distance_estimate` | Subject, check-matrix representation, metric, sector, direction, assumptions, method, conditions, evidence |
+| `syndrome_measurement_circuit` | Circuit distance and code distance are different; depth must state its counting definition |
+| `noise_model` / `noise_model_instance` | A channel model template is not a resolved probability point |
+| `decoder` | Algorithm, software/release, parameters, and version are distinct |
+| `experiment` | A paper-reported result is not an `execution_run` performed locally |
+| `performance_curve` / `performance_data_point` | A point belongs to one experiment/curve/metric revision; no cross-experiment ranking |
+| `hardware_model` / `execution_environment` | Hardware claims and simulation CPU/GPU environments are separate |
 | `software_usage` | Mention, citation, source-reported use, and locally observed use are different evidence levels |
 | `catalog_source` | A software catalog entry is not an installed/tested release |
 
 Required minimums include:
 
-- `code_instance`: coding domain and `n`/`k` (or explicit unknown reason), construction reference, presentations.
-- `code_presentation`: parent code, check matrices/assets, index/bit-order conventions, reconstruction status.
-- `distance_claim`: exact subject/metric/sector, relation (`exact`/`lower_bound`/`upper_bound`/`interval`), bounds, assumptions, method, evidence.
-- `circuit_protocol`: representation, scheduling, ancillas, rounds, boundaries, observables; depth metrics with explicit units/definitions.
+- `quantum_code`: code type and `n`/`k` (or explicit unknown reason), construction reference, check-matrix representations.
+- `check_matrix`: parent code, check matrices/assets, index/bit-order conventions, reconstruction status.
+- `distance_estimate`: exact subject/metric/sector, relation (`exact`/`lower_bound`/`upper_bound`/`interval`), bounds, assumptions, method, evidence.
+- `syndrome_measurement_circuit`: representation, scheduling, ancillas, rounds, boundaries, observables; depth metrics with explicit units/definitions.
 - `noise_model`: channels, locations, probability parameters, temporal/spatial correlations, boundaries; idle/loss/erasure/leakage are separate and `unknown` when unevidenced.
-- `reported_experiment`: exact code/presentation/circuit/noise instance/decoder/metric/source revisions.
-- `performance_point`: experiment, noise instantiation, metric, value, coordinates, shots/discards/uncertainty, selection policy; no interpolation across curves.
+- `experiment`: exact code/check-matrix representation/circuit/noise-model instance/decoder/metric/source revisions.
+- `performance_data_point`: experiment, noise-model instance, metric, value, coordinates, shots/discards/uncertainty, selection policy; no interpolation across curves.
 - `software_usage`: usage kind, project, release (or explicit unknown), and source/experiment binding.
 
-Check weight always binds to the actual presentation and check set, including sector (`X`/`Z`/`mixed`), scope (`stabilizer`/`gauge`/`measured`), and min/max/mean/histogram. In a symplectic representation, a `Y` contributes one support position.
+Check weight always binds to the actual check-matrix representation and check set, including sector (`X`/`Z`/`mixed`), scope (`stabilizer`/`gauge`/`measured`), and min/max/mean/histogram. In a symplectic representation, a `Y` contributes one support position.
 
 ### 4.4 Relations and edge states
 
@@ -258,7 +257,7 @@ The canonical relation registry is `qecgraph.research.RELATIONS` / graph validat
 - structural: `contains`, `defined_in`, `includes`, `uses_resource`;
 - textual: `references`, `cites`, `describes`;
 - mathematical: `depends_on_declared`, `depends_on_candidate`, `depends_on_reviewed`, `proof_of`, `proof_of_candidate`, `normalizes_to`;
-- data: `has_presentation`, `has_matrix`, `instance_of`, `generated_by`;
+- data: `has_check_matrix`, `has_matrix`, `instance_of`, `generated_by`;
 - experiments: `uses_circuit`, `uses_noise`, `uses_decoder`, `reports`, `supports`, `contradicts`;
 - Lean: `formalizes`, `maps_declaration`, `maps_source_occurrence`, `has_build_evidence`, `lean_type_depends_on`, `lean_proof_depends_on` (and transitive variants);
 - catalogs: `catalog:*` preserve imported meaning; they do not become proof edges.
@@ -305,7 +304,7 @@ A parser theorem/lemma is a **source block**: what the document says at a fixed 
 
 ### 5.3 Rules and provider proposals
 
-The offline extractor performs two passes: locate notation/structures, then apply local wording/column rules. It produces `code_mention` proposals with exact locators and a rule version; it does not promote a table parameter into a verified code instance, infer a distance bound, or guess code class from bracket shape.
+The offline extractor performs two passes: locate notation/structures, then apply local wording/column rules. It produces `code_parameters_mention` proposals with exact locators and a rule version; it does not promote a table parameter into a verified quantum code, infer a distance bound, or guess code class from bracket shape.
 
 An optional local provider handoff exports bounded source excerpts, validates the provider/model/prompt hash and cited spans, and queues a draft. It never calls an external model automatically and never approves its own draft. A human decision binds the exact draft and source projection; changed inputs make the decision stale.
 
@@ -315,11 +314,11 @@ An optional local provider handoff exports bounded source excerpts, validates th
 
 A review decision is an object with actor/kind, time, scope, rationale, decision, and exact input bindings (record IDs/revisions/content hashes, source versions, assets, proposal). Bindings cover the changed records and their explicit reference closure; an unrelated record revision does not invalidate a decision, while a changed dependency does. `apply` publishes a new revision atomically after checking those bindings; repeated application is idempotent. A review does not become true because a test passed, and a schema pass does not become mathematical verification.
 
-A `claim.subject_id` must resolve to a registered subject. A dangling subject is a validation error; a wrong subject kind (for a distance claim, not a code instance, presentation, circuit, family, construction or classical seed) is a warning rather than silent disappearance.
+A `claim.subject_id` must resolve to a registered subject. A dangling subject is a validation error; a wrong subject kind (for a distance estimate, not a quantum code, check-matrix representation, circuit, family, construction or classical code) is a warning rather than silent disappearance.
 
 Evidence policy:
 
-- Hard distance filters require an exact subject/presentation/metric/sector, a qualifying relation (`exact`, `lower_bound`, `interval`), sufficient lower bound, and current evidence bound to the claim's exact revisions.
+- Hard distance filters require an exact subject/check-matrix representation/metric/sector, a qualifying relation (`exact`, `lower_bound`, `interval`), sufficient lower bound, and current evidence bound to the claim's exact revisions.
 - An upper bound alone never satisfies `distance >= d`.
 - Source-reported results are selected only in an explicit policy; they are not silently treated as mathematically verified.
 - An `execution_run` may support a locally performed result; it does not overwrite a paper-reported value.
@@ -398,7 +397,7 @@ Human output is concise and stateful: workspace/release, indexed/pending/failed/
 ### 8.3 MCP
 
 - Local stdio, protocol `2025-06-18`; stdout carries only JSON-RPC, logs go to stderr.
-- Store/corpus sessions expose the five legacy `qecgraph_*` read tools.
+- Store/corpus sessions expose the five `qecgraph_*` read tools.
 - Workspace sessions add research/source tools and `qec://source/...` resources, plus status/coverage projections.
 - A session is pinned to one fixed release; tool arguments cannot pass arbitrary paths/SQL/shell or change scope.
 - Budgets: depth/nodes/results/characters; truncated results state omitted content; a too-small budget returns an explicit error rather than a partial root statement.
@@ -498,10 +497,10 @@ Mapping summary:
 | G05 | An inactive input edge cannot be revived by promotion or query. |
 | G06 | Resource hashes are fixed before review matching; content changes stale the review. |
 | G07 | `\leanok`/`formalizes` never produce Lean-verified or semantic-equivalence status. |
-| G08 | A table parameter is not promoted to a verified code instance by extraction. |
+| G08 | A table parameter is not promoted to a verified quantum code by extraction. |
 | G09 | Rebuilding the same input/tool state is idempotent and does not modify source bytes. |
 | G10 | Graph, views and SQLite point to the same snapshot; all edges have valid endpoints. |
-| G11 | Explicit data relations can expand matrix/presentation/metric/evidence context. |
+| G11 | Explicit data relations can expand matrix, check-matrix, metric and evidence context. |
 | G12 | Partial extraction, truncation, unresolved targets and stale reviews are observable. |
 | G13 | A failed publication leaves the previous release readable and inputs recoverable. |
 | G14 | `human/notes/` is never read or overwritten by generation/query/MCP. |
@@ -511,7 +510,7 @@ Mapping summary:
 
 - A proof mentions a background theorem without a declared dependency: keep `references`; only candidate edges.
 - A duplicate label: return ambiguity; require an exact ID.
-- A distance claim has only an upper bound: it must not satisfy a lower-bound filter.
+- A distance estimate has only an upper bound: it must not satisfy a lower-bound filter.
 - A source/asset/review input changes: mark stale, preserve old evidence, exclude from default answers.
 - An archive contains traversal, links, special files, a forged ZIP count or an unsupported member: reject before materialization.
 - A package is permanently unsupported: retain it, report it, and allow quarantine; never delete it or fake an extraction.
@@ -564,7 +563,7 @@ These are limits of the current release, not permission to fill gaps with plausi
 | **D5 — Lean is deferred** | No supported verification claim in 0.4.x. Experimental fixtures remain for regression; a new design is required before implementation, and read paths never execute Lean. |
 | **D6 — CodeGraph is reference only** | Architecture comparison, no copied code, no imported performance claims; attribution retained. |
 | **D7 — Compatibility over a rewrite** | Store/corpus remain supported; workspace is current; migrations are explicit and non-destructive. |
-| **D8 — Schema ownership is singular** | Packaged schemas are canonical; root copies are compatibility artifacts checked for equality; unknown versions are not reinterpreted. |
+| **D8 — Schema ownership is singular** | Packaged schemas are canonical; unknown schemas are rejected, not reinterpreted. |
 
 ## Appendix B — Primary references
 

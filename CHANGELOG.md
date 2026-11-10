@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Breaking (development stage):** all schema identifiers are unversioned
+  (`qecgraph.research`, `qecgraph.record`, `qecgraph.graph`, `qecgraph.annotations`,
+  `qecgraph.proposal`, `qecgraph.review`, `qecgraph.lean-export`, filesystem
+  formats and tool reports). No `.v1`/`.v2`/`.v3` suffix is written or accepted.
+- **Breaking:** the old `record.v2` reader, schema and migration branch are removed;
+  only the current record format is read. Old human-view histories and page
+  migration are no longer supported.
+- Research kinds and fields now use standard QEC terms: `quantum_code`,
+  `check_matrix`, `syndrome_measurement_circuit`, `noise_model_instance`,
+  `performance_curve`, `performance_data_point`, `distance_estimate`,
+  `classical_code`, `metric`, `decoder`, `hardware_model`, `code_type`, and
+  `n`/`k`/`r`.
 - Distance query rows now expose the claim and evidence `review_status`; proposed
   research records stay visible but are never presented as verified.
 - Workspace migration reserves the destination name with an atomic `mkdir` before

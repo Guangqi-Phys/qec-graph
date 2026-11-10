@@ -42,14 +42,14 @@ def main(argv=None) -> int:
     marker = out / ".qecgraph-reproduce.json"
     if out.exists() and (not out.is_dir() or (any(out.iterdir()) and not marker.exists())):
         parser.error("--out must be empty or a previously managed reproduce directory")
-    if marker.exists() and json.loads(marker.read_text(encoding="utf-8")) != {"format": "qecgraph.reproduce.v1"}:
+    if marker.exists() and json.loads(marker.read_text(encoding="utf-8")) != {"format": "qecgraph.reproduce"}:
         parser.error("Incompatible reproduce output marker")
     out.mkdir(parents=True, exist_ok=True)
-    write_json(marker, {"format": "qecgraph.reproduce.v1"})
+    write_json(marker, {"format": "qecgraph.reproduce"})
     environment = dict(os.environ)
     environment["PYTHONPATH"] = str(ROOT) + os.pathsep + environment.get("PYTHONPATH", "")
     report = {
-        "format": "qecgraph.reproduction.v1",
+        "format": "qecgraph.reproduction",
         "started_at": datetime.now(timezone.utc).isoformat(),
         "status": "running",
         "runtime": {"python": platform.python_version(), "platform": platform.platform(),
@@ -119,10 +119,10 @@ def main(argv=None) -> int:
                                         "--catalog", "legacy/knowledge_starter/records",
                                         "--annotations", "examples/catalog-links.example.json"])
         run("catalog_validate", ["-m", "qecgraph", "validate", "--store", str(catalog_store)])
-        data = run("catalog_context", ["-m", "qecgraph", "context", "code:rep3-hgp:13", "--store", str(catalog_store)])
-        required = {"code:rep3-hgp:13", "presentation:rep3-hgp:standard", "claim:rep3-hgp:distance"}
+        data = run("catalog_context", ["-m", "qecgraph", "context", "quantum_code:rep3-hgp:13", "--store", str(catalog_store)])
+        required = {"quantum_code:rep3-hgp:13", "check_matrix:rep3-hgp:standard", "claim:rep3-hgp:distance"}
         if not required <= {node["id"] for node in data["nodes"]}:
-            raise RuntimeError("Catalog context did not retain instance/presentation/distance separation")
+            raise RuntimeError("Catalog context did not retain instance/check_matrix/distance separation")
 
         verify_args = ["legacy/knowledge_starter/tools/qec_kb.py", "verify"]
         if has_schema:

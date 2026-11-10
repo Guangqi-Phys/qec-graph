@@ -177,7 +177,7 @@ def logical_minimum(n, opposite_checks, same_stabilizers):
 
 
 def verify_demo(records):
-    presentation = records["presentation:rep3-hgp:standard"]["data"]
+    presentation = records["check_matrix:rep3-hgp:standard"]["data"]
     mats = {key: matrix(local_path(path)) for key, path in presentation["matrices"].items()}
     h1, h2 = mats["H1"], mats["H2"]
     m1, n1, m2, n2 = len(h1), len(h1[0]), len(h2), len(h2[0])
@@ -200,7 +200,7 @@ def verify_demo(records):
     if parity(lx[0], lz[0]) != 1 or lx[0] in row_space(xr) or lz[0] in row_space(zr):
         raise ValueError("Logical pair fails independence/pairing check")
     result = {
-        "instance_id": "code:rep3-hgp:13", "n": n, "k": n - rank_x - rank_z,
+        "instance_id": "quantum_code:rep3-hgp:13", "n": n, "k": n - rank_x - rank_z,
         "rank_HX_gf2": rank_x, "rank_HZ_gf2": rank_z,
         "HX_HZ_transpose_zero": True, "dX": dx, "dZ": dz,
         "X_distance_witness_support": wx, "Z_distance_witness_support": wz,
@@ -208,7 +208,7 @@ def verify_demo(records):
         "logical_pairing_identity": True, "vectors_in_search_space": 1 << n,
         "method": "exhaustive_binary_enumeration", "formalization_status": "not_started"
     }
-    parameters = records["code:rep3-hgp:13"]["data"]["parameters"]
+    parameters = records["quantum_code:rep3-hgp:13"]["data"]["parameters"]
     claim = records["claim:rep3-hgp:distance"]["data"]
     if (parameters["n"], parameters["k"]) != (result["n"], result["k"]):
         raise ValueError("Stored code parameters disagree with computation")
@@ -262,11 +262,11 @@ def build_index(records):
         for entity in records.values():
             con.executemany("INSERT INTO edges VALUES (?, ?, ?)",
                             [(entity["id"], x["relation"], x["target_id"]) for x in entity["refs"]])
-        code = records["code:rep3-hgp:13"]["data"]
+        code = records["quantum_code:rep3-hgp:13"]["data"]
         claim = records["claim:rep3-hgp:distance"]["data"]
         construction = records[code["construction_id"]]["data"]
         con.execute("INSERT INTO code_parameters VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    ("code:rep3-hgp:13", construction["construction_kind"], code["parameters"]["n"],
+                    ("quantum_code:rep3-hgp:13", construction["construction_kind"], code["parameters"]["n"],
                      code["parameters"]["k"], claim["lower_bound"], claim["upper_bound"],
                      claim["verification_level"], claim["evidence_ids"][0]))
         con.execute("INSERT INTO metadata VALUES ('input_fingerprint', ?)", (fingerprint(),))

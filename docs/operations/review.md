@@ -1,12 +1,12 @@
 # Type validation, evidence and review
 
-> **Status: Current for the legacy corpus review surface.** Workspace review/apply semantics are in the [system design](../design/DESIGN.md#6-review-evidence-and-query-eligibility).
+> **Status: Current for the corpus review surface.** Workspace review/apply semantics are in the [system design](../design/DESIGN.md#6-review-evidence-and-query-eligibility).
 
 > **English** · [中文](review.zh-CN.md)
 
 ## On this page
 
-- [Records and schema versions](#records-and-schema-versions)
+- [Records and schema versions](#records-and-schema)
 - [Validation scope](#validation-scope)
 - [Math plugins and hard conditions](#math-plugins-and-hard-conditions)
 - [Proposals and decisions](#proposals-and-decisions)
@@ -17,25 +17,20 @@
 > Schema/type validation is not mathematical verification. A passed check,
 > a bound distance witness, and a human review are separate evidence states.
 
-## Records and schema versions
+## Records and schema
 
-New P2 records use `qecgraph.record.v3`. Relative to P1 v2, it adds per-kind
-required fields, explicit unknown reasons, strict references and a managed asset
-structure. The authoritative schemas ship with the Python package under
-[`qecgraph/validators/schemas/`](../../qecgraph/validators/schemas). The old
-repository-root `schemas/` compatibility path has been removed; use the packaged
-path directly. Legacy v3 also
-contains an experimental `lean_declaration` kind and relation fields; Lean is
-deferred in 0.4.x, is not part of the supported workflow and is not a
-verification conclusion. See [system design §10](../design/DESIGN.md#10-lean-deferred-not-supported).
+Records use the single current `qecgraph.record` format. The authoritative schema
+ships with the Python package under
+[`qecgraph/validators/schemas/`](../../qecgraph/validators/schemas); use that
+packaged path directly. Unknown schemas are rejected and are never reinterpreted
+with the current fields. The optional `legacy/knowledge_starter` importer is a
+one-off development adapter for the historical sample, not a runtime
+compatibility layer. New writes always produce the current format.
 
-Original v2 records and historical hashes remain readable and are not rewritten
-in place. Use `migrate <old-record-dir> --out <new-dir>` to create a new revision
-explicitly; the complete old object and old hash are stored in
-`extensions.pre_validation_record`. Provide the exact `--source-root` when assets
-exist. Migration records unknown fields as null and unknown_reason; it never
-fabricates mathematical values or carries over old reviews. New writes accept
-only v3. The original graph.v1, annotations.v1 and 0.1.0 adapters remain.
+`qecgraph.record` also contains an experimental `lean_declaration` kind and
+relation fields; Lean is deferred in 0.4.x, is not part of the supported workflow
+and is not a verification conclusion. See
+[system design §10](../design/DESIGN.md#10-lean-deferred-not-supported).
 
 `jsonschema==4.26.0` is a pinned runtime dependency, not an optional validation
 extra, so every write entry point performs the same structural validation. JSON
@@ -70,7 +65,7 @@ rules.
 
 ```bash
 qecgraph check-css --hx legacy/knowledge_starter/assets/matrices/HX.gf2.json --hz legacy/knowledge_starter/assets/matrices/HZ.gf2.json --lx legacy/knowledge_starter/assets/matrices/LX.gf2.json --lz legacy/knowledge_starter/assets/matrices/LZ.gf2.json --enumerate-distance
-qecgraph codes --corpus build/corpus --n-min 13 --n-max 13 --distance-at-least 3 --metric-definition-id definition:css-distance
+qecgraph codes --corpus build/corpus --n-min 13 --n-max 13 --distance-at-least 3 --metric-id definition:css-distance
 ```
 
 The default `verified` policy accepts computed/certificate evidence; add
@@ -84,21 +79,18 @@ The ordinary HGP example actually yields n=13, k=1, dX=dZ=3
 commuting matrices never receive a valid CSS result. This interface does not run
 Lean and does not write review records.
 
-Hard filtering first matches an explicit metric_definition_id and sector
+Hard filtering first matches an explicit metric_id and sector
 (joint/X/Z), then checks known lower bounds for exact/lower_bound/interval;
 upper_bound, unknown lower bound, missing representation or absent current
 evidence never match. Evidence `data.inputs` must bind the current ID, revision
-and content hash of the distance claim, instance, representation and metric.
+and content hash of the distance estimate, instance, representation and metric.
 Related assets must also be readable with matching hashes. Existing evidence
 without a claim binding remains viewable; to use it in hard filtering, inspect
 the exact claim and register a new evidence revision. Output preserves evidence
 categories such as source report, computation and certificate; Lean does not
-participate in the supported flow. Some legacy migration samples have unstated
-input bindings and sectors, so they do not satisfy this strict filter by default;
-rerun and register exact evidence instead of only refreshing hashes.
-`evidence_ids` lives uniquely in the v3 record envelope; old same-named data
-fields are migrated explicitly and the original values remain in the historical
-object.
+participate in the supported flow. Historical samples with unstated input bindings and sectors do not satisfy
+this strict filter by default; register exact evidence instead of only
+refreshing hashes. `evidence_ids` lives uniquely in the record envelope.
 
 The experimental plugin `validators.qec.check_experiment(record, metric)` or
 `check-experiment <JSON>` validates error events, denominator, sector, rounds,
@@ -139,10 +131,10 @@ proposal and exact final record; changing statement, assumptions, dependencies o
 revision invalidates the old review copy. Missing/changed assets, mismatched input
 revision/hash, another corpus or a stale registry all reject the decision.
 
-Legacy v1 `depends_on_reviewed` is still interpreted by its original relation name
-and hash binding; new domain refs without a human binding are marked
-unbound_review and never enter confirmed context because of declared status or
-include-candidates. Raw records remain showable for review.
+A `depends_on_reviewed` edge keeps its exact relation name and hash binding;
+domain refs without a human binding are marked unbound_review and never enter
+confirmed context because of declared status or include-candidates. Raw records
+remain showable for review.
 
 ## Apply transactions and recovery
 
@@ -178,8 +170,8 @@ running writer.
 All traversals, proof attachment, structural attachment, final edge sets and
 annotation output share one state policy. stale/unbound_review/unresolved are
 always excluded; include-candidates only adds still-valid candidates. A valid
-v1 `depends_on_reviewed` status may be declared; old data is not incorrectly
-required to write reviewed.
+`depends_on_reviewed` status may be declared; data is not incorrectly required
+to write reviewed.
 
 Human decisions are immutable; queries derive review_binding from the actual
 record, source and assets they bind. If a bound dependency revision/hash or asset

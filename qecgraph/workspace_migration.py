@@ -22,7 +22,7 @@ def _unresolved(registry, state):
         data = record['data']
         candidates = {
             'untyped_distance': ('d' in data and not data.get('relation')) or (
-                'd' in (data.get('parameters') or {}) and not data.get('distance_claim_ids')),
+                'd' in (data.get('parameters') or {}) and not data.get('distance_estimate_ids')),
             'unbound_negative_idle': data.get('idle') is False,
             'unresolved_software_name': isinstance(data.get('software'), str),
             'unspecified_depth_definition': 'depth' in data and not data.get('depth_definition'),

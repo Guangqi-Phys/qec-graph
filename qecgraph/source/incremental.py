@@ -97,13 +97,13 @@ class ParseCache:
         package = Path(__file__).parent
         processor = {name: hashlib.sha256((package / name).read_bytes()).hexdigest()
                      for name in ('parser.py', 'incremental.py')}
-        self.plan = {'format': 'qecgraph.incremental.v1', 'files': files, 'structural_inputs': structural,
+        self.plan = {'format': 'qecgraph.incremental', 'files': files, 'structural_inputs': structural,
                      'config': config, 'processor': processor, 'pylatexenc': PYLATEXENC_VERSION}
         self.stats = {'ast_hits': 0, 'ast_misses': 0, 'invalid_cache_entries': 0, 'fallback_reasons': []}
         state_path = self.store / 'cache/incremental-state.json'
         try:
             previous = read_json(state_path) if state_path.exists() else None
-            if previous is not None and (not isinstance(previous, dict) or previous.get('format') != 'qecgraph.incremental.v1'
+            if previous is not None and (not isinstance(previous, dict) or previous.get('format') != 'qecgraph.incremental'
                                          or not isinstance(previous.get('files'), dict)
                                          or not isinstance(previous.get('structural_inputs'), dict)):
                 raise ValueError('Invalid incremental state shape')
@@ -130,7 +130,7 @@ class ParseCache:
         self.written = set()
 
     def key(self, path, text, context):
-        return hash_text(canonical({'format': 'qecgraph.ast.v1', 'context': self.context_hash,
+        return hash_text(canonical({'format': 'qecgraph.ast', 'context': self.context_hash,
                                     'path': path, 'text_sha256': hash_text(text), 'parser_context': context}))
 
     def get(self, key, text):
@@ -138,7 +138,7 @@ class ParseCache:
         if (self.reuse or key in self.written) and path.exists():
             try:
                 entry = read_json(path)
-                if entry['format'] != 'qecgraph.ast.v1' or entry['key'] != key or entry['ast_sha256'] != hash_text(canonical(entry['ast'])):
+                if entry['format'] != 'qecgraph.ast' or entry['key'] != key or entry['ast_sha256'] != hash_text(canonical(entry['ast'])):
                     raise ValueError('AST cache hash mismatch')
                 nodes = _decode(entry['ast'], len(text))
                 if not isinstance(nodes, list):
@@ -155,7 +155,7 @@ class ParseCache:
             ast = _encode(nodes)
         except (ValueError, TypeError, AttributeError):
             return
-        atomic_json(self.directory / (key + '.json'), {'format': 'qecgraph.ast.v1', 'key': key,
+        atomic_json(self.directory / (key + '.json'), {'format': 'qecgraph.ast', 'key': key,
                     'ast': ast, 'ast_sha256': hash_text(canonical(ast))})
         self.written.add(key)
 

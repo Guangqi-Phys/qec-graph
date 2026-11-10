@@ -1,5 +1,5 @@
 {
-  "format": "qecgraph.lean-toolchain-lock.v1",
+  "format": "qecgraph.lean-toolchain-lock",
   "lean_version": "4.19.0",
   "lean_commit": "6caaee842e9495688c1567e78c0e68dbb96942aa",
   "reference_distribution": {

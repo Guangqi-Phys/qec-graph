@@ -19,7 +19,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "qecgraph.review.v1"
+      "const": "qecgraph.review"
     },
     "id": {
       "type": "string",

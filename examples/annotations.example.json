@@ -1,9 +1,9 @@
 {
-  "schema_version": "qecgraph.annotations.v1",
+  "schema_version": "qecgraph.annotations",
   "nodes": [
     {
       "id": "code:qec-demo:reported-rep3",
-      "kind": "code_instance",
+      "kind": "quantum_code",
       "title": "论文示例表中描述的普通 HGP 码",
       "source_labels": ["tab:rep3"],
       "data": {

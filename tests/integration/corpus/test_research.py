@@ -16,34 +16,34 @@ class ResearchTests(unittest.TestCase):
     def test_fixture_does_not_invent_unsupported_values(self):
         rows = {r['kind']: r for r in self.rows}
         self.assertTrue(all(r['is_synthetic'] for r in self.rows))
-        self.assertIsNone(rows['performance_point']['data']['value'])
+        self.assertIsNone(rows['performance_data_point']['data']['value'])
         self.assertIsNone(rows['noise_model']['data']['idle'])
         self.assertNotIn('execution_run', rows)
         self.assertEqual(pauli_weight([1, 0, 1], [1, 1, 0]), 3)
 
     def test_packaged_schema_distinguishes_unknown_values_and_invalid_bindings(self):
-        validator = packaged_validator('research.v1')
+        validator = packaged_validator('research')
         validator.check_schema(validator.schema)
         for row in [*self.rows, *adapt_seed(bundled_seed())]:
             validator.validate(row)
 
-        code = deepcopy(next(row for row in self.rows if row['kind'] == 'code_instance'))
-        code['data']['k_logical'] = None
+        code = deepcopy(next(row for row in self.rows if row['kind'] == 'quantum_code'))
+        code['data']['k'] = None
         self.assertTrue(validator.is_valid(code))
-        del code['data']['k_logical']
-        self.assertIn("'k_logical' is a required property", next(validator.iter_errors(code)).message)
+        del code['data']['k']
+        self.assertIn("'k' is a required property", next(validator.iter_errors(code)).message)
 
-        code = deepcopy(next(row for row in self.rows if row['kind'] == 'code_instance'))
-        code['data']['presentation_refs'] = [{'id': 'presentation:fixture', 'revision': 'r1'}] * 2
+        code = deepcopy(next(row for row in self.rows if row['kind'] == 'quantum_code'))
+        code['data']['check_matrix_refs'] = [{'id': 'check_matrix:fixture', 'revision': 'r1'}] * 2
         self.assertEqual(next(validator.iter_errors(code)).validator, 'uniqueItems')
-        code['data']['presentation_refs'] = [{'id': 'presentation:fixture'}]
+        code['data']['check_matrix_refs'] = [{'id': 'check_matrix:fixture'}]
         self.assertFalse(validator.is_valid(code))
         code['kind'] = 'unknown_record_kind'
         self.assertEqual(next(validator.iter_errors(code)).json_path, '$.kind')
 
     def test_field_evidence_requires_provenance_and_resolves_the_value(self):
-        validator = packaged_validator('research.v1')
-        point = deepcopy(next(row for row in self.rows if row['kind'] == 'performance_point'))
+        validator = packaged_validator('research')
+        point = deepcopy(next(row for row in self.rows if row['kind'] == 'performance_data_point'))
         field = '/data/value'
         source = ref(self.rows[0])
         point['field_evidence'][field] = {'status': 'known', 'source_ref': source}
@@ -67,7 +67,7 @@ class ResearchTests(unittest.TestCase):
         newer = deepcopy(noise)
         newer['revision'] = 'r2'
         rows.append(newer)
-        point_noise = next(r for r in rows if r['kind'] == 'noise_instantiation')
+        point_noise = next(r for r in rows if r['kind'] == 'noise_model_instance')
         point_noise['data']['model_ref'] = ref(newer)
         with self.assertRaisesRegex(ValueError, 'crosses experiment noise'):
             validate_bundle(rows)
@@ -96,15 +96,15 @@ class ResearchTests(unittest.TestCase):
                         {'idle': {'consideration': 'excluded'}, 'loss': None, 'erasure': None, 'leakage': None},
                         source=source, method='fixture')
         with self.assertRaisesRegex(ValueError, r'\$\.data\.depth_metrics\[0\]\.unit'):
-            make_record('circuit_protocol', 'circuit:bad', 'r1',
+            make_record('syndrome_measurement_circuit', 'circuit:bad', 'r1',
                         {'depth_metrics': [{'kind': 'tick_count', 'unit': 'ns', 'value': 4, 'definition': 'TICK'}]},
                         source=source, method='fixture')
         depth = {'kind': 'tick_count', 'unit': 'ticks', 'value': 4.0, 'definition': 'TICK'}
         with self.assertRaisesRegex(ValueError, 'Counted depth must use an integer'):
-            make_record('circuit_protocol', 'circuit:bad', 'r1', {'depth_metrics': [depth]},
+            make_record('syndrome_measurement_circuit', 'circuit:bad', 'r1', {'depth_metrics': [depth]},
                         source=source, method='fixture')
         duration = {'kind': 'physical_duration', 'unit': 'ns', 'value': 4.5, 'definition': 'Elapsed duration'}
-        accepted = make_record('circuit_protocol', 'circuit:duration', 'r1', {'depth_metrics': [duration]},
+        accepted = make_record('syndrome_measurement_circuit', 'circuit:duration', 'r1', {'depth_metrics': [duration]},
                                source=source, method='fixture')
         self.assertEqual(accepted['data']['depth_metrics'], [duration])
 
@@ -116,8 +116,8 @@ class ResearchTests(unittest.TestCase):
                          'matrix_recipe': {'formula': 'H from seeds', 'seed_refs': None}}, source=source, method='fixture')
 
         with self.assertRaisesRegex(ValueError, r'\$\.data\.generator_asset_refs\[0\]'):
-            make_record('code_presentation', 'presentation:bad', 'r1',
-                        {'code_ref': None, 'check_weight_metrics': None, 'reconstruction_status': 'complete',
+            make_record('check_matrix', 'check_matrix:bad', 'r1',
+                        {'code_ref': None, 'check_weight_statistics': None, 'reconstruction_status': 'complete',
                          'generator_asset_refs': ['../human/notes/matrix.json']}, source=source, method='fixture')
         recipe = {'field': 'GF(2)', 'shape': [2, 2], 'index_convention': 'row and column from zero',
                   'bit_order': 'column order', 'formula': 'identity', 'version': '1', 'seed_refs': []}
@@ -134,38 +134,38 @@ class ResearchTests(unittest.TestCase):
         source = ref(self.rows[0])
         weights = {'check_set_id': 'checks:demo', 'sector': 'X', 'scope': 'stabilizer',
                    'min': 1, 'max': 3, 'mean': 2.5, 'histogram': {'1': 1, '3': 3}}
-        data = {'code_ref': None, 'check_weight_metrics': [weights]}
-        record = make_record('code_presentation', 'presentation:weights', 'r1', data, source=source, method='fixture')
-        self.assertEqual(record['data']['check_weight_metrics'], [weights])
+        data = {'code_ref': None, 'check_weight_statistics': [weights]}
+        record = make_record('check_matrix', 'check_matrix:weights', 'r1', data, source=source, method='fixture')
+        self.assertEqual(record['data']['check_weight_statistics'], [weights])
         for changed, message in (({'min': 1.0}, 'min/max must be nonnegative integers'),
                                  ({'min': 4}, 'statistics disagree'),
                                  ({'mean': 4.5}, 'statistics disagree'),
                                  ({'histogram': {'1': 3.0}}, 'histogram requires nonnegative')):
             with self.subTest(changed=changed), self.assertRaisesRegex(ValueError, message):
-                make_record('code_presentation', 'presentation:weights', 'r1',
-                            {**data, 'check_weight_metrics': [{**weights, **changed}]}, source=source, method='fixture')
+                make_record('check_matrix', 'check_matrix:weights', 'r1',
+                            {**data, 'check_weight_statistics': [{**weights, **changed}]}, source=source, method='fixture')
 
     def test_confidence_interval_requires_ordered_endpoints(self):
-        point = next(row for row in self.rows if row['kind'] == 'performance_point')
+        point = next(row for row in self.rows if row['kind'] == 'performance_data_point')
         source = ref(self.rows[0])
         interval = {'method': 'fixture', 'lower': .8, 'upper': .2, 'level': .95}
         with self.assertRaisesRegex(ValueError, 'Confidence interval endpoints are out of order'):
-            make_record('performance_point', 'point:interval', 'r1', {**point['data'], 'confidence_interval': interval},
+            make_record('performance_data_point', 'point:interval', 'r1', {**point['data'], 'confidence_interval': interval},
                         source=source, method='fixture', synthetic=True)
 
     def test_domain_shapes_do_not_replace_numeric_consistency_checks(self):
         source = ref(self.rows[0])
         with self.assertRaisesRegex(ValueError, r'\$\.data\.upper_bound'):
-            make_record('distance_claim', 'distance:fixture', 'r1',
-                        {'subject_ref': None, 'metric_definition_ref': None, 'relation': 'upper_bound',
+            make_record('distance_estimate', 'distance:fixture', 'r1',
+                        {'subject_ref': None, 'metric_ref': None, 'relation': 'upper_bound',
                          'lower_bound': None, 'upper_bound': 0}, source=source, method='fixture')
         with self.assertRaisesRegex(ValueError, 'Distance bound direction and values disagree'):
-            make_record('distance_claim', 'distance:fixture', 'r1',
-                        {'subject_ref': None, 'metric_definition_ref': None, 'relation': 'exact',
+            make_record('distance_estimate', 'distance:fixture', 'r1',
+                        {'subject_ref': None, 'metric_ref': None, 'relation': 'exact',
                          'lower_bound': 3, 'upper_bound': 5}, source=source, method='fixture')
-        with self.assertRaisesRegex(ValueError, 'Invalid code parameter n_data'):
-            make_record('code_instance', 'code:fixture', 'r1',
-                        {'coding_domain': 'quantum', 'n_data': 5.0, 'k_logical': 1}, source=source, method='fixture')
+        with self.assertRaisesRegex(ValueError, 'Invalid code parameter n'):
+            make_record('quantum_code', 'code:fixture', 'r1',
+                        {'code_type': 'quantum', 'n': 5.0, 'k': 1}, source=source, method='fixture')
 
     def test_refresh_adds_observations_without_overwriting_project_or_inventing_release(self):
         from tempfile import TemporaryDirectory

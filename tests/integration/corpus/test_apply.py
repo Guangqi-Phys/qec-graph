@@ -15,7 +15,7 @@ from qecgraph.core.transactions import writer_lock
 
 
 def claim(identifier, revision='1'):
-    return {'schema_version': 'qecgraph.record.v3', 'id': identifier, 'revision': revision, 'kind': 'claim',
+    return {'schema_version': 'qecgraph.record', 'id': identifier, 'revision': revision, 'kind': 'claim',
             'title': identifier, 'data': {'statement': 'Statement ' + revision, 'hypotheses': [], 'quantifiers': []}}
 
 
@@ -97,7 +97,7 @@ class ApplyTests(unittest.TestCase):
         self.assertEqual(self.registry.record('claim:a')['revision'], '2')
 
     def test_referenced_dependency_change_stales_a_proposal(self):
-        definition = {'schema_version': 'qecgraph.record.v3', 'id': 'definition:x', 'revision': '1',
+        definition = {'schema_version': 'qecgraph.record', 'id': 'definition:x', 'revision': '1',
                       'kind': 'definition', 'title': 'Dependency', 'data': {'statement': 'Base', 'scope': 'all'}}
         self.registry.add_record(definition)
         before = self.registry.record('claim:a')

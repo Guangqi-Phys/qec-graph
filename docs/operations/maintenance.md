@@ -167,7 +167,7 @@ count, rejected records, ID mapping and field-meaning changes. Check required
 fields, enums, unique IDs, referential integrity, asset hashes, review bindings
 and representative queries. Add a definition revision when a mathematical metric
 or unit changes; never reuse old evidence by only renaming a field. Migrate old
-`0.1.0` records and `qecgraph.graph.v1` separately; they are not one version axis.
+`0.1.0` records and `qecgraph.graph` separately; they are not one version axis.
 Preserve the protocol identifier while old and new canonicalisation coexist; do
 not batch-recompute hashes and claim old reviews remain valid. Validate at the
 new output location before switching readers; update writers at the same time so
@@ -178,7 +178,7 @@ old formats into a new directory. For rollback, prefer a verified historical
 snapshot or registry revision; if necessary restore the whole store and the
 matching input/tool versions. If a maintainer manually rolls back CURRENT, stop
 writers, validate the target snapshot, then atomically replace it using the
-existing pointer format. The pointer contains `format: qecgraph.current.v1`, the
+existing pointer format. The pointer contains `format: qecgraph.current`, the
 target `snapshot_id` and `path: snapshots/<snapshot_id>`. Do not delete new
 snapshots to perform a rollback; preserve failure evidence and the rollback
 reason. If a database migration is irreversible, restore a backup copy. Record

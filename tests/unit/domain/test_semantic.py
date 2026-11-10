@@ -31,7 +31,7 @@ class SemanticTests(unittest.TestCase):
             raw = b'fixture matrix bytes'
             asset = ws.registry._put_asset(raw, 'application/octet-stream')
             state, _ = ws.registry.read()
-            record = {'kind': 'circuit_protocol', 'data': {'circuit_asset_ref': asset['uri']},
+            record = {'kind': 'syndrome_measurement_circuit', 'data': {'circuit_asset_ref': asset['uri']},
                       'is_synthetic': False, 'field_evidence': {}}
             with patch.object(workspace_assets, '_hash_regular', wraps=workspace_assets._hash_regular) as verify:
                 validate_sources(ws.registry, state, [record, record])

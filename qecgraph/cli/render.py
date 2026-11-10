@@ -1,4 +1,4 @@
-"""Terminal presentation for CLI commands."""
+"""Terminal check_matrix for CLI commands."""
 from __future__ import annotations
 
 import json

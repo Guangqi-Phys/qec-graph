@@ -4,7 +4,6 @@ import unittest
 from pathlib import Path
 
 from qecgraph.core.graph import read_json
-from qecgraph.migrations import migrate
 from qecgraph.domain.records import prepare_record
 from qecgraph.core.transactions import ManagedDataError
 from qecgraph.registry import Registry
@@ -13,7 +12,7 @@ from qecgraph.corpus import execute
 
 
 def claim(identifier='claim:typed'):
-    return {'schema_version': 'qecgraph.record.v3', 'id': identifier, 'kind': 'claim',
+    return {'schema_version': 'qecgraph.record', 'id': identifier, 'kind': 'claim',
             'revision': '1', 'title': 'Typed claim',
             'data': {'statement': 'A statement.', 'hypotheses': [], 'quantifiers': []}}
 
@@ -52,7 +51,7 @@ class ValidatorTests(unittest.TestCase):
         ingest(entry, 'typed', store)
         previous = current_snapshot(store)
         sidecar = self.root / 'sidecar.json'
-        sidecar.write_text(json.dumps({'schema_version': 'qecgraph.annotations.v1', 'edges': [
+        sidecar.write_text(json.dumps({'schema_version': 'qecgraph.annotations', 'edges': [
             {'source': 'label:a', 'target': 'label:a', 'relation': 'proof_of'}]}))
         with self.assertRaisesRegex(ValueError, 'Invalid proof_of endpoint'):
             ingest(entry, 'typed', store, annotations_path=sidecar)
@@ -105,23 +104,6 @@ class ValidatorTests(unittest.TestCase):
         self.assertEqual(issues[0]['code'], 'unresolved_reference')
         self.assertEqual(execute(registry.root, 'context', value['id'])['diagnostics'][0]['code'], 'unresolved_reference')
 
-    def test_v2_is_read_losslessly_and_explicitly_migrated_to_new_revision(self):
-        old = claim()
-        old['schema_version'] = 'qecgraph.record.v2'
-        old['data'] = {'statement': 'Legacy incomplete claim'}
-        original = prepare_record(old, allow_legacy=True)
-        with self.assertRaisesRegex(ValueError, 'explicit migration'):
-            prepare_record(original)
-        path = self.root / 'old.json'
-        path.write_text(json.dumps(original))
-        report = migrate(path, self.root / 'migration')
-        self.assertEqual(report['status'], 'passed')
-        converted = read_json(self.root / 'migration' / report['accepted'][0]['output_path'])
-        self.assertEqual(converted['schema_version'], 'qecgraph.record.v3')
-        self.assertEqual(converted['id'], original['id'])
-        self.assertNotEqual(converted['revision'], original['revision'])
-        self.assertEqual(converted['extensions']['pre_validation_record'], original)
-        self.assertIsNone(converted['data']['quantifiers'])
 
 
 if __name__ == '__main__':

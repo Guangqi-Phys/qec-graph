@@ -33,7 +33,7 @@ flowchart TD
 | Running commands | [Advanced usage](user/advanced-usage.md) | Install, exit codes, grouped commands and release checks |
 | Working on the splitter | [Single-paper splitter](user/splitter.md) | Source spans, fragment layout and LaTeX limits |
 | An agent or contributor | [System design](design/DESIGN.md) | Authoritative architecture, data, publication and boundaries |
-| Operating a legacy corpus | [Operations](operations/README.md) | Corpus/review maintenance and validation pointers |
+| Operating a corpus | [Operations](operations/README.md) | Corpus/review maintenance and validation pointers |
 
 ## On this page
 
@@ -50,7 +50,7 @@ flowchart TD
 | [Quick start](user/quickstart.md) | English | Tutorial | You want the shortest working example |
 | [Advanced usage](user/advanced-usage.md) | English | How-to / reference | You need installers, command groups, exit codes or release checks |
 | [Workspace guide](user/workspace.md) | English | How-to | You need archive configuration, Obsidian layout or provider handoff |
-| [Data and search](user/data-and-search.md) | English | Reference | You need `research.v1` records, evidence and query semantics |
+| [Data and search](user/data-and-search.md) | English | Reference | You need `research` records, evidence and query semantics |
 | [Single-paper splitter](user/splitter.md) | English | Reference | You need source spans, fragment layout or LaTeX limitations |
 
 ## Design and operations

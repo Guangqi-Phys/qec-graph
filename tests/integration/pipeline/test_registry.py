@@ -54,7 +54,7 @@ class RegistryTests(unittest.TestCase):
         for project in ('one', 'two'):
             self.registry.register_source('work:' + project, 'version:' + project, self.make_store(project))
         for identifier in ('claim:first', 'claim:second'):
-            self.registry.add_record({'schema_version': 'qecgraph.record.v3', 'id': identifier,
+            self.registry.add_record({'schema_version': 'qecgraph.record', 'id': identifier,
                                       'kind': 'claim', 'revision': '1', 'title': 'Same title',
                                       'data': {'statement': 'Explicit normalized statement',
                                                'hypotheses': ['binary field'], 'quantifiers': []}})
@@ -71,10 +71,10 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual(state['links'][0]['assumptions'], ['binary field'])
 
     def test_entity_revisions_cannot_be_overwritten_or_merged_by_parameters(self):
-        record = {'schema_version': 'qecgraph.record.v3', 'id': 'code:a', 'kind': 'code_instance',
+        record = {'schema_version': 'qecgraph.record', 'id': 'code:a', 'kind': 'quantum_code',
                   'revision': '1', 'title': '[[13,1,3]]',
                   'data': {'parameters': {'n': 13, 'k': 1}, 'construction_id': None, 'fixed_inputs': None,
-                           'presentation_ids': [], 'distance_claim_ids': [], 'unknown_reason': 'Identity fixture only'}}
+                           'check_matrix_ids': [], 'distance_estimate_ids': [], 'unknown_reason': 'Identity fixture only'}}
         first = self.registry.add_record(record)
         record['id'] = 'code:b'
         self.registry.add_record(record)
@@ -89,7 +89,7 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual(self.registry.record('code:a', registry_revision=first['registry_revision'])['revision'], '1')
 
     def test_unknown_schema_is_rejected(self):
-        with self.assertRaisesRegex(ValueError, 'explicit migration'):
+        with self.assertRaisesRegex(ValueError, 'not supported'):
             self.registry.add_record({'schema_version': 'future.v99'})
 
 

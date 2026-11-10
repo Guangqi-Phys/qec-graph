@@ -12,7 +12,7 @@ from qecgraph.store import GraphInput, ingest
 
 
 def claim(identifier, revision='1'):
-    return {'schema_version': 'qecgraph.record.v3', 'id': identifier, 'revision': revision, 'kind': 'claim',
+    return {'schema_version': 'qecgraph.record', 'id': identifier, 'revision': revision, 'kind': 'claim',
             'title': identifier, 'data': {'statement': 'Statement ' + revision, 'hypotheses': [], 'quantifiers': []}}
 
 

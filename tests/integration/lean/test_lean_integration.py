@@ -11,7 +11,7 @@ from qecgraph.registry import Registry
 from qecgraph.review import apply, create_proposal, decide
 
 from tests.support import ROOT
-ARTIFACTS = ROOT / 'validation/lean-experimental/declaration-export'
+ARTIFACTS = ROOT / 'tests/fixtures/lean/declaration-export'
 EXAMPLE = ROOT / 'examples/lean'
 THEOREM = 'lean:fixture:QEC.Binary.css_example_commutes'
 

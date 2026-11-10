@@ -16,7 +16,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "qecgraph.proposal.v1"
+      "const": "qecgraph.proposal"
     },
     "id": {
       "type": "string",

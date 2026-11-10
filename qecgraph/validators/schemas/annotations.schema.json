@@ -7,7 +7,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "qecgraph.annotations.v1"
+      "const": "qecgraph.annotations"
     },
     "nodes": {
       "type": "array",

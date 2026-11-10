@@ -114,7 +114,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='qecgraph-bench-') as directory:
         root = Path(directory)
         report = {
-            'format': 'qecgraph.benchmark.v1',
+            'format': 'qecgraph.benchmark',
             'runtime': {'qecgraph': __version__, 'python': platform.python_version(),
                         'platform': platform.platform(), 'sqlite': sqlite3.sqlite_version,
                         'pylatexenc': version('pylatexenc'), 'jsonschema': version('jsonschema')},

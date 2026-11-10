@@ -21,7 +21,7 @@ lists what was actually tested and what remains open.
 - [Create and operate a workspace](#create-and-operate-a-workspace)
 - [Research queries and review](#research-queries-and-review)
 - [Obsidian and machine isolation](#obsidian-and-machine-isolation)
-- [Migrate from a legacy corpus](#migrate-from-a-legacy-corpus)
+- [Migrate from a legacy corpus](#import-an-existing-corpus)
 
 ## Create and operate a workspace
 
@@ -103,11 +103,11 @@ The CLI can call the same query layer with
 `query-tool TOOL --workspace ~/qec --arguments request.json`. Performance queries
 return the exact experiment and curve revision, open conditions and actual
 coordinates; they never rank across experiments. Research records use
-`qecgraph.research.v1` alongside historical v3. `asset-add` registers non-human
+the single current `qecgraph.research` format. `asset-add` registers non-human
 assets; only assets bound to visible records can be read by bytes.
 
 `extract-request SOURCE_ID` exports bounded excerpts with exact locators. You may
-give that file to a provider of your choice and return `research.v1` records as
+give that file to a provider of your choice and return `research` records as
 `{"provider":{"model_id":"…","processor_version":"…","prompt_sha256":"…"},"records":[…]}`.
 `extract-submit REQUEST_ID response.json` validates and stages the response;
 `extract-review PROPOSAL_ID --reviewer NAME --decision approve --rationale "…"`
@@ -145,7 +145,7 @@ Ubuntu base; see
 That is not a claim of a generic Docker Hub build. Do not treat MCP roots or a
 plain `--workspace` argument as operating-system isolation.
 
-## Migrate from a legacy corpus
+## Import an existing corpus
 
 ```bash
 qec-graph validate-corpus --corpus /path/to/legacy-corpus

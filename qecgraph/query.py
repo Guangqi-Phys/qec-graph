@@ -262,7 +262,7 @@ class QuerySession:
                     chosen_ids.update(additional)
                     omitted |= extra_omitted
         contextual = {"references", "cites", "uses_resource", "describes", "about", "supports", "formalizes",
-                      "has_matrix", "has_presentation", "generated_by", "uses_circuit", "uses_noise",
+                      "has_matrix", "has_check_matrix", "generated_by", "uses_circuit", "uses_noise",
                       "uses_decoder", "instance_of", "reports", "normalizes_to", 'maps_declaration', 'has_build_evidence',
                       'maps_source_occurrence'}
         frontier = chosen_ids.copy()

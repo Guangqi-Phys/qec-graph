@@ -16,7 +16,7 @@ SUBSYSTEM = re.compile(r'\bsubsystem\s+codes?\b', re.I)
 NONADDITIVE = re.compile(r'\bnon[- ]?additive\b', re.I)
 CLASSICAL_CONTEXT = re.compile(r'\b(?:classical|BCH)\s+(?:seed|codes?)\b', re.I)
 FRAGMENTS = {'paragraph', 'definition', 'lemma', 'theorem', 'proposition', 'corollary', 'remark', 'table'}
-FIELDS = ('reported_notation', 'coding_domain', 'parameter_semantics', 'n_data', 'k_logical', 'K', 'r_gauge', 'R')
+FIELDS = ('reported_notation', 'code_type', 'parameter_kind', 'n', 'k', 'K', 'r', 'R')
 
 
 def _tuple_kind(node, match, arity):
@@ -84,24 +84,24 @@ def proposals(graph, version):
         terms = [v.strip() for v in match[match.lastgroup].split(',')]
         domain, semantics = _tuple_kind(node, match, len(terms))
         data = {'source_ref': origin, 'code_ref': None, 'reported_notation': match[0],
-                'coding_domain': domain, 'parameter_semantics': semantics, 'n_data': None,
-                'k_logical': None, 'K': None, 'r_gauge': None, 'R': None,
+                'code_type': domain, 'parameter_kind': semantics, 'n': None,
+                'k': None, 'K': None, 'r': None, 'R': None,
                 'distance_interpretation': None, 'review_status': 'proposed'}
         if semantics:
             roles = {
-                'quantum_logical_count': ('n_data', 'k_logical'),
-                'subsystem_log_dimensions': ('n_data', 'k_logical', 'r_gauge'),
-                'subsystem_dimensions': ('n_data', 'K', 'R'),
-                'nonadditive_dimension': ('n_data', 'K'),
-                'classical_seed_parameters': ('n_data', 'k_classical'),
+                'quantum_logical_count': ('n', 'k'),
+                'subsystem_log_dimensions': ('n', 'k', 'r'),
+                'subsystem_dimensions': ('n', 'K', 'R'),
+                'nonadditive_dimension': ('n', 'K'),
+                'classical_seed_parameters': ('n', 'k_classical'),
             }[semantics]
             if 'k_classical' in roles:
                 data['k_classical'] = None
             for role, value in zip(roles, terms):
                 if value.isdecimal():
                     data[role] = int(value)
-            n, k = data['n_data'], data['k_logical']
-            if n is not None and (n < 1 or (k is not None and k + (data['r_gauge'] or 0) > n)):
+            n, k = data['n'], data['k']
+            if n is not None and (n < 1 or (k is not None and k + (data['r'] or 0) > n)):
                 for role in roles:
                     data[role] = None
         locator = _locator(node, source_id, snapshot, start, end)
@@ -112,6 +112,6 @@ def proposals(graph, version):
                     for field in (*FIELDS, 'k_classical') if data.get(field) is not None}
         identifier = 'mention:' + hash_text(canonical([source_id, path, start, end]))
         revision = hash_text(canonical([snapshot, RULE_VERSION, data, locator, context]))
-        records.append(make_record('code_mention', identifier, revision, data, source=origin,
+        records.append(make_record('code_parameters_mention', identifier, revision, data, source=origin,
                                    method=RULE_VERSION, evidence=evidence))
     return records

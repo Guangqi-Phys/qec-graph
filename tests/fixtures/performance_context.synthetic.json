@@ -20,29 +20,29 @@
     {
       "id": "demo:code",
       "revision": "r1",
-      "kind": "code_instance",
+      "kind": "quantum_code",
       "data": {
-        "n_data": 13,
-        "k_logical": 1,
+        "n": 13,
+        "k": 1,
         "local_dimension": null,
         "construction_ref": null,
-        "presentation_refs": [
+        "check_matrix_refs": [
           {
-            "id": "demo:presentation",
+            "id": "demo:check_matrix",
             "revision": "r1"
           }
         ],
-        "distance_claim_refs": [
+        "distance_estimate_refs": [
           {
             "id": "demo:distance",
             "revision": "r1"
           }
         ],
-        "coding_domain": "quantum",
+        "code_type": "quantum",
         "parameter_notation": null
       },
       "field_evidence": {
-        "/data/n_data": {
+        "/data/n": {
           "status": "known",
           "source_ref": {
             "id": "demo:source",
@@ -50,7 +50,7 @@
           },
           "method": "synthetic_fixture"
         },
-        "/data/k_logical": {
+        "/data/k": {
           "status": "known",
           "source_ref": {
             "id": "demo:source",
@@ -61,7 +61,7 @@
         "/data/construction_ref": {
           "status": "not_extracted"
         },
-        "/data/coding_domain": {
+        "/data/code_type": {
           "status": "known",
           "source_ref": {
             "id": "demo:source",
@@ -75,9 +75,9 @@
       "exclude_from_default_queries": true
     },
     {
-      "id": "demo:presentation",
+      "id": "demo:check_matrix",
       "revision": "r1",
-      "kind": "code_presentation",
+      "kind": "check_matrix",
       "data": {
         "code_ref": {
           "id": "demo:code",
@@ -86,7 +86,7 @@
         "css_structure": "css",
         "generator_asset_refs": null,
         "construction_recipe_ref": null,
-        "check_weight_metrics": null,
+        "check_weight_statistics": null,
         "reconstruction_status": "unresolved"
       },
       "is_synthetic": true,
@@ -106,13 +106,13 @@
     {
       "id": "demo:distance",
       "revision": "r1",
-      "kind": "distance_claim",
+      "kind": "distance_estimate",
       "data": {
         "subject_ref": {
           "id": "demo:code",
           "revision": "r1"
         },
-        "metric_definition_ref": null,
+        "metric_ref": null,
         "relation": null,
         "lower_bound": null,
         "upper_bound": null,
@@ -126,10 +126,10 @@
     {
       "id": "demo:circuit",
       "revision": "r1",
-      "kind": "circuit_protocol",
+      "kind": "syndrome_measurement_circuit",
       "data": {
-        "presentation_ref": {
-          "id": "demo:presentation",
+        "check_matrix_ref": {
+          "id": "demo:check_matrix",
           "revision": "r1"
         },
         "circuit_asset_ref": null,
@@ -175,7 +175,7 @@
     {
       "id": "demo:noise-point",
       "revision": "r1",
-      "kind": "noise_instantiation",
+      "kind": "noise_model_instance",
       "data": {
         "model_ref": {
           "id": "demo:noise",
@@ -205,7 +205,7 @@
     {
       "id": "demo:decoder",
       "revision": "r1",
-      "kind": "decoder_configuration",
+      "kind": "decoder",
       "data": {
         "algorithm_ref": null,
         "parameters": null,
@@ -219,7 +219,7 @@
     {
       "id": "demo:hardware",
       "revision": "r1",
-      "kind": "hardware_assumptions",
+      "kind": "hardware_model",
       "data": {
         "platform": null,
         "connectivity": null,
@@ -233,7 +233,7 @@
     {
       "id": "demo:experiment",
       "revision": "r1",
-      "kind": "reported_experiment",
+      "kind": "experiment",
       "data": {
         "source_ref": {
           "id": "demo:source",
@@ -243,8 +243,8 @@
           "id": "demo:code",
           "revision": "r1"
         },
-        "presentation_ref": {
-          "id": "demo:presentation",
+        "check_matrix_ref": {
+          "id": "demo:check_matrix",
           "revision": "r1"
         },
         "circuit_ref": {
@@ -274,19 +274,19 @@
     {
       "id": "demo:point",
       "revision": "r1",
-      "kind": "performance_point",
+      "kind": "performance_data_point",
       "data": {
         "experiment_ref": {
           "id": "demo:experiment",
           "revision": "r1"
         },
-        "noise_instantiation_ref": {
+        "noise_model_instance_ref": {
           "id": "demo:noise-point",
           "revision": "r1"
         },
         "selection_reason": "synthetic_schema_fixture",
-        "curve_ref": null,
-        "metric_definition_ref": null,
+        "performance_curve_ref": null,
+        "metric_ref": null,
         "value": null,
         "confidence_interval": null,
         "shots": null,

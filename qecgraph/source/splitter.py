@@ -96,7 +96,7 @@ def split_project(
         for source in manifest["source_files"]
     ]
     return {
-        "format": "qecgraph.split-result.v1",
+        "format": "qecgraph.split-result",
         "operation": "split",
         **result,
         "project_id": graph["project_id"],

@@ -25,7 +25,7 @@ from .store import extraction_tool_identity, ingest, source_span_index
 from .core.transactions import ManagedDataError, atomic_bytes, atomic_json, immutable_json, writer_lock
 
 CONFIG = 'qecgraph.toml'
-FORMAT = 'qecgraph.workspace.v1'
+FORMAT = 'qecgraph.workspace'
 PROCESSOR = f'qecgraph-{__version__}:archive-structure-v1:parser-{PARSER_VERSION}:{RULE_VERSION}'
 HEX = re.compile(r'[0-9a-f]{64}')
 JOB = re.compile(r'[0-9a-f]{32}')
@@ -599,7 +599,7 @@ class Workspace:
                 generated.extend(records)
                 proposal_map[identifier] = {'source_snapshot_id': version['snapshot_id'], 'processor': PROCESSOR,
                                             'bindings': [{'id': r['id'], 'revision': r['revision']} for r in records],
-                                            'code_mentions': len(records) - 1}
+                                            'code_parameters_mentions': len(records) - 1}
             if generated:
                 stage_records(self.registry, state, generated, verified_spans=verified_spans)
             collisions = {}
@@ -656,7 +656,7 @@ class Workspace:
             rows.extend(materials[digest] for digest in sorted(digests))
         counts = {'registered': len(materials), 'processed': sum(x['processing_completed'] for x in materials.values()),
                   'conflicting': sum(x['source_version_conflict'] for x in materials.values()),
-                  'code_mention_proposals': sum(p['code_mentions'] for p in proposal_map.values())}
+                  'code_mention_proposals': sum(p['code_parameters_mentions'] for p in proposal_map.values())}
         warning = None
         try:
             self._write_operational_status(release, counts)

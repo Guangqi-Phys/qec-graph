@@ -1,13 +1,13 @@
 {
   "schema_version": "0.1.0",
-  "id": "presentation:rep3-hgp:standard",
-  "kind": "presentation",
+  "id": "check_matrix:rep3-hgp:standard",
+  "kind": "check_matrix",
   "title": "Concrete checks and logical pair",
   "review_status": "draft",
   "refs": [
     {
       "relation": "presents",
-      "target_id": "code:rep3-hgp:13"
+      "target_id": "quantum_code:rep3-hgp:13"
     },
     {
       "relation": "depends_on",
@@ -53,7 +53,7 @@
     }
   ],
   "data": {
-    "instance_id": "code:rep3-hgp:13",
+    "instance_id": "quantum_code:rep3-hgp:13",
     "matrices": {
       "H1": "assets/matrices/H1.gf2.json",
       "H2": "assets/matrices/H2.gf2.json",

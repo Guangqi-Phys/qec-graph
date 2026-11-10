@@ -109,7 +109,7 @@ class SplitterIntegrationTests(unittest.TestCase):
         bundle = context(self.store, "thm:hgp-length")
         self.assertIn("proof:hgp-length", {label for node in bundle["nodes"] for label in node["labels"]})
         self.assertEqual(show(self.store, "tab:rep3")["node"]["kind"], "table")
-        self.assertFalse(any(node["kind"] == "code_instance" for node in graph["nodes"]))
+        self.assertFalse(any(node["kind"] == "quantum_code" for node in graph["nodes"]))
         self.assertFalse(any(node["verification_status"] == "verified" for node in graph["nodes"]))
         self.assertTrue(result["source_only"])
         self.assertEqual(result["fragment_semantics"]["mathematical_verification"], "not_performed")
@@ -228,7 +228,7 @@ class SplitterIntegrationTests(unittest.TestCase):
         external.mkdir()
         (external / "sentinel.bin").write_bytes(b"\x00\xffmust stay unchanged")
         self.store.mkdir()
-        (self.store / ".qecgraph-store.json").write_text('{"format":"qecgraph.store.v1"}', encoding="utf-8")
+        (self.store / ".qecgraph-store.json").write_text('{"format":"qecgraph.store"}', encoding="utf-8")
         try:
             (self.store / "snapshots").symlink_to(external, target_is_directory=True)
         except OSError as exc:

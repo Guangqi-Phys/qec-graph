@@ -212,7 +212,7 @@ qecgraph split path/to/main.tex \
 
 The mapping says which directory a source environment should enter; it does not
 prove its mathematical content. Reading `n=13,k=1,d=3` from a table does not
-automatically create a verified code instance.
+automatically create a verified quantum code.
 
 ## 5. Query the graph after splitting
 

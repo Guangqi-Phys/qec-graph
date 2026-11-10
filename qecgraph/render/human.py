@@ -13,14 +13,12 @@ from ..core.transactions import atomic_bytes, atomic_json, writer_lock
 from ..workspace import HEX, Workspace, _read_regular, now, read_operational_status
 from ..workspace_query import WorkspaceSession
 
-FORMAT_V1 = 'qecgraph.human.v1'
-FORMAT = 'qecgraph.human.v2'
-LEGACY_PAGE = re.compile(r'generated/[a-z-]+/[a-z-]+--[0-9a-f]{64}\.md')
+FORMAT = 'qecgraph.human'
 READABLE_PAGE = re.compile(r'generated/[a-z-]+/[a-z-]+--[a-z0-9-]+--([0-9a-f]{12,64})\.md')
 GROUPS = {
-    'source_artifact': 'sources', 'paper_version': 'sources', 'code_instance': 'codes',
-    'code_mention': 'codes', 'code_presentation': 'codes', 'distance_claim': 'codes',
-    'reported_experiment': 'experiments', 'performance_series': 'experiments', 'performance_point': 'experiments',
+    'source_artifact': 'sources', 'paper_version': 'sources', 'quantum_code': 'codes',
+    'code_parameters_mention': 'codes', 'check_matrix': 'codes', 'distance_estimate': 'codes',
+    'experiment': 'experiments', 'performance_curve': 'experiments', 'performance_data_point': 'experiments',
     'software_project': 'software', 'software_distribution': 'software', 'software_release': 'software',
     'algorithm': 'software', 'software_usage': 'software',
 }
@@ -28,10 +26,6 @@ GROUPS = {
 
 def _slug(value):
     return re.sub(r'[^a-z]+', '-', value.lower()).strip('-') or 'entity'
-
-
-def _legacy_page(kind, identifier):
-    return f'generated/{GROUPS.get(kind, "records")}/{_slug(kind)}--{hash_text(identifier)}.md'
 
 
 def _entity_slug(identifier):
@@ -65,7 +59,7 @@ def _assign_pages(entities, previous, bindings):
 
 
 def _owned_page(path):
-    return LEGACY_PAGE.fullmatch(path) or READABLE_PAGE.fullmatch(path)
+    return READABLE_PAGE.fullmatch(path)
 
 
 def _inline(value):
@@ -296,10 +290,6 @@ def _render(session, previous, bindings, past):
             level = '###' if len(records) > 1 else '##'
             sections.extend(_record_sections(record, session, targets, titles, relations, visible_revisions, level))
         pages[path] = ('\n\n'.join(sections) + '\n').encode()
-        old = _legacy_page(kind, identifier)
-        if old in previous:
-            pages[old] = (_heading(title, session.release) + '\n\nThis page moved to '
-                          + _link(path, title) + '.\n').encode()
     for path in sorted(previous - pages.keys()):
         index.setdefault(path.split('/')[1], {}).setdefault('archived', []).append(('Archived entity', path))
         pages[path] = (_heading('Archived entity', session.release)
@@ -338,14 +328,11 @@ def _history(ws, name):
     if not path.exists():
         return {'release_id': None, 'pages': [], 'entity_pages': {}}
     data = read_json(path)
-    if (not isinstance(data, dict) or data.get('format') not in (FORMAT_V1, FORMAT)
+    if (not isinstance(data, dict) or data.get('format') != FORMAT
             or not isinstance(data.get('release_id'), str) or not HEX.fullmatch(data['release_id'])):
         raise ValueError('Invalid renderer history')
-    owned = LEGACY_PAGE.fullmatch if data['format'] == FORMAT_V1 else _owned_page
-    if not isinstance(data.get('pages'), list) or any(not isinstance(x, str) or not owned(x) for x in data['pages']):
+    if not isinstance(data.get('pages'), list) or any(not isinstance(x, str) or not _owned_page(x) for x in data['pages']):
         raise ValueError('Renderer history has an unowned path')
-    if data['format'] == FORMAT_V1:
-        return {**data, 'entity_pages': {}}
     bindings = data.get('entity_pages')
     if not isinstance(bindings, dict):
         raise ValueError('Invalid renderer page bindings')

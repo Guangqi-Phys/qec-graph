@@ -7,10 +7,10 @@ import re
 from ..core.graph import canonical, hash_text
 from ..validators import packaged_validator
 
-SCHEMA = 'qecgraph.research.v1'
+SCHEMA = 'qecgraph.research'
 # The packaged schema owns the portable record structure. Reference target
 # kinds also drive the runtime join and the published graph views.
-_VALIDATOR = packaged_validator('research.v1')
+_VALIDATOR = packaged_validator('research')
 _CONTRACTS = _VALIDATOR.schema['$defs']['record_data']['$defs']
 KINDS = frozenset(_VALIDATOR.schema['properties']['kind']['enum'])
 UNKNOWN = frozenset(_VALIDATOR.schema['properties']['field_evidence']['additionalProperties']
@@ -78,21 +78,21 @@ def prepare(record):
             raise ValueError(f'Known value cannot be null: {path}')
         if state in UNKNOWN and value is not None:
             raise ValueError(f'Unknown value must be null: {path}')
-    if kind in {'code_instance', 'classical_seed'}:
-        for field in ('n_data', 'k_logical', 'K', 'r_gauge'):
+    if kind in {'quantum_code', 'classical_code'}:
+        for field in ('n', 'k', 'K', 'r'):
             value = data.get(field)
             if value is not None and type(value) is not int:
                 raise ValueError(f'Invalid code parameter {field}')
-        if data.get('n_data') is not None and data.get('k_logical') is not None and data['k_logical'] > data['n_data']:
+        if data.get('n') is not None and data.get('k') is not None and data['k'] > data['n']:
             raise ValueError('k cannot exceed n')
-    if kind == 'distance_claim':
+    if kind == 'distance_estimate':
         lower, upper, relation = (data[f] for f in ('lower_bound', 'upper_bound', 'relation'))
         for value in (lower, upper):
             if value is not None and type(value) is not int:
                 raise ValueError('Distance bounds must be positive integers or null')
         if relation == 'exact' and lower != upper or relation == 'interval' and lower > upper:
             raise ValueError('Distance bound direction and values disagree')
-    if kind == 'performance_point':
+    if kind == 'performance_data_point':
         if not record['is_synthetic']:
             for field in ('value', 'shots', 'failures', 'discards', 'confidence_interval'):
                 if data.get(field) is not None and not fields.get(_ptr(field), {}).get('source_locator'):
@@ -150,8 +150,8 @@ def validate_bundle(records):
                     resolve(record, binding, kinds)
         if record['kind'] == 'construction' and isinstance(data.get('matrix_recipe'), dict):
             for binding in data['matrix_recipe'].get('seed_refs') or []:
-                resolve(record, binding, ('classical_seed',))
-        if record['kind'] == 'code_presentation' and data.get('reconstruction_status') in ('complete', 'reconstructable'):
+                resolve(record, binding, ('classical_code',))
+        if record['kind'] == 'check_matrix' and data.get('reconstruction_status') in ('complete', 'reconstructable'):
             if not data.get('generator_asset_refs') and resolve(
                     record, data['construction_recipe_ref'], ('construction',)).get('reconstruction_status') not in (
                         'complete', 'reconstructable'):
@@ -162,12 +162,12 @@ def validate_bundle(records):
             if not data.get('project_ref') or distribution['project_ref'] != data['project_ref']:
                 raise ValueError('Software use release belongs to a different project')
         if record['kind'] == 'software_usage' and data.get('experiment_ref'):
-            experiment = resolve(record, data['experiment_ref'], ('reported_experiment',))
+            experiment = resolve(record, data['experiment_ref'], ('experiment',))
             if data.get('source_ref') != experiment.get('source_ref'):
                 raise ValueError('Software use and experiment are bound to different sources')
-        if record['kind'] == 'reported_experiment':
-            chain = [('presentation_ref', 'code_ref', 'code_ref', 'code_presentation'),
-                     ('circuit_ref', 'presentation_ref', 'presentation_ref', 'circuit_protocol')]
+        if record['kind'] == 'experiment':
+            chain = [('check_matrix_ref', 'code_ref', 'code_ref', 'check_matrix'),
+                     ('circuit_ref', 'check_matrix_ref', 'check_matrix_ref', 'syndrome_measurement_circuit')]
             for outer, inner, expected, kind in chain:
                 if data.get(outer):
                     actual = resolve(record, data[outer], (kind,)).get(inner)
@@ -177,16 +177,16 @@ def validate_bundle(records):
                 use = resolve(record, usage, ('software_usage',))
                 if use['usage_kind'] != 'source_reported_use' or use.get('experiment_ref') != ref(record):
                     raise ValueError('Reported experiment requires its own source-reported use')
-        if record['kind'] == 'performance_point' and data.get('experiment_ref'):
-            exp = resolve(record, data['experiment_ref'], ('reported_experiment',))
-            if data.get('noise_instantiation_ref'):
-                point_noise = resolve(record, data['noise_instantiation_ref'], ('noise_instantiation',))
+        if record['kind'] == 'performance_data_point' and data.get('experiment_ref'):
+            exp = resolve(record, data['experiment_ref'], ('experiment',))
+            if data.get('noise_model_instance_ref'):
+                point_noise = resolve(record, data['noise_model_instance_ref'], ('noise_model_instance',))
                 for point_key, exp_key in [('model_ref', 'noise_model_ref'), ('circuit_ref', 'circuit_ref')]:
                     if point_noise.get(point_key) and exp.get(exp_key) and point_noise[point_key] != exp[exp_key]:
                         raise ValueError('Performance point crosses experiment noise or circuit revisions')
-            if data.get('curve_ref'):
-                curve = resolve(record, data['curve_ref'], ('performance_series',))
-                if curve.get('experiment_ref') != data['experiment_ref'] or curve.get('metric_definition_ref') != data['metric_definition_ref']:
+            if data.get('performance_curve_ref'):
+                curve = resolve(record, data['performance_curve_ref'], ('performance_curve',))
+                if curve.get('experiment_ref') != data['experiment_ref'] or curve.get('metric_ref') != data['metric_ref']:
                     raise ValueError('Performance point does not belong to the given curve')
     return lookup
 

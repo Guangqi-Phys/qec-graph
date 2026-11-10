@@ -16,7 +16,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "qecgraph.graph.v1"
+      "const": "qecgraph.graph"
     },
     "project_id": {
       "type": "string"

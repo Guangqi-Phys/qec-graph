@@ -52,7 +52,7 @@ def evidence_current(registry, evidence, records, required_ids, reviews=None, bu
 
 
 def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at_least=None,
-          metric_definition_id=None, metric_revision=None, sector='joint', construction=None, limit=100,
+          metric_id=None, metric_revision=None, sector='joint', construction=None, limit=100,
           check_live_lean=True, evidence_policy='verified'):
     """Read qualifying legacy codes. Workspace paging merges results with no internal limit."""
     if limit is not None and not 1 <= limit <= 200:
@@ -62,8 +62,8 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
             raise ValueError('Code filter bounds must be nonnegative integers')
     if n_min is not None and n_max is not None and n_min > n_max:
         raise ValueError('n_min exceeds n_max')
-    if distance_at_least is not None and not metric_definition_id:
-        raise ValueError('A distance hard condition needs an exact metric_definition_id')
+    if distance_at_least is not None and not metric_id:
+        raise ValueError('A distance hard condition needs an exact metric_id')
     if metric_revision is not None and distance_at_least is None:
         raise ValueError('metric_revision requires a distance hard condition')
     if evidence_policy not in EVIDENCE_POLICIES:
@@ -79,10 +79,10 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
     builds = lean_build_states(registry, state, records, reviews, check_live_inputs=check_live_lean)
     allowed_evidence = EVIDENCE_POLICIES[evidence_policy]
     results = []
-    metric = records.get(metric_definition_id) or {}
+    metric = records.get(metric_id) or {}
     metric_matches = metric_revision is None or metric.get('revision') == metric_revision
     for identifier, code in sorted(records.items()):
-        if code['kind'] != 'code_instance' or not metric_matches:
+        if code['kind'] != 'quantum_code' or not metric_matches:
             continue
         if reviews[identifier]['effective_status'] in {'stale', 'disputed'}:
             continue
@@ -97,20 +97,20 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
             continue
         matching = []
         if distance_at_least is not None:
-            for claim_id in data.get('distance_claim_ids') or []:
+            for claim_id in data.get('distance_estimate_ids') or []:
                 claim = records.get(claim_id)
                 if claim is None or claim['kind'] != 'claim' or reviews[claim_id]['effective_status'] in {'stale', 'disputed'}:
                     continue
                 measurement = claim['data']
                 if distance_issues(measurement) or measurement['subject_id'] != identifier:
                     continue
-                if measurement['metric_definition_id'] != metric_definition_id or measurement['sector'] != sector:
+                if measurement['metric_id'] != metric_id or measurement['sector'] != sector:
                     continue
                 if measurement['relation'] not in {'lower_bound', 'exact', 'interval'} or measurement['lower_bound'] < distance_at_least:
                     continue
-                if measurement['presentation_id'] not in (data.get('presentation_ids') or []):
+                if measurement['check_matrix_id'] not in (data.get('check_matrix_ids') or []):
                     continue
-                required = [identifier, measurement['presentation_id'], metric_definition_id, claim_id]
+                required = [identifier, measurement['check_matrix_id'], metric_id, claim_id]
                 evidence = [records[e] for e in claim['evidence_ids'] if e in records and records[e]['kind'] == 'evidence'
                             and records[e]['data'].get('evidence_kind') in allowed_evidence
                             and evidence_current(registry, records[e], records, required, reviews, builds)]
@@ -125,13 +125,13 @@ def codes(corpus, *, registry_revision=None, n_min=None, n_max=None, distance_at
             if not matching:
                 continue
         results.append({'id': identifier, 'revision': code['revision'], 'parameters': data['parameters'],
-                        'review_status': code['review']['status'], 'distance_claims': matching})
-    scope = {'registry_revision': fixed, 'metric_definition_id': metric_definition_id, 'sector': sector,
+                        'review_status': code['review']['status'], 'distance_estimates': matching})
+    scope = {'registry_revision': fixed, 'metric_id': metric_id, 'sector': sector,
              'evidence_policy': evidence_policy}
     if metric_revision is not None:
         scope['metric_revision'] = metric_revision
     return {'scope': scope,
             'results': results[:limit], 'truncated': limit is not None and len(results) > limit,
             'evidence_policy': evidence_policy,
-            'evidence_policy_note': 'Known lower bound with evidence bound to the current claim, instance, presentation and metric revisions',
+            'evidence_policy_note': 'Known lower bound with evidence bound to the current claim, instance, check_matrix and metric revisions',
             'absence_note': 'No qualifying record in this fixed scope; not a nonexistence result'}

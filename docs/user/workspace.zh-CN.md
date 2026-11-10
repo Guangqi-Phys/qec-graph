@@ -17,7 +17,7 @@
 - [建库和日常操作](#建库和日常操作)
 - [研究查询和审核](#研究查询和审核)
 - [Obsidian 和机器访问隔离](#obsidian-和机器访问隔离)
-- [从旧库迁移](#从旧库迁移)
+- [从旧库迁移](#导入现有-corpus)
 
 ## 建库和日常操作
 
@@ -84,11 +84,11 @@ qec-graph mcp serve --workspace ~/qec
 代码点半开区间定位；MCP 资源 URI 是固定标识，不能改写成文件路径。
 CLI 可用 `query-tool TOOL --workspace ~/qec --arguments request.json` 调用同一查询层。
 性能查询返回具体实验和曲线修订、未决条件、实际坐标；不会跨实验给出统一排名。
-研究记录采用 `qecgraph.research.v1`，与历史 v3 并存。
+研究记录只使用当前 `qecgraph.research` 格式。
 通过 `asset-add` 登记非 human 资产；只有被可见记录绑定的资产可按字节查询。
 
 `extract-request SOURCE_ID` 导出有预算的摘录及确切定位。
-可将该文件交给自行选定的 provider，按 `research.v1` 输出
+可将该文件交给自行选定的 provider，按 `research` 输出
 `{"provider":{"model_id":"…","processor_version":"…","prompt_sha256":"…"},"records":[…]}`。
 `extract-submit REQUEST_ID response.json` 校验并暂存，
 `extract-review PROPOSAL_ID --reviewer NAME --decision approve --rationale "…"`
@@ -120,7 +120,7 @@ python tools/mcp_isolated_macos.py --python /path/to/installed-venv/bin/python -
 通用 Docker Hub 构建的声明。不要把 MCP roots 或普通的 `--workspace` 参数
 当作操作系统隔离。
 
-## 从旧库迁移
+## 导入现有 corpus
 
 ```bash
 qec-graph validate-corpus --corpus /path/to/legacy-corpus

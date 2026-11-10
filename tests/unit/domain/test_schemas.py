@@ -29,39 +29,39 @@ class SchemaTests(unittest.TestCase):
                 packaged_validator('annotations').validate(read_json(EXAMPLES / name))
         for name in ('claim.example.json', 'lean/claim.json'):
             with self.subTest(example=name):
-                packaged_validator('record.v3').validate(prepare_record(read_json(EXAMPLES / name)))
+                packaged_validator('record').validate(prepare_record(read_json(EXAMPLES / name)))
         with tempfile.TemporaryDirectory() as directory:
             proposal = create_proposal(directory, actor={'id': 'fixture:docs', 'kind': 'human'},
                                        **read_json(EXAMPLES / 'proposal.example.json'))
-            packaged_validator('proposal.v1').validate(proposal)
+            packaged_validator('proposal').validate(proposal)
 
     def test_research_schema_dispatches_each_supported_kind(self):
         binding = {'id': 'record:fixture', 'revision': 'r1'}
         records = {
             'algorithm': {},
             'catalog_source': {},
-            'circuit_protocol': {},
-            'classical_seed': {},
+            'syndrome_measurement_circuit': {},
+            'classical_code': {},
             'code_family': {},
-            'code_instance': {'coding_domain': 'quantum', 'n_data': 5, 'k_logical': 1},
-            'code_mention': {},
-            'code_presentation': {'code_ref': None, 'check_weight_metrics': None},
+            'quantum_code': {'code_type': 'quantum', 'n': 5, 'k': 1},
+            'code_parameters_mention': {},
+            'check_matrix': {'code_ref': None, 'check_weight_statistics': None},
             'construction': {},
-            'decoder_configuration': {},
-            'distance_claim': {'subject_ref': None, 'metric_definition_ref': None, 'relation': 'lower_bound',
+            'decoder': {},
+            'distance_estimate': {'subject_ref': None, 'metric_ref': None, 'relation': 'lower_bound',
                                'lower_bound': 3, 'upper_bound': None},
             'execution_environment': {},
             'execution_run': {'environment_ref': binding, 'execution_evidence': ['fixture']},
-            'hardware_assumptions': {},
-            'metric_definition': {},
-            'noise_instantiation': {'model_ref': None, 'reported_coordinates': {'p': .01},
+            'hardware_model': {},
+            'metric': {},
+            'noise_model_instance': {'model_ref': None, 'reported_coordinates': {'p': .01},
                                     'resolved_channel_parameters': None},
             'noise_model': {'idle': None, 'loss': None, 'erasure': None, 'leakage': None},
             'paper_version': {},
-            'performance_point': {'experiment_ref': None, 'noise_instantiation_ref': None,
-                                  'metric_definition_ref': None, 'value': None},
-            'performance_series': {},
-            'reported_experiment': {'source_ref': None, 'code_ref': None, 'presentation_ref': None, 'circuit_ref': None,
+            'performance_data_point': {'experiment_ref': None, 'noise_model_instance_ref': None,
+                                  'metric_ref': None, 'value': None},
+            'performance_curve': {},
+            'experiment': {'source_ref': None, 'code_ref': None, 'check_matrix_ref': None, 'circuit_ref': None,
                                     'noise_model_ref': None, 'decoder_ref': None},
             'software_catalog_observation': {},
             'software_distribution': {'project_ref': binding, 'ecosystem': 'pypi', 'name': 'fixture'},
@@ -69,10 +69,10 @@ class SchemaTests(unittest.TestCase):
             'software_release': {'distribution_ref': binding, 'version': '1.0'},
             'software_usage': {'usage_kind': 'mention', 'project_ref': None, 'release_ref': None},
         }
-        validator = packaged_validator('research.v1')
+        validator = packaged_validator('research')
         self.assertEqual(set(records), set(validator.schema['properties']['kind']['enum']))
         for kind, data in records.items():
-            record = {'schema_version': 'qecgraph.research.v1', 'id': 'record:fixture', 'revision': 'r1', 'kind': kind,
+            record = {'schema_version': 'qecgraph.research', 'id': 'record:fixture', 'revision': 'r1', 'kind': kind,
                       'data': data, 'field_evidence': {}, 'is_synthetic': True}
             with self.subTest(kind=kind):
                 validator.validate(record)

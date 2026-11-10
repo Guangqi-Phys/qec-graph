@@ -54,7 +54,7 @@ class CLIContractTests(unittest.TestCase):
             pointer = workspace.registry.root / 'CURRENT.json'
             before = pointer.read_bytes()
             source = workspace.root / 'record.json'
-            base = {'schema_version': 'qecgraph.record.v3', 'id': 'record:example', 'revision': 'r1', 'title': 'Example'}
+            base = {'schema_version': 'qecgraph.record', 'id': 'record:example', 'revision': 'r1', 'title': 'Example'}
             for payload, message in (([], 'Record must be a JSON object'),
                                      ({**base, 'kind': []}, 'Unknown domain record kind')):
                 source.write_text(json.dumps(payload), encoding='utf-8')
@@ -266,7 +266,7 @@ class CLIContractTests(unittest.TestCase):
             store = root / 'store'
             store.mkdir()
             current = store / 'CURRENT.json'
-            current.write_text('{"format":"qecgraph.current.v1","path":[]}', encoding='utf-8')
+            current.write_text('{"format":"qecgraph.current","path":[]}', encoding='utf-8')
             report(['validate', '--store', str(store)], 1, 'STORAGE_ERROR', current)
 
     def test_doctor_and_snapshot_list_distinguish_current_and_prepared_states(self):

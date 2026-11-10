@@ -28,8 +28,8 @@
         "definition",
         "family",
         "construction",
-        "code_instance",
-        "presentation",
+        "quantum_code",
+        "check_matrix",
         "claim",
         "formalization",
         "evidence",
@@ -109,7 +109,7 @@
       "if": {
         "properties": {
           "kind": {
-            "const": "code_instance"
+            "const": "quantum_code"
           }
         }
       },
@@ -159,7 +159,7 @@
           "data": {
             "required": [
               "subject_id",
-              "metric_definition_id",
+              "metric_id",
               "relation",
               "verification_level",
               "evidence_ids"

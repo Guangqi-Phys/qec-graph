@@ -26,8 +26,8 @@ def producer_manifest():
         'graph.py': package / 'core' / 'graph.py',
         'transactions.py': package / 'core' / 'transactions.py',
         '__init__.py': package / '__init__.py',
-        'validators/schemas/lean-export.v1.schema.json':
-            package / 'validators' / 'schemas' / 'lean-export.v1.schema.json',
+        'validators/schemas/lean-export.schema.json':
+            package / 'validators' / 'schemas' / 'lean-export.schema.json',
     }
     return {name: hashlib.sha256(path.read_bytes()).hexdigest()
             for name, path in sources.items()}
@@ -87,13 +87,13 @@ def git_binding(project, manifest):
 
 
 def audit_export(export, policy, targets):
-    schema = json.loads(files('qecgraph.validators').joinpath('schemas/lean-export.v1.schema.json').read_text(encoding='utf-8'))
+    schema = json.loads(files('qecgraph.validators').joinpath('schemas/lean-export.schema.json').read_text(encoding='utf-8'))
     errors = list(Draft202012Validator(schema).iter_errors(export))
     if errors:
         raise ValueError('Lean export schema: ' + errors[0].message)
-    if policy.get('schema_version') != 'qecgraph.axiom-policy.v1' or not isinstance(policy.get('allowed_axioms'), list):
+    if policy.get('schema_version') != 'qecgraph.axiom-policy' or not isinstance(policy.get('allowed_axioms'), list):
         raise ValueError('Unknown axiom policy schema')
-    if targets.get('schema_version') != 'qecgraph.lean-targets.v1':
+    if targets.get('schema_version') != 'qecgraph.lean-targets':
         raise ValueError('Unknown Lean target policy schema')
     declarations = {item['name']: item for item in export['declarations']}
     if len(declarations) != len(export['declarations']):
@@ -128,12 +128,12 @@ def build_project(project, out, *, lake=None, clean=True, export_declarations=Tr
     marker = out / '.qecgraph-lean-build.json'
     if out.exists() and any(out.iterdir()) and not marker.exists():
         raise ValueError('Lean output must be empty or previously managed')
-    if marker.exists() and read_json(marker) != {'format': 'qecgraph.lean-build-store.v1'}:
+    if marker.exists() and read_json(marker) != {'format': 'qecgraph.lean-build-store'}:
         raise ValueError('Incompatible Lean evidence output marker')
-    atomic_json(marker, {'format': 'qecgraph.lean-build-store.v1'})
+    atomic_json(marker, {'format': 'qecgraph.lean-build-store'})
     run = out / ('run-' + str(uuid.uuid4()))
     run.mkdir()
-    report = {'schema_version': 'qecgraph.lean-build.v1', 'status': 'running',
+    report = {'schema_version': 'qecgraph.lean-build', 'status': 'running',
               'project': str(project), 'started_at': datetime.now(timezone.utc).isoformat(), 'commands': [],
               'producer_version': __version__, 'producer_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
               'producer_inputs': producer_manifest(),

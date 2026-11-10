@@ -98,9 +98,9 @@ def main(argv=None):
     marker = out / '.qecgraph-mcp-reproduce.json'
     if out.exists() and any(out.iterdir()) and not marker.exists():
         parser.error('--out must be empty or managed by this script')
-    if marker.exists() and read_json(marker) != {'format': 'qecgraph.mcp-reproduce.v1'}:
+    if marker.exists() and read_json(marker) != {'format': 'qecgraph.mcp-reproduce'}:
         parser.error('Incompatible output marker')
-    atomic_json(marker, {'format': 'qecgraph.mcp-reproduce.v1'})
+    atomic_json(marker, {'format': 'qecgraph.mcp-reproduce'})
     run = out / ('run-' + str(uuid.uuid4()))
     paper = run / 'paper'
     shutil.copytree(ROOT / 'examples/paper', paper)
@@ -109,7 +109,7 @@ def main(argv=None):
     registry = Registry(run / 'corpus')
     registered = registry.register_source('work:demo', 'version:demo:1', store)
     transcript, clients = [], []
-    report = {'format': 'qecgraph.mcp-reproduction.v1', 'status': 'running',
+    report = {'format': 'qecgraph.mcp-reproduction', 'status': 'running',
               'command': [sys.executable, str(Path(__file__).resolve()), *sys.argv[1:]],
               'script_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
               'protocol_version': PROTOCOL_VERSION, 'checks': [], 'client_kind': 'actual subprocess stdio client',

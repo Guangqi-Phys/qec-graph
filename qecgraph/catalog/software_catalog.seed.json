@@ -1,5 +1,5 @@
 {
-  "schema_version": "qecgraph.software_catalog.seed.v1",
+  "schema_version": "qecgraph.software_catalog.seed",
   "catalogue_id": "software-catalog:qec-core:2026-11-09",
   "catalogue_scope": {
     "subject": "公开 QEC 研究软件的起始索引：电路模拟、译码、采样、码构造、可视化与平台框架",

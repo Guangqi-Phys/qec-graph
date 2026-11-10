@@ -27,7 +27,7 @@ class MigrationTests(unittest.TestCase):
         self.assertEqual(len(report['accepted']), 10)
         registry = Registry(self.root / 'corpus')
         imported = registry.import_migration(self.root / 'migration')
-        record = registry.record('presentation:rep3-hgp:standard')
+        record = registry.record('check_matrix:rep3-hgp:standard')
         matrix_uri = record['data']['matrices']['HX']
         self.assertEqual(registry.asset_bytes(matrix_uri), (starter / 'assets/matrices/HX.gf2.json').read_bytes())
         matrix_path = registry.root / 'assets' / matrix_uri.rsplit(':', 1)[-1]
@@ -67,12 +67,12 @@ class MigrationTests(unittest.TestCase):
     def test_import_rejects_malformed_reports_before_opening_the_registry(self):
         path = self.root / 'migration-report.json'
         registry = Registry(self.root / 'corpus')
-        schema = {'schema_version': 'qecgraph.migration.v1', 'rejected': []}
+        schema = {'schema_version': 'qecgraph.migration', 'rejected': []}
         for report, reason in (
             ([], 'requires a migration report'),
             ({**schema, 'accepted': {}}, 'accepted array'),
             ({**schema, 'accepted': [None]}, r'accepted\[0\]'),
-            ({**schema, 'accepted': [{'output_schema': 'qecgraph.record.v3'}]}, r'accepted\[0\]'),
+            ({**schema, 'accepted': [{'output_schema': 'qecgraph.record'}]}, r'accepted\[0\]'),
         ):
             with self.subTest(report=report):
                 path.write_text(json.dumps(report))

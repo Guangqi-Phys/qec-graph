@@ -224,7 +224,7 @@ Python 安装还提供 `qec-latex-split`。`qecgraph` 和 `python -m qecgraph` �
 
 把已有 corpus 复制到新工作区，使用
 `qec-graph workspace-migrate --corpus /path/to/corpus --workspace /path/to/new-workspace`。
-迁移保留来源快照、记录修订和审核绑定。[迁移指南](workspace.zh-CN.md#从旧库迁移)
+迁移保留来源快照、记录修订和审核绑定。[迁移指南](workspace.zh-CN.md#导入现有-corpus)
 
 ## 复现检查
 

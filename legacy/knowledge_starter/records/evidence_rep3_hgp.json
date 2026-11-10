@@ -7,27 +7,27 @@
   "refs": [
     {
       "relation": "checks",
-      "target_id": "presentation:rep3-hgp:standard"
+      "target_id": "check_matrix:rep3-hgp:standard"
     }
   ],
   "assets": [
     {
       "path": "evidence/demo_validation.json",
-      "sha256": "d808d285dfaa06ea6196556eea96697acc4798db3a2c3f7558c02013cb7c983d",
+      "sha256": "7670bef37231b3e2516c4cd46b1be7cffc53f1bb5212c40c78f56aec5140f664",
       "media_type": "application/json"
     },
     {
       "path": "tools/qec_kb.py",
-      "sha256": "24dd242ce3acafe0aebc086d66672389244f9256cb0080b79649bf8be46e6046",
+      "sha256": "282fdbac80422d49cd62bccac352c5f183ae041f7d7c950713f078eb1aac6ed8",
       "media_type": "text/x-python"
     }
   ],
   "data": {
     "evidence_kind": "computed_exact",
     "method": "exhaustive_binary_enumeration",
-    "input_presentation_id": "presentation:rep3-hgp:standard",
+    "check_matrix_id": "check_matrix:rep3-hgp:standard",
     "verifier_path": "tools/qec_kb.py",
-    "verifier_sha256": "24dd242ce3acafe0aebc086d66672389244f9256cb0080b79649bf8be46e6046",
+    "verifier_sha256": "282fdbac80422d49cd62bccac352c5f183ae041f7d7c950713f078eb1aac6ed8",
     "report_path": "evidence/demo_validation.json",
     "status": "computed_exact",
     "formal_certificate": false,

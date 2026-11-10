@@ -31,7 +31,7 @@
 |---|---|---|---|
 | [快速开始](quickstart.zh-CN.md) | 中文 | Tutorial | 最短路径：安装 → `init` → `sync` → `status` → 查询 |
 | [工作区说明](workspace.zh-CN.md) | 中文 | How-to | `qecgraph.toml`、入口、来源、Obsidian、审核交接 |
-| [数据与检索](data-and-search.zh-CN.md) | 中文 | Reference | `research.v1`、证据、距离策略、CLI/MCP 查询 |
+| [数据与检索](data-and-search.zh-CN.md) | 中文 | Reference | `research`、证据、距离策略、CLI/MCP 查询 |
 | [进阶用法](advanced-usage.zh-CN.md) | 中文 | How-to / reference | 安装器、命令分组、JSON/退出码、发布检查 |
 | [单篇切割](splitter.zh-CN.md) | 中文 | Reference | 来源区间、片段布局、自定义环境、限制 |
 

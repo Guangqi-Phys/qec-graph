@@ -32,7 +32,7 @@ flowchart TD
 | 运行命令 | [进阶用法](user/advanced-usage.zh-CN.md) | 安装、退出码、命令分组和发布检查 |
 | 处理 splitter | [单篇 LaTeX 切割](user/splitter.zh-CN.md) | 来源区间、片段布局和 LaTeX 限制 |
 | Agent 或贡献者 | [系统设计](design/DESIGN.zh-CN.md) | 权威架构、数据、发布和边界 |
-| 维护旧 corpus | [运维](operations/README.zh-CN.md) | corpus/review 维护和验证入口 |
+| 维护corpus | [运维](operations/README.zh-CN.md) | corpus/review 维护和验证入口 |
 
 ## 本页目录
 
@@ -49,7 +49,7 @@ flowchart TD
 | [快速开始](user/quickstart.zh-CN.md) | 中文 | Tutorial | 想要最短的可运行示例 |
 | [进阶用法](user/advanced-usage.zh-CN.md) | 中文 | How-to / reference | 需要安装器、命令分组、退出码或发布检查 |
 | [工作区说明](user/workspace.zh-CN.md) | 中文 | How-to | 需要归档配置、Obsidian 布局或 provider 交接 |
-| [数据与检索](user/data-and-search.zh-CN.md) | 中文 | Reference | 需要 `research.v1` 记录、证据和查询语义 |
+| [数据与检索](user/data-and-search.zh-CN.md) | 中文 | Reference | 需要 `research` 记录、证据和查询语义 |
 | [单篇 LaTeX 切割](user/splitter.zh-CN.md) | 中文 | Reference | 需要来源区间、片段布局或 LaTeX 限制 |
 
 ## 设计与运维

@@ -129,7 +129,7 @@ def create_proposal(corpus, changes, *, actor, rationale, expected_registry_revi
             if before and after['revision'] == before['revision']:
                 raise ValueError('A changed record requires a new explicit revision')
             prepared.append({'before': before, 'after': after, 'diff': _diff(before, after)})
-        payload = {'schema_version': 'qecgraph.proposal.v1', 'corpus_id': state['corpus_id'],
+        payload = {'schema_version': 'qecgraph.proposal', 'corpus_id': state['corpus_id'],
                    'base_registry_revision': fixed, 'actor': actor, 'rationale': rationale,
                    'created_at': datetime.now(timezone.utc).isoformat(), 'status': 'proposed',
                    'changes': prepared,
@@ -137,16 +137,16 @@ def create_proposal(corpus, changes, *, actor, rationale, expected_registry_revi
                                                     [x['before'] for x in prepared if x['before']])}
         proposal_id = 'proposal:' + hash_text(canonical(payload))
         proposal = {'id': proposal_id, **payload}
-        _validate(proposal, 'proposal.v1')
+        _validate(proposal, 'proposal')
         immutable_json(_path(registry, 'proposals', proposal_id), proposal)
     return proposal
 
 
 def read_proposal(registry, proposal_id):
     path = _path(registry, 'proposals', proposal_id)
-    proposal = _read_checked_review(path, 'proposal.v1')
+    proposal = _read_checked_review(path, 'proposal')
     payload = {key: value for key, value in proposal.items() if key != 'id'}
-    if proposal.get('schema_version') != 'qecgraph.proposal.v1' or proposal.get('id') != proposal_id or proposal_id != 'proposal:' + hash_text(canonical(payload)):
+    if proposal.get('schema_version') != 'qecgraph.proposal' or proposal.get('id') != proposal_id or proposal_id != 'proposal:' + hash_text(canonical(payload)):
         raise ManagedDataError(path, 'Proposal identity/hash mismatch')
     return proposal
 
@@ -176,12 +176,12 @@ def decide(corpus, proposal_id, *, actor, decision, rationale, checked_scopes=()
             raise ValueError('Proposal input/asset bindings changed; create and inspect a new proposal')
         review_id = 'review:' + str(uuid.uuid4())
         status = 'rejected' if decision == 'reject' else 'human_approved' if actor['kind'] == 'human' else 'machine_accepted'
-        review = {'schema_version': 'qecgraph.review.v1', 'id': review_id, 'proposal_id': proposal_id,
+        review = {'schema_version': 'qecgraph.review', 'id': review_id, 'proposal_id': proposal_id,
                   'proposal_sha256': hash_text(canonical(proposal)), 'corpus_id': proposal['corpus_id'],
                   'actor': actor, 'decision': decision, 'status': status, 'checked_scopes': sorted(scopes),
                   'rationale': rationale, 'created_at': datetime.now(timezone.utc).isoformat(),
                   'input_bindings': proposal['input_bindings'], 'scope': 'record contents; no automatic mathematical or Lean verification'}
-        _validate(review, 'review.v1')
+        _validate(review, 'review')
         immutable_json(_path(registry, 'reviews', review_id), review)
     return review
 
@@ -233,7 +233,7 @@ def verify_record_review(registry, record, *, checked_reviews=None):
 
 def read_review(registry, review_id):
     path = _path(registry, 'reviews', review_id)
-    review = _read_checked_review(path, 'review.v1')
+    review = _read_checked_review(path, 'review')
     if review['id'] != review_id:
         raise ManagedDataError(path, 'Review identity mismatch')
     return review
@@ -285,7 +285,7 @@ def apply(corpus, proposal_id, review_id):
                    'records': [{key: record[key] for key in ('id', 'revision', 'content_sha256')} for record in records]}
         state.setdefault('applications', {})[proposal_id] = binding
         target_revision = hash_text(canonical(state))
-        receipt = {'schema_version': 'qecgraph.application.v1', 'proposal_id': proposal_id,
+        receipt = {'schema_version': 'qecgraph.application', 'proposal_id': proposal_id,
                    'base_registry_revision': fixed, 'registry_revision': target_revision, **binding}
         immutable_json(_path(registry, 'applications', proposal_id), receipt)
         published = registry._publish(state)

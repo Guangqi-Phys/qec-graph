@@ -1,7 +1,7 @@
 """Domain checks that cannot be expressed as generic record/edge shapes."""
 from __future__ import annotations
 
-def check_weight_metrics(metrics):
+def check_weight_statistics(metrics):
     for metric in metrics:
         low, high, mean = (metric.get(k) for k in ('min', 'max', 'mean'))
         if any(v is not None and type(v) is not int for v in (low, high)):
@@ -18,18 +18,18 @@ def validate_details(record):
     if kind == 'construction' and data.get('reconstruction_status') in ('complete', 'reconstructable'):
         if any(type(size) is not int for size in data['matrix_recipe']['shape']):
             raise ValueError('Matrix dimensions must be integers')
-    if kind == 'code_presentation' and data.get('check_weight_metrics') is not None:
-        check_weight_metrics(data['check_weight_metrics'])
+    if kind == 'check_matrix' and data.get('check_weight_statistics') is not None:
+        check_weight_statistics(data['check_weight_statistics'])
     if kind == 'noise_model':
         for field in ('idle', 'loss', 'erasure', 'leakage'):
             value = data[field]
             if value is not None and value['consideration'] == 'excluded' and not evidence.get('/data/' + field, {}).get('source_locator'):
                 raise ValueError(f'Explicit exclusion of {field} requires a source locator')
-    if kind == 'circuit_protocol':
+    if kind == 'syndrome_measurement_circuit':
         for depth in data.get('depth_metrics') or []:
             if depth['kind'] != 'physical_duration' and type(depth['value']) is not int:
                 raise ValueError('Counted depth must use an integer')
-    if kind == 'performance_point' and data.get('confidence_interval') is not None:
+    if kind == 'performance_data_point' and data.get('confidence_interval') is not None:
         interval = data['confidence_interval']
         if not interval['lower'] <= interval['upper']:
             raise ValueError('Confidence interval endpoints are out of order')

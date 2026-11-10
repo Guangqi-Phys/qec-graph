@@ -1,6 +1,6 @@
 # Corpus：注册、身份与查询
 
-> **状态：当前，适用于旧 corpus 接口。** The workspace surface is the primary product; see the [workspace guide](../user/workspace.zh-CN.md).
+> **状态：当前，适用于 corpus 接口。** The workspace surface is the primary product; see the [workspace guide](../user/workspace.zh-CN.md).
 
 > [English](corpus.md) · **中文**
 
@@ -44,14 +44,14 @@ qecgraph record-add examples/claim.example.json --corpus build/corpus
 qecgraph claim-link examples/claim-link.example.json --corpus build/corpus
 ```
 
-P1 引入 `qecgraph.record.v2`；P2 新写入使用严格的 `qecgraph.record.v3`，迁移见 [审核指南](review.zh-CN.md)。
+P1 引入 `qecgraph.record`；P2 新写入使用严格的 `qecgraph.record`，迁移见 [审核指南](review.zh-CN.md)。
 `id` 和 `revision` 由作者指定；内容哈希及协议由程序补齐。
 同一 ID/revision 不能覆盖不同内容；新修订保留旧文件。不同 ID 即使标题和参数相同也独立保存。
 自动输入默认 `review.status=proposed`；导入或语法解析不构成人工审核。
 
 `normalizes_to` 是新增的 registry 关系，表示来源块与独立 claim 的显式映射，
 每个映射绑定 source version、snapshot、准确节点和双方哈希、claim revision、假设和记号作用域。
-可多对多映射；它不把来源 lemma 改为 claim，也不宣称两种陈述等价。原 graph.v1 关系含义不变。
+可多对多映射；它不把来源 lemma 改为 claim，也不宣称两种陈述等价。原 graph 关系含义不变。
 未知 Schema 被拒绝，必须先走显式迁移；新记录不重解释旧格式。
 
 ## 固定版本查询
@@ -81,7 +81,7 @@ Corpus 搜索当前采用确定性的大小写无关子串匹配，并报告 lim
 ```bash
 qecgraph migrate legacy/knowledge_starter/records --source-root legacy/knowledge_starter --out build/migration
 qecgraph migration-import build/migration --corpus build/corpus
-qecgraph context code:rep3-hgp:13 --corpus build/corpus
+qecgraph context quantum_code:rep3-hgp:13 --corpus build/corpus
 ```
 
 迁移输出必须是独立的新目录。`migration-report.json` 记录输入字节哈希、Schema、
@@ -90,7 +90,7 @@ ID/修订映射、接受及拒绝项；原始字节保存到 `originals/`，未�
 
 旧 `0.1.0` 记录进入当前版本独立信封；保留原 ID、原记录全部字段、原证据类别和未执行状态。
 旧 refs 采用 `catalog:` 前缀，避免隐式提升为审核依赖。旧 claim 未说明量词时为 null 并注明原因。
-`qecgraph.graph.v1` 与 `qecgraph.annotations.v1` 采用逐字节 passthrough 适配，
+`qecgraph.graph` 与 `qecgraph.annotations` 采用逐字节 passthrough 适配，
 保持来源块和审核绑定原义，不将原文 theorem 转为 claim；完整 store 的跨文档接入使用 register。
 
 旧记录的相对资产路径必须明确提供 `--source-root`，不能相对于新 store 猜测。

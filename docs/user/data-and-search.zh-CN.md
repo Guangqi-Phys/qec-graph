@@ -29,7 +29,7 @@ QEC Graph 保存原始来源、从来源抽取的图，以及带版本的研究�
 | 人类视图 | `human/Index.md` 和 `human/generated/` 是派生的 Obsidian 页面。个人笔记在 `human/notes/`。工作区 MCP 从 `machine/` 读取。 |
 
 导入论文会为受支持 TeX 创建来源图，并可对识别出的参数记法生成
-`code_mention` 提案。提案带来源位置和未解决字段。结构化码参数、距离界、
+`code_parameters_mention` 提案。提案带来源位置和未解决字段。结构化码参数、距离界、
 实验条件和性能点依赖显式记录和证据。来源链接保留论文实际报告的内容。
 数学检查和语义审核携带独立证据。Lean 在 0.4.x 中延期；任何实验 Lean fixture
 都不是验证结论。[图语义和数据契约](../design/DESIGN.zh-CN.md#4-数据契约)
@@ -37,7 +37,7 @@ QEC Graph 保存原始来源、从来源抽取的图，以及带版本的研究�
 ## 研究记录类型
 
 代码示例使用自带的 13-qubit hypergraph-product（HGP）示例说明
-`qecgraph.research.v1` 记录。下面的实验使用假设设置和计数。
+`qecgraph.research` 记录。下面的实验使用假设设置和计数。
 [自带 HGP 示例](../../examples/paper/sections/hgp.tex)
 
 ### 论文和码
@@ -45,13 +45,13 @@ QEC Graph 保存原始来源、从来源抽取的图，以及带版本的研究�
 | 记录 kind | 示例 |
 | --- | --- |
 | `paper_version` | 保存 `work_id`、`upstream_version` 和 `source_snapshot_id`。arXiv 论文的 `v2` 和 `v3` 可以在同一 work ID 下有不同来源快照。 |
-| `code_mention` | 在受支持段落如“A CSS quantum code has parameters `[[13,1,3]]`”中，导入可提议 `n_data: 13` 和 `k_logical: 1`，保留完整记法和来源区间，并让 `code_ref` 和 `distance_interpretation` 保持未解决。 |
-| `classical_seed` | 描述经典输入，如带 `2 × 3` 校验矩阵的二元长度三重复码。 |
+| `code_parameters_mention` | 在受支持段落如“A CSS quantum code has parameters `[[13,1,3]]`”中，导入可提议 `n: 13` 和 `k: 1`，保留完整记法和来源区间，并让 `code_ref` 和 `distance_interpretation` 保持未解决。 |
+| `classical_code` | 描述经典输入，如带 `2 × 3` 校验矩阵的二元长度三重复码。 |
 | `code_family` | 描述普通 hypergraph-product 码这一类。一个 family 可包含许多不同 seed 选择的实例。 |
 | `construction` | 指定从两个 repetition seed 构建 HGP checks 的配方。可重建的 `matrix_recipe` 包含域、形状、索引、bit order、公式、recipe 版本和精确 seed 修订。 |
-| `code_instance` | 标识由这些 seed 构建的特定量子码，带 `n_data: 13`、`k_logical: 1`，并链接其 construction、presentations 和 distance claims。 |
-| `code_presentation` | 记录实例的具体表示，如 `H_X`/`H_Z` 校验矩阵资产和 qubit 顺序。check-weight 统计指定 check 集、sector 和范围，如 X stabilizers。 |
-| `distance_claim` | 绑定对象和度量。联合 CSS 距离 3 时，`relation: "exact"` 有 `lower_bound: 3` 和 `upper_bound: 3`。weight-3 逻辑 witness 支持 `relation: "upper_bound"` 且 `lower_bound: null`。 |
+| `quantum_code` | 标识由这些 seed 构建的特定量子码，带 `n: 13`、`k: 1`，并链接其 construction、check-matrix representations 和 distance estimates。 |
+| `check_matrix` | 记录实例的具体表示，如 `H_X`/`H_Z` 校验矩阵资产和 qubit 顺序。check-weight 统计指定 check 集、sector 和范围，如 X stabilizers。 |
+| `distance_estimate` | 绑定对象和度量。联合 CSS 距离 3 时，`relation: "exact"` 有 `lower_bound: 3` 和 `upper_bound: 3`。weight-3 逻辑 witness 支持 `relation: "upper_bound"` 且 `lower_bound: null`。 |
 
 这些记录让你在 `code_ref` 解析后，从论文记法追到具体实例，再检查矩阵和
 距离证据。历史 HGP 示例包含有限枚举检查。
@@ -63,17 +63,17 @@ QEC Graph 保存原始来源、从来源抽取的图，以及带版本的研究�
 
 | 记录 kind | 示例 |
 | --- | --- |
-| `circuit_protocol` | 把码表示链接到三轮 syndrome 电路，提供时带电路资产和边界条件。深度测量给出计数规则和单位，如 `layers` 中的 `two_qubit_layers`。 |
+| `syndrome_measurement_circuit` | 把码表示链接到三轮 syndrome 电路，提供时带电路资产和边界条件。深度测量给出计数规则和单位，如 `layers` 中的 `two_qubit_layers`。 |
 | `noise_model` | 描述错误发生位置，如每个 CNOT 后的两 qubit depolarizing noise。来源明确时记录是否包含 idle errors、loss、erasure 和 leakage。未解决 channel 字段保持 `null`。 |
-| `noise_instantiation` | 把模型绑定到电路并保存 `reported_coordinates`，如 `{"p": 0.005}`。来源明确该轴值对门或其他 channel 的含义时，填写 `resolved_channel_parameters`。 |
-| `decoder_configuration` | 绑定解码算法和本实验设置，如带指定加权规则的 minimum-weight perfect matching。 |
-| `hardware_assumptions` | 记录论文明确说明的假设，如哪些 qubit 可交互、所有 CNOT 是否同时长。 |
-| `reported_experiment` | 链接论文修订、码、表示、电路、噪声模型和解码器。精确链接标识报告结果属于哪个电路和解码器。 |
-| `metric_definition` | 定义事件、分母和单位，如每个 accepted shot 的错误最终逻辑 parity，以分数表示。每轮速率有自己的 metric 定义。 |
-| `performance_series` | 把同一曲线上的点分组，如三轮实验的逻辑失败率对 `p`。它链接精确实验和 metric 修订。 |
-| `performance_point` | 链接实验、噪声实例、metric，可选 series。10,000 shots 中 20 次失败、零丢弃时值为 `0.002`。真实记录中，报告值、计数和置信区间在提供时都需精确来源定位。 |
+| `noise_model_instance` | 把模型绑定到电路并保存 `reported_coordinates`，如 `{"p": 0.005}`。来源明确该轴值对门或其他 channel 的含义时，填写 `resolved_channel_parameters`。 |
+| `decoder` | 绑定解码算法和本实验设置，如带指定加权规则的 minimum-weight perfect matching。 |
+| `hardware_model` | 记录论文明确说明的假设，如哪些 qubit 可交互、所有 CNOT 是否同时长。 |
+| `experiment` | 链接论文修订、码、表示、电路、噪声模型和解码器。精确链接标识报告结果属于哪个电路和解码器。 |
+| `metric` | 定义事件、分母和单位，如每个 accepted shot 的错误最终逻辑 parity，以分数表示。每轮速率有自己的 metric 定义。 |
+| `performance_curve` | 把同一 performance curve 上的 data points 分组，如三轮实验的逻辑失败率对 `p`。它链接精确实验和 metric 修订。 |
+| `performance_data_point` | 链接实验、噪声实例、metric，可选 performance curve。10,000 shots 中 20 次失败、零丢弃时值为 `0.002`。真实记录中，报告值、计数和置信区间在提供时都需精确来源定位。 |
 | `execution_environment` | 描述实际运行环境，如操作系统、CPU 架构、解释器和依赖版本。 |
-| `execution_run` | 把具体执行绑定到环境和执行证据，如保存的日志和输出哈希。本地复现可用 `reported_experiment_ref` 链接回报告实验。 |
+| `execution_run` | 把具体执行绑定到环境和执行证据，如保存的日志和输出哈希。本地复现可用 `experiment_ref` 链接回报告实验。 |
 
 合成 fixture 展示部分数据如何保存。`demo:noise-point` 有轴坐标，但 channel
 映射未解决。链接的 `demo:point` 的 `value: null`，因为 fixture 未提供逻辑
@@ -83,7 +83,7 @@ QEC Graph 保存原始来源、从来源抽取的图，以及带版本的研究�
 
 | 记录 kind | 示例 |
 | --- | --- |
-| `algorithm` | Minimum-weight perfect matching（`MWPM`）标识 `decoder_configuration` 可引用的方法。 |
+| `algorithm` | Minimum-weight perfect matching（`MWPM`）标识 `decoder` 可引用的方法。 |
 | `software_project` | `software:stim` 标识 Stim 项目及其仓库。 |
 | `software_distribution` | `pypi` 生态中的 `stim` 包通过 `project_ref` 链接回项目。 |
 | `software_release` | 保存精确包版本，如 manifest 固定该版本时 `version: "1.2.3"`。其 `distribution_ref` 标识所属包。 |
@@ -97,7 +97,7 @@ usage 记录需要论文或运行实际使用内容的证据，包括已知版�
 
 ### 字段、修订和证据
 
-每条 `qecgraph.research.v1` 记录有 `schema_version`、稳定 `id`、精确
+每条 `qecgraph.research` 记录有 `schema_version`、稳定 `id`、精确
 `revision`、`kind`、`data`、`field_evidence` 和 `is_synthetic` 标志。
 引用如 `{"id": "demo:source", "revision": "r1"}` 指定精确来源修订。证据也可
 指定来源位置及抽取/检查限制。下面的合成代码示例中，fixture 提供 qubit 数，
@@ -105,9 +105,9 @@ construction 仍未知。
 
 ```json
 {
-  "data": {"n_data": 13, "construction_ref": null},
+  "data": {"n": 13, "construction_ref": null},
   "field_evidence": {
-    "/data/n_data": {
+    "/data/n": {
       "status": "known",
       "source_ref": {"id": "demo:source", "revision": "r1"},
       "method": "synthetic_fixture"
@@ -121,7 +121,7 @@ construction 仍未知。
 歧义；`not_reported` 要求对来源指定部分做带日期检查；`not_applicable` 和
 `conflicting` 记录字段为何没有单一值。默认工作区查询过滤 synthetic 记录和
 过期 provider 批准；proposed/draft 记录仍可见并携带 `review_status`，但绝不当作已验证。
-旧 `qecgraph.record.v3` 记录也可携带 claims、证据和实验性
+旧 `qecgraph.record` 记录也可携带 claims、证据和实验性
 Lean 映射字段。Lean 延期，不属于受支持 0.4.x 流程；见
 [设计说明](../design/DESIGN.zh-CN.md#10-lean延期不支持)。
 research schema 列出受支持 kinds、每种 kind 必填字段，以及可空 `{id, revision}`
@@ -130,7 +130,7 @@ research schema 列出受支持 kinds、每种 kind 必填字段，以及可空 
 速率等可移植值约束。QEC Graph 检查相关值的一致性、精确目标修订是否存在、
 指针是否解析到该值，以及记录是否一致。
 
-[研究记录 schema](../../qecgraph/validators/schemas/research.v1.schema.json) · [旧记录 schema](../../qecgraph/validators/schemas/record.v3.schema.json)
+[研究记录 schema](../../qecgraph/validators/schemas/research.schema.json) · [旧记录 schema](../../qecgraph/validators/schemas/record.schema.json)
 
 ## 按关键词、来源或结构化字段检索
 
@@ -139,7 +139,7 @@ CLI 和 MCP 使用同一套只读工作区工具。在 MCP 客户端中使用这
 
 | 目标 | 工具 | 如何开始 |
 | --- | --- | --- |
-| 查找术语、标签、来源或记录 | `qecgraph_search` | 传 `query`，可选 `kind`、`limit`、`offset`。工作区搜索大小写无关。用 `kind: "code_mention"` 聚焦记法提案。 |
+| 查找术语、标签、来源或记录 | `qecgraph_search` | 传 `query`，可选 `kind`、`limit`、`offset`。工作区搜索大小写无关。用 `kind: "code_parameters_mention"` 聚焦记法提案。 |
 | 读取记录并跟踪链接 | `qec_get_entity`、`qec_get_context` | 把结果 `id` 作为 `identifier`。有多个修订时传 `revision` 选择精确研究记录。 |
 | 读取原始段落或资产 | `qec_get_source`、`qec_get_asset` | 用已登记来源 occurrence ID 或记录的 asset ID。来源区间用半开 Unicode codepoint 偏移，资产区间用字节偏移。 |
 | 检查图节点和依赖 | `qecgraph_show`、`qecgraph_context`、`qecgraph_deps`、`qecgraph_impact` | 用图节点 ID 或唯一标签。`deps` 跟随结果依赖什么，`impact` 跟随什么依赖它。依赖 candidate 或历史链接前检查边状态。 |

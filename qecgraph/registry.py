@@ -14,8 +14,8 @@ from .core.transactions import ManagedDataError, atomic_bytes, atomic_json, immu
 from .domain.records import prepare_record
 from .query import resolve_node
 
-FORMAT = 'qecgraph.registry.v1'
-CURRENT_FORMAT = 'qecgraph.registry.current.v1'
+FORMAT = 'qecgraph.registry'
+CURRENT_FORMAT = 'qecgraph.registry.current'
 
 
 def empty_state():
@@ -217,10 +217,9 @@ class Registry:
         if revision not in identity['revisions']:
             raise ValueError(f'Unknown revision for {identifier}: {revision}')
         binding = identity['revisions'][revision]
-        record = prepare_record(read_json(safe_relative(self.root, binding['path'])), allow_legacy=True)
-        if record['schema_version'] == 'qecgraph.record.v3':
-            from .review import verify_record_review
-            verify_record_review(self, record, checked_reviews=_checked_reviews)
+        record = prepare_record(read_json(safe_relative(self.root, binding['path'])))
+        from .review import verify_record_review
+        verify_record_review(self, record, checked_reviews=_checked_reviews)
         if record['id'] != identifier or record['revision'] != revision or record['content_sha256'] != binding['content_sha256']:
             raise ValueError('Registered record identity/hash mismatch')
         return record
@@ -269,7 +268,7 @@ class Registry:
     def import_migration(self, migration_root):
         migration_root = Path(migration_root).resolve()
         report = read_json(migration_root / 'migration-report.json')
-        if (not isinstance(report, dict) or report.get('schema_version') != 'qecgraph.migration.v1'
+        if (not isinstance(report, dict) or report.get('schema_version') != 'qecgraph.migration'
                 or report.get('rejected')):
             raise ValueError('Import requires a migration report with no rejected inputs')
         accepted = report.get('accepted')
@@ -281,7 +280,7 @@ class Registry:
                 isinstance(item.get(field), str) and item[field].strip() for field in ('output_schema', 'output_path')
             ):
                 raise ValueError(f'Migration report accepted[{index}] requires an output schema and path')
-            if item['output_schema'] == 'qecgraph.record.v3':
+            if item['output_schema'] == 'qecgraph.record':
                 records.append(prepare_record(read_json(safe_relative(migration_root, item['output_path']))))
         with writer_lock(self.root):
             state = self._state_or_empty()

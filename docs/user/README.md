@@ -20,7 +20,7 @@
 |---|---|
 | Install and import a first paper | [Quick start](quickstart.md) |
 | Configure entry points or archive behavior | [Workspace guide](workspace.md) |
-| Search sources, records, codes or performance points | [Data and search](data-and-search.md) |
+| Search sources, records, codes or performance data points | [Data and search](data-and-search.md) |
 | Look up a command, exit code or release check | [Advanced usage](advanced-usage.md) |
 | Split a single LaTeX project without the workspace | [Single-paper splitter](splitter.md) |
 | See what changed between releases | [Changelog](../../CHANGELOG.md) |
@@ -31,7 +31,7 @@
 |---|---|---|---|
 | [Quick start](quickstart.md) | English | Tutorial | Shortest path: install → `init` → `sync` → `status` → query |
 | [Workspace guide](workspace.md) | English | How-to | `qecgraph.toml`, entry points, provenance, Obsidian, review handoff |
-| [Data and search](data-and-search.md) | English | Reference | `research.v1`, evidence, distance policy, CLI/MCP queries |
+| [Data and search](data-and-search.md) | English | Reference | `research`, evidence, distance policy, CLI/MCP queries |
 | [Advanced usage](advanced-usage.md) | English | How-to / reference | Installers, command groups, JSON/exit codes, release checks |
 | [Single-paper splitter](splitter.md) | English | Reference | Source spans, fragment layout, custom environments, limits |
 

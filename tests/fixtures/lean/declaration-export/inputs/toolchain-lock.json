@@ -1,0 +1,14 @@
+{
+  "format": "qecgraph.lean-toolchain-lock",
+  "lean_version": "4.19.0",
+  "lean_commit": "6caaee842e9495688c1567e78c0e68dbb96942aa",
+  "reference_distribution": {
+    "platform": "darwin_aarch64",
+    "url": "https://github.com/leanprover/lean4/releases/download/v4.19.0/lean-4.19.0-darwin_aarch64.tar.zst",
+    "sha256": "94d4246fd90a152a4819419498d3e45c941a31638a57a0a8e32561494ab6cea7",
+    "hash_scope": "Actual downloaded bytes; upstream API did not provide a digest"
+  },
+  "mathlib_commit": null,
+  "mathlib_status": "not_a_dependency",
+  "dependency_profile": "Lean core only"
+}

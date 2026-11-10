@@ -22,7 +22,7 @@ KNOWN_RELATIONS = {
     "contains", "defined_in", "includes", "references", "cites", "uses_resource",
     "depends_on_declared", "depends_on_candidate", "depends_on_reviewed",
     "proof_of", "proof_of_candidate", "formalizes", "describes", "about",
-    "has_matrix", "has_presentation", "generated_by", "uses_circuit", "uses_noise",
+    "has_matrix", "has_check_matrix", "generated_by", "uses_circuit", "uses_noise",
     "uses_decoder", "supports", "contradicts", "reports", "instance_of",
 }
 
@@ -301,8 +301,8 @@ class _GraphBuilder:
 
     def attach_annotations(self, annotations: dict | None) -> None:
         annotations = annotations or {}
-        if annotations and annotations.get("schema_version") != "qecgraph.annotations.v1":
-            raise ValueError("Expected annotation schema_version qecgraph.annotations.v1")
+        if annotations and annotations.get("schema_version") != "qecgraph.annotations":
+            raise ValueError("Expected annotation schema_version qecgraph.annotations")
 
         def selector(value):
             if value in self.nodes:
@@ -418,7 +418,7 @@ class _GraphBuilder:
         for node in self.nodes.values():
             node["revision"] = hash_text(canonical({"content": node["content_sha256"], "source": node["source"],
                                                     "semantic_context": self.project_source_hash}))
-        graph = {"schema_version": "qecgraph.graph.v1", "tool_version": __version__, "project_id": self.project_id,
+        graph = {"schema_version": "qecgraph.graph", "tool_version": __version__, "project_id": self.project_id,
                  "project_source_hash": self.project_source_hash, "entry": self.parsed["entry"],
                  "nodes": sorted(self.nodes.values(), key=lambda x: x["id"]),
                  "edges": sorted(self.edges, key=lambda x: x["id"]),

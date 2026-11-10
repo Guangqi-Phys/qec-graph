@@ -74,7 +74,7 @@ QEC Graph 把 LaTeX 论文和显式 QEC 研究记录变成保留来源的本地�
 flowchart LR
     Inputs["inputs/ source packages"] --> Archive["archive/ bytes + receipts"]
     Archive --> Extract["LaTeX extraction + source registry"]
-    Extract --> Records["research.v1 records + evidence"]
+    Extract --> Records["research records + evidence"]
     Records --> Validate["candidate release validation"]
     Validate --> Machine["machine/ immutable release"]
     Machine --> CLI["CLI query"]
@@ -147,7 +147,7 @@ flowchart TB
 | 层 | 权威内容 | 可编辑？ | 可重建？ |
 |---|---|---|---|
 | 原始资产 | 固定 commit 的原始论文/TeX 包、PDF、矩阵、证书、Lean 源码 | 否（追加新版本） | 否 |
-| 人工记录 | `research.v1` JSON、审核绑定、显式关系、资产清单 | 是，通过显式记录/事务 | 否 |
+| 人工记录 | `research` JSON、审核绑定、显式关系、资产清单 | 是，通过显式记录/事务 | 否 |
 | 执行证据 | 构建日志、导出、计算检查、运行输出 | 发布后否 | 否 |
 | 查询投影 | `graph.json`、视图、SQLite/FTS5、人类页面 | 否 | 是 |
 
@@ -197,7 +197,7 @@ Store 和 corpus 有各自受管理根目录。不要合并它们的 pointer 格
 | 资产 ID | 内容寻址的受管理字节 | 源文件路径 |
 
 重复标签有歧义，必须用精确 ID 消解。缺少记录不能证明对象不存在。`[n,k,d]`
-相等不能证明码身份；construction、presentation、logical basis 和 evidence 保持分离。
+相等不能证明码身份；construction、check-matrix representation、logical basis 和 evidence 保持分离。
 
 ---
 
@@ -207,13 +207,12 @@ Store 和 corpus 有各自受管理根目录。不要合并它们的 pointer 格
 
 | Schema | 用途 | 位置 |
 |---|---|---|
-| `qecgraph.research.v1` | 当前 workspace 研究记录（26 kinds、41 typed relations） | `qecgraph/validators/schemas/research.v1.schema.json` |
-| `qecgraph.record.v3` | 旧 corpus 记录，仍可读并显式迁移 | `qecgraph/validators/schemas/record.v3.schema.json` |
-| `qecgraph.record.v2` | 更旧记录，只读兼容 | packaged schema |
-| `qecgraph.graph.v1` | 抽取图和三种视图 | `qecgraph/validators/schemas/graph.schema.json` |
-| `qecgraph.annotations.v1` | 对抽取 store 的人工/AI 增补 | packaged schema |
-| `proposal.v1`、`review.v1` | 审核信封 | packaged schemas |
-| `lean-export.v1` | 实验性/延期 Lean 导出信封 | packaged schema |
+| `qecgraph.research` | 当前 workspace 研究记录（26 kinds、41 typed relations） | `qecgraph/validators/schemas/research.schema.json` |
+| `qecgraph.record` | corpus 记录（当前格式） | `qecgraph/validators/schemas/record.schema.json` |
+| `qecgraph.graph` | 抽取图和三种视图 | `qecgraph/validators/schemas/graph.schema.json` |
+| `qecgraph.annotations` | 对抽取 store 的人工/AI 增补 | packaged schema |
+| `qecgraph.proposal`、`qecgraph.review` | 审核信封 | packaged schemas |
+| `qecgraph.lean-export` | 实验性/延期 Lean 导出信封 | packaged schema |
 
 未知 schema 版本被拒绝或作为不透明历史输入保留；绝不用最新字段重新解释。
 包版本和数据 schema 版本独立演进。规范 schema 是打包资源；不要在仓库根创建
@@ -221,7 +220,7 @@ Store 和 corpus 有各自受管理根目录。不要合并它们的 pointer 格
 
 ### 4.2 Research 记录信封
 
-`research.v1` 记录携带：
+`research` 记录携带：
 
 - `schema_version`、`id`、`revision`、`kind`、`is_synthetic`；
 - 带 kind 专属字段的 `data`；
@@ -243,31 +242,31 @@ Store 和 corpus 有各自受管理根目录。不要合并它们的 pointer 格
 
 | 概念 | 区分 |
 |---|---|
-| `code_family` / `construction` / `code_instance` | family 或 construction 规则不是具体 `[n,k,d]` 实例 |
-| `classical_seed` | 经典码/seed 不是由它导出的量子码 |
-| `code_presentation` | stabilizer space 与特定校验矩阵/生成元集是不同对象 |
-| `distance_claim` | 对象、presentation、metric、sector、方向、假设、方法、条件、证据 |
-| `circuit_protocol` | 电路距离和码距离不同；深度必须说明计数定义 |
-| `noise_model` / `noise_instantiation` | channel 模型模板不是解析后的概率点 |
-| `decoder_configuration` | 算法、软件/release、参数和版本彼此不同 |
-| `reported_experiment` | 论文报告结果不是本地执行的 `execution_run` |
-| `performance_series` / `performance_point` | 点属于一个 experiment/curve/metric revision；不做跨实验排名 |
-| `hardware_assumptions` / `execution_environment` | 硬件声称与模拟 CPU/GPU 环境分开 |
+| `code_family` / `construction` / `quantum_code` | family 或 construction 规则不是具体 `[n,k,d]` 实例 |
+| `classical_code` | 经典码/seed 不是由它导出的量子码 |
+| `check_matrix` | stabilizer space 与特定校验矩阵/生成元集是不同对象 |
+| `distance_estimate` | 对象、check-matrix representation、metric、sector、方向、假设、方法、条件、证据 |
+| `syndrome_measurement_circuit` | 电路距离和码距离不同；深度必须说明计数定义 |
+| `noise_model` / `noise_model_instance` | channel 模型模板不是解析后的概率点 |
+| `decoder` | 算法、软件/release、参数和版本彼此不同 |
+| `experiment` | 论文报告结果不是本地执行的 `execution_run` |
+| `performance_curve` / `performance_data_point` | 点属于一个 experiment/curve/metric revision；不做跨实验排名 |
+| `hardware_model` / `execution_environment` | 硬件声称与模拟 CPU/GPU 环境分开 |
 | `software_usage` | 提及、引用、来源报告使用和本地观察使用是不同证据等级 |
 | `catalog_source` | 软件 catalog 条目不是已安装/测试的 release |
 
 必需最低字段包括：
 
-- `code_instance`：coding domain 和 `n`/`k`（或显式 unknown 原因）、construction 引用、presentations。
-- `code_presentation`：父码、校验矩阵/资产、索引/bit-order 约定、重建状态。
-- `distance_claim`：精确 subject/metric/sector、relation（`exact`/`lower_bound`/`upper_bound`/`interval`）、bounds、assumptions、method、evidence。
-- `circuit_protocol`：representation、scheduling、ancillas、rounds、boundaries、observables；带显式单位/定义的 depth metrics。
+- `quantum_code`：code type 和 `n`/`k`（或显式 unknown 原因）、construction 引用、check-matrix representations。
+- `check_matrix`：父码、校验矩阵/资产、索引/bit-order 约定、重建状态。
+- `distance_estimate`：精确 subject/metric/sector、relation（`exact`/`lower_bound`/`upper_bound`/`interval`）、bounds、assumptions、method、evidence。
+- `syndrome_measurement_circuit`：representation、scheduling、ancillas、rounds、boundaries、observables；带显式单位/定义的 depth metrics。
 - `noise_model`：channels、locations、probability parameters、temporal/spatial correlations、boundaries；idle/loss/erasure/leakage 分开，无证据时 `unknown`。
-- `reported_experiment`：精确 code/presentation/circuit/noise instance/decoder/metric/source revisions。
-- `performance_point`：experiment、noise instantiation、metric、value、coordinates、shots/discards/uncertainty、selection policy；不跨曲线插值。
+- `experiment`：精确 code/check-matrix representation/circuit/noise-model instance/decoder/metric/source revisions。
+- `performance_data_point`：experiment、noise-model instance、metric、value、coordinates、shots/discards/uncertainty、selection policy；不跨曲线插值。
 - `software_usage`：usage kind、project、release（或显式 unknown），以及 source/experiment 绑定。
 
-Check weight 始终绑定实际 presentation 和 check 集，包括 sector（`X`/`Z`/`mixed`）、
+Check weight 始终绑定实际 check-matrix representation 和 check 集，包括 sector（`X`/`Z`/`mixed`）、
 scope（`stabilizer`/`gauge`/`measured`）和 min/max/mean/histogram。在 symplectic
 表示中，一个 `Y` 贡献一个 support 位置。
 
@@ -279,7 +278,7 @@ scope（`stabilizer`/`gauge`/`measured`）和 min/max/mean/histogram。在 sympl
 - 结构：`contains`、`defined_in`、`includes`、`uses_resource`；
 - 文本：`references`、`cites`、`describes`；
 - 数学：`depends_on_declared`、`depends_on_candidate`、`depends_on_reviewed`、`proof_of`、`proof_of_candidate`、`normalizes_to`；
-- 数据：`has_presentation`、`has_matrix`、`instance_of`、`generated_by`；
+- 数据：`has_check_matrix`、`has_matrix`、`instance_of`、`generated_by`；
 - 实验：`uses_circuit`、`uses_noise`、`uses_decoder`、`reports`、`supports`、`contradicts`；
 - Lean：`formalizes`、`maps_declaration`、`maps_source_occurrence`、`has_build_evidence`、`lean_type_depends_on`、`lean_proof_depends_on`（及传递变体）；
 - catalog：`catalog:*` 保留导入含义；它们不变成证明边。
@@ -336,7 +335,7 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 ### 5.3 规则和 provider 提案
 
 离线抽取器执行两遍：定位记法/结构，再应用本地措辞/列规则。它生成带精确定位和
-规则版本的 `code_mention` 提案；不把表格参数提升为已验证码实例、不推断距离界、
+规则版本的 `code_parameters_mention` 提案；不把表格参数提升为已验证码实例、不推断距离界、
 不根据括号形状猜码类。
 
 可选的本地 provider 交接导出有界来源摘录，验证 provider/model/prompt hash 和
@@ -354,12 +353,12 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 变成真，schema 通过也不会变成数学验证。
 
 `claim.subject_id` 必须解析到已注册主体。悬空 subject 是验证错误；错误的主体 kind
-（对距离论断而言，不是 code instance、presentation、circuit、family、construction 或
-classical seed）是 warning，而不是静默消失。
+（对距离论断而言，不是 quantum code、check-matrix representation、circuit、family、construction 或
+classical code）是 warning，而不是静默消失。
 
 证据策略：
 
-- 硬距离过滤要求精确 subject/presentation/metric/sector、合格 relation（`exact`、
+- 硬距离过滤要求精确 subject/check-matrix representation/metric/sector、合格 relation（`exact`、
   `lower_bound`、`interval`）、足够下界，以及绑定到 claim 精确修订的当前证据。
 - 只有上界绝不满足 `distance >= d`。
 - 来源报告结果只在显式策略下选择；不被静默视为数学验证。
@@ -560,7 +559,7 @@ build evidence 或 semantic equivalence。
 | G08 | 表格参数不被抽取提升为已验证码实例。 |
 | G09 | 重建相同 input/tool state 幂等，且不修改 source bytes。 |
 | G10 | Graph、views 和 SQLite 指向同一 snapshot；所有边端点有效。 |
-| G11 | 显式 data relations 可扩展 matrix/presentation/metric/evidence context。 |
+| G11 | 显式 data relations 可扩展 matrix, check-matrix, metric and evidence context。 |
 | G12 | Partial extraction、truncation、unresolved targets 和 stale reviews 可观察。 |
 | G13 | 失败发布保持旧 release 可读、输入可恢复。 |
 | G14 | `human/notes/` 绝不被 generation/query/MCP 读取或覆盖。 |
@@ -570,7 +569,7 @@ build evidence 或 semantic equivalence。
 
 - 证明提到背景定理但没有声明依赖：保留 `references`；只有 candidate edges。
 - 重复 label：返回歧义；要求精确 ID。
-- Distance claim 只有上界：不得满足 lower-bound filter。
+- distance estimate 只有上界：不得满足 lower-bound filter。
 - source/asset/review input 变化：标 stale，保留旧证据，从默认答案排除。
 - 归档包含 traversal、links、special files、forged ZIP count 或不支持的 member：在 materialization 前拒绝。
 - 包永久不受支持：保留、报告并允许 quarantine；绝不删除或伪造抽取。
