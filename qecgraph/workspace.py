@@ -23,6 +23,7 @@ from .registry import Registry
 from .source.package import Limits, PackageError, unpack
 from .store import extraction_tool_identity, ingest, source_span_index
 from .core.transactions import ManagedDataError, atomic_bytes, atomic_json, immutable_json, writer_lock
+from .llm.config import render_config_template
 
 CONFIG = 'qecgraph.toml'
 FORMAT = 'qecgraph.workspace'
@@ -218,9 +219,9 @@ class Workspace:
             raise WorkspaceConfigError(path, 'The workspace configuration is not valid UTF-8') from exc
         if cfg.get('format') != FORMAT or not isinstance(cfg.get('workspace_id'), str):
             raise WorkspaceConfigError(path, 'Invalid workspace configuration')
-        if set(cfg) - {'format', 'workspace_id', 'limits', 'entrypoints', 'sources'}:
+        if set(cfg) - {'format', 'workspace_id', 'limits', 'entrypoints', 'sources', 'ai'}:
             raise WorkspaceConfigError(path, 'Unsupported workspace settings')
-        for field in ('limits', 'entrypoints', 'sources'):
+        for field in ('limits', 'entrypoints', 'sources', 'ai'):
             if not isinstance(cfg.get(field, {}), dict):
                 raise WorkspaceConfigError(path, f'{field} must be a table')
         try:
@@ -260,7 +261,7 @@ class Workspace:
                              keep_inputs=no_ingest or keep_inputs, progress=progress)
 
     def prepare(self):
-        """Create the config and inbox without publishing an empty release."""
+        """Create inputs/ and the AI configuration, without extracting anything."""
         configured = self.path(CONFIG).is_file()
         if not configured:
             problem = init_directory_error(self.root)
@@ -271,23 +272,21 @@ class Workspace:
             if (inputs.exists() or inputs.is_symlink()) and (inputs.is_symlink() or not inputs.is_dir()):
                 raise ValueError('cannot initialize: inputs must be a real directory')
         self.root.mkdir(parents=True, exist_ok=True)
-        with writer_lock(self.path('.qecgraph')):
-            for path in ('inputs/.processing', 'archive/blobs/sha256', 'archive/receipts', 'sources', 'machine'):
-                self.path(path).mkdir(parents=True, exist_ok=True)
-            target = self.path(CONFIG)
-            if not target.exists():
-                workspace_id = 'workspace:' + uuid.uuid4().hex
-                atomic_bytes(target, f'format = "{FORMAT}"\nworkspace_id = "{workspace_id}"\n'.encode())
-            cfg = self.config()
+        self.path('inputs').mkdir(parents=True, exist_ok=True)
+        target = self.path(CONFIG)
+        if not target.exists():
+            atomic_bytes(target, render_config_template('workspace:' + uuid.uuid4().hex).encode())
+        try:
+            target.chmod(0o600)
+        except OSError:
+            pass
+        cfg = self.config()
+        if self.path('machine/CURRENT.json').is_file():
+            return {'status': 'already_initialized', 'workspace_id': cfg['workspace_id'],
+                    'next': 'qec-graph sync'}
         return {'status': 'initialized', 'workspace_id': cfg['workspace_id'],
                 'next': 'qec-graph sync',
-                'message': 'Add LaTeX source packages to inputs/ and run qec-graph sync.'}
-
-    def inbox_has_content(self):
-        try:
-            return any(True for _ in self._inbox())
-        except (FileNotFoundError, NotADirectoryError):
-            return False
+                'message': 'Edit [ai] in qecgraph.toml, put source packages in inputs/, and run qec-graph sync.'}
 
     def sync(self, *, dry_run=False, keep_inputs=False, progress=None):
         if dry_run:
@@ -681,6 +680,8 @@ class Workspace:
             raise ValueError('Published workspace is missing its release pointer')
         run_id = uuid.uuid4().hex
         limits = Limits(**cfg.get('limits', {}))
+        for path in ('inputs/.processing', 'archive/blobs/sha256', 'archive/receipts', 'sources', 'machine'):
+            self.path(path).mkdir(parents=True, exist_ok=True)
         self._cleanup_empty_claims()
         claims, rows = [], []
         if scan_inputs:

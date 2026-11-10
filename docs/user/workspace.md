@@ -48,9 +48,9 @@ failed files stay for retry. Add `--json` for the detailed report. Except
 and its parents, then `QECGRAPH_WORKSPACE`. `init` uses only the current
 directory unless `--workspace` names another one.
 
-A second `init` does not overwrite configuration. `--no-ingest` only initialises;
-when running `sync` with other flags, `--keep-inputs` preserves successful
-files and `--no-human` skips the human renderer. `rebuild` checks the complete
+A second `init` does not overwrite configuration and never extracts; `sync`
+performs the import. `--keep-inputs` preserves successful files and `--no-human`
+skips the human renderer. `rebuild` checks the complete
 archive inventory and receipts, including packages that previously failed to
 parse or had an unresolved entry point. When both the archive and the expanded
 tree verify, a snapshot is reused only if it matches the current processor,

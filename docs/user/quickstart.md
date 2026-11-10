@@ -18,9 +18,8 @@
 | Step | Action | Expected result |
 |---|---|---|
 | 1 | Install via the [installation instructions](../../README.md#install) | `qec-graph --version` prints a version |
-| 2 | Enter an empty directory and run `qec-graph init` | `inputs/` and `qecgraph.toml` are created; the command asks you to add packages |
+| 2 | Enter an empty directory and run `qec-graph init` | `inputs/` and `qecgraph.toml` are created; nothing is extracted |
 | 3 | Put a LaTeX source package in `inputs/` and run `qec-graph sync` | Successful packages enter `archive/`; inbox copies are cleared |
-| 4 | Or put packages in `inputs/` before `init` | `init` imports them directly and reports a published or partial batch |
 | 5 | Run `qec-graph status` / `validate` | Indexed counts and integrity results are shown |
 
 ```sh

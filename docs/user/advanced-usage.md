@@ -74,7 +74,7 @@ workspace="$(mktemp -d "$PWD/build/qec-workspace.XXXXXX")"
 mkdir -p "$workspace/inputs"
 COPYFILE_DISABLE=1 tar -czf "$workspace/inputs/qec-demo.tar.gz" -C examples/paper .
 
-qec-graph init --no-ingest --workspace "$workspace"
+qec-graph init --workspace "$workspace"
 qec-graph sync --workspace "$workspace"
 qec-graph status --workspace "$workspace"
 qec-graph validate --workspace "$workspace"
@@ -112,7 +112,7 @@ for command options or `qec-graph --version` for the installed version.
 
 | Task | Command from the workspace root |
 | --- | --- |
-| Initialize the workspace and leave pending packages in the inbox | `qec-graph init --no-ingest` |
+| Create the workspace and AI configuration without extracting | `qec-graph init` |
 | Preview pending inputs | `qec-graph sync --dry-run` |
 | Import and keep the inbox copies | `qec-graph sync --keep-inputs` |
 | Inspect package and failure details | `qec-graph status --json` |

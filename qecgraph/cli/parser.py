@@ -173,7 +173,7 @@ def _register_commands(add):
         help='Path to the QEC workspace; omit to use local discovery where supported')
     add('snapshot', help='Inspect local snapshots and stored registry states')
     add('inputs', help='List, quarantine, or restore inbox packages')
-    for action, description in (('init', 'Create a workspace and import inputs/ when non-empty'),
+    for action, description in (('init', 'Create inputs/ and qecgraph.toml without extracting'),
                                 ('sync', 'Import new source packages from inputs/'),
                                 ('rebuild', 'Verify and replay all archived source packages'),
                                 ('status', 'Report indexed, pending, and failed packages')):
@@ -181,13 +181,10 @@ def _register_commands(add):
         workspace.add_argument('--workspace',
             help='Path to the QEC workspace; omit to use the current directory' if action == 'init'
             else 'Path to the QEC workspace; omit to use local discovery where supported')
-        if action != 'status':
+        if action in ('sync', 'rebuild'):
             workspace.add_argument('--keep-inputs', action='store_true',
                 help='Retain successfully archived packages in the inbox')
             workspace.add_argument('--no-human', action='store_true', help='Skip the separate Obsidian renderer')
-        if action == 'init':
-            workspace.add_argument('--no-ingest', action='store_true',
-                help='Create the workspace without ingesting packages')
         if action == 'sync':
             workspace.add_argument('--dry-run', action='store_true',
                 help='Report pending work without importing packages')

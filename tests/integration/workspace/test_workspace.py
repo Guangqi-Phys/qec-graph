@@ -84,7 +84,7 @@ class WorkspaceTests(unittest.TestCase):
             self.assertEqual((code, stderr), (0, ''))
             self.assertIn('1 inbox files, 0 pending claims', stdout)
 
-    def test_cli_init_prepares_an_empty_directory_without_publishing(self):
+    def test_cli_init_never_extracts_and_sync_imports(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             stdout, stderr = io.StringIO(), io.StringIO()
@@ -95,19 +95,29 @@ class WorkspaceTests(unittest.TestCase):
             self.assertEqual(result['status'], 'initialized')
             self.assertEqual(result['next'], 'qec-graph sync')
             self.assertTrue((root / 'inputs').is_dir())
-            self.assertTrue((root / 'qecgraph.toml').is_file())
-            self.assertFalse((root / 'machine/CURRENT.json').exists())
+            config = (root / 'qecgraph.toml').read_text(encoding='utf-8')
+            self.assertIn('[ai.providers.openrouter]', config)
+            self.assertIn('api_key', config)
+            self.assertFalse((root / 'machine').exists())
 
             (root / 'inputs/paper.tex').write_bytes(TEX)
             stdout, stderr = io.StringIO(), io.StringIO()
             with redirect_stdout(stdout), redirect_stderr(stderr):
                 code = main(['init', '--workspace', str(root), '--json'])
             self.assertEqual((code, stderr.getvalue()), (0, ''))
+            self.assertEqual(json.loads(stdout.getvalue())['status'], 'initialized')
+            self.assertTrue((root / 'inputs/paper.tex').exists())
+            self.assertFalse((root / 'machine').exists())
+
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                code = main(['sync', '--workspace', str(root), '--json'])
+            self.assertEqual((code, stderr.getvalue()), (0, ''))
             self.assertEqual(json.loads(stdout.getvalue())['counts']['processed'], 1)
             self.assertTrue((root / 'machine/CURRENT.json').is_file())
             self.assertFalse((root / 'inputs/paper.tex').exists())
 
-    def test_cli_init_imports_existing_inputs_and_prepared_workspace_can_sync(self):
+    def test_cli_init_keeps_existing_inputs_and_prepared_workspace_can_sync(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'inputs').mkdir()
@@ -117,8 +127,15 @@ class WorkspaceTests(unittest.TestCase):
                 code = main(['init', '--workspace', str(root), '--json'])
             self.assertEqual((code, stderr.getvalue()), (0, ''))
             result = json.loads(stdout.getvalue())
-            self.assertEqual(result['counts']['processed'], 1)
-            self.assertTrue((root / 'machine/CURRENT.json').is_file())
+            self.assertEqual(result['status'], 'initialized')
+            self.assertTrue((root / 'inputs/paper.tex').exists())
+            self.assertFalse((root / 'machine').exists())
+
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                code = main(['sync', '--workspace', str(root), '--json'])
+            self.assertEqual((code, stderr.getvalue()), (0, ''))
+            self.assertEqual(json.loads(stdout.getvalue())['counts']['processed'], 1)
             self.assertFalse((root / 'inputs/paper.tex').exists())
 
         with tempfile.TemporaryDirectory() as directory:

@@ -43,8 +43,8 @@ qec-graph validate
 其次查找当前目录及其父目录，最后使用环境变量 `QECGRAPH_WORKSPACE`。
 `init` 只使用当前目录，除非用 `--workspace` 指定其他目录。
 
-再次 init 不覆盖配置。`--no-ingest` 只初始化，带其他参数执行 `sync` 时可用
-`--keep-inputs` 保留成功件，`--no-human` 跳过人类渲染。
+再次 init 不覆盖配置，也不抽取；导入由 `sync` 执行。`--keep-inputs` 保留成功件，
+`--no-human` 跳过人类渲染。
 `rebuild` 检查整个归档库存和收据，包括此前解析失败或入口未决的材料。
 归档和展开文件都通过核对时，可以复用与当前处理器、运行环境和配置完全匹配的快照。
 `rebuild --include-inputs` 先做 sync，然后按归档重建。

@@ -67,7 +67,7 @@ workspace="$(mktemp -d "$PWD/build/qec-workspace.XXXXXX")"
 mkdir -p "$workspace/inputs"
 COPYFILE_DISABLE=1 tar -czf "$workspace/inputs/qec-demo.tar.gz" -C examples/paper .
 
-qec-graph init --no-ingest --workspace "$workspace"
+qec-graph init --workspace "$workspace"
 qec-graph sync --workspace "$workspace"
 qec-graph status --workspace "$workspace"
 qec-graph validate --workspace "$workspace"
@@ -101,7 +101,7 @@ partial 状态在两种模式下都退出 2。无效命令语法退出 64。命�
 
 | 任务 | 从工作区根目录运行的命令 |
 | --- | --- |
-| 初始化工作区，把待处理包留在收件箱 | `qec-graph init --no-ingest` |
+| 创建工作区和 AI 配置，不抽取内容 | `qec-graph init` |
 | 预览待处理输入 | `qec-graph sync --dry-run` |
 | 导入并保留收件箱副本 | `qec-graph sync --keep-inputs` |
 | 查看包和失败详情 | `qec-graph status --json` |

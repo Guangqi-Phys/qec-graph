@@ -80,7 +80,7 @@ def _render_release(workspace, release):
 def workspace_action(args, progress):
     if progress and not getattr(args, 'dry_run', False):
         progress.start()
-    from ...workspace import CONFIG, Workspace, init_directory_error, locate
+    from ...workspace import CONFIG, Workspace, locate
     if getattr(args, 'snapshot', None):
         raise UsageError('--snapshot requires --store')
     options = {key: getattr(args, key) for key in ('no_ingest', 'dry_run', 'include_inputs', 'keep_inputs')
@@ -103,17 +103,7 @@ def workspace_action(args, progress):
     if (progress or args.verbose) and args.command != 'status':
         options['progress'] = update
     if args.command == 'init':
-        configured = ws.path(CONFIG).is_file()
-        if not configured:
-            problem = init_directory_error(ws.root)
-            if problem:
-                raise ValueError(problem)
-        if not configured and not ws.inbox_has_content():
-            result = ws.prepare()
-        elif configured and not ws.path('machine/CURRENT.json').is_file() and not ws.inbox_has_content():
-            result = ws.prepare()
-        else:
-            result = ws.init(**options)
+        result = ws.prepare()
     else:
         result = getattr(ws, args.command)(**options)
     if args.command in _WORKSPACE_WRITE_COMMANDS and result.get('release_id') and not args.no_human:

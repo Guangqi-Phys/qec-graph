@@ -37,8 +37,8 @@ qec-graph status
 qec-graph validate
 ```
 
-If `inputs/` already contains packages, `qec-graph init` imports them
-immediately instead of waiting for `sync`.
+`init` never extracts or calls AI. It only prepares the inbox and configuration;
+`qec-graph sync` performs the import.
 
 Successful imports keep the original package in `archive/` and clear its inbox
 copy. Open `human/` as an Obsidian vault and start at `Index.md`.

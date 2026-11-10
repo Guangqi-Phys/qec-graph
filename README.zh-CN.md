@@ -34,7 +34,7 @@ qec-graph status
 qec-graph validate
 ```
 
-如果 `inputs/` 里已经有源包，`qec-graph init` 会立即导入，不需要再等 `sync`。
+`init` 不抽取、不调用 AI，只准备收件箱和配置；导入由 `qec-graph sync` 执行。
 
 成功导入后原始包留在 `archive/`，收件箱副本被清除。把 `human/` 作为 Obsidian
 vault 打开，从 `Index.md` 开始。反复失败的包用

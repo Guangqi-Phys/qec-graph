@@ -18,9 +18,8 @@
 | 步骤 | 操作 | 期望结果 |
 |---|---|---|
 | 1 | 按 [安装说明](../../README.zh-CN.md#安装) 安装 | `qec-graph --version` 有输出 |
-| 2 | 进入空目录，运行 `qec-graph init` | 创建 `inputs/` 和 `qecgraph.toml`，并提示添加源包 |
+| 2 | 进入空目录，运行 `qec-graph init` | 创建 `inputs/` 和 `qecgraph.toml`，不抽取内容 |
 | 3 | 放入 LaTeX 源包，运行 `qec-graph sync` | 成功包写入 `archive/`，`inputs/` 副本清除 |
-| 4 | 或在 `init` 前放入源包 | `init` 直接导入并显示发布成功或部分批次 |
 | 5 | 运行 `qec-graph status` / `validate` | 显示索引数量与完整性检查结果 |
 
 ```sh
