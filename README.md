@@ -23,34 +23,20 @@ Downloads are available for macOS (Apple Silicon) and Linux (x86_64 and arm64).
 
 ## How it works
 
-```text
-inputs/            TeX, tar, tar.gz, ZIP source packages
-   |
-   v
-archive/           original bytes + SHA-256 blob + receipt
-   |
-   v
-source tree        verified files + selected entry point
-   |
-   v
-parser             sections, environments, labels, refs, includes
-   |
-   v
-snapshot           graph.json + SQLite/FTS5 + exact source spans
-   |
-   v
-research records   quantum_code, check_matrix, distance_estimate, ...
-   |
-   v
-review             proposal -> decide -> apply (hash-bound)
-   |
-   v
-release            candidate -> validate -> CURRENT (pinned)
-   |
-   +--> CLI          search / show / deps / context / codes / performance
-   +--> MCP          13 read tools + qec:// source resources
-   +--> human/       Index, Status, Changes, generated entity pages
-```
+The pipeline is one writer; each stage leaves a named artifact for the next. Implementation docs live under `docs/user/`, `docs/design/` and `docs/operations/`.
+
+| Node | Purpose | Implementation docs | Input | Output |
+|---|---|---|---|---|
+| `inputs/` | Receive candidate source packages | [Quick start](docs/user/quickstart.md), [Workspace guide](docs/user/workspace.md) | `.tex`, `.tar`, `.tar.gz`/`.tgz`, `.zip`, `.gz` | claimed inbox files and `.processing/<job>/job.json` |
+| `archive/` | Preserve original bytes and a receipt | [System design](docs/design/DESIGN.md#7-workspace-transaction-and-publication-protocol), [Workspace guide](docs/user/workspace.md) | claimed package | `archive/blobs/sha256/<sha256>`, `archive/receipts/<job>.json` |
+| `source tree` | Verify, unpack and select the entry point | [Workspace guide](docs/user/workspace.md), [Splitter](docs/user/splitter.md) | archived blob | `sources/<tree-hash>/...` and `[entrypoints]` in `qecgraph.toml` |
+| `parser` | Extract sections, environments, labels, refs and spans | [Splitter](docs/user/splitter.md), [System design](docs/design/DESIGN.md#5-source-extraction) | verified `.tex` tree | store: `snapshots/<snapshot-id>/`; workspace: `machine/source_snapshots/<snapshot-id>/`; both contain `graph.json`, `manifest.json`, `report.json`, `graph.sqlite`, `nodes/<kind>/` |
+| `research records` | Store typed QEC objects and field evidence | [Data and search](docs/user/data-and-search.md), [System design](docs/design/DESIGN.md#4-data-contracts) | source snapshot plus `research` JSON | `machine/research/<hash(id)>/<hash(revision)>.json` with `schema: qecgraph.research` |
+| `review` | Bind proposals and decisions to exact content | [Review](docs/operations/review.md), [System design](docs/design/DESIGN.md#6-review-evidence-and-query-eligibility) | proposal JSON and explicit decision | `machine/proposals/<hash>.json`, `machine/reviews/<hash>.json`, `machine/states/<revision>.json` |
+| `release` | Validate everything and publish one immutable release | [System design](docs/design/DESIGN.md#7-workspace-transaction-and-publication-protocol), [Maintenance](docs/operations/maintenance.md) | staged records and snapshots | `machine/CURRENT.json` with `format` and `revision`; `machine/states/<revision>.json` |
+| `CLI` | Read a fixed workspace, store or corpus scope | [Advanced usage](docs/user/advanced-usage.md), [Data and search](docs/user/data-and-search.md) | `--workspace`, `--machine`, `--store` or `--corpus`; JSON arguments for `query-tool` | terminal text or versioned JSON |
+| `MCP` | Serve read-only tools over local stdio | [MCP setup](#mcp), [Data and search](docs/user/data-and-search.md) | JSON-RPC 2.0 over stdio; one pinned release; 13 tools | JSON-RPC frames, text/structured content, `qec://source/...` resources |
+| `human/` | Render an Obsidian view; never write back | [Workspace guide](docs/user/workspace.md), [System design](docs/design/DESIGN.md#9-human-view) | published machine release | `human/Index.md`, `human/generated/**/*.md`, `human/generated/.qecgraph-manifest.json`; `human/notes/` untouched |
 
 One writer owns the pipeline. Readers pin one `CURRENT` release; a failed
 validation leaves the previous release readable. `human/notes/` is never read.

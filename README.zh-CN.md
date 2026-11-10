@@ -21,34 +21,20 @@ curl -fsSL https://raw.githubusercontent.com/Guangqi-Phys/qec-graph/main/install
 
 ## 工作流程
 
-```text
-inputs/            TeX、tar、tar.gz、ZIP 源包
-   |
-   v
-archive/           原始字节 + SHA-256 blob + receipt
-   |
-   v
-source tree        已验证文件 + 选中的入口点
-   |
-   v
-parser             sections、environments、labels、refs、includes
-   |
-   v
-snapshot           graph.json + SQLite/FTS5 + 精确来源区间
-   |
-   v
-research records   quantum_code、check_matrix、distance_estimate 等
-   |
-   v
-review             proposal -> decide -> apply（哈希绑定）
-   |
-   v
-release            candidate -> validate -> CURRENT（固定）
-   |
-   +--> CLI          search / show / deps / context / codes / performance
-   +--> MCP          13 个只读工具 + qec:// source resources
-   +--> human/       Index、Status、Changes、生成的实体页面
-```
+流水线是单 writer；每个节点都为下一节点留下具名产物。实现文档位于 `docs/user/`、`docs/design/` 和 `docs/operations/`。
+
+| 节点 | 目的 | 实现文档 | 输入 | 输出 |
+|---|---|---|---|---|
+| `inputs/` | 接收候选源包 | [快速开始](docs/user/quickstart.zh-CN.md)、[工作区说明](docs/user/workspace.zh-CN.md) | `.tex`、`.tar`、`.tar.gz`/`.tgz`、`.zip`、`.gz` | 已认领的收件箱文件和 `.processing/<job>/job.json` |
+| `archive/` | 保存原始字节和 receipt | [系统设计](docs/design/DESIGN.zh-CN.md#7-工作区事务与发布协议)、[工作区说明](docs/user/workspace.zh-CN.md) | 已认领的源包 | `archive/blobs/sha256/<sha256>`、`archive/receipts/<job>.json` |
+| `source tree` | 验证、解包并选择入口点 | [工作区说明](docs/user/workspace.zh-CN.md)、[切割器](docs/user/splitter.zh-CN.md) | 归档 blob | `sources/<tree-hash>/...` 和 `qecgraph.toml` 中的 `[entrypoints]` |
+| `parser` | 抽取 sections、environments、labels、refs 和区间 | [切割器](docs/user/splitter.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#5-来源抽取) | 已验证的 `.tex` 树 | store：`snapshots/<snapshot-id>/`；workspace：`machine/source_snapshots/<snapshot-id>/`；两者都含 `graph.json`、`manifest.json`、`report.json`、`graph.sqlite`、`nodes/<kind>/` |
+| `research records` | 保存类型化 QEC 对象和字段证据 | [数据与检索](docs/user/data-and-search.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#4-数据契约) | 来源快照和 `research` JSON | `machine/research/<hash(id)>/<hash(revision)>.json`，含 `schema: qecgraph.research` |
+| `review` | 把提案和决定绑定到精确内容 | [审核](docs/operations/review.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#6-审核证据和查询资格) | proposal JSON 和显式决定 | `machine/proposals/<hash>.json`、`machine/reviews/<hash>.json`、`machine/states/<revision>.json` |
+| `release` | 验证全部内容并发布不可变 release | [系统设计](docs/design/DESIGN.zh-CN.md#7-工作区事务与发布协议)、[维护](docs/operations/maintenance.zh-CN.md) | staged records 和 snapshots | 含 `format`、`revision` 的 `machine/CURRENT.json`；`machine/states/<revision>.json` |
+| `CLI` | 读取固定 workspace、store 或 corpus 作用域 | [进阶用法](docs/user/advanced-usage.zh-CN.md)、[数据与检索](docs/user/data-and-search.zh-CN.md) | `--workspace`、`--machine`、`--store` 或 `--corpus`；`query-tool` 的 JSON 参数 | 终端文本或版本化 JSON |
+| `MCP` | 通过本地 stdio 提供只读工具 | [MCP 设置](#mcp)、[数据与检索](docs/user/data-and-search.zh-CN.md) | stdio 上的 JSON-RPC 2.0；固定一个 release；13 个工具 | JSON-RPC 帧、text/structured content、`qec://source/...` resources |
+| `human/` | 渲染 Obsidian 视图，绝不回写 | [工作区说明](docs/user/workspace.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#9-人类视图) | 已发布机器 release | `human/Index.md`、`human/generated/**/*.md`、`human/generated/.qecgraph-manifest.json`；`human/notes/` 不变 |
 
 单个 writer 拥有整条流水线。读取端固定一个 `CURRENT` release；验证失败时旧
 release 保持可读。`human/notes/` 永不被读取。
