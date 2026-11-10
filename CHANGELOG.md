@@ -4,6 +4,8 @@
 
 - Added optional AI provider configuration for OpenAI, Anthropic, OpenRouter
   and Claude Code, with `qecgraph ai status/test/config/proposals`.
+- Added explicit, proposal-content-bound AI review decisions under
+  `machine/ai/reviews`; they do not automatically become research records.
 - `sync` now normalizes ambiguous multi-root TeX packages through a
   source-mapped plan and emits schema-validated theorem, assumption and data
   proposals under `machine/ai/proposals`; the original package stays

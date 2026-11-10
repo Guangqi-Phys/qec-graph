@@ -633,7 +633,7 @@ Provider 在 `qecgraph.toml` 中选择（OpenAI、Anthropic、OpenRouter 或本�
 | Provider/client 重试、schema、缓存 | 已实现 |
 | 版本化 skill packs | 已实现 |
 | 来源映射规范化 | 已实现于歧义文献包 |
-| 定理/假设/数据 proposal | 已写入 `machine/ai/proposals`；review/apply 接线仍为部分实现 |
+| 定理/假设/数据 proposal | 已写入 `machine/ai/proposals`；显式审核决定会记录，但不会自动转换为权威研究记录 |
 
 ## 附录 A — 决策记录（替代当前行为的独立 ADR）
 

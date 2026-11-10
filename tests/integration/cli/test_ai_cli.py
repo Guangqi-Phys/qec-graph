@@ -54,6 +54,29 @@ class AICliTests(unittest.TestCase):
         self.assertEqual(result['proposals'][0]['skill'], 'extract_theorems')
         self.assertNotIn('thm:a', stdout)
 
+    def test_human_review_is_bound_to_the_proposal_and_does_not_apply_it(self):
+        target = self.root / 'machine/ai/proposals/source'
+        target.mkdir(parents=True)
+        proposal = target / 'theorems.json'
+        proposal.write_text(json.dumps({'schema': 'qecgraph.ai.proposal',
+                                        'skill': 'extract_theorems',
+                                        'source_tree_hash': 'a' * 64,
+                                        'review_status': 'proposed',
+                                        'items': [], 'unresolved': []}), encoding='utf-8')
+        code, stdout, stderr = self.invoke(
+            'ai', 'decide', str(proposal), '--actor-id', 'ada', '--actor-kind', 'human',
+            '--decision', 'approve', '--rationale', 'checked sources',
+            '--checked-scope', 'statement', '--checked-scope', 'hypotheses',
+            '--checked-scope', 'dependencies')
+        self.assertEqual((code, stderr), (0, ''))
+        review = json.loads(stdout)
+        self.assertEqual(review['status'], 'human_approved')
+        self.assertEqual(review['scope'], 'AI proposal review only; no automatic research-record application')
+        self.assertEqual(len(list((self.root / 'machine/ai/reviews').glob('*.json'))), 1)
+        code, stdout, stderr = self.invoke('ai', 'decisions', '--json')
+        self.assertEqual((code, stderr), (0, ''))
+        self.assertEqual(json.loads(stdout)['count'], 1)
+
     def test_test_reports_missing_model_without_network(self):
         code, stdout, stderr = self.invoke('ai', 'test')
         self.assertEqual(code, 1)

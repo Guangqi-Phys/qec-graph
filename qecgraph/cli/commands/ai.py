@@ -89,3 +89,19 @@ def proposals(args):
                           'items': len(value.get('items', [])) if isinstance(value.get('items'), list) else 0})
     return emit_report({'status': 'ok', 'workspace': str(root), 'count': len(items),
                         'proposals': items}, exit_code=0)
+
+
+def decide(args):
+    from ...llm.review import decide as review_decide
+    result = review_decide(args.workspace, args.proposal, actor={'id': args.actor_id, 'kind': args.actor_kind},
+                           decision=args.decision, rationale=args.rationale,
+                           checked_scopes=args.checked_scope)
+    return emit_report(result, exit_code=0)
+
+
+def decisions(args):
+    from ...llm.review import decisions as list_decisions
+    root = locate(args.workspace, default=os.environ.get('QECGRAPH_WORKSPACE'))
+    values = list_decisions(root)
+    return emit_report({'status': 'ok', 'workspace': str(root), 'count': len(values),
+                        'decisions': values}, exit_code=0)

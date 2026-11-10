@@ -578,7 +578,7 @@ API keys are redacted and the configuration file is created mode `0600`.
 | Provider/client retries, schema and cache | Implemented |
 | Versioned skill packs | Implemented |
 | Source-mapped normalization | Implemented for ambiguous packages |
-| Theorem/assumption/data proposals | Implemented as `machine/ai/proposals`; review/apply wiring is partial |
+| Theorem/assumption/data proposals | Implemented as `machine/ai/proposals`; explicit review decisions are recorded, conversion to canonical research records is not automatic |
 
 ## Appendix A — Decision record (supersedes the standalone ADRs for current behavior)
 

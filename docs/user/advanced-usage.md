@@ -116,6 +116,8 @@ for command options or `qec-graph --version` for the installed version.
 | Inspect the selected AI provider without network access | `qec-graph ai status` |
 | Test the configured AI endpoint with one probe | `qec-graph ai test` |
 | List AI proposals waiting for review | `qec-graph ai proposals --json` |
+| Record a decision on an AI proposal | `qec-graph ai decide PROPOSAL --workspace . --actor-id ada --actor-kind human --decision approve --rationale "checked" --checked-scope statement --checked-scope hypotheses --checked-scope dependencies` |
+| List AI review decisions | `qec-graph ai decisions --json` |
 | Preview pending inputs | `qec-graph sync --dry-run` |
 | Import and keep the inbox copies | `qec-graph sync --keep-inputs` |
 | Inspect package and failure details | `qec-graph status --json` |

@@ -105,6 +105,8 @@ partial 状态在两种模式下都退出 2。无效命令语法退出 64。命�
 | 不联网查看当前 AI provider | `qec-graph ai status` |
 | 用一次探针测试 AI 接入 | `qec-graph ai test` |
 | 列出待审核的 AI proposals | `qec-graph ai proposals --json` |
+| 记录 AI proposal 审核决定 | `qec-graph ai decide PROPOSAL --workspace . --actor-id ada --actor-kind human --decision approve --rationale "checked" --checked-scope statement --checked-scope hypotheses --checked-scope dependencies` |
+| 列出 AI 审核决定 | `qec-graph ai decisions --json` |
 | 预览待处理输入 | `qec-graph sync --dry-run` |
 | 导入并保留收件箱副本 | `qec-graph sync --keep-inputs` |
 | 查看包和失败详情 | `qec-graph status --json` |
