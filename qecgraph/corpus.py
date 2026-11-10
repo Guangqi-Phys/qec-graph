@@ -135,7 +135,7 @@ def _project_state(registry, state, fixed, source_version_id=None, *,
             edges.append({'id': 'ref:' + hash_text(canonical([node['id'], ref])), 'source': node['id'],
                           'target': ref['target'], 'relation': ref['relation'],
                           'status': status, 'evidence': ref})
-    graph = {'schema_version': 'qecgraph.corpus_graph', 'snapshot_id': fixed,
+    graph = {'schema': 'qecgraph.corpus_graph', 'snapshot_id': fixed,
              'project_source_hash': hash_text(canonical(versions)), 'nodes': nodes, 'edges': edges,
              'labels': labels, 'diagnostics': unresolved,
              'extraction_status': 'partial' if partial else 'complete_for_supported_syntax'}

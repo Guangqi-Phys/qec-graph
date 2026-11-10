@@ -1,5 +1,5 @@
 {
-  "schema_version": "qecgraph.lean-targets",
+  "schema": "qecgraph.lean-targets",
   "driver": "ExportMain.lean",
   "required_declarations": {
     "QEC.Binary.dot_commutes": {"kind": "theorem", "module": "QEC.Binary"},

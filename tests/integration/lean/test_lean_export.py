@@ -43,7 +43,7 @@ class LeanExportTests(unittest.TestCase):
         self.assertEqual(fixed['declaration_export'], 'not_performed')
 
     def test_build_of_another_target_is_not_sufficient(self):
-        targets = {'schema_version': 'qecgraph.lean-targets', 'required_declarations': {
+        targets = {'schema': 'qecgraph.lean-targets', 'required_declarations': {
             'QEC.Missing.target': {'kind': 'theorem', 'module': 'QEC.Missing'}}}
         audit = audit_export(self.export, self.policy, targets)
         self.assertEqual(audit['status'], 'rejected')

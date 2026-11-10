@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": ["schema_version", "exporter_version", "lean_version", "declarations", "driver_imports", "imported_modules", "environment_trust_level", "dependency_semantics", "axiom_method", "type_expr_protocol"],
+  "required": ["schema", "exporter_version", "lean_version", "declarations", "driver_imports", "imported_modules", "environment_trust_level", "dependency_semantics", "axiom_method", "type_expr_protocol"],
   "properties": {
-    "schema_version": {"const": "qecgraph.lean-export"},
+    "schema": {"const": "qecgraph.lean-export"},
     "exporter_version": {"const": "lean-environment-v1"},
     "lean_version": {"type": "string"},
     "driver_imports": {"type": "array"},

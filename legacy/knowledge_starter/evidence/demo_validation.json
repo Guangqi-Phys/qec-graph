@@ -1,5 +1,5 @@
 {
-  "report_schema_version": "0.1.0",
+  "report_schema": "0.1.0",
   "results": {
     "instance_id": "quantum_code:rep3-hgp:13",
     "n": 13,

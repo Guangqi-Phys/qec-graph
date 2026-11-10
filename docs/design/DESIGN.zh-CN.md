@@ -222,7 +222,7 @@ Store 和 corpus 有各自受管理根目录。不要合并它们的 pointer 格
 
 `research` 记录携带：
 
-- `schema_version`、`id`、`revision`、`kind`、`is_synthetic`；
+- `schema`、`id`、`revision`、`kind`、`is_synthetic`；
 - 带 kind 专属字段的 `data`；
 - 把每个字段指针（`/data/<field>`）映射到证据状态和来源的 `field_evidence`；
 - schema 定义的可选审核/信封字段。

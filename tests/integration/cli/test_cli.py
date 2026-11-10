@@ -54,7 +54,7 @@ class CLIContractTests(unittest.TestCase):
             pointer = workspace.registry.root / 'CURRENT.json'
             before = pointer.read_bytes()
             source = workspace.root / 'record.json'
-            base = {'schema_version': 'qecgraph.record', 'id': 'record:example', 'revision': 'r1', 'title': 'Example'}
+            base = {'schema': 'qecgraph.record', 'id': 'record:example', 'revision': 'r1', 'title': 'Example'}
             for payload, message in (([], 'Record must be a JSON object'),
                                      ({**base, 'kind': []}, 'Unknown domain record kind')):
                 source.write_text(json.dumps(payload), encoding='utf-8')

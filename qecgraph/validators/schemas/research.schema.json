@@ -3,9 +3,9 @@
   "$id": "https://qec-graph.local/schemas/research.schema.json",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "id", "revision", "kind", "data", "field_evidence", "is_synthetic"],
+  "required": ["schema", "id", "revision", "kind", "data", "field_evidence", "is_synthetic"],
   "properties": {
-    "schema_version": {"const": "qecgraph.research"},
+    "schema": {"const": "qecgraph.research"},
     "id": {"type": "string", "minLength": 1},
     "revision": {"type": "string", "minLength": 1},
     "kind": {

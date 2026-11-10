@@ -1,9 +1,9 @@
 {
-  "schema_version": "qecgraph.lean-mapping",
+  "schema": "qecgraph.lean-mapping",
   "id": "formalization:lean-demo:boolean-row-pair",
   "claim_id": "claim:lean-demo:boolean-row-pair",
   "claim_revision": "1",
-  "expected_claim_content_sha256": "d4342942034cdd9a9dba8c7ed59af7f7e31e43ce156d35e2fe448292ca3af2b4",
+  "expected_claim_content_sha256": "0edd26010ab75774e6490b9ba5cd199c29f82fdbd5c43b902f7c5e43386cff13",
   "declaration": "QEC.Binary.css_example_commutes",
   "expected_type_expr_sha256": "cd4adf74b651c2e6402d63f1f8e8b9983684d0fa154c9a09569027aa10940a52",
   "semantic_review": "not_reviewed",

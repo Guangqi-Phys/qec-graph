@@ -113,7 +113,7 @@ def validate_graph_types(graph):
 def registry_issues(registry, records):
     issues = []
     for identifier, record in records.items():
-        if record['schema_version'] != 'qecgraph.record':
+        if record['schema'] != 'qecgraph.record':
             issues.append({'code': 'legacy_record_requires_migration', 'record_id': identifier})
             continue
         for asset in record['assets']:

@@ -196,7 +196,7 @@ def make_record(kind, identifier, revision, data, *, source=None, method, synthe
                            {'status': 'known', 'source_ref': source, 'method': method})
               for field, value in data.items()}
     fields.update(evidence or {})
-    return prepare({'schema_version': SCHEMA, 'kind': kind, 'id': identifier, 'revision': revision,
+    return prepare({'schema': SCHEMA, 'kind': kind, 'id': identifier, 'revision': revision,
                     'data': data, 'field_evidence': fields, 'is_synthetic': synthetic})
 
 

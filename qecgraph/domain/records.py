@@ -20,7 +20,7 @@ def prepare_record(record):
     if not isinstance(record, dict):
         raise ValueError('Record must be a JSON object')
     record = copy.deepcopy(record)
-    if record.get('schema_version') != RECORD_SCHEMA:
+    if record.get('schema') != RECORD_SCHEMA:
         raise ValueError('Expected qecgraph.record; legacy formats are not supported')
     for field in ('id', 'revision', 'title'):
         if not isinstance(record.get(field), str) or not record[field].strip():

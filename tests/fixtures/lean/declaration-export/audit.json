@@ -1,7 +1,7 @@
 {
   "status": "allowed",
   "policy": {
-    "schema_version": "qecgraph.axiom-policy",
+    "schema": "qecgraph.axiom-policy",
     "policy_id": "core-boolean-propext-only-v1",
     "allowed_axioms": [
       "propext"

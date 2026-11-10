@@ -29,7 +29,7 @@ def answer_node(original, include_candidates=False):
         node['annotations'] = usable
     if 'record' in node:
         record = node['record']
-        keys = ('schema_version', 'id', 'kind', 'revision', 'content_sha256', 'hash_protocol',
+        keys = ('schema', 'id', 'kind', 'revision', 'content_sha256', 'hash_protocol',
                 'provenance', 'assets', 'evidence_ids')
         node['record'] = {key: record[key] for key in keys}
         node['record_projection'] = 'Identity/provenance metadata; full data is in node.data; eligible relations are in edges; raw extensions/refs/review are available via audit show'

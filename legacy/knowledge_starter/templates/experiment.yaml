@@ -1,5 +1,5 @@
 # TEMPLATE ONLY: choose the estimator schema matching the sampling method.
-schema_version: 0.1.0
+schema: 0.1.0
 run_id: "experiment:REPLACE_ME"
 input_snapshot:
   code_instance_id: null

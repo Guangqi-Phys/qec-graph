@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.1.0",
+  "schema": "0.1.0",
   "id": "definition:binary-css",
   "kind": "definition",
   "title": "Binary CSS convention",

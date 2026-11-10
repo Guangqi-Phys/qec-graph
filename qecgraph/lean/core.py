@@ -91,9 +91,9 @@ def audit_export(export, policy, targets):
     errors = list(Draft202012Validator(schema).iter_errors(export))
     if errors:
         raise ValueError('Lean export schema: ' + errors[0].message)
-    if policy.get('schema_version') != 'qecgraph.axiom-policy' or not isinstance(policy.get('allowed_axioms'), list):
+    if policy.get('schema') != 'qecgraph.axiom-policy' or not isinstance(policy.get('allowed_axioms'), list):
         raise ValueError('Unknown axiom policy schema')
-    if targets.get('schema_version') != 'qecgraph.lean-targets':
+    if targets.get('schema') != 'qecgraph.lean-targets':
         raise ValueError('Unknown Lean target policy schema')
     declarations = {item['name']: item for item in export['declarations']}
     if len(declarations) != len(export['declarations']):
@@ -133,7 +133,7 @@ def build_project(project, out, *, lake=None, clean=True, export_declarations=Tr
     atomic_json(marker, {'format': 'qecgraph.lean-build-store'})
     run = out / ('run-' + str(uuid.uuid4()))
     run.mkdir()
-    report = {'schema_version': 'qecgraph.lean-build', 'status': 'running',
+    report = {'schema': 'qecgraph.lean-build', 'status': 'running',
               'project': str(project), 'started_at': datetime.now(timezone.utc).isoformat(), 'commands': [],
               'producer_version': __version__, 'producer_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
               'producer_inputs': producer_manifest(),

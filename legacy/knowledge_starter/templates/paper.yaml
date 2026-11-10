@@ -1,5 +1,5 @@
 # TEMPLATE ONLY: fill from actual sources; not an active validated record.
-schema_version: 0.1.0
+schema: 0.1.0
 work_id: "source:REPLACE_ME"
 source_version_id: "source-version:REPLACE_ME"
 title: null

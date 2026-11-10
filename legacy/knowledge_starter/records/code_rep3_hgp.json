@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.1.0",
+  "schema": "0.1.0",
   "id": "quantum_code:rep3-hgp:13",
   "kind": "quantum_code",
   "title": "Toy ordinary HGP [[13,1,3]]",

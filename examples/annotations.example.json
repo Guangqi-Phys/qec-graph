@@ -1,5 +1,5 @@
 {
-  "schema_version": "qecgraph.annotations",
+  "schema": "qecgraph.annotations",
   "nodes": [
     {
       "id": "code:qec-demo:reported-rep3",

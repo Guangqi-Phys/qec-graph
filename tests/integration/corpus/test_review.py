@@ -13,7 +13,7 @@ from qecgraph.corpus import execute
 
 
 def claim(identifier='claim:review'):
-    return {'schema_version': 'qecgraph.record', 'id': identifier, 'kind': 'claim', 'revision': '1',
+    return {'schema': 'qecgraph.record', 'id': identifier, 'kind': 'claim', 'revision': '1',
             'title': 'Review fixture', 'data': {'statement': 'Original statement', 'hypotheses': ['H'], 'quantifiers': ['for all x']}}
 
 

@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.1.0",
+  "schema": "0.1.0",
   "id": "check_matrix:rep3-hgp:standard",
   "kind": "check_matrix",
   "title": "Concrete checks and logical pair",

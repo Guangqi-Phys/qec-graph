@@ -72,7 +72,7 @@ class SchemaTests(unittest.TestCase):
         validator = packaged_validator('research')
         self.assertEqual(set(records), set(validator.schema['properties']['kind']['enum']))
         for kind, data in records.items():
-            record = {'schema_version': 'qecgraph.research', 'id': 'record:fixture', 'revision': 'r1', 'kind': kind,
+            record = {'schema': 'qecgraph.research', 'id': 'record:fixture', 'revision': 'r1', 'kind': kind,
                       'data': data, 'field_evidence': {}, 'is_synthetic': True}
             with self.subTest(kind=kind):
                 validator.validate(record)

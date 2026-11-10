@@ -97,7 +97,7 @@ usage 记录需要论文或运行实际使用内容的证据，包括已知版�
 
 ### 字段、修订和证据
 
-每条 `qecgraph.research` 记录有 `schema_version`、稳定 `id`、精确
+每条 `qecgraph.research` 记录有 `schema`、稳定 `id`、精确
 `revision`、`kind`、`data`、`field_evidence` 和 `is_synthetic` 标志。
 引用如 `{"id": "demo:source", "revision": "r1"}` 指定精确来源修订。证据也可
 指定来源位置及抽取/检查限制。下面的合成代码示例中，fixture 提供 qubit 数，

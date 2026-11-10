@@ -1,5 +1,5 @@
 # TEMPLATE ONLY: bind circuit metrics to exact fault and boundary definitions.
-schema_version: 0.1.0
+schema: 0.1.0
 id: "circuit:REPLACE_ME"
 presentation_id: null
 generator:

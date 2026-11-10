@@ -4,7 +4,7 @@
   "description": "An intentionally small extensible starter, not a complete QEC ontology.",
   "type": "object",
   "required": [
-    "schema_version",
+    "schema",
     "id",
     "kind",
     "title",
@@ -14,7 +14,7 @@
     "data"
   ],
   "properties": {
-    "schema_version": {
+    "schema": {
       "const": "0.1.0"
     },
     "id": {

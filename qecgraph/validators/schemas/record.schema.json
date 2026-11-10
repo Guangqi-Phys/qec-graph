@@ -5,7 +5,7 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema_version",
+    "schema",
     "id",
     "kind",
     "revision",
@@ -22,7 +22,7 @@
     "content_sha256"
   ],
   "properties": {
-    "schema_version": {
+    "schema": {
       "const": "qecgraph.record"
     },
     "id": {

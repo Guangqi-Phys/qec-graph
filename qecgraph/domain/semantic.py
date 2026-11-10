@@ -29,7 +29,7 @@ def _load(ws, category, identifier):
     except ValueError as exc:
         raise ManagedDataError(path, 'Semantic handoff contains invalid JSON') from exc
     schema = REQUEST if category == 'extraction-requests' else PROPOSAL
-    if not isinstance(data, dict) or data.get('schema_version') != schema:
+    if not isinstance(data, dict) or data.get('schema') != schema:
         raise ManagedDataError(path, 'Unexpected semantic handoff format')
     if data.get('id') != identifier or hash_text(canonical({k: v for k, v in data.items() if k != 'id'})) != identifier:
         raise ManagedDataError(path, 'Semantic handoff hash mismatch')
@@ -70,7 +70,7 @@ def request_extraction(workspace, source_version, *, release=None, max_chars=240
             used += len(node['latex'])
             index += 1
         return _save(ws, 'extraction-requests', {
-            'schema_version': REQUEST, 'release_id': session.release,
+            'schema': REQUEST, 'release_id': session.release,
             'source_ref': {'id': source_version, 'revision': session.source_snapshot_id(source_version)},
             'blocks': blocks, 'oversized_skipped': oversized,
             'continuation': index if index < len(eligible) else None,
@@ -129,7 +129,7 @@ def submit_extraction(workspace, request_id, response):
         request = _load(ws, 'extraction-requests', request_id)
         state, _ = ws.registry.read()
         _validate_draft(ws, state, request, response['records'])
-        proposed = _save(ws, 'extraction-proposals', {'schema_version': PROPOSAL, 'request_id': request_id,
+        proposed = _save(ws, 'extraction-proposals', {'schema': PROPOSAL, 'request_id': request_id,
                         'source_ref': request['source_ref'], 'provider': provider, 'records': response['records']})
         return {'status': 'proposed', 'proposal_id': proposed['id'], 'record_count': len(proposed['records'])}
 

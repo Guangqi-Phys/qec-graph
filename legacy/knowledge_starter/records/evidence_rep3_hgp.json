@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.1.0",
+  "schema": "0.1.0",
   "id": "evidence:rep3-hgp:enumeration",
   "kind": "evidence",
   "title": "Exhaustive binary enumeration of the 13-qubit example",
@@ -13,12 +13,12 @@
   "assets": [
     {
       "path": "evidence/demo_validation.json",
-      "sha256": "7670bef37231b3e2516c4cd46b1be7cffc53f1bb5212c40c78f56aec5140f664",
+      "sha256": "48938b3a5f4c8788cd230cbda060ea0bc3718d1c96ce1a85785d6c5f8d73f28b",
       "media_type": "application/json"
     },
     {
       "path": "tools/qec_kb.py",
-      "sha256": "282fdbac80422d49cd62bccac352c5f183ae041f7d7c950713f078eb1aac6ed8",
+      "sha256": "812507127c4ca0d1a5c160962f719c8221a6907a17878f973fdb2c87eaf6d814",
       "media_type": "text/x-python"
     }
   ],
@@ -27,7 +27,7 @@
     "method": "exhaustive_binary_enumeration",
     "check_matrix_id": "check_matrix:rep3-hgp:standard",
     "verifier_path": "tools/qec_kb.py",
-    "verifier_sha256": "282fdbac80422d49cd62bccac352c5f183ae041f7d7c950713f078eb1aac6ed8",
+    "verifier_sha256": "812507127c4ca0d1a5c160962f719c8221a6907a17878f973fdb2c87eaf6d814",
     "report_path": "evidence/demo_validation.json",
     "status": "computed_exact",
     "formal_certificate": false,

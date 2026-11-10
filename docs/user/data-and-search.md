@@ -105,7 +105,7 @@ actually used, including the version when available. [Bundled software catalog](
 
 ### Fields, revisions, and evidence
 
-Each `qecgraph.research` record has a `schema_version`, stable `id`, exact
+Each `qecgraph.research` record has a `schema`, stable `id`, exact
 `revision`, `kind`, `data`, `field_evidence`, and `is_synthetic` flag. A
 reference such as `{"id": "demo:source", "revision": "r1"}` names the exact
 source revision. Evidence can also specify the source location and the limits

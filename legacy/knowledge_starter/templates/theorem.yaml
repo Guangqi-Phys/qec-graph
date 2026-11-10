@@ -1,5 +1,5 @@
 # TEMPLATE ONLY: source text and normalized text must remain distinct.
-schema_version: 0.1.0
+schema: 0.1.0
 id: "claim:REPLACE_ME"
 kind: theorem
 source_refs:

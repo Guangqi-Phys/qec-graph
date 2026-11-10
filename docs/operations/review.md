@@ -6,7 +6,7 @@
 
 ## On this page
 
-- [Records and schema versions](#records-and-schema)
+- [Records and schema](#records-and-schema)
 - [Validation scope](#validation-scope)
 - [Math plugins and hard conditions](#math-plugins-and-hard-conditions)
 - [Proposals and decisions](#proposals-and-decisions)

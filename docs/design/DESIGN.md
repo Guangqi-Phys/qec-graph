@@ -204,7 +204,7 @@ Unknown schemas are rejected; no older format is reinterpreted with the current 
 
 A `research` record carries:
 
-- `schema_version`, `id`, `revision`, `kind`, `is_synthetic`;
+- `schema`, `id`, `revision`, `kind`, `is_synthetic`;
 - `data` with kind-specific fields;
 - `field_evidence` mapping each field pointer (`/data/<field>`) to evidence status and provenance;
 - optional review/envelope fields as defined by the schema.

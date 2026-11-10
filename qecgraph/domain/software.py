@@ -10,7 +10,7 @@ SEED_SCHEMA = 'qecgraph.software_catalog.seed'
 
 
 def adapt_seed(seed):
-    if seed.get('schema_version') != SEED_SCHEMA or seed.get('completeness') != 'non_exhaustive':
+    if seed.get('schema') != SEED_SCHEMA or seed.get('completeness') != 'non_exhaustive':
         raise ValueError('Expected a non-exhaustive v1 software catalog seed')
     method = 'catalog_seed_upstream_metadata_not_tested'
     identity = seed['catalogue_id']

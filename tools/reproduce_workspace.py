@@ -138,7 +138,7 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
         legacy('ingest', ['ingest', 'legacy.tex', '--project-id', 'legacy-demo', '--out', 'legacy-store'])
         legacy('register', ['register', '--corpus', 'legacy-corpus', '--store', 'legacy-store',
                             '--work-id', 'work:legacy', '--source-version-id', 'source:legacy'])
-        base = {'schema_version': 'qecgraph.record', 'id': 'claim:legacy', 'kind': 'claim',
+        base = {'schema': 'qecgraph.record', 'id': 'claim:legacy', 'kind': 'claim',
                 'title': 'Legacy claim', 'revision': 'original',
                 'data': {'statement': 'Legacy draft wording', 'hypotheses': [], 'quantifiers': []}}
         put('legacy-claim.json', base)

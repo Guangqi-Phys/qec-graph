@@ -1,6 +1,6 @@
 {
   "type_expr_protocol": "Lean.Expr structural JSON v1; nonsemantic metadata payloads omitted",
-  "schema_version": "qecgraph.lean-export",
+  "schema": "qecgraph.lean-export",
   "lean_version": "4.19.0",
   "imported_modules": [
     "Init",

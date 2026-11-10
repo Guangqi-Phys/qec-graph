@@ -3,7 +3,7 @@
   "title": "QEC LaTeX Graph v1",
   "type": "object",
   "required": [
-    "schema_version",
+    "schema",
     "project_id",
     "snapshot_id",
     "project_source_hash",
@@ -15,7 +15,7 @@
     "semantic_status"
   ],
   "properties": {
-    "schema_version": {
+    "schema": {
       "const": "qecgraph.graph"
     },
     "project_id": {

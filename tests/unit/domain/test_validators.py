@@ -12,7 +12,7 @@ from qecgraph.corpus import execute
 
 
 def claim(identifier='claim:typed'):
-    return {'schema_version': 'qecgraph.record', 'id': identifier, 'kind': 'claim',
+    return {'schema': 'qecgraph.record', 'id': identifier, 'kind': 'claim',
             'revision': '1', 'title': 'Typed claim',
             'data': {'statement': 'A statement.', 'hypotheses': [], 'quantifiers': []}}
 
@@ -51,7 +51,7 @@ class ValidatorTests(unittest.TestCase):
         ingest(entry, 'typed', store)
         previous = current_snapshot(store)
         sidecar = self.root / 'sidecar.json'
-        sidecar.write_text(json.dumps({'schema_version': 'qecgraph.annotations', 'edges': [
+        sidecar.write_text(json.dumps({'schema': 'qecgraph.annotations', 'edges': [
             {'source': 'label:a', 'target': 'label:a', 'relation': 'proof_of'}]}))
         with self.assertRaisesRegex(ValueError, 'Invalid proof_of endpoint'):
             ingest(entry, 'typed', store, annotations_path=sidecar)

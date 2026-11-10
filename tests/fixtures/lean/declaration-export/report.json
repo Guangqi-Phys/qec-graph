@@ -1,5 +1,5 @@
 {
-  "schema_version": "qecgraph.lean-build",
+  "schema": "qecgraph.lean-build",
   "status": "validated_build",
   "project": "/Users/guangqi/Workspace/qec-graph/lean",
   "started_at": "2026-11-06T09:54:45.206897+00:00",
@@ -101,11 +101,11 @@
     "QEC/Binary.lean": "7fb580433c386ae5dad8b2dfdd101b0072f7aab5660c7b64b54de25c6bc1fe73",
     "QEC/Export.lean": "149f3465c51289009a16f7991ddfab5ca17d238597619199f1a9249e8889a10f",
     "QEC.lean": "12a5853f5d24d830d614796b6b7064b9d3af0e6181288fbb9b5a85b8529f6b2f",
-    "axiom-policy.json": "246499e51eb485a69e6267a1d2cd49e50c91ade927903b4fab69f8e33e9d9d32",
+    "axiom-policy.json": "f1c329bd24ae0786f962ec4cf3727cf8912e114e47e28c570680b35757a182b7",
     "lake-manifest.json": "a103d7d41b8c6bb63fd693b1b01a203ce7eeda01411e6592e07f019f9ea5509e",
     "lakefile.toml": "137b5c6241b115a75ff2bc9b6915977b8cccb4cc3473009a1dce7523392aab3f",
     "lean-toolchain": "55e97be96000b5e9e290c9e74482e5e317861499a5540353ce845471bded8cea",
-    "targets.json": "46d2d9d24925f03ffed0f811f60607e252576d08ce854daae8436419fe7b87ea",
+    "targets.json": "b0b5d7067bc28fec1943b8a3800b98c11453d932bcfc7137754ff3418bb4bade",
     "toolchain-lock.json": "a46cf1b6a7870565ec8a32a4177c75252f8319a48b9adcc37f299a04a00dc434"
   },
   "git": {
@@ -134,8 +134,8 @@
   "build_status": "build_passed",
   "export_ref": {
     "path": "export.json",
-    "sha256": "d15bd6740e8a884d4d12677170f0b457662b5dca1c45602da38dfd15fb0d6ab9",
-    "raw_stdout_sha256": "938cb3431d7aa795633c5efb0e16e1069e3f02b3e2df87ff59f7e5049fa482ff"
+    "sha256": "c401e7cb31775b2460f88ea131f531a0ea6484042bfd10f223e40b9329dd3e85",
+    "raw_stdout_sha256": "3972458a1de59fdf93d37462a000457644aa87cc89fa452cfdfc9909b8294129"
   },
   "axioms_observed": [
     "propext"
@@ -190,10 +190,10 @@
       ]
     }
   },
-  "axiom_policy_sha256": "246499e51eb485a69e6267a1d2cd49e50c91ade927903b4fab69f8e33e9d9d32",
+  "axiom_policy_sha256": "f1c329bd24ae0786f962ec4cf3727cf8912e114e47e28c570680b35757a182b7",
   "audit_ref": {
     "path": "audit.json",
-    "sha256": "080c0d48805127ebefe791a8295c45db1806d5f289bc6bacf26eca505f2c3b92"
+    "sha256": "b11147d7d5a3f88f4f05f86911b95c711074306f70bf15afc296af80b9279427"
   },
   "compiled_olean_sha256": {
     ".lake/build/lib/lean/QEC/Binary.olean": "a96ea128e97bfe378e7403d856977feec1b3561b2b710a9406e4899c1cbb50f7",

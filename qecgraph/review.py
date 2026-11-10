@@ -129,7 +129,7 @@ def create_proposal(corpus, changes, *, actor, rationale, expected_registry_revi
             if before and after['revision'] == before['revision']:
                 raise ValueError('A changed record requires a new explicit revision')
             prepared.append({'before': before, 'after': after, 'diff': _diff(before, after)})
-        payload = {'schema_version': 'qecgraph.proposal', 'corpus_id': state['corpus_id'],
+        payload = {'schema': 'qecgraph.proposal', 'corpus_id': state['corpus_id'],
                    'base_registry_revision': fixed, 'actor': actor, 'rationale': rationale,
                    'created_at': datetime.now(timezone.utc).isoformat(), 'status': 'proposed',
                    'changes': prepared,
@@ -146,7 +146,7 @@ def read_proposal(registry, proposal_id):
     path = _path(registry, 'proposals', proposal_id)
     proposal = _read_checked_review(path, 'proposal')
     payload = {key: value for key, value in proposal.items() if key != 'id'}
-    if proposal.get('schema_version') != 'qecgraph.proposal' or proposal.get('id') != proposal_id or proposal_id != 'proposal:' + hash_text(canonical(payload)):
+    if proposal.get('schema') != 'qecgraph.proposal' or proposal.get('id') != proposal_id or proposal_id != 'proposal:' + hash_text(canonical(payload)):
         raise ManagedDataError(path, 'Proposal identity/hash mismatch')
     return proposal
 
@@ -176,7 +176,7 @@ def decide(corpus, proposal_id, *, actor, decision, rationale, checked_scopes=()
             raise ValueError('Proposal input/asset bindings changed; create and inspect a new proposal')
         review_id = 'review:' + str(uuid.uuid4())
         status = 'rejected' if decision == 'reject' else 'human_approved' if actor['kind'] == 'human' else 'machine_accepted'
-        review = {'schema_version': 'qecgraph.review', 'id': review_id, 'proposal_id': proposal_id,
+        review = {'schema': 'qecgraph.review', 'id': review_id, 'proposal_id': proposal_id,
                   'proposal_sha256': hash_text(canonical(proposal)), 'corpus_id': proposal['corpus_id'],
                   'actor': actor, 'decision': decision, 'status': status, 'checked_scopes': sorted(scopes),
                   'rationale': rationale, 'created_at': datetime.now(timezone.utc).isoformat(),
@@ -285,7 +285,7 @@ def apply(corpus, proposal_id, review_id):
                    'records': [{key: record[key] for key in ('id', 'revision', 'content_sha256')} for record in records]}
         state.setdefault('applications', {})[proposal_id] = binding
         target_revision = hash_text(canonical(state))
-        receipt = {'schema_version': 'qecgraph.application', 'proposal_id': proposal_id,
+        receipt = {'schema': 'qecgraph.application', 'proposal_id': proposal_id,
                    'base_registry_revision': fixed, 'registry_revision': target_revision, **binding}
         immutable_json(_path(registry, 'applications', proposal_id), receipt)
         published = registry._publish(state)

@@ -19,7 +19,7 @@ CURRENT_FORMAT = 'qecgraph.registry.current'
 
 
 def empty_state():
-    return {'schema_version': FORMAT, 'works': {}, 'versions': {}, 'records': {}, 'links': []}
+    return {'schema': FORMAT, 'works': {}, 'versions': {}, 'records': {}, 'links': []}
 
 
 def _check_source_binding(graph, version):
@@ -54,7 +54,7 @@ class Registry:
             state = read_json(state_path)
         except ValueError as exc:
             raise ManagedDataError(state_path, 'Registry state contains invalid JSON') from exc
-        if not isinstance(state, dict) or state.get('schema_version') != FORMAT or hash_text(canonical(state)) != revision:
+        if not isinstance(state, dict) or state.get('schema') != FORMAT or hash_text(canonical(state)) != revision:
             raise ManagedDataError(state_path, 'Registry state schema/hash mismatch')
         return state, revision
 
@@ -268,7 +268,7 @@ class Registry:
     def import_migration(self, migration_root):
         migration_root = Path(migration_root).resolve()
         report = read_json(migration_root / 'migration-report.json')
-        if (not isinstance(report, dict) or report.get('schema_version') != 'qecgraph.migration'
+        if (not isinstance(report, dict) or report.get('schema') != 'qecgraph.migration'
                 or report.get('rejected')):
             raise ValueError('Import requires a migration report with no rejected inputs')
         accepted = report.get('accepted')

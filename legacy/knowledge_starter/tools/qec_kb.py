@@ -54,12 +54,12 @@ def load_records(full_schema: bool = False) -> dict:
         matrix_schema = read_json(ROOT / "schemas" / "matrix.schema.json")
         Draft202012Validator.check_schema(matrix_schema)
         matrix_validator = Draft202012Validator(matrix_schema)
-    required = {"schema_version", "id", "kind", "title", "review_status", "refs", "assets", "data"}
+    required = {"schema", "id", "kind", "title", "review_status", "refs", "assets", "data"}
     for path in sorted((ROOT / "records").rglob("*.json")):
         record = read_json(path)
         if required - record.keys():
             raise ValueError(f"Missing fields: {path}")
-        if record["schema_version"] != "0.1.0":
+        if record["schema"] != "0.1.0":
             raise ValueError(f"Unsupported schema: {path}")
         if record["id"] in records:
             raise ValueError(f"Duplicate entity ID: {record['id']}")

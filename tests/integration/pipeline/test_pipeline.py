@@ -98,7 +98,7 @@ class PipelineSemanticsTests(unittest.TestCase):
     def _sidecar(self, content):
         path = self.work / "annotations.json"
         path.write_text(
-            json.dumps({"schema_version": "qecgraph.annotations", **content}, ensure_ascii=False),
+            json.dumps({"schema": "qecgraph.annotations", **content}, ensure_ascii=False),
             encoding="utf-8",
         )
         return path

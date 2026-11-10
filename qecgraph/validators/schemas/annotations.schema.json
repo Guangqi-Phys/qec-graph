@@ -3,10 +3,10 @@
   "title": "QECGraph sidecar v1",
   "type": "object",
   "required": [
-    "schema_version"
+    "schema"
   ],
   "properties": {
-    "schema_version": {
+    "schema": {
       "const": "qecgraph.annotations"
     },
     "nodes": {

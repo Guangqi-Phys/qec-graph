@@ -3,7 +3,7 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema_version",
+    "schema",
     "id",
     "proposal_id",
     "proposal_sha256",
@@ -18,7 +18,7 @@
     "scope"
   ],
   "properties": {
-    "schema_version": {
+    "schema": {
       "const": "qecgraph.review"
     },
     "id": {

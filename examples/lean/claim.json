@@ -1,5 +1,5 @@
 {
-  "schema_version": "qecgraph.record",
+  "schema": "qecgraph.record",
   "id": "claim:lean-demo:boolean-row-pair",
   "kind": "claim",
   "revision": "1",

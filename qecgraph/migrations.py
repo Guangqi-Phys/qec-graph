@@ -66,7 +66,7 @@ def _legacy_id(value):
 
 
 def adapt_legacy_record(record, source_digest, *, source_root=None, out):
-    if record.get('schema_version') != '0.1.0':
+    if record.get('schema') != '0.1.0':
         raise ValueError('Unsupported legacy record version')
     assets = [_copy_asset(source_root, out, asset) for asset in record.get('assets', [])]
     path_map = {asset['original_path']: asset['uri'] for asset in assets}
@@ -97,7 +97,7 @@ def adapt_legacy_record(record, source_digest, *, source_root=None, out):
         data.setdefault('unknown_reason', 'Legacy record does not explicitly enumerate all quantifiers')
         data.pop('evidence_ids', None)  # v3 stores this once, in the record envelope.
         _distance_unknowns(data)
-    adapted = {'schema_version': RECORD_SCHEMA, 'id': _legacy_id(record['id']), 'kind': kind,
+    adapted = {'schema': RECORD_SCHEMA, 'id': _legacy_id(record['id']), 'kind': kind,
                'revision': 'legacy-0.1.0-' + source_digest, 'title': record.get('title', record['id']),
                'data': data, 'assets': assets,
                'refs': [{'relation': 'catalog:' + ref['relation'], 'target': _legacy_id(ref['target_id']), 'status': 'declared'}
@@ -116,7 +116,7 @@ def migrate(source, out, *, source_root=None):
     if out.exists() and any(out.iterdir()):
         raise ValueError('Migration output must be new or empty')
     out.mkdir(parents=True, exist_ok=True)
-    report = {'schema_version': 'qecgraph.migration', 'adapter_version': '1',
+    report = {'schema': 'qecgraph.migration', 'adapter_version': '1',
               'source': str(source), 'accepted': [], 'rejected': [], 'id_map': {},
               'semantic_changes': ['Explicit v3 envelope; legacy relations retain catalog: prefix',
                                    'External paths become managed content-addressed asset URIs',
@@ -131,7 +131,7 @@ def migrate(source, out, *, source_root=None):
         item = {'input': str(path), 'input_bytes_sha256': digest, 'original_path': str(original.relative_to(out))}
         try:
             value = read_json(path)
-            schema = value.get('schema_version')
+            schema = value.get('schema')
             item['input_schema'] = schema
             if schema == '0.1.0':
                 record = adapt_legacy_record(value, digest, source_root=source_root, out=out)

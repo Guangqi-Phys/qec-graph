@@ -95,7 +95,7 @@ class CorpusTests(unittest.TestCase):
         self.assertTrue(self.registry.validate(fixed)['passed'])
 
     def test_claim_mapping_is_candidate_and_bound_to_exact_revision(self):
-        claim = {'schema_version': 'qecgraph.record', 'id': 'claim:a', 'revision': '1',
+        claim = {'schema': 'qecgraph.record', 'id': 'claim:a', 'revision': '1',
                  'kind': 'claim', 'title': 'Claim', 'data': {'statement': 'First.', 'hypotheses': [], 'quantifiers': []}}
         self.registry.add_record(claim)
         self.registry.link_claim('link:a', 'version:a', 'same', 'claim:a')
@@ -112,7 +112,7 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(context['edges'], [])
 
     def test_claim_mapping_becomes_stale_after_source_projection_replacement(self):
-        claim = {'schema_version': 'qecgraph.record', 'id': 'claim:a', 'revision': '1',
+        claim = {'schema': 'qecgraph.record', 'id': 'claim:a', 'revision': '1',
                  'kind': 'claim', 'title': 'Claim', 'data': {'statement': 'First.', 'hypotheses': [], 'quantifiers': []}}
         self.registry.add_record(claim)
         original = self.registry.link_claim('link:a', 'version:a', 'same', 'claim:a')['registry_revision']
@@ -133,7 +133,7 @@ class CorpusTests(unittest.TestCase):
                 self.assertEqual(historical['incoming'][0]['status'], 'candidate')
 
     def test_claim_mapping_cannot_publish_from_a_changed_graph_file(self):
-        self.registry.add_record({'schema_version': 'qecgraph.record', 'id': 'claim:a', 'revision': '1',
+        self.registry.add_record({'schema': 'qecgraph.record', 'id': 'claim:a', 'revision': '1',
                                   'kind': 'claim', 'title': 'Claim',
                                   'data': {'statement': 'First.', 'hypotheses': [], 'quantifiers': []}})
         previous = self.registry.read()[1]

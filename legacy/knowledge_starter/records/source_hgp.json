@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.1.0",
+  "schema": "0.1.0",
   "id": "source:tillich-zemor-hgp",
   "kind": "source_work",
   "title": "Tillich–Zémor ordinary hypergraph-product construction (bibliographic pointer)",
