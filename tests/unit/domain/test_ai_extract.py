@@ -49,3 +49,40 @@ class ExtractionValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ExtractionError, 'source_tree_hash'):
             make_proposal('extract_theorems', theorem(), source_tree_hash='short',
                           ai_result=result())
+
+
+class ExtractionRunnerTests(unittest.TestCase):
+    def normalized(self):
+        from qecgraph.llm.normalize import NormalizedSource
+        data = b'\\documentclass{article}\n\\begin{document}\nTheorem text.\n\\end{document}\n'
+        return NormalizedSource('b' * 64, data, {'status': 'ready', 'documents': [],
+                                                 'operations': [{'op': 'use_document', 'source': 'main.tex'}],
+                                                 'label_renames': {}, 'unresolved': []},
+                                ({'normalized': {'byte_start': 0, 'byte_end': len(data)},
+                                  'origin': {'path': 'main.tex', 'byte_start': 0, 'byte_end': len(data)},
+                                  'kind': 'original'},))
+
+    def test_runner_uses_skill_prompt_and_returns_proposal(self):
+        from qecgraph.llm.extract import extract
+
+        class Client:
+            def complete_json(self, messages, schema, **kwargs):
+                self.messages = messages
+                return result_with(theorem())
+
+        client = Client()
+        value = extract(self.normalized(), client, 'extract_theorems')
+        self.assertEqual(value.proposal['skill'], 'extract_theorems')
+        self.assertEqual(value.proposal['review_status'], 'proposed')
+        self.assertIn('source_refs', value.proposal['items'][0])
+        self.assertIn('QEC paper', client.messages[0].content)
+
+    def test_runner_rejects_unsupported_skill(self):
+        from qecgraph.llm.extract import extract
+        with self.assertRaisesRegex(ExtractionError, 'unsupported extraction skill'):
+            extract(self.normalized(), object(), 'unknown')
+
+
+def result_with(data):
+    return LLMResult(data=data, text='{}', model='model', usage={}, request_id='r',
+                     attempts=1, cached=False, run_id='run', prompt_sha256='p' * 64)

@@ -112,3 +112,36 @@ def make_proposal(skill, data, *, source_tree_hash, ai_result, normalization_id=
         },
     }
     return proposal
+
+
+_EXTRACTION_SKILLS = {'extract_theorems', 'extract_assumptions', 'extract_data'}
+
+
+def extract(normalized, client, skill_name, *, extra_skills_dir=None, use_cache=True):
+    """Ask one extraction skill for a proposal over a normalized source."""
+    from .normalize import NormalizedSource
+    from .skills import load_skill
+    from .providers.base import Message
+    import json
+
+    if not isinstance(normalized, NormalizedSource):
+        raise ExtractionError('normalized source is required')
+    if skill_name not in _EXTRACTION_SKILLS:
+        raise ExtractionError(f'unsupported extraction skill: {skill_name}')
+    skill = load_skill(skill_name, extra_skills_dir)
+    evidence = {
+        'schema': 'qecgraph.extraction_evidence',
+        'source_tree_hash': normalized.source_tree_hash,
+        'normalized_sha256': normalized.sha256,
+        'text': normalized.text,
+        'segments': list(normalized.segments),
+    }
+    content = json.dumps(evidence, ensure_ascii=False, sort_keys=True)
+    ai_result = client.complete_json(
+        [Message('system', skill.prompt), Message('user', content)], skill.schema,
+        use_cache=use_cache)
+    proposal = make_proposal(skill_name, ai_result.data,
+                             source_tree_hash=normalized.source_tree_hash,
+                             ai_result=ai_result, normalization_id=normalized.sha256)
+    return ExtractionResult(skill=skill_name, data=ai_result.data, proposal=proposal,
+                            ai_result=ai_result)
