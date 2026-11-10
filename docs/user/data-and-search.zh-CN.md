@@ -143,7 +143,7 @@ CLI 和 MCP 使用同一套只读工作区工具。在 MCP 客户端中使用这
 | 读取记录并跟踪链接 | `qec_get_entity`、`qec_get_context` | 把结果 `id` 作为 `identifier`。有多个修订时传 `revision` 选择精确研究记录。 |
 | 读取原始段落或资产 | `qec_get_source`、`qec_get_asset` | 用已登记来源 occurrence ID 或记录的 asset ID。来源区间用半开 Unicode codepoint 偏移，资产区间用字节偏移。 |
 | 检查图节点和依赖 | `qecgraph_show`、`qecgraph_context`、`qecgraph_deps`、`qecgraph_impact` | 用图节点 ID 或唯一标签。`deps` 跟随结果依赖什么，`impact` 跟随什么依赖它。依赖 candidate 或历史链接前检查边状态。 |
-| 过滤码实例 | `qec_find_codes` | 用 `n_min`/`n_max` 过滤码大小。硬距离界需指定 metric ID 和 sector（默认 `joint`）。默认 `verified` 策略要求当前界证据，并接受精确 `metric_revision`。`source_reported` 策略的硬距离过滤要求 `metric_revision`。 |
+| 过滤码实例 | `qec_find_codes` | 用 `n_min`/`n_max` 过滤码大小。硬距离界需指定 metric ID 和 sector（默认 `joint`）。默认 `verified` 策略要求当前界证据，并接受精确 `metric_revision`。`source_reported` 策略的硬距离过滤要求 `metric_revision`。 工作区的 `source_reported` 硬筛选还要求距离估计绑定该码的校验矩阵表示，并引用当前来源投影中的区间。 |
 | 查找性能点 | `qec_find_performance` | 按 `code_id`、`decoder_id`、`noise_model_id` 或 `metric_id` 过滤。`complete_only: true` 只取满足必需上下文的点。坐标选择支持精确或最近报告点，并返回实际报告坐标。 |
 | 查找软件或算法 | `qec_find_software` | 按 `query` 或 `role` 搜索。项目条目描述 catalog；沿 usage 记录查论文或运行使用证据。 |
 | 检查工作区状态 | `qec_workspace_status` | 传 `{}`，读取最新运行状态及连接的固定知识 release。运行报告缺失或格式错误时 `operational_status` 为 `null`，固定 release 及其覆盖仍返回。 |

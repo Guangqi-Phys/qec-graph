@@ -372,20 +372,32 @@ class WorkspaceSession:
                 'truncated': truncated, 'context_complete': not truncated and not unresolved}
 
     def _reported_distance(self, record, args):
+        code = {'id': record['id'], 'revision': record['revision']}
+        metric = {'id': args['metric_id'], 'revision': args['metric_revision']}
+        if key(metric) not in self.visible:
+            return []
         matching = []
         for binding in record['data'].get('distance_estimate_refs') or []:
             claim = self.visible.get(key(binding))
             if not claim:
                 continue
             data = claim['data']
+            subject = data.get('subject_ref')
+            if subject not in (record['data'].get('check_matrix_refs') or []):
+                continue
+            matrix = self.visible.get(key(subject))
+            if not matrix or matrix['data'].get('code_ref') != code:
+                continue
+            evidence = claim['field_evidence'].get('/data/lower_bound', {})
+            locator = evidence.get('source_locator') or {}
             bound = data['lower_bound']
-            if (data.get('subject_ref') != {'id': record['id'], 'revision': record['revision']}
-                    or data.get('metric_ref') != {'id': args['metric_id'], 'revision': args['metric_revision']}
+            if (data.get('metric_ref') != metric
                     or data.get('sector') != args.get('sector', 'joint')
                     or data.get('relation') not in {'exact', 'lower_bound', 'interval'}
                     or bound is None or bound < args['distance_at_least']
                     or data.get('method') is None or data.get('conditions') is None
-                    or not claim['field_evidence'].get('/data/lower_bound', {}).get('source_locator')):
+                    or evidence.get('status') != 'known' or not locator
+                    or self.source_snapshot_id(locator['source_version_id']) != locator['snapshot_id']):
                 continue
             matching.append(claim)
         return matching
@@ -562,7 +574,7 @@ class WorkspaceSession:
                     if 'distance_at_least' in args and 'metric_revision' not in args:
                         raise ToolError('INVALID_ARGUMENT', 'Source-reported hard bounds require exact metric ID and revision')
                     legacy = {'results': [], 'truncated': False,
-                              'evidence_policy': 'Source-reported bound, exact metric and source locator; not mathematical verification'}
+                              'evidence_policy': 'Source-reported bound with a current source locator, metric and check matrix'}
                 else:
                     legacy = codes(self.machine, registry_revision=self.release, check_live_lean=False,
                                    limit=None, evidence_policy='verified', **args)

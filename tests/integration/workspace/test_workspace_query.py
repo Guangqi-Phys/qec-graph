@@ -316,6 +316,62 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.assertTrue(context['ok'])
         self.assertIn(claim_ref['id'], {row['id'] for row in context['data']['nodes']})
 
+    def test_reported_distance_requires_current_evidence_and_a_code_presentation(self):
+        from qecgraph.domain.research import make_record
+        from qecgraph.source.package import unpack
+        from tests.unit.parsing.test_source_package import tar_bytes
+
+        original = TEX.replace(b'Hello', b'Distance is at least twelve.')
+        corrected = TEX.replace(b'Hello', b'Distance is unknown.')
+        package = tar_bytes({'a.tex': original, 'b.tex': corrected})
+        tree = unpack(package)
+        cfg = self.root / 'qecgraph.toml'
+        cfg.write_text(cfg.read_text() + f'\n[entrypoints]\n"{tree.digest}" = "a.tex"\n')
+        (self.root / 'inputs/distance.tar').write_bytes(package)
+        state, fixed = self.ws.registry.read(self.ws.sync()['release_id'])
+        version = next(row['source_version_id'] for row in state['materials'].values()
+                       if row.get('source_tree_hash') == tree.digest)
+        graph, _, meta = self.ws.registry.source_graph(version, fixed)
+        node = next(n for n in graph['nodes'] if n['latex'] == 'Distance is at least twelve.')
+        source = {'id': version, 'revision': meta['snapshot_id']}
+        metric = {'id': 'metric:joint', 'revision': '1'}
+        code = {'id': 'code:test', 'revision': '1'}
+        matrix = {'id': 'matrix:test', 'revision': '1'}
+        lower = {'id': 'distance:lower', 'revision': '1'}
+        bare = {'id': 'distance:unbound', 'revision': '1'}
+        locator = {'source_version_id': version, 'snapshot_id': meta['snapshot_id'],
+                   'node_id': node['id'], 'node_content_sha256': node['content_sha256'], **node['source']}
+        evidence = {'/data/lower_bound': {'status': 'known', 'source_ref': source, 'method': 'report',
+                                         'source_locator': locator}}
+
+        def record(kind, binding, data, fields=None):
+            return make_record(kind, binding['id'], binding['revision'], data, source=source,
+                               method='test_input', evidence=fields)
+
+        common = {'metric_ref': metric, 'relation': 'lower_bound', 'lower_bound': 12,
+                  'upper_bound': None, 'sector': 'joint', 'conditions': [], 'method': 'reported'}
+        publish_records(self.ws.registry, [
+            record('metric', metric, {'name': 'joint weight'}),
+            record('quantum_code', code, {'code_type': 'quantum', 'n': 13, 'k': 1,
+                                          'check_matrix_refs': [matrix], 'distance_estimate_refs': [lower, bare]}),
+            record('check_matrix', matrix, {'code_ref': code, 'check_weight_statistics': None}),
+            record('distance_estimate', lower, {**common, 'subject_ref': matrix}, evidence),
+            record('distance_estimate', bare, {**common, 'subject_ref': code}, evidence),
+        ])
+        filters = {'distance_at_least': 12, 'metric_id': metric['id'], 'metric_revision': metric['revision'],
+                   'evidence_policy': 'source_reported'}
+        old = WorkspaceSession(self.ws.registry.root)
+        row, = old.invoke('qec_find_codes', filters)['data']['results']
+        self.assertEqual([estimate['id'] for estimate in row['distance_estimates']], [lower['id']])
+
+        cfg.write_text(cfg.read_text().replace('= "a.tex"', '= "b.tex"'))
+        self.ws.rebuild()
+        current = WorkspaceSession(self.ws.registry.root)
+        self.assertNotEqual(current.source_snapshot_id(version), old.source_snapshot_id(version))
+        self.assertEqual(current.invoke('qec_find_codes', filters)['data']['results'], [])
+        self.assertTrue(old.invoke('qec_find_codes', filters)['data']['results'])
+        self.assertTrue(current.invoke('qec_get_entity', {'identifier': lower['id']})['ok'])
+
     def test_workspace_codes_pages_past_the_legacy_cli_limit(self):
         from qecgraph.domain.domain_query import codes
         from qecgraph.core.transactions import writer_lock
