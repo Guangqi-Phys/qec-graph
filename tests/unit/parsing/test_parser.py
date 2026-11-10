@@ -47,9 +47,49 @@ class ParserTests(unittest.TestCase):
         self.assertEqual(parsed['includes'], [])
         self.assertEqual({d['code'] for d in parsed['diagnostics']}, {'conditional_branch_selected'})
 
+    def test_def_marks_a_macro_defined_for_a_decidable_ifdefined_branch(self):
+        parsed = self.parse(r"""\documentclass{article}
+\def\combined{}
+\begin{document}
+\ifdefined\combined
+\section{Main}
+\else
+\section{Standalone}
+\fi
+\end{document}
+""")
+        titles = [block['title_tex'] for block in parsed['blocks'] if block['kind'] == 'section']
+        self.assertEqual(titles, ['Main'])
+
+    def test_metadata_outside_mathematics_is_downgraded_not_fatal(self):
+        from qecgraph.core.graph import build_graph
+        from qecgraph.validators import validate_graph_types
+
+        parsed = self.parse(r"""\documentclass{article}
+\begin{document}
+\begin{remark}
+A remark with \lean{Foo.bar} and a use \uses{lem:x}.
+\end{remark}
+\begin{lemma}\label{lem:x} A lemma.\end{lemma}
+\end{document}
+""")
+        graph = build_graph(parsed, 'demo', '0' * 64)
+        validate_graph_types(graph)
+        kinds = {node['id']: node['kind'] for node in graph['nodes']}
+        relations = {(edge['source'], edge['relation'], edge['target']) for edge in graph['edges']}
+        self.assertTrue(any(kinds[source] == 'lean_declaration' and relation == 'describes' and kinds[target] == 'remark'
+                            for source, relation, target in relations))
+        self.assertTrue(any(kinds[source] == 'remark' and relation == 'references' and kinds[target] == 'lemma'
+                            for source, relation, target in relations))
+        codes = {diagnostic['code'] for diagnostic in graph['diagnostics']}
+        self.assertIn('lean_metadata_outside_mathematics', codes)
+        self.assertIn('uses_outside_mathematics', codes)
+
     def test_unclosed_conditional_records_the_structural_limit(self):
         parsed = self.parse(r'\begin{document}\iftrue Text \end{document}')
-        self.assertIn('structural_scan_incomplete', {d['code'] for d in parsed['diagnostics']})
+        incomplete = [d for d in parsed['diagnostics'] if d['code'] == 'structural_scan_incomplete']
+        self.assertEqual(len(incomplete), 1)
+        self.assertEqual(incomplete[0]['severity'], 'error')
         self.assertIn('conditionals_not_evaluated', {d['code'] for d in parsed['diagnostics']})
 
     def test_bare_input_after_a_comment_keeps_the_source_span(self):

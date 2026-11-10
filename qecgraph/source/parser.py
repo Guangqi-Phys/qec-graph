@@ -389,7 +389,7 @@ def _scan_structure(text, inherited, context, known_conditionals):
         if name == "let":
             target = _next_token(walker, pos, state)
             if target is not None and target.tok == "macro":
-                bindings.pop(target.arg, None)
+                bindings[target.arg] = None
                 value = _next_token(walker, target.pos + target.len, state)
                 if value is not None and value.tok == "char" and value.arg == "=":
                     value = _next_token(walker, value.pos + value.len, state)
@@ -416,7 +416,9 @@ def _scan_structure(text, inherited, context, known_conditionals):
                 if target is not None and target.tok == "macro":
                     affected = scopes if name in {"gdef", "xdef"} else scopes[-1:]
                     for _, definitions in affected:
-                        definitions.pop(target.arg, None)
+                        # The replacement text stays opaque, but the name is defined
+                        # for a later statically decidable \ifdefined.
+                        definitions[target.arg] = None
             elif name in {"input", "include"}:
                 include_bindings[token.pos] = dict(bindings)
             elif name == "newif":
@@ -652,7 +654,7 @@ class _ProjectParser:
             )
         except (LatexWalkerParseError, LatexWalkerEndOfStream, IndexError) as exc:
             pos = max(0, min(getattr(exc, "pos", 0) or 0, len(text)))
-            self.diagnostic("warning", "structural_scan_incomplete",
+            self.diagnostic("error", "structural_scan_incomplete",
                             "Static LaTeX structure recognition failed; parsing the original token stream.",
                             self.span(rel, pos, pos))
             projected, aliases, include_bindings, selected = text, {}, {}, []

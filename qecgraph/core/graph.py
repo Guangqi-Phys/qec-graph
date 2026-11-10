@@ -208,7 +208,15 @@ class _GraphBuilder:
                     target = self.resolve_label(label, reference.get("source"))
                     unresolved = self.nodes[target]["kind"] == "unresolved_reference"
                     if kind == "uses":
-                        self.edge(identifier, target, "depends_on_declared", "unresolved" if unresolved else "declared", evidence)
+                        if block["kind"] in MATHEMATICS:
+                            self.edge(identifier, target, "depends_on_declared", "unresolved" if unresolved else "declared", evidence)
+                        else:
+                            # A dependency annotation outside a mathematical block keeps
+                            # its textual meaning but is not a typed proof dependency.
+                            self.diag("uses_outside_mathematics",
+                                      "\\uses outside a mathematical block is preserved as a reference",
+                                      reference.get("source") or block["source"])
+                            self.edge(identifier, target, "references", "unresolved" if unresolved else "observed", evidence)
                     elif kind == "proves":
                         if block["kind"] != "proof":
                             self.diag("proves_outside_proof", "\\proves found outside a proof block", reference.get("source"))
@@ -226,7 +234,15 @@ class _GraphBuilder:
                     self.add_node({"id": target, "kind": "lean_declaration", "title": declaration, "origin": "parser",
                               "data": {"declaration": declaration, "project_revision": None, "build_evidence": None,
                                        "mapping_status": "author_declared", "proof_status": "not_checked"}})
-                self.edge(target, identifier, "formalizes", "declared", {"method": "latex_lean", "source": block["source"]})
+                if block["kind"] in MATHEMATICS:
+                    self.edge(target, identifier, "formalizes", "declared", {"method": "latex_lean", "source": block["source"]})
+                else:
+                    # \lean on a remark/table/paragraph is author metadata, not a
+                    # formalization of a mathematical statement.
+                    self.diag("lean_metadata_outside_mathematics",
+                              "\\lean outside a mathematical block is preserved as a declared association",
+                              block["source"])
+                    self.edge(target, identifier, "describes", "declared", {"method": "latex_lean", "source": block["source"]})
 
     def infer_adjacent_proofs(self) -> None:
         # A neighbouring proof is a candidate association, never a verified claim.
