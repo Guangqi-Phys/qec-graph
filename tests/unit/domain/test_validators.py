@@ -57,6 +57,21 @@ class ValidatorTests(unittest.TestCase):
             ingest(entry, 'typed', store, annotations_path=sidecar)
         self.assertEqual(current_snapshot(store), previous)
 
+    def test_claim_subject_must_resolve_to_a_subject_kind(self):
+        registry = Registry(self.root / 'corpus')
+        registry.add_record(claim('claim:typed'))
+        missing = claim('claim:missing')
+        missing['data']['subject_id'] = 'code:missing'
+        registry.add_record(missing)
+        wrong = claim('claim:wrong')
+        wrong['data']['subject_id'] = 'claim:typed'
+        registry.add_record(wrong)
+        issues = registry.validate()['issues']
+        self.assertTrue(any(issue.get('field') == 'subject_id' and issue.get('target') == 'code:missing'
+                            and issue.get('severity', 'error') == 'error' for issue in issues), issues)
+        self.assertTrue(any(issue.get('field') == 'subject_id' and issue.get('target') == 'claim:typed'
+                            and issue.get('severity') == 'warning' for issue in issues), issues)
+
     def test_unresolved_reference_is_visible_and_fails_strict_validation(self):
         registry = Registry(self.root / 'corpus')
         value = claim()

@@ -137,15 +137,22 @@ def registry_issues(registry, records):
             'code_instance': {'construction_id': {'construction'}, 'presentation_ids': {'presentation'}, 'distance_claim_ids': {'claim'}},
             'presentation': {'instance_id': {'code_instance'}, 'matrix_definition_id': {'definition'}},
             'formalization': {'claim_id': {'claim'}},
-            'claim': {'presentation_id': {'presentation'}, 'metric_definition_id': {'definition', 'metric'}},
+            'claim': {'subject_id': {'code_instance', 'presentation', 'circuit', 'family', 'construction',
+                                      'classical_seed'},
+                      'presentation_id': {'presentation'}, 'metric_definition_id': {'definition', 'metric'}},
         }.get(record['kind'], {})
         for field, kinds in fields.items():
             values = record['data'].get(field)
             if values is None:
                 continue
             for target_id in values if isinstance(values, list) else [values]:
-                if target_id not in records or records[target_id]['kind'] not in kinds:
-                    issues.append({'code': 'domain_reference', 'record_id': identifier, 'field': field, 'target': target_id})
+                target = records.get(target_id)
+                if target is None:
+                    issues.append({'code': 'domain_reference', 'record_id': identifier, 'field': field,
+                                   'target': target_id})
+                elif target['kind'] not in kinds:
+                    issues.append({'code': 'domain_reference', 'severity': 'warning', 'record_id': identifier,
+                                   'field': field, 'target': target_id, 'target_kind': target['kind']})
         if record['kind'] == 'evidence' and isinstance(record['data'].get('inputs'), list):
             for binding in record['data']['inputs']:
                 if not isinstance(binding, dict):

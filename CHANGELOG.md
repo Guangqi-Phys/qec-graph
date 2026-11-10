@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Claim `subject_id` values now resolve against the registry: a dangling subject is a
+  validation error and a wrong subject kind is a warning instead of disappearing from
+  distance queries without a report.
 - Corpus proposal/review bindings now cover the changed records and their
   explicit reference closure rather than every record. An unrelated record
   revision no longer makes a proposal stale; a changed referenced dependency
