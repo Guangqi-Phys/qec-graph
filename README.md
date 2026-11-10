@@ -3,6 +3,8 @@
 > Provenance-preserving LaTeX → QEC knowledge workspace, with a CLI, a local
 > read-only MCP server, and an Obsidian view.
 
+> **English** · [中文](README.zh-CN.md)
+
 QEC Graph archives the original source packages, extracts LaTeX structure with
 exact character spans, links reviewed research records and evidence, and serves
 the result from an immutable machine release.
@@ -64,7 +66,7 @@ Use `qec-graph inputs quarantine <name>` for a package that keeps failing.
 
 | I want to… | Read |
 |---|---|
-| Run the shortest example | [Quick start (中文)](docs/user/quickstart.zh-CN.md) |
+| Run the shortest example | [Quick start](docs/user/quickstart.md) |
 | Configure a workspace, archive or Obsidian | [Workspace guide](docs/user/workspace.md) |
 | Search records, codes or performance points | [Data and search](docs/user/data-and-search.md) |
 | Look up commands, exit codes or release checks | [Advanced usage](docs/user/advanced-usage.md) |

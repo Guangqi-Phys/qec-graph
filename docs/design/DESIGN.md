@@ -2,6 +2,8 @@
 
 > **Status: Current authoritative design (0.4.x).** This is the only active design document.
 
+> **English** · [中文](DESIGN.zh-CN.md)
+
 | | |
 |---|---|
 | **Status** | Current authoritative design (0.4.x) |

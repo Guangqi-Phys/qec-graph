@@ -2,8 +2,10 @@
 
 > **Status: Current (0.4.x).** This is the single documentation entry point.
 
+> **English** · [中文](README.zh-CN.md)
+
 > [!TIP]
-> New here? Start with the [Chinese quick start](user/quickstart.zh-CN.md) for
+> New here? Start with the [quick start](user/quickstart.md) for
 > a five-minute run, or [Advanced usage](user/advanced-usage.md) for the full
 > command reference. Agents should read this page and then
 > [the system design](design/DESIGN.md).
@@ -25,7 +27,7 @@ flowchart TD
 
 | I am… | Start here | Why |
 |---|---|---|
-| A new user | [中文快速开始](user/quickstart.zh-CN.md) | Shortest path from archive to first query |
+| A new user | [Quick start](user/quickstart.md) | Shortest path from archive to first query |
 | Importing or maintaining a workspace | [Workspace guide](user/workspace.md) | Archive configuration, entry points, Obsidian and provider handoff |
 | Querying records or sources | [Data and search](user/data-and-search.md) | Record types, evidence policy and CLI/MCP queries |
 | Running commands | [Advanced usage](user/advanced-usage.md) | Install, exit codes, grouped commands and release checks |
@@ -45,11 +47,11 @@ flowchart TD
 
 | Page | Language | Type | Use when |
 |---|---|---|---|
-| [Quick start](user/quickstart.zh-CN.md) | 中文 | Tutorial | You want the shortest working example |
+| [Quick start](user/quickstart.md) | English | Tutorial | You want the shortest working example |
 | [Advanced usage](user/advanced-usage.md) | English | How-to / reference | You need installers, command groups, exit codes or release checks |
-| [Workspace guide](user/workspace.md) | 中文 | How-to | You need archive configuration, Obsidian layout or provider handoff |
+| [Workspace guide](user/workspace.md) | English | How-to | You need archive configuration, Obsidian layout or provider handoff |
 | [Data and search](user/data-and-search.md) | English | Reference | You need `research.v1` records, evidence and query semantics |
-| [Single-paper splitter](user/splitter.md) | 中文 | Reference | You need source spans, fragment layout or LaTeX limitations |
+| [Single-paper splitter](user/splitter.md) | English | Reference | You need source spans, fragment layout or LaTeX limitations |
 
 ## Design and operations
 
@@ -59,6 +61,7 @@ flowchart TD
 | [Operations](operations/README.md) | Current | How-to / reference | Legacy store/corpus maintenance, corpus/review workflows and validation pointers |
 | [Validation evidence](../validation/README.md) | Evidence | Evidence | Recorded inputs, commands, revisions and results; not a design contract |
 | [Changelog](../CHANGELOG.md) | Current | Reference | Compatibility and behavior changes |
+| [Contributing rules](../CONTRIBUTING.md#documentation-rules) | Current | Reference | Page locations, status/TOC rules and the docs test |
 
 ## Page types
 

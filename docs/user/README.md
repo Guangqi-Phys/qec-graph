@@ -2,8 +2,10 @@
 
 > **Status: Current (0.4.x).**
 
+> **English** · [中文](README.zh-CN.md)
+
 > [!TIP]
-> If you have never run QEC Graph, use the [Chinese quick start](quickstart.zh-CN.md).
+> If you have never run QEC Graph, use the [quick start](quickstart.md).
 > If you already have a workspace, jump straight to the task table below.
 
 ## On this page
@@ -16,7 +18,7 @@
 
 | I need to… | Go to |
 |---|---|
-| Install and import a first paper | [Quick start](quickstart.zh-CN.md) |
+| Install and import a first paper | [Quick start](quickstart.md) |
 | Configure entry points or archive behavior | [Workspace guide](workspace.md) |
 | Search sources, records, codes or performance points | [Data and search](data-and-search.md) |
 | Look up a command, exit code or release check | [Advanced usage](advanced-usage.md) |
@@ -27,11 +29,11 @@
 
 | Guide | Language | Type | Focus |
 |---|---|---|---|
-| [Quick start](quickstart.zh-CN.md) | 中文 | Tutorial | Shortest path: install → `init` → `sync` → `status` → query |
-| [Workspace guide](workspace.md) | 中文 | How-to | `qecgraph.toml`, entry points, provenance, Obsidian, review handoff |
+| [Quick start](quickstart.md) | English | Tutorial | Shortest path: install → `init` → `sync` → `status` → query |
+| [Workspace guide](workspace.md) | English | How-to | `qecgraph.toml`, entry points, provenance, Obsidian, review handoff |
 | [Data and search](data-and-search.md) | English | Reference | `research.v1`, evidence, distance policy, CLI/MCP queries |
 | [Advanced usage](advanced-usage.md) | English | How-to / reference | Installers, command groups, JSON/exit codes, release checks |
-| [Single-paper splitter](splitter.md) | 中文 | Reference | Source spans, fragment layout, custom environments, limits |
+| [Single-paper splitter](splitter.md) | English | Reference | Source spans, fragment layout, custom environments, limits |
 
 ## Common flow
 

@@ -2,6 +2,8 @@
 
 > **Status: Current (0.4.x).** Research records, evidence policy and query contracts.
 
+> **English** · [中文](data-and-search.zh-CN.md)
+
 QEC Graph keeps the original sources, the graph extracted from them, and
 versioned research records. Search results refer to the machine release that
 served the query, so you can trace a result back to the same data later.

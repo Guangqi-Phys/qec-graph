@@ -2,9 +2,11 @@
 
 > **状态：当前（0.4.x）。** 从安装到首次查询的最短路径。
 
+> [English](quickstart.md) · **中文**
+
 > [!TIP]
-> 需要完整配置、退出码或 MCP 细节时，转到 [进阶用法](advanced-usage.md)
-> 或 [工作区说明](workspace.md)。
+> 需要完整配置、退出码或 MCP 细节时，转到 [进阶用法](advanced-usage.zh-CN.md)
+> 或 [工作区说明](workspace.zh-CN.md)。
 
 ## On this page
 
@@ -15,7 +17,7 @@
 
 | 步骤 | 操作 | 期望结果 |
 |---|---|---|
-| 1 | 按 [安装说明](../../README.md#install) 安装 | `qec-graph --version` 有输出 |
+| 1 | 按 [安装说明](../../README.zh-CN.md#安装) 安装 | `qec-graph --version` 有输出 |
 | 2 | 进入工作目录，创建 `inputs/` | 目录中能看到 `inputs/` |
 | 3 | 放入 LaTeX 源包，运行 `qec-graph init` | 终端显示发布成功或部分批次 |
 | 4 | 运行 `qec-graph sync` | 成功包写入 `archive/`，`inputs/` 副本清除 |
@@ -23,7 +25,7 @@
 
 ```sh
 mkdir -p inputs
-# 把下载完成的 TeX 源包放进 inputs/
+# Put downloaded TeX source packages in inputs/
 qec-graph init --workspace .
 qec-graph sync
 qec-graph status
@@ -42,4 +44,4 @@ qec-graph validate
 成功导入后，原始包留在 `archive/`；失败包保留在 `inputs/` 以便重试。把 `human/`
 作为 Obsidian 仓库打开，从 `Index.md` 开始。**不要**把 `human/notes/` 当作检索输入。
 
-[进阶用法](advanced-usage.md) · [数据与检索](data-and-search.md) · [工作区说明](workspace.md)
+[进阶用法](advanced-usage.zh-CN.md) · [数据与检索](data-and-search.zh-CN.md) · [工作区说明](workspace.zh-CN.md)

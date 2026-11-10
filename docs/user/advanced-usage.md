@@ -2,6 +2,8 @@
 
 > **Status: Current (0.4.x).** Install, workspace, query and release instructions.
 
+> **English** · [中文](advanced-usage.zh-CN.md)
+
 For the install command, daily workflow, and MCP setup, start with the [README](../../README.md).
 
 ## On this page
@@ -124,7 +126,7 @@ Successful imports clear the inbox copy after archiving, validation, and
 publication. Failed packages remain available for retry, and a partial batch
 returns exit code `2`. Use `status --json` to find an ambiguous source tree
 and its entry-point candidates. The workspace guide shows how to pin the
-entry point and record an explicit upstream version. [Workspace configuration](workspace.md#建库和日常操作)
+entry point and record an explicit upstream version. [Workspace configuration](workspace.md#create-and-operate-a-workspace)
 
 Quarantine preserves the file, archive blob, and any receipt. Status identifies
 the archived content by its hash and lists quarantined inputs separately.
@@ -203,7 +205,7 @@ output. Animation requires an interactive terminal.
 Open the workspace's `human/` directory as an Obsidian vault. Start at
 `Index.md`, and keep personal notes in `human/notes/`. Run
 `qec-graph human build` to regenerate the vault's derived pages from the
-current machine snapshot. [Vault layout and MCP isolation](workspace.md#obsidian-和机器访问隔离)
+current machine snapshot. [Vault layout and MCP isolation](workspace.md#obsidian-and-machine-isolation)
 
 The category indexes link to readable titles. A record page shows its source,
 review and verification status, eligible relations, and an expandable data
@@ -228,7 +230,7 @@ software metadata refresh, and extracting proposals. Use
 `qec-graph review import REQUEST_ID response.json` to validate and queue a
 provider response as a draft. The reviewer records a decision separately
 with `qec-graph extract-review`.
-[Research and review workflow](workspace.md#研究查询和审核)
+[Research and review workflow](workspace.md#research-queries-and-review)
 
 ## Query a workspace from the CLI
 
@@ -263,7 +265,7 @@ A Python installation also provides `qec-latex-split`. The `qecgraph` and
 To copy an existing corpus into a new workspace, use
 `qec-graph workspace-migrate --corpus /path/to/corpus --workspace /path/to/new-workspace`.
 The migration preserves source snapshots, record revisions, and review bindings.
-[Migration guide](workspace.md#从旧库迁移)
+[Migration guide](workspace.md#migrate-from-a-legacy-corpus)
 
 ## Reproduce the checks
 

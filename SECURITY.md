@@ -1,5 +1,7 @@
 # Reporting a vulnerability
 
+> **English** · [中文](SECURITY.zh-CN.md)
+
 Use the repository's [Security advisories](https://github.com/Guangqi-Phys/qec-graph/security/advisories)
 page and choose **Report a vulnerability** if available. If the option is
 unavailable, open an issue asking maintainers for a private contact channel.

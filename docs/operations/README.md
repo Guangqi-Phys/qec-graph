@@ -3,6 +3,8 @@
 > **Status: Current.** Daily workspace usage lives in the [user guides](../user/README.md).
 > This section covers the supported legacy store/corpus surface, review and evidence.
 
+> **English** · [中文](README.zh-CN.md)
+
 > [!IMPORTANT]
 > These pages assume you already have a checkout and a working Python
 > environment. They do not replace the workspace guide for daily operations.

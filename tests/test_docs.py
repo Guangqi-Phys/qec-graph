@@ -10,12 +10,21 @@ from qecgraph.cli.parser import _build_parser, parse_command
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CURRENT_DOCS = ('docs/README.md', 'docs/user/README.md', 'docs/user/quickstart.zh-CN.md',
+CURRENT_DOCS = ('docs/README.md', 'docs/user/README.md', 'docs/user/quickstart.md',
                 'docs/user/advanced-usage.md', 'docs/user/data-and-search.md',
                 'docs/user/workspace.md', 'docs/user/splitter.md', 'docs/design/DESIGN.md',
                 'docs/operations/README.md', 'docs/operations/maintenance.md',
                 'docs/operations/corpus.md', 'docs/operations/review.md')
-USER_DOCS = ('README.md', *CURRENT_DOCS, 'CONTRIBUTING.md', 'SECURITY.md')
+USER_DOCS = ('README.md', 'README.zh-CN.md', *CURRENT_DOCS,
+             'docs/README.zh-CN.md', 'docs/user/README.zh-CN.md',
+             'docs/user/quickstart.zh-CN.md', 'docs/user/advanced-usage.zh-CN.md',
+             'docs/user/data-and-search.zh-CN.md', 'docs/user/workspace.zh-CN.md',
+             'docs/user/splitter.zh-CN.md', 'docs/design/DESIGN.zh-CN.md',
+             'docs/operations/README.zh-CN.md', 'docs/operations/maintenance.zh-CN.md',
+             'docs/operations/corpus.zh-CN.md', 'docs/operations/review.zh-CN.md',
+             'validation/README.md', 'validation/README.zh-CN.md',
+             'CONTRIBUTING.md', 'CONTRIBUTING.zh-CN.md',
+             'SECURITY.md', 'SECURITY.zh-CN.md')
 LINK = re.compile(r'\[[^\]\n]+\]\(([^\s)]+)\)')
 INLINE_COMMAND = re.compile(r'`qec-graph ([^`\n]+)`')
 PUBLIC_REDIRECTS = set()
@@ -138,9 +147,9 @@ class DocumentationTests(unittest.TestCase):
 
     def test_docs_tree_has_one_current_location_per_page(self):
         root_docs = {p.name for p in (ROOT / 'docs').iterdir() if p.is_file() and p.suffix == '.md'}
-        self.assertEqual(root_docs, {'README.md'})
+        self.assertEqual(root_docs, {'README.md', 'README.zh-CN.md'})
         design = {p.name for p in (ROOT / 'docs/design').iterdir() if p.is_file() and p.suffix == '.md'}
-        self.assertEqual(design, {'DESIGN.md'})
+        self.assertEqual(design, {'DESIGN.md', 'DESIGN.zh-CN.md'})
         self.assertFalse((ROOT / 'docs/rfc-002').exists())
         self.assertFalse((ROOT / 'docs/archive').exists())
 

@@ -1,6 +1,8 @@
 # Corpus：注册、身份与查询
 
-> **Status: Current for the legacy corpus surface.** The workspace surface is the primary product; see the [workspace guide](../user/workspace.md).
+> **状态：当前，适用于旧 corpus 接口。** The workspace surface is the primary product; see the [workspace guide](../user/workspace.zh-CN.md).
+
+> [English](corpus.md) · **中文**
 
 > [!NOTE]
 > This is the legacy multi-document corpus surface. The workspace has its own
@@ -42,7 +44,7 @@ qecgraph record-add examples/claim.example.json --corpus build/corpus
 qecgraph claim-link examples/claim-link.example.json --corpus build/corpus
 ```
 
-P1 引入 `qecgraph.record.v2`；P2 新写入使用严格的 `qecgraph.record.v3`，迁移见 [10](review.md)。
+P1 引入 `qecgraph.record.v2`；P2 新写入使用严格的 `qecgraph.record.v3`，迁移见 [10](review.zh-CN.md)。
 `id` 和 `revision` 由作者指定；内容哈希及协议由程序补齐。
 同一 ID/revision 不能覆盖不同内容；新修订保留旧文件。不同 ID 即使标题和参数相同也独立保存。
 自动输入默认 `review.status=proposed`；导入或语法解析不构成人工审核。

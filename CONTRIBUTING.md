@@ -1,5 +1,7 @@
 # Contributing to QEC Graph
 
+> **English** · [中文](CONTRIBUTING.zh-CN.md)
+
 Use Python 3.11 or later on a POSIX system with SQLite FTS5. From a checkout:
 
 ```sh
@@ -34,14 +36,17 @@ the [changelog](CHANGELOG.md) for compatibility changes, and the
   are recovered from Git history.
 - `docs/design/DESIGN.md` is the only design document. Extend it in the same
   change as the implementation instead of adding a parallel design page.
-- Every current page starts with a one-line status marker. Pages with more than
-  one `##` section include an `## On this page` table of contents whose anchors
-  match the headings.
+- Every current page is bilingual: `page.md` is English and `page.zh-CN.md` is
+  Simplified Chinese. Both start with a one-line status marker, carry a language
+  switch, and keep the same heading levels, table shape and executable code
+  blocks. Pages with more than one `##` section include a table of contents
+  whose anchors match the headings.
 - Prefer small tables, GitHub alerts (`> [!NOTE]`, `> [!TIP]`, `> [!WARNING]`)
   and Mermaid diagrams where they clarify a branch or workflow. Do not add
   decorative markup that repeats the prose.
-- Run `python -m unittest tests.test_docs -v` after moving or renaming a page;
-  it checks status markers, links, reachability and table-of-contents anchors.
+- Run `python -m unittest tests.test_docs tests.test_docs_bilingual -v` after
+  moving, renaming or translating a page; the tests check status markers, links,
+  reachability, table-of-contents anchors and bilingual parity.
 - Run `npx --yes markdownlint-cli2@0.24.0` for heading/list/blank-line and link
   fragment consistency. CI runs the same command in the `docs` job.
 

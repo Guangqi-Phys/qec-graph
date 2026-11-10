@@ -1,6 +1,8 @@
 # LaTeX 文件切割工具：已经实现的 API 与命令
 
-> **Status: Current (0.4.x).** Source-only splitter reference and limitations.
+> **状态：当前（0.4.x）。** 仅源码切割的 API、命令和限制。
+
+> [English](splitter.md) · **中文**
 
 本包的切割功能调用同一套 `parser → graph → store` 流程。它读取一个 LaTeX 工程，将章节、定义、引理、定理、证明、公式、表格、图片和正文段落保存为带来源的文件，并返回每类文件的数量和准确路径。
 
