@@ -174,6 +174,36 @@ class WorkspaceTests(unittest.TestCase):
             self.assertTrue((child / 'qecgraph.toml').is_file())
             self.assertTrue((parent / 'qecgraph.toml').is_file())
 
+    def test_ai_normalization_feeds_multi_root_packages_into_extraction(self):
+        from unittest.mock import patch
+        from qecgraph.llm.client import LLMResult
+
+        self.ws.prepare()
+        config = self.root / 'qecgraph.toml'
+        text = config.read_text(encoding='utf-8')
+        text = text.replace('provider = "openrouter"', 'provider = "claude_code"')
+        text = text.replace('model = ""', 'model = "normalizer-test"')
+        config.write_text(text, encoding='utf-8')
+        supplement = b'\\documentclass{article}\n\\begin{document}\nSupplement text.\n\\end{document}\n'
+        (self.inbox / 'bundle.tar').write_bytes(tar_bytes({'main.tex': TEX, 'supp.tex': supplement}))
+        plan = {'status': 'ready', 'documents': [],
+                'operations': [{'op': 'use_preamble', 'source': 'main.tex'},
+                               {'op': 'include_body', 'source': 'main.tex'},
+                               {'op': 'append_body', 'source': 'supp.tex'}],
+                'label_renames': {}, 'unresolved': []}
+        ai = LLMResult(data=plan, text='{}', model='model', usage={}, request_id='r',
+                       attempts=1, cached=False, run_id='normalization-run',
+                       prompt_sha256='p' * 64)
+        with patch('qecgraph.llm.client.LLMClient.complete_json', return_value=ai):
+            result = self.ws.sync()
+        self.assertEqual(result['status'], 'published')
+        self.assertEqual(len(result['inputs']), 1)
+        material = result['inputs'][0]
+        self.assertEqual(material['entrypoint'], 'main.tex')
+        self.assertIn('normalization_id', material)
+        self.assertTrue((self.root / 'machine/derived/normalizations').is_dir())
+        self.assertTrue((self.root / 'machine/CURRENT.json').is_file())
+
     def test_partial_batch_dedup_and_rebuild_from_full_inventory(self):
         (self.inbox / 'good.zip').write_bytes(TEX)
         (self.inbox / 'broken').write_bytes(b'PK\x03\x04broken')

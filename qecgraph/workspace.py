@@ -20,7 +20,7 @@ from .source.extraction import RULE_VERSION, proposals
 from .domain.research_store import stage_records
 from .core.graph import canonical, hash_text, read_json, strict_json_loads
 from .registry import Registry
-from .source.package import Limits, PackageError, unpack
+from .source.package import Limits, PackageError, SourceTree, unpack
 from .store import extraction_tool_identity, ingest, source_span_index
 from .core.transactions import ManagedDataError, atomic_bytes, atomic_json, immutable_json, writer_lock
 from .llm.config import render_config_template
@@ -288,6 +288,35 @@ class Workspace:
                 'next': 'qec-graph sync',
                 'message': 'Edit [ai] in qecgraph.toml, put source packages in inputs/, and run qec-graph sync.'}
 
+    def _ai_normalizer(self):
+        """Return a lazy normalizer, or None when the workspace has no AI config."""
+        from .llm.config import AIConfigError, load_ai_config
+        from .llm.normalize import normalize_package
+        from .llm.artifacts import write_normalization
+        from .llm.client import LLMClient
+
+        config_path = self.path(CONFIG)
+        if not config_path.is_file():
+            return None
+        try:
+            config = load_ai_config(self.root)
+        except AIConfigError:
+            return None
+        if not config.enabled:
+            return None
+
+        def normalize(tree):
+            client = LLMClient(config, cache_dir=self.path('.qecgraph/ai-cache'))
+            normalized = normalize_package(tree, client)
+            artifact, manifest = write_normalization(self.path('machine'), normalized)
+            files = dict(tree.files)
+            files['main.tex'] = normalized.source.data
+            return SourceTree(tree.format, files), {'normalization_id': artifact.name,
+                                                    'normalization_sha256': normalized.source.sha256,
+                                                    'normalization_manifest': str(artifact / 'manifest.json'),
+                                                    'normalization': manifest}
+        return normalize
+
     def sync(self, *, dry_run=False, keep_inputs=False, progress=None):
         if dry_run:
             self.config()
@@ -295,7 +324,7 @@ class Workspace:
                     'pending_claims': sum(1 for _ in self._pending_jobs())}
         with writer_lock(self.path('.qecgraph')):
             return self._run(self.config(), scan_inputs=True, rebuild=False, keep_inputs=keep_inputs,
-                             progress=progress)
+                             progress=progress, normalizer=self._ai_normalizer())
 
     def rebuild(self, *, include_inputs=False, keep_inputs=False, progress=None):
         self.config()
@@ -437,7 +466,7 @@ class Workspace:
         immutable_json(self.path('archive/receipts/' + job.name + '.json'), receipt)
         return digest
 
-    def _prepare(self, cfg, state, digest, prior, reused, limits, *, captured, manifest_hashes, tool_identity):
+    def _prepare(self, cfg, state, digest, prior, reused, limits, *, captured, manifest_hashes, tool_identity, normalizer=None):
         result = {'archive_sha256': digest, 'status': 'archived_only', 'processing_completed': False,
                   'semantic_status': 'not_extracted', 'processor': PROCESSOR}
         try:
@@ -447,6 +476,7 @@ class Workspace:
             tree = unpack(raw, limits)
             del raw
             tree_hash = tree.digest
+            extract_tree = tree
             result.update(format=tree.format, source_tree_hash=tree_hash)
             metadata = cfg.get('sources', {}).get(tree_hash, {})
             work_id = metadata.get('work_id', 'work:local:' + tree_hash)
@@ -457,6 +487,15 @@ class Workspace:
                 candidates = tree.entrypoints()
                 if entry is None and len(candidates) == 1:
                     entry = candidates[0]
+                elif candidates and normalizer is not None:
+                    try:
+                        extract_tree, normalization = normalizer(tree)
+                        entry = 'main.tex'
+                        result.update(normalization_id=normalization['normalization_id'],
+                                      normalization_sha256=normalization['normalization_sha256'])
+                    except (OSError, ValueError, RuntimeError) as exc:
+                        result.update(status='ai_failed', reason=str(exc).replace(str(self.root), '<workspace>'))
+                        return self._keep_prior(result, prior)
                 else:
                     result.update(status='needs_entrypoint', entrypoint_candidates=candidates)
                     return self._keep_prior(result, prior)
@@ -479,7 +518,7 @@ class Workspace:
                         expanded.rename(saved)
                     if version is None:
                         project = temporary / 'project'
-                        tree.materialize(project)
+                        extract_tree.materialize(project)
                         extraction = ingest(project / entry, 'source-' + source_id.rsplit(':', 1)[-1],
                                             temporary / 'store', project_root=project, strict=True,
                                             _tool_identity=tool_identity)
@@ -587,7 +626,7 @@ class Workspace:
         atomic_json(operational, {'observed_at': now(), 'release_id': release, 'counts': counts,
                     'human': {'status': human_status, 'target_release_id': release, 'rendered_release_id': rendered}})
 
-    def _publish_archive(self, cfg, digests, limits, *, rebuild, update):
+    def _publish_archive(self, cfg, digests, limits, *, rebuild, update, normalizer=None):
         package_count = len(digests)
         package_stage = 'Checking archive packages' if rebuild else 'Checking inbox packages'
         update(1, f'{package_stage} 0/{package_count}' if package_count else 'Preparing workspace')
@@ -625,7 +664,7 @@ class Workspace:
                     captured = []
                     materials[digest] = self._prepare(cfg, state, digest, prior, reused, limits,
                                                        captured=captured, manifest_hashes=manifest_hashes,
-                                                       tool_identity=tool_identity)
+                                                       tool_identity=tool_identity, normalizer=normalizer)
                     materials[digest]['config_fingerprint'] = fingerprint
                     if captured:
                         graph, snapshot, registered = captured.pop()
@@ -673,7 +712,7 @@ class Workspace:
             release = self.registry.publish_prepared(candidate)
         return old, release, materials, proposal_map
 
-    def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None):
+    def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None, normalizer=None):
         if not self.path('machine/CURRENT.json').is_file() and (
                 self.path('machine/operational/status.json').exists()
                 or self.path('.qecgraph/migration.json').exists()):
@@ -701,7 +740,8 @@ class Workspace:
             if progress:
                 progress(done, steps, message)
 
-        old, release, materials, proposal_map = self._publish_archive(cfg, digests, limits, rebuild=rebuild, update=update)
+        old, release, materials, proposal_map = self._publish_archive(cfg, digests, limits, rebuild=rebuild, update=update,
+                                                                         normalizer=normalizer)
         update(steps - 1, 'Finalizing workspace')
         rows.extend(self._finish_claims(claims, materials, release, limits.input_bytes, keep_inputs))
         if rebuild:
