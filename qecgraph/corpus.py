@@ -29,7 +29,7 @@ def _project_state(registry, state, fixed, source_version_id=None, *,
         raise ValueError(f'Unknown source version in scope: {source_version_id}')
     selected = [source_version_id] if source_version_id else sorted(state['versions'])
     nodes, edges, labels, versions = [], [], {}, {}
-    partial = False
+    partial = recovered = False
     normalized = {(m.get('source_version_id'), m.get('source_snapshot_id')): m
                   for m in state.get('materials', {}).values() if m.get('normalization_id')}
     for version_id in selected:
@@ -39,6 +39,7 @@ def _project_state(registry, state, fixed, source_version_id=None, *,
             verified_spans[snapshot, version['snapshot_id']] = source_span_index(graph)
         versions[version_id] = version
         partial |= graph['extraction_status'] == 'partial'
+        recovered |= graph['extraction_status'] == 'recovered_proposed'
         occurrence_prefix = occurrence_id(version_id, '')
         label_prefix = version_id + '::'
         normalization = normalized.get((version_id, version['snapshot_id']))
@@ -145,7 +146,8 @@ def _project_state(registry, state, fixed, source_version_id=None, *,
     graph = {'schema': 'qecgraph.corpus_graph', 'snapshot_id': fixed,
              'project_source_hash': hash_text(canonical(versions)), 'nodes': nodes, 'edges': edges,
              'labels': labels, 'diagnostics': unresolved,
-             'extraction_status': 'partial' if partial else 'complete_for_supported_syntax'}
+             'extraction_status': ('partial' if partial else
+                                   'recovered_proposed' if recovered else 'complete_for_supported_syntax')}
     scope = {'registry_revision': fixed, 'source_versions': versions,
              'entity_revisions': {k: v['current_revision'] for k, v in state['records'].items()}}
     return GraphInput(graph), scope

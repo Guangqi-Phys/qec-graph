@@ -25,6 +25,7 @@ class PrefetchTests(unittest.TestCase):
         text = text.replace('provider = "openrouter"', 'provider = "claude_code"')
         text = text.replace('model = ""', 'model = "prefetch-test"')
         text = text.replace('max_parallel_packages = 1', 'max_parallel_packages = 2')
+        text = text.replace('extract_proposals = false', 'extract_proposals = true')
         config.write_text(text, encoding='utf-8')
 
     def test_sync_extracts_multiple_registered_packages_concurrently(self):

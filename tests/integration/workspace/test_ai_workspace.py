@@ -24,6 +24,7 @@ class AIWorkspaceTests(unittest.TestCase):
         self.config = self.root / 'qecgraph.toml'
         self.configure('provider = "openrouter"', 'provider = "claude_code"')
         self.configure('model = ""', 'model = "fake"')
+        self.configure('extract_proposals = false', 'extract_proposals = true')
 
     def configure(self, old, new):
         self.config.write_text(self.config.read_text().replace(old, new))

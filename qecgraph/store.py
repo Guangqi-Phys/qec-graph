@@ -210,7 +210,7 @@ def check_output_directory(out, *, allow_lock=False):
 
 
 def ingest(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None,
-           *, strict=False, incremental=False, _tool_identity=None, _split_policy=None):
+           *, strict=False, incremental=False, _tool_identity=None, _split_policy=None, _recover_source=None):
     out = check_output_directory(out, allow_lock=True)
     with writer_lock(out):
         check_output_directory(out, allow_lock=True)
@@ -230,14 +230,14 @@ def ingest(entry, project_id, out, project_root=None, config_path=None, annotati
         if not (out / '.qecgraph-store.json').exists():
             atomic_json(out / '.qecgraph-store.json', {'format': 'qecgraph.store'})
         result = _ingest_locked(entry, project_id, out, project_root, config_path, annotations_path, catalog_dir,
-                                strict=strict, incremental=incremental, tool_identity=_tool_identity)
+                                strict=strict, incremental=incremental, tool_identity=_tool_identity, recover_source=_recover_source)
         if previous_enriched is not None:
             result["previous_snapshot_id"] = previous_enriched
         return result
 
 
 def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None,
-                   *, strict=False, incremental=False, tool_identity=None):
+                   *, strict=False, incremental=False, tool_identity=None, recover_source=None):
     from .source.parser import parse_project
 
     started = time.perf_counter()
@@ -262,6 +262,8 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
         from .source.incremental import ParseCache
         node_cache = ParseCache(out, root, config)
     parsed = parse_project(entry, project_root=root, config=config, node_cache=node_cache)
+    if recover_source is not None and strict and any(d['severity'] == 'error' for d in parsed['diagnostics']):
+        parsed = recover_source(parsed) or parsed
     source_bytes = {}
     for item in parsed["files"]:
         raw = item["text"].encode("utf-8")
@@ -287,6 +289,8 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
     project_source_hash = _project_source_hash(parsed["entry"], source_manifest, resource_manifest, config)
     fingerprint = {"project_id": project_id, "project_source_hash": project_source_hash,
                    "annotations": annotations, "catalog_inputs": catalog_inputs, **tool_identity}
+    if 'structure_recovery' in parsed:
+        fingerprint['structure_recovery_sha256'] = hash_text(canonical(parsed['structure_recovery']))
     snapshot_id = hash_text(canonical(fingerprint))
     graph = build_graph(parsed, project_id, project_source_hash, annotations, catalog)
     graph["snapshot_id"] = snapshot_id
@@ -659,6 +663,9 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_has
             fragment_hash = node["content_sha256"] if span else hash_text(node["latex"])
             if required.setdefault(fragment_path, fragment_hash) != fragment_hash:
                 raise ValueError(f"Conflicting snapshot output bindings: {fragment_path}")
+    if ('structure_recovery' in graph or 'structure_recovery_sha256' in fingerprint
+            or graph['extraction_status'] == 'recovered_proposed'):
+        _validate_recovered_structure(graph, fingerprint, sources, manifest['resources'])
     _validate_output_hashes(output_root, manifest["outputs"], captured, required, copy_to)
     for label, ids in graph["labels"].items():
         if any(label not in nodes[i]["labels"] for i in ids):
@@ -680,3 +687,26 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_has
     if manifest_hashes is not None:
         manifest_hashes[expected] = manifest_hash
     return graph, report
+
+
+def _validate_recovered_structure(graph, fingerprint, sources, resources):
+    from .source.structure import body_evidence, parsed_structure
+
+    recovery = graph.get('structure_recovery')
+    if (not recovery or hash_text(canonical(recovery)) != fingerprint.get('structure_recovery_sha256')
+            or set(sources) != {graph['entry']} or resources):
+        raise ValueError('Recovered structure is missing its exact snapshot binding')
+    evidence = body_evidence(graph['entry'], sources[graph['entry']].encode('utf-8'))
+    parsed = parsed_structure(evidence, recovery)
+    expected = build_graph(parsed, graph['project_id'], graph['project_source_hash'])
+    fields = ('id', 'kind', 'source', 'title', 'origin', 'labels', 'review_status', 'verification_status',
+              'structure_classification', 'source_role')
+
+    def classification(nodes):
+        return [[node.get(field) for field in fields] for node in nodes]
+
+    if (graph['extraction_status'] != 'recovered_proposed'
+            or classification(graph['nodes']) != classification(expected['nodes'])
+            or graph['edges'] != expected['edges'] or graph['labels'] != expected['labels']
+            or not any(d['code'] == 'ai_structure_proposed' for d in graph['diagnostics'])):
+        raise ValueError('Snapshot differs from the validated structure proposal')

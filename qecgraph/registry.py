@@ -27,6 +27,10 @@ def _check_source_binding(graph, version):
         raise ValueError('Registered snapshot identity mismatch')
     if any(graph[field] != version[field] for field in ('project_id', 'project_source_hash')):
         raise ValueError('Registered snapshot project fingerprint mismatch')
+    recovery = graph.get('structure_recovery')
+    binding = {'status': 'proposed', 'plan_sha256': hash_text(canonical(recovery))} if recovery else None
+    if binding != version.get('structure_recovery'):
+        raise ValueError('Registered source structure binding mismatch')
 
 
 class Registry:
@@ -122,6 +126,9 @@ class Registry:
             version = {'id': source_version_id, 'work_id': work_id, 'project_id': graph['project_id'],
                        'snapshot_id': snapshot_id, 'project_source_hash': graph['project_source_hash'],
                        'snapshot_path': snapshot_path, 'upstream_version': upstream_version}
+            if 'structure_recovery' in graph:
+                version['structure_recovery'] = {'status': 'proposed',
+                                                 'plan_sha256': hash_text(canonical(graph['structure_recovery']))}
             existing = state['versions'].get(source_version_id)
             if existing and existing != version:
                 if not replace_projection or any(existing[field] != version[field]

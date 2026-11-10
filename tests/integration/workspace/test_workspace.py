@@ -183,6 +183,7 @@ class WorkspaceTests(unittest.TestCase):
         text = config.read_text(encoding='utf-8')
         text = text.replace('provider = "openrouter"', 'provider = "claude_code"')
         text = text.replace('model = ""', 'model = "normalizer-test"')
+        text = text.replace('extract_proposals = false', 'extract_proposals = true')
         config.write_text(text, encoding='utf-8')
         supplement = b'\\documentclass{article}\n\\begin{document}\nSupplement text.\n\\end{document}\n'
         (self.inbox / 'bundle.tar').write_bytes(tar_bytes({'main.tex': TEX, 'supp.tex': supplement}))

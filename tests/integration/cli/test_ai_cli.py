@@ -48,7 +48,8 @@ class AICliTests(unittest.TestCase):
 
         config = self.root / 'qecgraph.toml'
         config.write_text(config.read_text().replace('provider = "openrouter"', 'provider = "claude_code"')
-                          .replace('model = ""', 'model = "fake"'))
+                          .replace('model = ""', 'model = "fake"')
+                          .replace('extract_proposals = false', 'extract_proposals = true'))
         (self.root / 'inputs/main.tex').write_bytes(TEX)
 
         def complete(messages, schema, **kwargs):

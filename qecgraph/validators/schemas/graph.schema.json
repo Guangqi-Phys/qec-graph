@@ -215,7 +215,8 @@
     "extraction_status": {
       "enum": [
         "partial",
-        "complete_for_supported_syntax"
+        "complete_for_supported_syntax",
+        "recovered_proposed"
       ]
     },
     "semantic_status": {

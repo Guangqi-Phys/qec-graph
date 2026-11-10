@@ -556,6 +556,42 @@ class Workspace:
         immutable_json(self.path('archive/receipts/' + job.name + '.json'), receipt)
         return digest
 
+    def _recover_source(self, parsed, *, raw, entry, state, prior, source_id, client, report):
+        from .llm.client import BudgetExceeded, ResponseSchemaError
+        from .llm.errors import LLMError
+        from .llm.structure import recover_structure
+        from .source.structure import StructureError, StructureIneligible, StructureNeedsReview, body_evidence, parsed_structure
+
+        allowed = {'latex_parse_error', 'structural_scan_incomplete'}
+        errors = {d['code'] for d in parsed['diagnostics'] if d['severity'] == 'error'}
+        if not errors or not errors <= allowed or parsed.get('includes') or len(parsed['files']) != 1:
+            report['structure_recovery'] = {'status': 'ineligible', 'reason': 'local_structure_or_dependency_error'}
+            return None
+        try:
+            evidence = body_evidence(entry, raw)
+            previous = state['versions'].get(source_id)
+            if (previous and previous.get('structure_recovery')
+                    and prior.get('source_snapshot_id') == previous['snapshot_id'] and prior.get('entrypoint') == entry):
+                graph, _, _ = self.registry.source_graph_from_state(state, source_id, None, verify=True)
+                return parsed_structure(evidence, graph['structure_recovery'])
+            if client is None or not client.config.structure_fallback:
+                reason = 'fallback_provider_unavailable' if client is None else 'fallback_disabled'
+                report['structure_recovery'] = {'status': 'unavailable', 'reason': reason}
+                return None
+            return recover_structure(evidence, client)
+        except StructureIneligible:
+            reason = 'body_outside_supported_scope'
+        except StructureNeedsReview:
+            reason = 'provider_requested_review'
+        except BudgetExceeded:
+            reason = 'fallback_budget_exceeded'
+        except (StructureError, ResponseSchemaError):
+            reason = 'invalid_structure_plan'
+        except LLMError:
+            reason = 'fallback_provider_failed'
+        report['structure_recovery'] = {'status': 'pending', 'reason': reason}
+        return None
+
     def _prepare(self, cfg, state, digest, prior, reused, limits, *, captured, manifest_hashes, tool_identity, ai_client=None, progress=None):
         result = {'archive_sha256': digest, 'status': 'archived_only', 'processing_completed': False,
                   'semantic_status': 'not_extracted', 'processor': PROCESSOR}
@@ -615,9 +651,14 @@ class Workspace:
                     if version is None:
                         project = temporary / 'project'
                         extract_tree.materialize(project)
+                        def recover(parsed):
+                            return self._recover_source(parsed, raw=tree.files[entry], entry=entry, state=state,
+                                                        prior=prior, source_id=source_id, client=ai_client, report=result)
+
                         extraction = ingest(project / entry, 'source-' + source_id.rsplit(':', 1)[-1],
                                             temporary / 'store', project_root=project, strict=True,
-                                            _tool_identity=tool_identity)
+                                            _tool_identity=tool_identity,
+                                            _recover_source=recover if normalization is None else None)
                         if not extraction.get('published'):
                             result.update(status='parse_failed', reason='Structural extraction is partial; see diagnostics',
                                           diagnostics=extraction.get('diagnostics', []))
@@ -629,6 +670,8 @@ class Workspace:
             reused[build_key] = version
             if normalization is not None:
                 result.update(normalization)
+            if version.get('structure_recovery'):
+                result['structure_recovery'] = version['structure_recovery']
             result.update(status='processing_completed', processing_completed=True, semantic_status='semantic_pending',
                           source_version_id=source_id, source_snapshot_id=version['snapshot_id'])
             return result
@@ -801,7 +844,7 @@ class Workspace:
                             identity = (registered['id'], registered['snapshot_id'])
                             staged_proposals[identity] = generate(graph, snapshot, registered)
                 update(index + 1, f'{package_stage} {index}/{package_count}')
-            if ai_client is not None and digests:
+            if ai_client is not None and ai_client.config.extract_proposals and digests:
                 update(package_count + 1, 'Extracting AI proposals')
                 self._complete_ai(ai_client, materials, digests, state['versions'], ai_results, limits)
             for material in materials.values():
@@ -871,7 +914,7 @@ class Workspace:
             if progress:
                 progress(0, 1, 'Scanning the archive')
             digests.update(self._archived_digests())
-        elif ai_client is not None and self.path('machine/CURRENT.json').is_file():
+        elif ai_client is not None and ai_client.config.extract_proposals and self.path('machine/CURRENT.json').is_file():
             state, _ = self.registry.read()
             digests.update(digest for digest, material in state.get('materials', {}).items()
                            if material.get('processing_completed') and not _ai_complete(material.get('ai_extraction', {})))

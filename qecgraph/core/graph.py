@@ -74,7 +74,8 @@ def build_graph(parsed: dict, project_id: str, project_source_hash: str,
     builder = _GraphBuilder(parsed, project_id, project_source_hash)
     builder.add_source_nodes()
     builder.add_source_relations()
-    builder.infer_adjacent_proofs()
+    if "structure_recovery" not in parsed:
+        builder.infer_adjacent_proofs()
     builder.attach_resources()
     builder.attach_catalog(catalog)
     builder.attach_annotations(annotations)
@@ -171,6 +172,8 @@ class _GraphBuilder:
             reading, _ = reading_projection(block["latex"], kind=block["kind"], bibliography=bibliography)
             self.add_node({"id": identifier, "kind": block["kind"], "origin": "parser",
                       "reading_text": reading, "source_role": "bibliography" if bibliography else "body",
+                      **({"review_status": "proposed", "structure_classification": block["structure_classification"]}
+                         if "structure_recovery" in self.parsed else {}),
                       "title": block.get("title_tex") or (owned_labels[0] if owned_labels else block["kind"]),
                       "labels": owned_labels, "source": span, "latex": block["latex"],
                       "content_sha256": hash_text(block["latex"]),
@@ -429,6 +432,10 @@ class _GraphBuilder:
                  "labels": dict(sorted(self.labels.items())), "diagnostics": self.diagnostics,
                  "extraction_status": "partial" if any(d["severity"] == "error" for d in self.diagnostics) else "complete_for_supported_syntax",
                  "semantic_status": "not_mathematically_verified"}
+        if "structure_recovery" in self.parsed:
+            graph["structure_recovery"] = self.parsed["structure_recovery"]
+            if graph["extraction_status"] != "partial":
+                graph["extraction_status"] = "recovered_proposed"
         return graph
 
 
