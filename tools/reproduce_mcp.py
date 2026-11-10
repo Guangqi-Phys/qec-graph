@@ -11,12 +11,12 @@ import sys
 import uuid
 from pathlib import Path
 
-from qecgraph.ai_tools import ReadOnlySession, TOOL_NAMES
-from qecgraph.graph import read_json
+from qecgraph.mcp.ai_tools import ReadOnlySession, TOOL_NAMES
+from qecgraph.core.graph import read_json
 from qecgraph.mcp_server import PROTOCOL_VERSION
 from qecgraph.registry import Registry
 from qecgraph.store import ingest
-from qecgraph.transactions import atomic_json
+from qecgraph.core.transactions import atomic_json
 
 ROOT = Path(__file__).resolve().parents[1]
 

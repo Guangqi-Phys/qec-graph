@@ -18,10 +18,10 @@ import uuid
 from importlib.metadata import version
 from pathlib import Path
 
-from qecgraph.graph import read_json
+from qecgraph.core.graph import read_json
 from qecgraph.query import context, search
 from qecgraph.store import SnapshotReference, current_snapshot, ingest, recover_store, validate_snapshot
-from qecgraph.transactions import atomic_json
+from qecgraph.core.transactions import atomic_json
 
 
 def main(argv=None):

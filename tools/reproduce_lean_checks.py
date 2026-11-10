@@ -7,11 +7,11 @@ from pathlib import Path
 
 from qecgraph import query
 from qecgraph.corpus import project
-from qecgraph.graph import read_json
+from qecgraph.core.graph import read_json
 from qecgraph.lean import build_project, resolve_lake
-from qecgraph.lean_integration import import_build, inspect_build
+from qecgraph.lean.integration import import_build, inspect_build
 from qecgraph.registry import Registry
-from qecgraph.transactions import atomic_json
+from qecgraph.core.transactions import atomic_json
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / 'tests/fixtures/lean'

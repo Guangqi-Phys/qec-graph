@@ -3,13 +3,13 @@ import argparse
 from pathlib import Path
 
 from qecgraph import query
-from qecgraph.ai_tools import ReadOnlySession
+from qecgraph.mcp.ai_tools import ReadOnlySession
 from qecgraph.corpus import project
-from qecgraph.graph import read_json
-from qecgraph.lean_integration import import_build
+from qecgraph.core.graph import read_json
+from qecgraph.lean.integration import import_build
 from qecgraph.registry import Registry
 from qecgraph.store import ingest
-from qecgraph.transactions import atomic_json
+from qecgraph.core.transactions import atomic_json
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / 'examples/lean'
