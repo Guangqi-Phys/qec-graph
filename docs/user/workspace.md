@@ -4,7 +4,7 @@
 
 > **English** · [中文](workspace.zh-CN.md)
 
-`0.5.0` is the current release. The existing `qecgraph`,
+`0.5.1` is the current release. The existing `qecgraph`,
 `qec-latex-split` and `qecgraph-mcp` commands and the SourceGraph, LemmaGraph and
 DataGraph views remain available; Lean is a deferred experimental capability,
 see [the system design](../design/DESIGN.md#10-lean-deferred-not-supported).
@@ -28,7 +28,7 @@ current executable checks; historical run artifacts remain in Git history.
 Install the actual wheel in a Python 3.11+ POSIX environment. No API key is required.
 
 ```bash
-python -m pip install /path/to/qec_graph-0.5.0-py3-none-any.whl
+python -m pip install /path/to/qec_graph-0.5.1-py3-none-any.whl
 mkdir -p ~/qec/inputs
 cd ~/qec
 # 把下载完成的 TeX 源包放进 inputs（下载时先用临时名）。

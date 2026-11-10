@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.5.1 — 2026-11-10
+
+- Removed the `legacy/knowledge_starter` sample and all dependent matrix tests,
+  catalog/qec_kb reproduction steps, MANIFEST entries and documentation.
+- Pruned historical validation run artifacts. `validation/` now contains only
+  the current check index; old release evidence remains in Git history.
+- Moved the Lean fixed-build and zero-axiom fixtures to `tests/fixtures/lean/`.
+- Aligned all current documentation with the post-cleanup implementation and
+  the 0.5.x status markers.
+
 ## 0.5.0 — 2026-11-10
 
 - Removed the `migrate` and `migration-import` commands, `qecgraph.migrations`,
