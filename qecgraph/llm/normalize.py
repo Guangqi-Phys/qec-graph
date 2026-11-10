@@ -193,7 +193,7 @@ def assemble(tree: SourceTree, plan: Mapping[str, Any]):
             labels[label] = (path, start + match.start())
     if not output:
         raise NormalizationError('normalization produced an empty document')
-    if b'\\end{document}' not in output:
+    if plan['operations'][0]['op'] != 'use_document' and b'\\end{document}' not in output:
         out_start = len(output)
         if not output.endswith(b'\n'):
             output += b'\n'

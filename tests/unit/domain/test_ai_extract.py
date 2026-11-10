@@ -68,7 +68,9 @@ class ExtractionRunnerTests(unittest.TestCase):
         class Client:
             def complete_json(self, messages, schema, **kwargs):
                 self.messages = messages
-                return result_with(theorem())
+                return result_with({'items': [{'label': 'thm:a', 'statement': 'Theorem text.',
+                                               'source_refs': ['main.tex:3'], 'hypotheses': []}],
+                                    'unresolved': []})
 
         client = Client()
         value = extract(self.normalized(), client, 'extract_theorems')
@@ -76,6 +78,24 @@ class ExtractionRunnerTests(unittest.TestCase):
         self.assertEqual(value.proposal['review_status'], 'proposed')
         self.assertIn('source_refs', value.proposal['items'][0])
         self.assertIn('theorem extractor', client.messages[0].content)
+
+    def test_runner_rejects_forged_citations_and_nonverbatim_theorems(self):
+        from qecgraph.llm.extract import extract
+
+        for reference, statement, error in (
+            ('missing.tex:9000-9999', 'Invented theorem', 'supplied projection'),
+            ('main.tex:9000-9999', 'Theorem text.', 'out of bounds'),
+            ('main.tex:3', 'Invented theorem', 'not verbatim'),
+        ):
+            with self.subTest(reference=reference, statement=statement):
+                class Client:
+                    def complete_json(self, *args, **kwargs):
+                        return result_with({'items': [{'label': 'thm:a', 'statement': statement,
+                                                       'hypotheses': [], 'source_refs': [reference]}],
+                                            'unresolved': []})
+
+                with self.assertRaisesRegex(ExtractionError, error):
+                    extract(self.normalized(), Client(), 'extract_theorems')
 
     def test_runner_rejects_unsupported_skill(self):
         from qecgraph.llm.extract import extract

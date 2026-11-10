@@ -179,8 +179,10 @@ metric 定义、实验和曲线修订、噪声、解码器及未解决条件。
 
 AI 抽取会把 `qecgraph.ai.proposal` 写入 `machine/ai/proposals/`。它们保持
 `proposed`，不会被默认的 verified 证据策略选中。用 `qec-graph ai proposals`
-列出，用 `qec-graph ai decide` 记录显式决定；审核绑定 proposal 哈希，但不会
-自动创建 research record。source references 必须指向原始或映射后的规范化片段。
+列出，用 `qec-graph ai decide` 记录显式决定。决定绑定已发布提案的哈希和来源快照。
+任一绑定变化时保留原决定，并显示为失效。提案引文使用
+`projection_path:first-last`，行号从 1 开始并包含两端，投影可映射回归档来源。
+旧版未绑定的提案保留在磁盘。配置 AI 后运行 `sync`，可从归档生成已绑定的提案。
 
 ## 读取和复现查询结果
 

@@ -1,7 +1,6 @@
 """CLI handlers for optional AI provider configuration."""
 from __future__ import annotations
 
-import json
 import os
 import stat
 
@@ -74,21 +73,9 @@ def test(args):
 
 def proposals(args):
     root = locate(args.workspace, default=os.environ.get('QECGRAPH_WORKSPACE'))
-    directory = root / 'machine' / 'ai' / 'proposals'
-    items = []
-    if directory.is_dir():
-        for path in sorted(directory.rglob('*.json')):
-            try:
-                value = json.loads(path.read_text(encoding='utf-8'))
-            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-                items.append({'path': str(path), 'status': 'invalid'})
-                continue
-            if not isinstance(value, dict):
-                items.append({'path': str(path), 'status': 'invalid'})
-                continue
-            items.append({'path': str(path), 'skill': value.get('skill'),
-                          'review_status': value.get('review_status'),
-                          'items': len(value.get('items', [])) if isinstance(value.get('items'), list) else 0})
+    from ...llm.review import proposals as list_proposals
+
+    items = list_proposals(root)
     return emit_report({'status': 'ok', 'workspace': str(root), 'count': len(items),
                         'proposals': items}, exit_code=0)
 

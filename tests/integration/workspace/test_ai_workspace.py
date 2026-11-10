@@ -166,3 +166,18 @@ class AIWorkspaceTests(unittest.TestCase):
             transport.assert_not_called()
         self.assertEqual(report['status'], 'published')
         self.assertTrue(report['inputs'][0]['input_consumed'])
+
+    def test_proposals_left_by_failed_publication_cannot_be_reviewed(self):
+        from qecgraph.llm.review import AIReviewError, decide, proposals
+
+        (self.root / 'inputs/paper.tex').write_bytes(TEX)
+        empty = answer({'items': [], 'unresolved': []})
+        with patch('qecgraph.llm.client.LLMClient.complete_json', return_value=empty), patch.object(
+                self.workspace.registry, 'validate', return_value={'passed': False}):
+            with self.assertRaisesRegex(ValueError, 'Candidate machine release failed validation'):
+                self.workspace.sync()
+        orphan = next((self.workspace.registry.root / 'ai/proposals').rglob('*.json'))
+        self.assertEqual(proposals(self.root), [])
+        with self.assertRaisesRegex(AIReviewError, 'No machine release'):
+            decide(self.root, orphan, actor={'id': 'reviewer', 'kind': 'human'}, decision='approve',
+                   rationale='checked', checked_scopes=['statement', 'hypotheses', 'dependencies'])

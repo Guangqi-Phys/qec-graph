@@ -1,24 +1,21 @@
-"""Explicit review decisions for AI proposals.
-
-These decisions bind a person/agent to the exact proposal bytes. They do not
-turn the proposal into a research record; conversion/application to canonical
-records is deliberately separate.
-"""
+"""Explicit decisions bound to published AI proposals and source projections."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
-import json
 from pathlib import Path
+import stat
 import uuid
 
-from ..core.graph import canonical, hash_text
-from ..core.transactions import immutable_json
-from .errors import LLMError
+from ..core.graph import canonical, hash_text, read_json
+from ..core.transactions import immutable_json, writer_lock
+from ..registry import Registry
+
 
 SCOPES = frozenset({'statement', 'hypotheses', 'dependencies'})
+_PROPOSALS = Path('ai/proposals')
 
 
-class AIReviewError(LLMError):
+class AIReviewError(ValueError):
     """An AI proposal review request is invalid."""
 
 
@@ -30,21 +27,79 @@ def _actor(actor):
     return dict(actor)
 
 
-def read_proposal(path):
-    path = Path(path)
+def _registry(workspace):
+    machine = Path(workspace).resolve() / 'machine'
+    if machine.is_symlink():
+        raise AIReviewError('A real machine directory is required')
+    return Registry(machine)
+
+
+def proposal_bindings(state):
+    """Index hash-bound proposals belonging to current source projections."""
+    bindings = {}
+    for material in state.get('materials', {}).values():
+        version = state['versions'].get(material.get('source_version_id'))
+        if not version or version['snapshot_id'] != material.get('source_snapshot_id'):
+            continue
+        for binding in material.get('ai_extraction', {}).get('written', []):
+            if binding.get('proposal_sha256'):
+                bindings[binding['path']] = (binding, material)
+    return bindings
+
+
+def read_bound_proposal(registry, binding, material):
+    relative = Path(binding['path'])
+    if not relative.is_relative_to(_PROPOSALS) or '..' in relative.parts:
+        raise AIReviewError('Invalid registered AI proposal path')
+    path = registry.root / relative
     try:
-        value = json.loads(path.read_text(encoding='utf-8'))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise AIReviewError(f'could not read AI proposal: {exc}') from exc
-    if not isinstance(value, dict) or value.get('schema') != 'qecgraph.ai.proposal':
-        raise AIReviewError('not a qecgraph.ai.proposal')
-    if value.get('review_status') != 'proposed':
-        raise AIReviewError('AI proposal is not in proposed state')
+        metadata = path.lstat()
+        if path.resolve() != path or not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+            raise AIReviewError('AI proposal must be an unlinked managed file')
+        value = read_json(path)
+    except (OSError, UnicodeDecodeError) as exc:
+        raise AIReviewError('Could not read the registered AI proposal') from exc
+    if (not isinstance(value, dict) or value.get('schema') != 'qecgraph.ai.proposal'
+            or value.get('review_status') != 'proposed'
+            or hash_text(canonical(value)) != binding['proposal_sha256']
+            or value.get('skill') != binding['skill']
+            or value.get('source_version_id') != material['source_version_id']
+            or value.get('snapshot_id') != material['source_snapshot_id']
+            or value.get('source_tree_hash') != material['source_tree_hash']
+            or value.get('projection_path') != material['entrypoint']
+            or (material.get('normalization_sha256') is not None
+                and value.get('normalization_id') != material['normalization_sha256'])):
+        raise AIReviewError('AI proposal differs from its published content or source binding')
     return value
 
 
+def proposal_issues(registry, state):
+    for path, (binding, material) in proposal_bindings(state).items():
+        try:
+            read_bound_proposal(registry, binding, material)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            yield {'code': 'ai_proposal_invalid', 'severity': 'error', 'path': path, 'message': str(exc)}
+
+
+def proposals(workspace):
+    registry = _registry(workspace)
+    if not (registry.root / 'CURRENT.json').exists():
+        return []
+    state, release = registry.read()
+    items = []
+    for path, (binding, material) in sorted(proposal_bindings(state).items()):
+        item = {'path': str(registry.root / path), 'release_id': release, 'skill': binding['skill']}
+        try:
+            value = read_bound_proposal(registry, binding, material)
+        except (OSError, ValueError, KeyError, TypeError):
+            item['status'] = 'invalid'
+        else:
+            item.update(review_status=value['review_status'], items=len(value['items']))
+        items.append(item)
+    return items
+
+
 def decide(workspace, proposal_path, *, actor, decision, rationale, checked_scopes=()):
-    workspace = Path(workspace)
     actor = _actor(actor)
     if decision not in {'approve', 'reject'}:
         raise AIReviewError('decision must be approve or reject')
@@ -55,47 +110,82 @@ def decide(workspace, proposal_path, *, actor, decision, rationale, checked_scop
         raise AIReviewError('unknown review scope')
     if actor['kind'] == 'human' and decision == 'approve' and scopes != SCOPES:
         raise AIReviewError('human approval must check statement, hypotheses and dependencies')
-    proposal_path = Path(proposal_path).resolve()
+
+    registry = _registry(workspace)
+    proposal_path = Path(proposal_path).absolute()
     try:
-        relative = proposal_path.relative_to(workspace.resolve())
+        relative = proposal_path.relative_to(registry.root).as_posix()
     except ValueError as exc:
-        raise AIReviewError('proposal must be inside the workspace') from exc
-    proposal = read_proposal(proposal_path)
-    proposal_sha256 = hash_text(canonical(proposal))
-    review_id = 'ai-review:' + uuid.uuid4().hex
-    status = ('rejected' if decision == 'reject'
-              else 'human_approved' if actor['kind'] == 'human' else 'machine_accepted')
-    review = {
-        'schema': 'qecgraph.ai.review',
-        'id': review_id,
-        'proposal_path': str(relative),
-        'proposal_sha256': proposal_sha256,
-        'source_tree_hash': proposal.get('source_tree_hash'),
-        'skill': proposal.get('skill'),
-        'actor': actor,
-        'decision': decision,
-        'status': status,
-        'checked_scopes': sorted(scopes),
-        'rationale': rationale,
-        'created_at': datetime.now(timezone.utc).isoformat(),
-        'scope': 'AI proposal review only; no automatic research-record application',
-    }
-    target = workspace / 'machine' / 'ai' / 'reviews' / (hash_text(canonical(review)) + '.json')
-    target.parent.mkdir(parents=True, exist_ok=True)
-    immutable_json(target, review)
+        raise AIReviewError('Proposal must be registered in the workspace machine release') from exc
+    if not (registry.root / 'CURRENT.json').is_file():
+        raise AIReviewError('No machine release has published this proposal')
+    with writer_lock(registry.root):
+        state, release = registry.read()
+        entry = proposal_bindings(state).get(relative)
+        if entry is None:
+            raise AIReviewError('Proposal is not registered in the current source projection')
+        binding, material = entry
+        proposal = read_bound_proposal(registry, binding, material)
+        version = state['versions'][proposal['source_version_id']]
+        registry.validate_source_snapshot(version)
+        if material.get('normalization_manifest_sha256'):
+            from .artifacts import load_normalization
+            load_normalization(registry.root, material)
+        review = {
+            'schema': 'qecgraph.ai.review',
+            'id': 'ai-review:' + uuid.uuid4().hex,
+            'proposal_path': 'machine/' + relative,
+            'proposal_sha256': binding['proposal_sha256'],
+            'release_id': release,
+            'source_version_id': proposal['source_version_id'],
+            'snapshot_id': proposal['snapshot_id'],
+            'source_tree_hash': proposal['source_tree_hash'],
+            'skill': proposal['skill'],
+            'actor': actor,
+            'decision': decision,
+            'status': ('rejected' if decision == 'reject'
+                       else 'human_approved' if actor['kind'] == 'human' else 'machine_accepted'),
+            'checked_scopes': sorted(scopes),
+            'rationale': rationale,
+            'created_at': datetime.now(timezone.utc).isoformat(),
+            'scope': 'AI proposal review only; no automatic research-record application',
+        }
+        directory = registry.root / 'ai' / 'reviews'
+        if directory.resolve() != directory:
+            raise AIReviewError('AI review directory must be an unlinked managed path')
+        immutable_json(directory / (hash_text(canonical(review)) + '.json'), review)
     return review
 
 
 def decisions(workspace):
-    root = Path(workspace) / 'machine' / 'ai' / 'reviews'
+    registry = _registry(workspace)
+    directory = registry.root / 'ai' / 'reviews'
+    if not directory.is_dir() or directory.resolve() != directory:
+        return []
+    state = registry.read()[0] if (registry.root / 'CURRENT.json').exists() else {'versions': {}}
+    current = proposal_bindings(state)
     values = []
-    if not root.is_dir():
-        return values
-    for path in sorted(root.glob('*.json')):
+    for path in sorted(directory.glob('*.json')):
         try:
-            value = json.loads(path.read_text(encoding='utf-8'))
-        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            metadata = path.lstat()
+            if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+                continue
+            value = read_json(path)
+        except (OSError, ValueError):
             continue
-        if isinstance(value, dict) and value.get('schema') == 'qecgraph.ai.review':
-            values.append(value)
+        if (isinstance(value, dict) and value.get('schema') == 'qecgraph.ai.review'
+                and isinstance(value.get('proposal_path'), str) and path.stem == hash_text(canonical(value))):
+            entry = current.get(value['proposal_path'].removeprefix('machine/'))
+            effective_status = 'stale'
+            if entry and entry[0]['proposal_sha256'] == value.get('proposal_sha256'):
+                try:
+                    read_bound_proposal(registry, *entry)
+                except (OSError, ValueError, KeyError, TypeError):
+                    pass
+                else:
+                    material = entry[1]
+                    if (value.get('source_version_id') == material['source_version_id']
+                            and value.get('snapshot_id') == material['source_snapshot_id']):
+                        effective_status = value['status']
+            values.append({**value, 'effective_status': effective_status})
     return values

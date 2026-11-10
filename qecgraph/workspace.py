@@ -35,7 +35,7 @@ _CHUNK_BYTES = 256 << 10
 
 
 def _ai_complete(outcome):
-    return ({item['skill'] for item in outcome.get('written', [])} == set(AI_EXTRACTION_SKILLS)
+    return ({item['skill'] for item in outcome.get('written', []) if item.get('proposal_sha256')} == set(AI_EXTRACTION_SKILLS)
             and not outcome.get('errors'))
 
 
@@ -326,7 +326,7 @@ class Workspace:
         from .llm.redact import redact
 
         try:
-            if material.get('normalization_manifest_sha256'):
+            if material.get('normalization_id'):
                 normalized, _ = load_normalization(self.registry.root, material)
             else:
                 digest = material['archive_sha256']
@@ -337,19 +337,19 @@ class Workspace:
         except (OSError, ValueError, RuntimeError):
             return [], [{'error': 'AI extraction could not read its registered source'}]
 
-        completed = {item['skill'] for item in previous.get('written', [])}
+        completed = {item['skill'] for item in previous.get('written', []) if item.get('proposal_sha256')}
         results, errors = [], []
         for skill in AI_EXTRACTION_SKILLS:
             if skill not in completed:
                 try:
-                    results.append(extract(normalized, client, skill))
+                    results.append(extract(normalized, client, skill, projection_path=material['entrypoint']))
                 except (OSError, ValueError, RuntimeError) as exc:
                     errors.append({'skill': skill, 'error': redact(str(exc), client.secrets)})
         return results, errors
 
     def _stage_ai(self, identity, previous, results, errors):
         source_version_id, snapshot_id = identity
-        written = list(previous.get('written', []))
+        written = [item for item in previous.get('written', []) if item.get('proposal_sha256')]
         for result in results:
             skill, run_id = result.skill, result.ai_result.run_id
             proposal = {**result.proposal, 'source_version_id': source_version_id, 'snapshot_id': snapshot_id}
@@ -361,7 +361,8 @@ class Workspace:
             except (OSError, ValueError):
                 errors.append({'skill': skill, 'error': 'AI proposal could not be stored'})
             else:
-                written.append({'skill': skill, 'path': str(target), 'run_id': run_id})
+                written.append({'skill': skill, 'path': target.relative_to(self.registry.root).as_posix(),
+                                'run_id': run_id, 'proposal_sha256': hash_text(canonical(proposal))})
         return {'status': 'pending' if errors else 'complete', 'written': written, 'errors': errors}
 
     def _complete_ai(self, client, materials, digests, versions, previous, limits):
@@ -746,6 +747,8 @@ class Workspace:
                        'message': str(exc)}
 
     def _publish_archive(self, cfg, digests, limits, *, rebuild, update, ai_client=None):
+        from .llm.review import proposal_issues
+
         package_count = len(digests)
         package_stage = 'Checking archive packages' if rebuild else 'Checking inbox packages'
         update(1, f'{package_stage} 0/{package_count}' if package_count else 'Preparing workspace')
@@ -832,7 +835,8 @@ class Workspace:
             # before publishing the pointer or consuming any input claims.
             validation = self.registry.validate(candidate, check_live_lean=False, manifest_hashes=manifest_hashes)
             if (not validation['passed'] or any(issue['severity'] == 'error'
-                                                for issue in self._normalization_issues(state, limits))):
+                                                for issue in self._normalization_issues(state, limits))
+                    or next(proposal_issues(self.registry, state), None) is not None):
                 raise ValueError('Candidate machine release failed validation; CURRENT was retained')
             if cfg != self.config():
                 raise ValueError('Workspace configuration changed while preparing; retry')
@@ -932,6 +936,8 @@ class Workspace:
                 'pending_inputs': pending_inputs, 'pending_claims': pending_claims}
 
     def validate(self, *, progress=None):
+        from .llm.review import proposal_issues
+
         cfg = self.config()
         from .workspace_query import check_machine_tree
         check_machine_tree(self.registry.root)
@@ -952,6 +958,7 @@ class Workspace:
             except (OSError, ValueError) as exc:
                 issues.append({'code': 'archive_invalid', 'archive_sha256': digest, 'message': str(exc)})
         issues.extend(self._normalization_issues(state, Limits(**cfg.get('limits', {}))))
+        issues.extend(proposal_issues(self.registry, state))
         passed = result.get('passed', False) and not any(i.get('severity') != 'warning' for i in issues)
         return {**result, 'valid': passed, 'passed': passed, 'suggested_exit_code': 0 if passed else 2, 'status': 'ok' if passed else 'invalid',
                 'workspace_id': cfg['workspace_id'], 'release_id': fixed}
