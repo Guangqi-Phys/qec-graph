@@ -67,6 +67,7 @@ class AIConfig:
     max_input_chars: int
     allow_source_upload: bool
     providers: dict[str, ProviderConfig] = field(default_factory=dict)
+    max_parallel_packages: int = 1
 
     @property
     def selected(self) -> ProviderConfig:
@@ -151,7 +152,10 @@ def load_ai_config(root, environ: Mapping[str, str] | None = None) -> AIConfig:
         'max_retries': number('max_retries', 2, 0, integer=True),
         'max_cost_usd': number('max_cost_usd', 5.0, 0),
         'max_input_chars': number('max_input_chars', 200000, 1000, integer=True),
+        'max_parallel_packages': number('max_parallel_packages', 1, 1, integer=True),
     }
+    if parsed['max_parallel_packages'] > 16:
+        raise AIConfigError('[ai].max_parallel_packages must be at most 16')
     allow = raw.get('allow_source_upload', True)
     if not isinstance(allow, bool):
         raise AIConfigError('[ai].allow_source_upload must be a boolean')
@@ -159,7 +163,7 @@ def load_ai_config(root, environ: Mapping[str, str] | None = None) -> AIConfig:
                     timeout_seconds=float(parsed['timeout_seconds']),
                     max_retries=parsed['max_retries'], max_cost_usd=float(parsed['max_cost_usd']),
                     max_input_chars=parsed['max_input_chars'], allow_source_upload=allow,
-                    providers=providers)
+                    providers=providers, max_parallel_packages=parsed['max_parallel_packages'])
 
 
 def render_config_template(workspace_id):
@@ -176,6 +180,7 @@ timeout_seconds = 180
 max_retries = 2
 max_cost_usd = 5.0
 max_input_chars = 200000
+max_parallel_packages = 1
 allow_source_upload = true
 
 [ai.providers.openai]

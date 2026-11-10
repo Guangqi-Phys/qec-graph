@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import threading
 
 from ..core.transactions import atomic_json
 
@@ -20,26 +21,29 @@ def cache_key(*, provider, model, messages, schema, temperature, max_output_toke
 class ResponseCache:
     def __init__(self, root):
         self.root = Path(root)
+        self.lock = threading.RLock()
 
     def path(self, key):
         return self.root / (key + '.json')
 
     def get(self, key):
-        try:
-            raw = self.path(key).read_bytes()
-            value = json.loads(raw)
-        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-            return None
-        return value if isinstance(value, dict) else None
+        with self.lock:
+            try:
+                raw = self.path(key).read_bytes()
+                value = json.loads(raw)
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                return None
+            return value if isinstance(value, dict) else None
 
     def put(self, key, value):
-        self.root.mkdir(parents=True, exist_ok=True)
-        try:
-            os.chmod(self.root, 0o700)
-        except OSError:
-            pass
-        atomic_json(self.path(key), value)
-        try:
-            os.chmod(self.path(key), 0o600)
-        except OSError:
-            pass
+        with self.lock:
+            self.root.mkdir(parents=True, exist_ok=True)
+            try:
+                os.chmod(self.root, 0o700)
+            except OSError:
+                pass
+            atomic_json(self.path(key), value)
+            try:
+                os.chmod(self.path(key), 0o600)
+            except OSError:
+                pass

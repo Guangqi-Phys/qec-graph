@@ -62,6 +62,7 @@ AI 是可选能力。配置后，`sync` 会把多根 TeX 包规范化为一个�
 enabled = true
 provider = "openrouter"
 model = "your-model-id"
+max_parallel_packages = 2
 
 [ai.providers.openrouter]
 kind = "openai_compatible"

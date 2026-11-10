@@ -52,6 +52,7 @@ extract proposals. Keep the key in `api_key_env` when possible; a key placed in
 enabled = true
 provider = "openrouter"
 model = "your-model-id"
+max_parallel_packages = 2
 
 [ai.providers.openrouter]
 kind = "openai_compatible"

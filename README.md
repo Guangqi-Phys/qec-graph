@@ -67,6 +67,7 @@ empty and use `api_key_env`:
 enabled = true
 provider = "openrouter"
 model = "your-model-id"
+max_parallel_packages = 2
 
 [ai.providers.openrouter]
 kind = "openai_compatible"

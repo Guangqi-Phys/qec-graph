@@ -18,6 +18,7 @@ class AIConfigTests(unittest.TestCase):
         self.write(render_config_template('workspace:test'))
         config = load_ai_config(self.root, environ={})
         self.assertEqual(config.provider, 'openrouter')
+        self.assertEqual(config.max_parallel_packages, 1)
         self.assertEqual(sorted(config.providers), ['anthropic', 'claude_code', 'openai', 'openrouter'])
         with self.assertRaisesRegex(AIConfigError, r'\.model is empty'):
             config.require_ready(environ={})
@@ -45,6 +46,13 @@ class AIConfigTests(unittest.TestCase):
             load_ai_config(self.root).require_ready()
         self.write(text.replace('kind = "openai_compatible"', 'kind = "nope"'))
         with self.assertRaisesRegex(AIConfigError, r'\.kind must be one of'):
+            load_ai_config(self.root)
+
+    def test_parallel_package_limit_is_validated(self):
+        self.write(render_config_template('workspace:test').replace('max_parallel_packages = 1', 'max_parallel_packages = 4'))
+        self.assertEqual(load_ai_config(self.root).max_parallel_packages, 4)
+        self.write(render_config_template('workspace:test').replace('max_parallel_packages = 1', 'max_parallel_packages = 0'))
+        with self.assertRaisesRegex(AIConfigError, 'max_parallel_packages'):
             load_ai_config(self.root)
 
     def test_source_upload_switch_is_boolean(self):
