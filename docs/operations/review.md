@@ -122,10 +122,12 @@ qecgraph review-decide <返回的proposal_id> --corpus build/review-demo --actor
 `review` stores only a proposed proposal and diff; it does not apply the record.
 For a new ID, expected_revision/hash are both null; when changing an existing ID,
 the exact old revision/hash and new revision are required. The diff includes the
-full statement, assumptions and dependencies. A proposal binds corpus_id,
-registry revision, current record, source snapshot and the asset bytes actually
-read; different corpora with identical content do not share proposals. Moving a
-corpus preserves identity in the marker; a path is not identity.
+full statement, assumptions and dependencies. A proposal binds corpus_id, the
+changed records and their explicit reference closure, source snapshots and the
+asset bytes actually read. Unrelated records do not stale a decision; a changed
+dependency does. Different corpora with identical content do not share
+proposals. Moving a corpus preserves identity in the marker; a path is not
+identity.
 
 `review-decide` stores actor ID/kind, time, scope, rationale, decision and exact
 proposal hash. AI/program approve produces only machine_accepted; the final record

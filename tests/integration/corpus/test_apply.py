@@ -81,16 +81,39 @@ class ApplyTests(unittest.TestCase):
         receipt = apply(self.registry.root, proposal['id'], review['id'])
         self.assertEqual(self.registry.read()[1], receipt['receipt']['registry_revision'])
 
-    def test_lock_and_stale_proposal_refuse_to_overwrite(self):
+    def test_lock_refuses_apply_without_writing(self):
         proposal, review = self.proposal_and_review()
+        before = self.registry.read()[1]
         with writer_lock(self.registry.root):
             with self.assertRaisesRegex(ValueError, 'Another writer'):
                 apply(self.registry.root, proposal['id'], review['id'])
-        self.registry.add_record(claim('claim:unrelated'))
-        before = self.registry.read()[1]
-        with self.assertRaisesRegex(ValueError, 'Stale proposal'):
-            apply(self.registry.root, proposal['id'], review['id'])
         self.assertEqual(self.registry.read()[1], before)
+
+    def test_unrelated_record_does_not_stale_a_proposal(self):
+        proposal, review = self.proposal_and_review()
+        self.registry.add_record(claim('claim:unrelated'))
+        result = apply(self.registry.root, proposal['id'], review['id'])
+        self.assertEqual(result['status'], 'applied')
+        self.assertEqual(self.registry.record('claim:a')['revision'], '2')
+
+    def test_referenced_dependency_change_stales_a_proposal(self):
+        definition = {'schema_version': 'qecgraph.record.v3', 'id': 'definition:x', 'revision': '1',
+                      'kind': 'definition', 'title': 'Dependency', 'data': {'statement': 'Base', 'scope': 'all'}}
+        self.registry.add_record(definition)
+        before = self.registry.record('claim:a')
+        after = claim('claim:a', '2')
+        after['refs'] = [{'relation': 'depends_on_declared', 'target': 'definition:x'}]
+        proposal = create_proposal(self.registry.root, [{
+            'record': after, 'expected_revision': before['revision'],
+            'expected_content_sha256': before['content_sha256']}],
+            actor={'id': 'fixture:ai', 'kind': 'ai'}, rationale='Dependency fixture')
+        revised = dict(definition)
+        revised['revision'] = '2'
+        revised['data'] = {'statement': 'Changed base', 'scope': 'all'}
+        self.registry.add_record(revised)
+        with self.assertRaisesRegex(ValueError, 'bindings changed'):
+            decide(self.registry.root, proposal['id'], actor={'id': 'fixture:program', 'kind': 'program'},
+                   decision='approve', rationale='Program acceptance only')
 
     def test_explicit_human_fixture_binds_only_the_exact_final_revision(self):
         proposal, _ = self.proposal_and_review()

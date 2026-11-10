@@ -89,8 +89,9 @@ qecgraph review-decide <返回的proposal_id> --corpus build/review-demo --actor
 
 review 只保存 proposed 提案和差异，不应用记录。新 ID 的 expected_revision/hash 都为 null；
 改动已有 ID 时必须填写准确旧 revision/hash，并指定新 revision。差异包含完整陈述、假设和依赖。
-提案绑定 corpus_id、registry revision、当前记录、来源快照及实际读取的资产字节；
-相同内容的不同 corpus 不互借提案。Corpus 搬迁保留 marker 中的身份，不以路径作为身份。
+提案绑定 corpus_id、被改动记录及其显式引用闭包、来源快照及实际读取的资产字节；
+无关记录的变化不会使决定 stale，但依赖记录变化会。相同内容的不同 corpus 不互借提案。
+Corpus 搬迁保留 marker 中的身份，不以路径作为身份。
 
 review-decide 保存执行者 ID/类别、时间、范围、理由、决定和准确提案哈希。
 AI/program approve 只产生 machine_accepted，最终记录保持 draft/proposed。

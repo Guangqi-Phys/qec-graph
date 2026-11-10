@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Corpus proposal/review bindings now cover the changed records and their
+  explicit reference closure rather than every record. An unrelated record
+  revision no longer makes a proposal stale; a changed referenced dependency
+  still does.
 - `\lean` and `\uses` outside a mathematical block are preserved as `describes` /
   `references` with a diagnostic instead of producing an invalid typed endpoint that
   aborts extraction. A `\def`/`\let` now marks its name as defined for a later

@@ -88,7 +88,7 @@ class ReviewTests(unittest.TestCase):
                 finally:
                     path.write_bytes(original)
 
-    def test_stale_hash_and_revision_are_rejected(self):
+    def test_stale_hash_is_rejected_but_unrelated_records_do_not_block_review(self):
         changed = claim()
         changed['revision'] = '2'
         with self.assertRaisesRegex(ValueError, 'revision/hash conflict'):
@@ -96,8 +96,9 @@ class ReviewTests(unittest.TestCase):
                             actor={'id': 'fixture:ai', 'kind': 'ai'}, rationale='Stale binding')
         proposal = self.proposal()
         self.registry.add_record(claim('claim:another'))
-        with self.assertRaisesRegex(ValueError, 'stale registry'):
-            decide(self.registry.root, proposal['id'], actor={'id': 'fixture:ai', 'kind': 'ai'}, decision='approve', rationale='Must fail')
+        review = decide(self.registry.root, proposal['id'], actor={'id': 'fixture:ai', 'kind': 'ai'},
+                        decision='approve', rationale='Unrelated record must not block this review')
+        self.assertEqual(review['status'], 'machine_accepted')
 
     def test_unbound_reviewed_dependency_cannot_enter_context(self):
         self.registry.add_record(claim('claim:target'))
@@ -120,7 +121,16 @@ class ReviewTests(unittest.TestCase):
         asset_path = self.registry.root / 'assets' / digest
         asset_path.parent.mkdir()
         asset_path.write_bytes(raw)
-        proposal = self.proposal()
+        before = self.registry.record(asset_claim['id'])
+        after = claim()
+        after['id'] = 'claim:asset'
+        after['title'] = 'claim:asset'
+        after['revision'] = '2'
+        after['assets'] = asset_claim['assets']
+        proposal = create_proposal(self.registry.root, [{
+            'record': after, 'expected_revision': before['revision'],
+            'expected_content_sha256': before['content_sha256']}],
+            actor={'id': 'fixture:ai', 'kind': 'ai'}, rationale='Asset-bound fixture')
         another = Registry(self.root / 'another')
         another.add_record(claim())
         shutil.copytree(self.registry.root / 'proposals', another.root / 'proposals')

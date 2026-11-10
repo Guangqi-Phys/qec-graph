@@ -349,6 +349,7 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 
 审核决定是一个对象，带 actor/kind、time、scope、rationale、decision 和精确输入
 绑定（record IDs/revisions/content hashes、source versions、assets、proposal）。
+绑定覆盖被改动记录及其显式引用闭包；无关记录的修订不会使决定失效，依赖记录变化会。
 `apply` 在检查这些绑定后原子发布新修订；重复 apply 幂等。测试通过不会使审核
 变成真，schema 通过也不会变成数学验证。
 

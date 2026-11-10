@@ -62,10 +62,28 @@ def _read_checked_review(path, schema_name):
     return value
 
 
-def input_bindings(registry, state, after_records=()):
-    records = list(registry.records_from_state(state, sorted(state['records'])).values())
+def input_bindings(registry, state, after_records=(), before_records=()):
+    """Bind only the changed records and their explicit reference closure.
+
+    A proposal is reviewed against its own diff and the records that diff
+    points at. Unrelated corpus records must not invalidate an otherwise
+    unchanged review; a changed dependency still does.
+    """
+    current = registry.records_from_state(state, sorted(state['records']))
+    selected, pending = {}, [record for record in (*before_records, *after_records) if record is not None]
+    while pending:
+        record = pending.pop()
+        key = (record['id'], record['revision'])
+        if key in selected:
+            continue
+        selected[key] = record
+        for ref in record.get('refs', []):
+            target = current.get(ref.get('target'))
+            if target is not None:
+                pending.append(target)
+    records = [selected[key] for key in sorted(selected)]
     assets = {}
-    for record in records + list(after_records):
+    for record in records:
         for asset in record['assets']:
             raw = registry.asset_bytes(asset['uri'])
             if len(raw) != asset['size_bytes']:
@@ -114,7 +132,9 @@ def create_proposal(corpus, changes, *, actor, rationale, expected_registry_revi
         payload = {'schema_version': 'qecgraph.proposal.v1', 'corpus_id': state['corpus_id'],
                    'base_registry_revision': fixed, 'actor': actor, 'rationale': rationale,
                    'created_at': datetime.now(timezone.utc).isoformat(), 'status': 'proposed',
-                   'changes': prepared, 'input_bindings': input_bindings(registry, state, [x['after'] for x in prepared])}
+                   'changes': prepared,
+                   'input_bindings': input_bindings(registry, state, [x['after'] for x in prepared],
+                                                    [x['before'] for x in prepared if x['before']])}
         proposal_id = 'proposal:' + hash_text(canonical(payload))
         proposal = {'id': proposal_id, **payload}
         _validate(proposal, 'proposal.v1')
@@ -142,11 +162,17 @@ def decide(corpus, proposal_id, *, actor, decision, rationale, checked_scopes=()
         raise ValueError('Human approval must explicitly check statement, hypotheses and dependencies')
     registry = Registry(corpus)
     with writer_lock(registry.root):
-        state, fixed = registry.read()
+        state, _ = registry.read()
         proposal = read_proposal(registry, proposal_id)
-        if state.get('corpus_id') != proposal['corpus_id'] or fixed != proposal['base_registry_revision']:
-            raise ValueError('Proposal belongs to another corpus or stale registry revision')
-        if input_bindings(registry, state, [x['after'] for x in proposal['changes']]) != proposal['input_bindings']:
+        if state.get('corpus_id') != proposal['corpus_id']:
+            raise ValueError('Proposal belongs to another corpus')
+        for change in proposal['changes']:
+            identifier = change['after']['id']
+            current = registry.record_from_state(state, identifier) if identifier in state['records'] else None
+            if current != change['before']:
+                raise ValueError('Proposal input revision/hash no longer matches the reviewed diff')
+        if input_bindings(registry, state, [x['after'] for x in proposal['changes']],
+                          [x['before'] for x in proposal['changes'] if x['before']]) != proposal['input_bindings']:
             raise ValueError('Proposal input/asset bindings changed; create and inspect a new proposal')
         review_id = 'review:' + str(uuid.uuid4())
         status = 'rejected' if decision == 'reject' else 'human_approved' if actor['kind'] == 'human' else 'machine_accepted'
@@ -235,14 +261,13 @@ def apply(corpus, proposal_id, review_id):
             if receipt['review_sha256'] != hash_text(canonical(review)):
                 raise ValueError('Applied review content changed')
             return {'status': 'applied', 'receipt': receipt}
-        if fixed != proposal['base_registry_revision']:
-            raise ValueError('Stale proposal: registry changed; inspect and propose a new revision')
         records = final_records(proposal, review)
         review_sha256 = hash_text(canonical(review))
         checked_reviews = {}
         if review['status'] == 'human_approved':
             checked_reviews[review_id] = (review_sha256, {record['id']: record for record in records})
-        if input_bindings(registry, state, records) != proposal['input_bindings']:
+        if input_bindings(registry, state, [x['after'] for x in proposal['changes']],
+                          [x['before'] for x in proposal['changes'] if x['before']]) != proposal['input_bindings']:
             raise ValueError('Proposal input/asset bindings changed')
         for change in proposal['changes']:
             identifier = change['after']['id']
