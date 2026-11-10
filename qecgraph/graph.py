@@ -11,7 +11,6 @@ from pathlib import Path
 from urllib.parse import quote
 
 from . import __version__
-from .relations import KNOWN_RELATIONS
 
 STATEMENTS = {"lemma", "theorem", "proposition", "corollary", "conjecture"}
 MATHEMATICS = STATEMENTS | {"definition", "proof", "equation"}
@@ -19,6 +18,15 @@ LEAN_DEPENDENCIES = {'lean_type_depends_on', 'lean_proof_depends_on',
                      'lean_type_depends_on_transitive', 'lean_proof_depends_on_transitive'}
 DEPENDENCIES = {"depends_on_declared", "depends_on_reviewed"} | LEAN_DEPENDENCIES
 CANDIDATES = {"depends_on_candidate"}
+KNOWN_RELATIONS = {
+    "contains", "defined_in", "includes", "references", "cites", "uses_resource",
+    "depends_on_declared", "depends_on_candidate", "depends_on_reviewed",
+    "proof_of", "proof_of_candidate", "formalizes", "describes", "about",
+    "has_matrix", "has_presentation", "generated_by", "uses_circuit", "uses_noise",
+    "uses_decoder", "supports", "contradicts", "reports", "instance_of",
+}
+
+
 def canonical(value) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
 

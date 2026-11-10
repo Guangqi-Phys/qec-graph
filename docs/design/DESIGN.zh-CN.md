@@ -249,7 +249,7 @@ scope（`stabilizer`/`gauge`/`measured`）和 min/max/mean/histogram。在 sympl
 
 ### 4.4 关系和边状态
 
-规范关系 registry 是 `qecgraph.relations.KNOWN_RELATIONS`、`qecgraph.research.RELATIONS` 和 graph validation，不是这段 prose。
+规范关系 registry 是 `qecgraph.research.RELATIONS` / graph validation，不是这段 prose。
 常见边：
 
 - 结构：`contains`、`defined_in`、`includes`、`uses_resource`；
