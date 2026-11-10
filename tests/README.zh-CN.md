@@ -43,3 +43,13 @@ python -m unittest discover -s tests
 ```
 
 fixtures 在 `tests/fixtures/`；固定来源说明在 `tests/golden/README.zh-CN.md`。
+
+## 参考
+
+布局参考高星测试项目的分层思路：
+[Superpowers test-driven-development](https://github.com/obra/superpowers/tree/main/skills/test-driven-development)
+（约 315k stars；RED-GREEN-REFACTOR 和先证据后完成）、
+[JavaScript testing best practices](https://github.com/goldbergyoni/javascript-testing-best-practices)
+（约 24.6k；unit/component/integration/e2e 分离）和
+[pytest 仓库](https://github.com/pytest-dev/pytest)（约 14.7k；聚焦测试包和独立测试树）。
+项目继续使用标准库 `unittest`，这些只是结构参考，不增加依赖。

@@ -45,3 +45,14 @@ python -m unittest discover -s tests
 
 Fixtures live in `tests/fixtures/`; pinned-source instructions are in
 `tests/golden/README.md`.
+
+## References
+
+The layout follows the test-layering ideas used by high-star testing projects:
+[Superpowers test-driven-development](https://github.com/obra/superpowers/tree/main/skills/test-driven-development)
+(≈315k stars; RED-GREEN-REFACTOR and evidence before completion),
+[JavaScript testing best practices](https://github.com/goldbergyoni/javascript-testing-best-practices)
+(≈24.6k; unit/component/integration/e2e separation), and the
+[pytest repository](https://github.com/pytest-dev/pytest) (≈14.7k; focused test
+packages and a separate test tree). The project keeps standard-library
+`unittest`, so these are structural references, not new dependencies.
