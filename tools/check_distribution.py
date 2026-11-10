@@ -3,7 +3,6 @@
 import argparse
 import runpy
 import tarfile
-from email import policy
 from email.parser import BytesParser
 from pathlib import Path
 from zipfile import ZipFile

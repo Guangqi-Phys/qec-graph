@@ -1,5 +1,4 @@
 import unittest
-from pathlib import Path
 
 from qecgraph.graph import read_json
 from qecgraph.lean import audit_export

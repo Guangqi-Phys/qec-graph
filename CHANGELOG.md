@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- CI is reduced to one Linux/Python 3.11 `Lint and test` job: ruff, mypy,
+  branch coverage (80% gate) and the unittest suite. Markdown-structure,
+  distribution, installed-wheel, Docker and platform-isolation steps are no
+  longer run on every push; those remain local/manual release checks.
 - Tests are organized by scope under `tests/unit/`, `tests/integration/` and
   `tests/contracts/`, with functional subdirectories inside each layer.
   `unittest discover -s tests` still runs the complete suite; per-layer

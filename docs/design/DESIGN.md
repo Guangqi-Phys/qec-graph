@@ -539,7 +539,7 @@ These are limits of the current release, not permission to fill gaps with plausi
 
 - The test suite and `tools/reproduce*.py` are the executable checks; `validation/README.md` indexes recorded runs and their source revisions.
 - `python -m unittest discover -s tests -v`, `python tools/reproduce.py --out build/reproduce`, and the CLI/MCP checks are the standard local gates.
-- CI runs lint, gradual mypy, branch coverage (80% gate), tests, distribution checks, installed-wheel workspace replay, and platform isolation checks.
+- CI runs ruff, mypy, branch coverage (80% gate) and the complete unittest suite. Distribution, installed-wheel, Docker and isolation checks are local/manual release checks.
 - Any change to identity, source coordinates, evidence semantics, review binding, publication order, or MCP scope requires a new invariant test and a migration note when compatibility is affected.
 - A design change is complete only when this document, the implementation, the tests and the validation claim agree. Do not leave a second contradictory design page in the active tree.
 

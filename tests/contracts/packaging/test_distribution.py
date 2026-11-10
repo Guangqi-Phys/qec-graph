@@ -1,6 +1,5 @@
 import importlib.util
 import unittest
-from pathlib import Path
 
 
 from tests.support import ROOT

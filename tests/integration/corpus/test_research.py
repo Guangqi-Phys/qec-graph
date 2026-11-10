@@ -1,6 +1,5 @@
 import unittest
 from copy import deepcopy
-from pathlib import Path
 
 from qecgraph.graph import read_json
 from qecgraph.research import adapt_synthetic, make_record, pauli_weight, prepare, ref, validate_bundle

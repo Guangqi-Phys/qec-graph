@@ -1,7 +1,6 @@
 import tempfile
 import unittest
 from importlib.resources import files
-from pathlib import Path
 
 from jsonschema import Draft202012Validator
 

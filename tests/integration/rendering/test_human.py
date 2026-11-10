@@ -12,7 +12,7 @@ from qecgraph.transactions import atomic_bytes
 from qecgraph.workspace import Workspace
 from qecgraph.workspace_query import WorkspaceSession
 from tests.unit.parsing.test_source_package import TEX, tar_bytes
-from tests.support import FIXTURES, ROOT
+from tests.support import FIXTURES
 
 
 class HumanTests(unittest.TestCase):

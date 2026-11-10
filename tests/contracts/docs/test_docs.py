@@ -3,7 +3,6 @@ import re
 import shlex
 import unittest
 from contextlib import redirect_stdout
-from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 from qecgraph.cli.parser import _build_parser, parse_command

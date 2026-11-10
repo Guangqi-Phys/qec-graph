@@ -1,6 +1,5 @@
 import re
 import unittest
-from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 
