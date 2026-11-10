@@ -3,10 +3,14 @@
 > **Status: Evidence index.** Reports describe runs against specific source
 > revisions; they are not substitutes for the current design or a new test run.
 
+> **English** · [中文](README.zh-CN.md)
+
 > [!NOTE]
 > Lean is **deferred/experimental** in 0.4.x. Everything under
 > `validation/lean-experimental/` is regression evidence, not a supported
 > verification claim. Database, query and MCP paths do not invoke Lean.
+
+- [Validation matrix](index.json) gives the area/lifecycle/path view in machine-readable form.
 
 ## How to use this tree
 
