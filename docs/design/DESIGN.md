@@ -101,6 +101,29 @@ New work should target the workspace surface. Store and corpus remain available 
 - The research Compose profile and the macOS read-only MCP isolation profile are verified locally; see `validation/README.md`. The Linux profile uses an alternate local Ubuntu base because the default Docker Hub lookup timed out. Do not claim a generic Docker Hub build or Windows support without a new verification.
 - The package is versioned independently from graph/record schemas and the Lean toolchain. `qec-graph --version` is authoritative for the installed package version.
 
+### 2.4 Module boundaries
+
+```mermaid
+flowchart TB
+    CLI["CLI / splitter entry points"] --> APP["workspace, store, corpus, review, research"]
+    MCP["read-only MCP"] --> APP
+    APP --> CORE["parser, graph, query, validators, coordinates"]
+    APP --> OUTPUT["human renderer, SQLite/FTS5, machine release"]
+    LEAN["lean (deferred, experimental)"] -. "must not be required by reads" .-> APP
+```
+
+| Layer | Modules | Rule |
+|---|---|---|
+| Entry points | `qecgraph/cli`, `qecgraph.mcp_server`, `qecgraph.splitter` | May import application modules; package import must not load the CLI |
+| Application | `workspace*`, `store`, `corpus`, `registry`, `review`, `research*`, `query`, `domain_query` | Own transactions and policy; do not import development layers |
+| Kernel | `parser`, `graph`, `validators`, `source_*`, `incremental`, `semantic`, `transactions` | Pure or local side effects; no tests/tools/legacy/validation imports |
+| Output | `human`, `status`, `software`, `mcp_server` | Render/read from a pinned release; never write back through `human/` |
+| Deferred | `lean*` | Experimental only; never required by database, query or MCP reads |
+
+The architecture test in `tests/test_architecture.py` enforces the import boundary;
+the flat package remains intentional for 0.4.x because any package file changes
+the extraction tool identity and therefore new snapshot IDs.
+
 ---
 
 ## 3. Authority, storage, and publication

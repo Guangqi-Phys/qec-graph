@@ -114,6 +114,28 @@ release，绝不在会话中途读取移动的 `CURRENT`。
 - 包版本与 graph/record schema、Lean toolchain 独立。`qec-graph --version` 是
   已安装包版本的权威来源。
 
+### 2.4 模块边界
+
+```mermaid
+flowchart TB
+    CLI["CLI / splitter 入口"] --> APP["workspace、store、corpus、review、research"]
+    MCP["只读 MCP"] --> APP
+    APP --> CORE["parser、graph、query、validators、coordinates"]
+    APP --> OUTPUT["human 渲染、SQLite/FTS5、machine release"]
+    LEAN["lean（延期，实验性）"] -. "读取路径不得依赖" .-> APP
+```
+
+| 层 | 模块 | 规则 |
+|---|---|---|
+| 入口 | `qecgraph/cli`、`qecgraph.mcp_server`、`qecgraph.splitter` | 可导入应用模块；包导入不得加载 CLI |
+| 应用 | `workspace*`、`store`、`corpus`、`registry`、`review`、`research*`、`query`、`domain_query` | 拥有事务和策略；不得导入开发层 |
+| 内核 | `parser`、`graph`、`validators`、`source_*`、`incremental`、`semantic`、`transactions` | 纯逻辑或本地副作用；不得导入 tests/tools/legacy/validation |
+| 输出 | `human`、`status`、`software`、`mcp_server` | 从固定 release 渲染/读取；不得通过 `human/` 写回 |
+| 延期 | `lean*` | 仅实验；数据库、查询或 MCP 读取绝不依赖 |
+
+`tests/test_architecture.py` 强制执行导入边界；0.4.x 仍有意保留扁平包，因为任何
+包内文件变化都会改变抽取工具身份，从而产生新的 snapshot ID。
+
 ---
 
 ## 3. 权威、存储和发布

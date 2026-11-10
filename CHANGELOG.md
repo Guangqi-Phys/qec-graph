@@ -7,8 +7,9 @@
   English and a Simplified Chinese counterpart with matching headings, tables
   and executable examples. Validation evidence is grouped by function instead
   of `p0`–`p5` stage numbers, and a scheduled Lychee workflow checks external
-  links. The canonical relation registry moved to `qecgraph.relations` to break
-  the graph/validators import cycle; database and MCP behavior is unchanged.
+  links. Module import boundaries are now pinned by `tests/test_architecture.py`, and
+  every repository tool is smoke-tested by `tests/test_tools.py`. Runtime code
+  and extraction tool identity are deliberately unchanged in this release.
 - Documentation pages now use a common status + `## On this page` structure,
   GitHub alerts, task-oriented tables and Mermaid diagrams. The root README
   links the main reading paths directly. A `markdownlint-cli2` CI job checks

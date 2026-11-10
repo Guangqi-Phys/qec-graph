@@ -6,6 +6,7 @@ test dependency.
 | Group | Files | Focus |
 |---|---|---|
 | Documentation | `test_docs.py`, `test_docs_bilingual.py` | Status/TOC/link contracts and English/Chinese parity |
+| Architecture and tooling | `test_architecture.py`, `test_tools.py` | Import boundaries/public API and all `tools/*.py --help` paths |
 | Package and distribution | `test_distribution.py`, `test_installer.py`, `test_schemas.py` | Metadata, installer, packaged schemas |
 | Parsing and provenance | `test_parser.py`, `test_source_package.py`, `test_splitter.py` | TeX parsing, archive safety, source spans |
 | Store and publication | `test_pipeline.py`, `test_publication.py`, `test_registry.py`, `test_migrations.py` | Snapshots, writer locks, atomic publication, recovery |
