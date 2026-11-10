@@ -1,6 +1,6 @@
 # Advanced usage
 
-> **Status: Current (0.4.x).** Install, workspace, query and release instructions.
+> **Status: Current (0.5.x).** Install, workspace, query and release instructions.
 
 > **English** · [中文](advanced-usage.zh-CN.md)
 
@@ -28,8 +28,8 @@ The installer selects an executable for your operating system and CPU from
 GitHub's latest stable release, or the newest published prerelease when no
 stable release exists. It verifies the executable's SHA-256 and version before replacing
 `~/.local/bin/qec-graph`. Open a new terminal if it added that directory to
-your `PATH`. The `v0.4.0rc1` Linux builds were tested on Ubuntu 22.04 (glibc 2.35).
-[Release assets](https://github.com/Guangqi-Phys/qec-graph/releases/tag/v0.4.0rc1)
+your `PATH`. Linux builds are tested on Ubuntu 22.04 (glibc 2.35) by the release workflow.
+[Release assets](https://github.com/Guangqi-Phys/qec-graph/releases/latest)
 
 To install from a checkout, use Python 3.11 or newer, SQLite with FTS5, and a
 local POSIX filesystem.
@@ -59,7 +59,7 @@ Run `dist/standalone/qec-graph` directly or install it in a user directory on
 `PATH`.
 
 > [!NOTE]
-> Lean is deferred in 0.4.x. The experimental `lean` command group and Lean
+> Lean is deferred in 0.5.x. The experimental `lean` command group and Lean
 > fixtures are not part of the supported workflow; see
 > [the design note](../design/DESIGN.md#10-lean-deferred-not-supported).
 
@@ -214,7 +214,7 @@ fixed release's coverage and what each evidence status means.
 **Recent changes** compares that release with the previous rendered release.
 The first render establishes a baseline; rerendering the same release keeps
 the comparison intact.
-[See a generated theorem in Obsidian](../../validation/audit/0.4.0rc1/obsidian-theorem.png)
+[See a generated theorem from the recorded audit](../../validation/audit/0.4.0rc1/obsidian-theorem.png)
 
 On the first render after upgrading, old generated page paths become links
 to their replacements. Removed entities retain an archived page for existing

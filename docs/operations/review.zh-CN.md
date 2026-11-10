@@ -25,7 +25,7 @@
 `legacy/knowledge_starter` 导入器只是历史样例的一次性开发适配器，不是运行时兼容层；
 新写入始终产生当前格式。
 
-`qecgraph.record` 还包含实验性的 `lean_declaration` kind 与关系字段；Lean 在 0.4.x
+`qecgraph.record` 还包含实验性的 `lean_declaration` kind 与关系字段；Lean 在 0.5.x
 中延期，不属于受支持工作流，也不是验证结论。见
 [系统设计 §10](../design/DESIGN.zh-CN.md#10-lean延期不支持)。
 

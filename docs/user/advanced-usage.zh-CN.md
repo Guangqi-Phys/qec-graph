@@ -1,6 +1,6 @@
 # 进阶用法
 
-> **状态：当前（0.4.x）。** 安装、工作区、查询和发布说明。
+> **状态：当前（0.5.x）。** 安装、工作区、查询和发布说明。
 
 > **中文** · [English](advanced-usage.md)
 
@@ -26,8 +26,8 @@
 安装器根据操作系统和 CPU 从 GitHub 最新稳定 release 选择可执行文件；
 没有稳定 release 时使用最新的预发布版。它会校验可执行文件的 SHA-256 和版本，
 然后替换 `~/.local/bin/qec-graph`。如果该目录被加入 `PATH`，请打开新终端。
-`v0.4.0rc1` 的 Linux 构建在 Ubuntu 22.04（glibc 2.35）上测试过。
-[Release 资产](https://github.com/Guangqi-Phys/qec-graph/releases/tag/v0.4.0rc1)
+Linux 构建由 release workflow 在 Ubuntu 22.04（glibc 2.35）上测试。
+[Release 资产](https://github.com/Guangqi-Phys/qec-graph/releases/latest)
 
 从 checkout 安装需要 Python 3.11 或以上、带 FTS5 的 SQLite 和本地 POSIX 文件系统。
 
@@ -53,7 +53,7 @@ PYINSTALLER_CONFIG_DIR="$PWD/build/standalone-cache" \
 直接运行 `dist/standalone/qec-graph`，或把它安装到 `PATH` 中的用户目录。
 
 > [!NOTE]
-> Lean 在 0.4.x 中延期。实验性的 `lean` 命令组和 Lean fixtures 不属于受支持流程；
+> Lean 在 0.5.x 中延期。实验性的 `lean` 命令组和 Lean fixtures 不属于受支持流程；
 > 见[设计说明](../design/DESIGN.zh-CN.md#10-lean延期不支持)。
 
 ## 试运行自带论文
@@ -181,7 +181,7 @@ vault 的派生页面。[Vault 布局和 MCP 隔离](workspace.zh-CN.md#obsidian
 数据区。从 vault 索引打开 **Release status and legend**，查看固定 release 的
 覆盖范围和各证据状态含义。**Recent changes** 将该 release 与上一次渲染的
 release 比较。第一次渲染建立基线；重新渲染同一 release 时比较仍保留。
-[查看 Obsidian 中生成的定理](../../validation/audit/0.4.0rc1/obsidian-theorem.png)
+[查看审计记录中生成的定理](../../validation/audit/0.4.0rc1/obsidian-theorem.png)
 
 升级后第一次渲染时，旧生成页面路径变成指向替代页面的链接。已删除实体保留
 归档页以支持已有链接。个人笔记保持原位。需要运行旧渲染器时，从同一 vault

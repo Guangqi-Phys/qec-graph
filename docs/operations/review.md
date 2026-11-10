@@ -28,7 +28,7 @@ one-off development adapter for the historical sample, not a runtime
 compatibility layer. New writes always produce the current format.
 
 `qecgraph.record` also contains an experimental `lean_declaration` kind and
-relation fields; Lean is deferred in 0.4.x, is not part of the supported workflow
+relation fields; Lean is deferred in 0.5.x, is not part of the supported workflow
 and is not a verification conclusion. See
 [system design §10](../design/DESIGN.md#10-lean-deferred-not-supported).
 

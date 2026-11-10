@@ -6,20 +6,20 @@
 > **中文** · [English](README.md)
 
 > [!NOTE]
-> Lean 在 0.4.x 中**延期/实验性**。`validation/lean-experimental/` 下的内容只是
+> Lean 在 0.5.x 中**延期/实验性**。`validation/lean-experimental/` 下的内容只是
 > 回归证据，不是受支持的验证结论。数据库、查询和 MCP 路径不调用 Lean。
 
 - [验证矩阵](index.json) 以机器可读形式列出领域/生命周期/路径。
 
 ## 如何使用这棵树
 
-- **当前 release 证据**在 `audit/0.4.0rc1/` 和 `workspace-0.4.0rc1/`。
+- **最近一次记录的 release 证据**在 `audit/0.4.0rc1/` 和 `workspace-0.4.0rc1/`；0.5.0 证据只在其发布检查运行后记录。
 - **旧阶段**按所验证的子系统分组：baseline、corpus、review、incremental 和 MCP。
 - **Lean 实验**隔离在 `lean-experimental/`，只用于保持历史回归测试有意义。
 - **`legacy-report-0.3.0.md`** 是旧的阶段式报告，仅保留来源；其链接只作历史上下文。
 - **`archive.sha256`** 是已删除批量证据的清单，保留用于审计；字节可从 Git history 取。
 
-## 当前 0.4.0rc1
+## 已记录的 0.4.0rc1 证据
 
 | 领域 | 证据 |
 |---|---|

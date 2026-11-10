@@ -1,6 +1,6 @@
 # QEC Graph quick start
 
-> **Status: Current (0.4.x).** The shortest path from installation to a first query.
+> **Status: Current (0.5.x).** The shortest path from installation to a first query.
 
 > **English** · [中文](quickstart.zh-CN.md)
 

@@ -1,12 +1,12 @@
 # QEC Graph — 系统设计
 
-> **状态：当前权威设计（0.4.x）。** 这是唯一有效的设计文档。
+> **状态：当前权威设计（0.5.x）。** 这是唯一有效的设计文档。
 
 > **中文** · [English](DESIGN.md)
 
 | | |
 |---|---|
-| **状态** | 当前权威设计（0.4.x） |
+| **状态** | 当前权威设计（0.5.x） |
 | **评审日期** | 2026-11-10 |
 | **替代** | 此前的 architecture、graph-contract、data-formats、incremental、MCP 和 CodeGraph 设计页。Lean 延期；见 §10。 |
 | **实现** | `qecgraph/`、`tests/`、`tools/`、`validation/` |
@@ -62,7 +62,7 @@ QEC Graph 把 LaTeX 论文和显式 QEC 研究记录变成保留来源的本地�
 - 在读取时执行源码、TeX 或 Lean 的服务。
 
 可执行范围是 Python 包、CLI、本地 MCP 服务、Obsidian 渲染器和旧 store/corpus
-兼容层。Lean 代码和 fixtures 只作为延期实验材料存在，不属于受支持的 0.4.x 流程。
+兼容层。Lean 代码和 fixtures 只作为延期实验材料存在，不属于受支持的 0.5.x 流程。
 
 ---
 
@@ -481,7 +481,7 @@ Python、CLI 和 MCP 共享。MCP protocol errors 和 business-query errors 保�
 ## 10. Lean：延期，不支持
 
 > [!WARNING]
-> **Lean 在 0.4.x 中延期。** 它不是受支持的数据库、查询或 MCP 流程的一部分。
+> **Lean 在 0.5.x 中延期。** 它不是受支持的数据库、查询或 MCP 流程的一部分。
 > `lean` CLI 组、`qecgraph/lean/`、`lean/` 项目和
 > `validation/lean-experimental` fixtures 只作为实验性回归材料保留。它们不是
 > 验证声明，不得被呈现为已完成的产品能力。
@@ -619,7 +619,7 @@ build evidence 或 semantic equivalence。
 | **D2 — 证据分层，不是评分** | Source/claim/review/computation/build 状态保持分离；默认过滤排除非活动状态。 |
 | **D3 — 只读 agents** | 固定 scope、有预算的 CLI/Python/MCP reads；没有 path/SQL/shell 访问；只有 stdout protocol。 |
 | **D4 — 人类视图隔离** | 从固定 machine release 生成页面；`human/notes/` 永不读取；逐页原子发布；`human_stale` 恢复。 |
-| **D5 — Lean 延期** | 0.4.x 没有受支持验证声明。实验 fixtures 保留用于回归；实现前需要新设计，read paths 绝不执行 Lean。 |
+| **D5 — Lean 延期** | 0.5.x 没有受支持验证声明。实验 fixtures 保留用于回归；实现前需要新设计，read paths 绝不执行 Lean。 |
 | **D6 — CodeGraph 仅供参考** | 架构比较，不复制代码，不导入性能声称；保留归属。 |
 | **D7 — 兼容优先于重写** | Store/corpus 继续受支持；workspace 是当前；迁移显式且非破坏。 |
 | **D8 — Schema 所有权单一** | Packaged schemas 是规范；根副本是兼容性产物并检查相等；未知版本不重新解释。 |

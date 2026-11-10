@@ -6,7 +6,7 @@
 > **English** · [中文](README.zh-CN.md)
 
 > [!NOTE]
-> Lean is **deferred/experimental** in 0.4.x. Everything under
+> Lean is **deferred/experimental** in 0.5.x. Everything under
 > `validation/lean-experimental/` is regression evidence, not a supported
 > verification claim. Database, query and MCP paths do not invoke Lean.
 
@@ -14,8 +14,8 @@
 
 ## How to use this tree
 
-- **Current release evidence** is under `audit/0.4.0rc1/` and
-  `workspace-0.4.0rc1/`.
+- **Latest recorded release evidence** is under `audit/0.4.0rc1/` and
+  `workspace-0.4.0rc1/`; 0.5.0 evidence is recorded only after its release checks run.
 - **Older stages** are grouped by the subsystem they exercised: baseline,
   corpus, review, incremental and MCP.
 - **Lean experiments** are isolated under `lean-experimental/`; they are kept
@@ -25,7 +25,7 @@
 - **`archive.sha256`** is the manifest for the removed bulk evidence. It is
   kept for auditability; the bytes are available in Git history.
 
-## Current 0.4.0rc1
+## Recorded 0.4.0rc1 evidence
 
 | Area | Evidence |
 |---|---|

@@ -1,6 +1,6 @@
 # Data and search
 
-> **Status: Current (0.4.x).** Research records, evidence policy and query contracts.
+> **Status: Current (0.5.x).** Research records, evidence policy and query contracts.
 
 > **English** · [中文](data-and-search.zh-CN.md)
 
@@ -36,7 +36,7 @@ its source location and any unresolved fields. Structured code parameters,
 distance bounds, experimental conditions, and performance data points depend on
 explicit records and evidence. Source links preserve what the paper reports.
 Mathematical checks and semantic review carry separate evidence. Lean is
-deferred in 0.4.x; any experimental Lean fixture is not a verification claim.
+deferred in 0.5.x; any experimental Lean fixture is not a verification claim.
 [Graph semantics and data contracts](../design/DESIGN.md#4-data-contracts)
 
 ## Research record types
@@ -134,7 +134,7 @@ queries filter synthetic records and stale provider approvals. Proposed or draft
 records remain visible with their `review_status`; they are never treated as verified. Legacy
 `qecgraph.record` records can also carry claims and evidence, plus
 experimental Lean mapping fields. Lean is deferred and is not part of the
-supported 0.4.x workflow; see [the design note](../design/DESIGN.md#10-lean-deferred-not-supported).
+supported 0.5.x workflow; see [the design note](../design/DESIGN.md#10-lean-deferred-not-supported).
 The research schema lists the supported kinds, the fields that must be present
 for each kind, and the shape of nullable `{id, revision}` links. Its
 `x-qec-target-kinds` annotations describe the allowed target kinds. A JSON

@@ -1,6 +1,6 @@
 # LaTeX splitter: implemented API and commands
 
-> **Status: Current (0.4.x).** Source-only splitter reference and limitations.
+> **Status: Current (0.5.x).** Source-only splitter reference and limitations.
 
 > **English** · [中文](splitter.zh-CN.md)
 

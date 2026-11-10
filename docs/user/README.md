@@ -1,6 +1,6 @@
 # User guides
 
-> **Status: Current (0.4.x).**
+> **Status: Current (0.5.x).**
 
 > **English** · [中文](README.zh-CN.md)
 

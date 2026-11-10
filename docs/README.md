@@ -1,6 +1,6 @@
 # QEC Graph documentation
 
-> **Status: Current (0.4.x).** This is the single documentation entry point.
+> **Status: Current (0.5.x).** This is the single documentation entry point.
 
 > **English** · [中文](README.zh-CN.md)
 
@@ -74,7 +74,7 @@ reference table.
 
 Every current page is bilingual: `page.md` is English and `page.zh-CN.md` is
 Simplified Chinese, with matching headings, tables and executable examples.
-Each page declares its status at the top. **Only Current pages describe 0.4.x.**
+Each page declares its status at the top. **Only Current pages describe 0.5.x.**
 
 There are no redirect-only or archive pages. Superseded material lives in Git
 history, not in a second documentation tree.

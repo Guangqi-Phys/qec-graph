@@ -1,13 +1,13 @@
 # 工作区使用说明
 
-> **Status: Current (0.4.x).** Workspace configuration, Obsidian and provider handoff.
+> **Status: Current (0.5.x).** Workspace configuration, Obsidian and provider handoff.
 
 > [English](workspace.md) · **中文**
 
-`0.4.0rc1` 是可本地安装的发行候选。已有的 `qecgraph`、`qec-latex-split`、
+`0.5.0` 是当前 release。已有的 `qecgraph`、`qec-latex-split`、
 `qecgraph-mcp` 及 SourceGraph、LemmaGraph、DataGraph 命令继续可用；Lean 为延期实验能力，见[系统设计](../design/DESIGN.zh-CN.md#10-lean延期不支持)。
-本说明描述已经接入的工作流；[系统设计](../design/DESIGN.zh-CN.md)描述当前工作流，
-[验收报告](../../validation/workspace-0.4.0rc1/report.md)逐项列出实测和缺口。
+本说明描述受支持的工作流；[系统设计](../design/DESIGN.zh-CN.md)定义契约，
+[0.4.0rc1 验收报告](../../validation/workspace-0.4.0rc1/report.md)记录实测基线和剩余缺口。
 
 > [!WARNING]
 > `human/notes/` 是私有笔记。生成器、查询和 MCP 都不会读取它；不要把它当作检索输入。
@@ -24,7 +24,7 @@
 在 Python 3.11+ POSIX 环境中安装实际 wheel。无需 API key。
 
 ```bash
-python -m pip install /path/to/qec_graph-0.4.0rc1-py3-none-any.whl
+python -m pip install /path/to/qec_graph-0.5.0-py3-none-any.whl
 mkdir -p ~/qec/inputs
 cd ~/qec
 # 把下载完成的 TeX 源包放进 inputs（下载时先用临时名）。
@@ -117,7 +117,7 @@ python tools/mcp_isolated_macos.py --python /path/to/installed-venv/bin/python -
 容器配置用 `compose.mcp-isolated.yaml`，设置 `QEC_MACHINE_DIR`、
 `QEC_MCP_UID` 和 `QEC_MCP_GID`，仅只读挂载 machine。Linux 配置已用本地
 替代 Ubuntu 基础镜像验证，见
-[隔离记录](../../validation/audit/0.4.0rc1/linux-isolation.json)；这不构成
+[0.4.0rc1 隔离记录](../../validation/audit/0.4.0rc1/linux-isolation.json)；这不构成
 通用 Docker Hub 构建的声明。不要把 MCP roots 或普通的 `--workspace` 参数
 当作操作系统隔离。
 

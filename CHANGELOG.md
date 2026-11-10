@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.5.0 — 2026-11-10
+
 - Removed the `migrate` and `migration-import` commands, `qecgraph.migrations`,
   `Registry.import_migration`, their tests and documentation. No legacy record
   adapter is part of the runtime or CLI. Corpus-to-workspace migration remains a
@@ -88,7 +90,7 @@
   links the main reading paths directly. A local `markdownlint-cli2` check
   covers heading/list/link-fragment structure; CI keeps only ruff, mypy,
   advisory pyright and unit tests.
-- Lean is explicitly **deferred** in 0.4.x. The experimental code and
+- Lean is explicitly **deferred** in 0.5.x. The experimental code and
   validation fixtures remain only for regression; the CLI group is marked
   experimental, and the database, query and MCP paths do not invoke Lean.
   Superseded Lean design pages were removed from the documentation tree.

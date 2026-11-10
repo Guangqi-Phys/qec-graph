@@ -1,16 +1,17 @@
 # Workspace guide
 
-> **Status: Current (0.4.x).** Workspace configuration, Obsidian and provider handoff.
+> **Status: Current (0.5.x).** Workspace configuration, Obsidian and provider handoff.
 
 > **English** · [中文](workspace.zh-CN.md)
 
-`0.4.0rc1` is a locally installable release candidate. The existing `qecgraph`,
+`0.5.0` is the current release. The existing `qecgraph`,
 `qec-latex-split` and `qecgraph-mcp` commands and the SourceGraph, LemmaGraph and
 DataGraph views remain available; Lean is a deferred experimental capability,
 see [the system design](../design/DESIGN.md#10-lean-deferred-not-supported).
 This guide describes the supported workflow; [the system design](../design/DESIGN.md)
-defines the contract, and the [workspace acceptance report](../../validation/workspace-0.4.0rc1/report.md)
-lists what was actually tested and what remains open.
+defines the contract. The
+[0.4.0rc1 workspace acceptance report](../../validation/workspace-0.4.0rc1/report.md)
+records the tested baseline and remaining gaps.
 
 > [!WARNING]
 > `human/notes/` is private. Generators, queries and MCP never read it; do not
@@ -28,7 +29,7 @@ lists what was actually tested and what remains open.
 Install the actual wheel in a Python 3.11+ POSIX environment. No API key is required.
 
 ```bash
-python -m pip install /path/to/qec_graph-0.4.0rc1-py3-none-any.whl
+python -m pip install /path/to/qec_graph-0.5.0-py3-none-any.whl
 mkdir -p ~/qec/inputs
 cd ~/qec
 # 把下载完成的 TeX 源包放进 inputs（下载时先用临时名）。
@@ -142,7 +143,7 @@ The container configuration uses `compose.mcp-isolated.yaml`; set
 `QEC_MACHINE_DIR`, `QEC_MCP_UID` and `QEC_MCP_GID` and mount only the machine
 directory read-only. The Linux profile was verified with an alternate local
 Ubuntu base; see
-[the isolation record](../../validation/audit/0.4.0rc1/linux-isolation.json).
+[the 0.4.0rc1 isolation record](../../validation/audit/0.4.0rc1/linux-isolation.json).
 That is not a claim of a generic Docker Hub build. Do not treat MCP roots or a
 plain `--workspace` argument as operating-system isolation.
 
