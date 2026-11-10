@@ -353,6 +353,10 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 `apply` 在检查这些绑定后原子发布新修订；重复 apply 幂等。测试通过不会使审核
 变成真，schema 通过也不会变成数学验证。
 
+`claim.subject_id` 必须解析到已注册主体。悬空 subject 是验证错误；错误的主体 kind
+（对距离论断而言，不是 code instance、presentation、circuit、family、construction 或
+classical seed）是 warning，而不是静默消失。
+
 证据策略：
 
 - 硬距离过滤要求精确 subject/presentation/metric/sector、合格 relation（`exact`、

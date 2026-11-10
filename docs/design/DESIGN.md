@@ -315,6 +315,8 @@ An optional local provider handoff exports bounded source excerpts, validates th
 
 A review decision is an object with actor/kind, time, scope, rationale, decision, and exact input bindings (record IDs/revisions/content hashes, source versions, assets, proposal). Bindings cover the changed records and their explicit reference closure; an unrelated record revision does not invalidate a decision, while a changed dependency does. `apply` publishes a new revision atomically after checking those bindings; repeated application is idempotent. A review does not become true because a test passed, and a schema pass does not become mathematical verification.
 
+A `claim.subject_id` must resolve to a registered subject. A dangling subject is a validation error; a wrong subject kind (for a distance claim, not a code instance, presentation, circuit, family, construction or classical seed) is a warning rather than silent disappearance.
+
 Evidence policy:
 
 - Hard distance filters require an exact subject/presentation/metric/sector, a qualifying relation (`exact`, `lower_bound`, `interval`), sufficient lower bound, and current evidence bound to the claim's exact revisions.
