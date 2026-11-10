@@ -85,6 +85,11 @@ class MCPTests(unittest.TestCase):
         output = io.BytesIO()
         self.assertEqual(serve_stdio(self.session, input_stream=io.BytesIO(b'x' * (MAX_REQUEST_BYTES + 1)), output_stream=output), 1)
         self.assertEqual(json.loads(output.getvalue())['error']['code'], -32700)
+        base = b'{"jsonrpc":"2.0","id":1,"method":"ping"}'
+        boundary = base + b' ' * (MAX_REQUEST_BYTES - len(base)) + b'\n'
+        output = io.BytesIO()
+        self.assertEqual(serve_stdio(self.session, input_stream=io.BytesIO(boundary), output_stream=output), 0)
+        self.assertEqual(json.loads(output.getvalue())['result'], {})
         self.assertEqual(MCPServer(self.session).handle([])['error']['code'], -32600)
         self.assertEqual(MCPServer(self.session).handle({'jsonrpc': '2.0', 'id': True, 'method': 'ping'})['error']['code'], -32600)
 

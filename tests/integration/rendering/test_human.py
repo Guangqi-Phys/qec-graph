@@ -53,6 +53,15 @@ class HumanTests(unittest.TestCase):
         self.assertTrue(before.keys() <= generated().keys())
         self.assertEqual(self.note.read_bytes(), b'private\x00note')
 
+    def test_existing_user_index_is_not_overwritten(self):
+        release = self.ws.sync()['release_id']
+        index = self.root / 'human/Index.md'
+        index.parent.mkdir(parents=True, exist_ok=True)
+        index.write_text('my own vault home', encoding='utf-8')
+        result = build_human(self.root, release)
+        self.assertEqual(result['status'], 'human_stale')
+        self.assertEqual(index.read_text(encoding='utf-8'), 'my own vault home')
+
     def test_failure_during_page_publication_does_not_change_machine_or_notes(self):
         release = self.ws.sync()['release_id']
         build_human(self.root, release)

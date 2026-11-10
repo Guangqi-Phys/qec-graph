@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 from ...core.graph import read_json, strict_json_loads
+from ..errors import UsageError
 from ..process import cli_command
 from ..render import emit_report, print_doctor, workspace_summary
 
@@ -72,7 +73,7 @@ def workspace_action(args, progress):
         progress.start()
     from ...workspace import CONFIG, Workspace, locate
     if getattr(args, 'snapshot', None):
-        raise ValueError('--snapshot requires --store')
+        raise UsageError('--snapshot requires --store')
     options = {key: getattr(args, key) for key in ('no_ingest', 'dry_run', 'include_inputs', 'keep_inputs')
                if hasattr(args, key)}
     default = os.environ.get('QECGRAPH_WORKSPACE') if args.command in _DAILY_WORKSPACE_COMMANDS else None

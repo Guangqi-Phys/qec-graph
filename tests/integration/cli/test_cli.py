@@ -368,6 +368,23 @@ class CLIContractTests(unittest.TestCase):
             self.assertEqual(result.stdout, '')
             self.assertIn('--help', result.stderr)
 
+    def test_scope_option_conflicts_are_usage_errors(self):
+        cases = [
+            ['show', 'thm:x', '--store', '/nonexistent', '--release', 'r'],
+            ['validate', '--workspace', '.', '--snapshot', 'a' * 64],
+            ['search', 'x', '--store', '/nonexistent', '--source-version-id', 'v'],
+            ['codes', '--corpus', '/nonexistent', '--release', 'r'],
+        ]
+        for arguments in cases:
+            with self.subTest(arguments=arguments):
+                stdout, stderr = io.StringIO(), io.StringIO()
+                with redirect_stdout(stdout), redirect_stderr(stderr):
+                    self.assertEqual(main(['--json', *arguments]), 64)
+                self.assertEqual(stderr.getvalue(), '')
+                error = json.loads(stdout.getvalue())['error']
+                self.assertEqual(error['code'], 'USAGE')
+                self.assertIn('help', error['hint'])
+
     def test_bad_json_command_fields_report_input_errors_before_writing(self):
         cases = [
             (['review', '--actor-id', 'test'], {}, 'changes, rationale'),

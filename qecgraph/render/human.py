@@ -401,6 +401,16 @@ def build_human(workspace=None, release=None):
             return {'status': 'superseded', 'target_release_id': release, 'current_release_id': latest}
         past = _history(ws, 'human-published')
         interrupted = _history(ws, 'human-pending')
+        index_path = ws.path('human/Index.md')
+        if index_path.exists():
+            try:
+                existing = _read_regular(index_path, 1 << 20)
+            except (OSError, ValueError):
+                existing = b''
+            if b'Generated from a fixed QEC Graph release' not in existing:
+                _operational(ws, latest, 'human_stale', past['release_id'])
+                return {'status': 'human_stale', 'release_id': latest, 'rendered_release_id': past['release_id'],
+                        'error': 'human/Index.md exists outside the generated vault; move it before rendering'}
         try:
             _operational(ws, latest, 'human_stale', past['release_id'])
             session = WorkspaceSession(ws.registry.root, latest)

@@ -4,7 +4,7 @@ from __future__ import annotations
 from ...core.graph import read_json
 from ...query import QuerySession
 from ...store import current_snapshot, snapshot_reference, validate_snapshot
-from ..errors import QueryError
+from ..errors import QueryError, UsageError
 from ..process import cli_command
 from ..render import emit_report, print_json, report_error
 
@@ -13,7 +13,7 @@ def _workspace_session(args, **budgets):
     from ...workspace import Workspace
     from ...workspace_query import WorkspaceSession
     if any(getattr(args, flag, None) for flag in ('snapshot', 'source_version_id', 'registry_revision')):
-        raise ValueError('Workspace tools use --release; store/corpus selectors are not applicable')
+        raise UsageError('Workspace tools use --release; store/corpus selectors are not applicable')
     machine = args.machine or Workspace(args.workspace).path('machine')
     return WorkspaceSession(machine, args.release, **budgets)
 
@@ -39,7 +39,7 @@ def _ai_session(args):
         return _workspace_session(args, max_nodes=args.session_max_nodes, max_depth=args.session_max_depth,
                                   max_chars=args.session_max_chars, max_results=args.session_max_results)
     if args.release:
-        raise ValueError('--release requires --workspace or --machine')
+        raise UsageError('--release requires --workspace or --machine')
     from ...mcp.ai_tools import ReadOnlySession
     return ReadOnlySession(store=args.store, corpus=args.corpus, snapshot_id=args.snapshot,
                            registry_revision=args.registry_revision, source_version_id=args.source_version_id,
@@ -65,13 +65,13 @@ def _workspace_query(args):
 
 def _select_store_snapshot(args):
     if getattr(args, 'release', None):
-        raise ValueError('--release requires --workspace or --machine')
+        raise UsageError('--release requires --workspace or --machine')
     if getattr(args, 'corpus', None):
         if args.snapshot:
-            raise ValueError('--snapshot belongs to store queries; use --registry-revision for a corpus')
+            raise UsageError('--snapshot belongs to store queries; use --registry-revision for a corpus')
     else:
         if getattr(args, 'registry_revision', None) or getattr(args, 'source_version_id', None):
-            raise ValueError('Corpus scope arguments require --corpus')
+            raise UsageError('Corpus scope arguments require --corpus')
         args.store = snapshot_reference(args.store, args.snapshot)
 
 
@@ -79,7 +79,7 @@ def graph_query(args):
     if args.workspace or args.machine:
         return _emit_tool_result(args, _workspace_query(args))
     if getattr(args, 'revision', None) is not None:
-        raise ValueError('--revision requires --workspace or --machine')
+        raise UsageError('--revision requires --workspace or --machine')
     _select_store_snapshot(args)
     selector = getattr(args, 'id_or_label', None)
     options = {'text': getattr(args, 'query', None), 'kind': getattr(args, 'kind', None),

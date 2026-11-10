@@ -151,14 +151,17 @@ def serve_stdio(session, *, input_stream=None, output_stream=None, verbose=False
 
     try:
         while True:
-            raw = incoming.readline(MAX_REQUEST_BYTES + 1)
+            raw = incoming.readline(MAX_REQUEST_BYTES + 2)
             if not raw:
                 return 0
-            if len(raw) > MAX_REQUEST_BYTES:
+            if len(raw) > MAX_REQUEST_BYTES + 1:
                 send(rpc_error(None, -32700, 'MCP request exceeds byte limit', {'max_bytes': MAX_REQUEST_BYTES}))
                 return 1  # Do not parse a truncated frame or drain an unbounded input.
             if not raw.endswith(b'\n'):
                 send(rpc_error(None, -32700, 'Incomplete newline-delimited stdio frame'))
+                return 1
+            if len(raw) - 1 > MAX_REQUEST_BYTES:
+                send(rpc_error(None, -32700, 'MCP request exceeds byte limit', {'max_bytes': MAX_REQUEST_BYTES}))
                 return 1
             try:
                 message = strict_json_loads(raw.decode('utf-8'), source='MCP request')
