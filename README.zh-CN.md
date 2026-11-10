@@ -9,52 +9,27 @@ QEC Graph 归档原始 LaTeX 源包，按精确来源区间抽取结构，把类
 只读 MCP 服务器和生成的 Obsidian 视图；人类视图不是权威来源，`human/notes/`
 永不被读取。
 
-## 工作流程
+## 安装
 
-```mermaid
-flowchart TB
-    subgraph Ingest["1. 认领、归档和解包"]
-        A["inputs/ 源包<br/>TeX · tar · tar.gz · ZIP · gzip"]
-        B{"内容检查 + 安全解包<br/>路径、链接、成员和大小限制"}
-        C["archive/blobs/sha256<br/>+ 不可变 receipts"]
-        D["已验证来源树"]
-        E{"入口点<br/>配置覆盖或唯一 document"}
-        A --> B --> C --> D --> E
-    end
-
-    subgraph Extract["2. 抽取和建模"]
-        F["LaTeX parser<br/>sections · environments · labels · refs · includes"]
-        G["不可变抽取快照<br/>graph.json · SQLite/FTS5"]
-        H["研究记录<br/>quantum_code · check_matrix · distance_estimate<br/>syndrome_measurement_circuit · noise_model_instance"]
-        I["字段证据 · proposal · 哈希绑定审核"]
-        E --> F --> G --> H --> I
-    end
-
-    subgraph Publish["3. 验证和发布"]
-        J["候选机器 release"]
-        K{"验证哈希、区间、<br/>引用、审核、资产、SQLite"}
-        L["CURRENT pointer<br/>机器 release"]
-        M["保留旧 release"]
-        I --> J --> K
-        K -->|通过| L
-        K -->|失败| M
-    end
-
-    subgraph Read["4. 固定 release 的读取面"]
-        N["CLI 和 Python 查询<br/>search · show · deps · impact · context<br/>codes · performance · software"]
-        O["stdio 只读 MCP<br/>13 tools · qec:// source resources"]
-        P["human/generated Obsidian 页面<br/>Index · Status · Changes · entities"]
-        Q["human/notes<br/>私有，永不读取"]
-        L --> N
-        L --> O
-        L --> P
-        Q -.-> P
-    end
+```sh
+curl -fsSL https://raw.githubusercontent.com/Guangqi-Phys/qec-graph/main/install.sh | sh
 ```
 
-单个 workspace writer 认领收件箱文件、归档原始字节、准备候选 release、验证、
-发布 `CURRENT`，之后才消费认领的输入副本。查询和 MCP 会话固定一个 release，
-后续 `sync` 不会改变已打开会话的答案。发布失败时旧 release 保持可读。
+再次运行同一命令即可更新。单文件可执行程序内置 Python。
+下载支持 macOS（Apple Silicon）以及 Linux（x86_64 和 arm64）。
+[GitHub Releases](https://github.com/Guangqi-Phys/qec-graph/releases)
+
+## 工作流程
+
+```text
+inputs/ --> archive/ --> source tree --> parser --> snapshot
+snapshot --> research records --> review --> candidate release
+candidate release --> validate --> CURRENT
+CURRENT --> CLI / MCP / human/generated
+```
+
+单个 writer 归档源字节、抽取结构、记录证据、验证候选 release，然后发布
+`CURRENT`；读取端固定该 release，发布失败保留旧 release。
 
 > [!NOTE]
 > QEC Graph 不是 TeX 引擎、PDF/OCR 流水线、大规模码距求解器或 Lean 验证器。
@@ -85,16 +60,6 @@ flowchart TB
 | MCP 服务 | 本地 stdio JSON-RPC `2025-06-18`、只读工具、source resources、每调用 budget、不接受路径或 shell 参数 |
 | 人类视图 | 确定性的 `human/Index.md` 和 `human/generated/` 页面、逐页原子写、tombstone、`human_stale` 恢复 |
 | 分发 | wheel/sdist、standalone executable、research Compose profile 和只读 MCP 隔离 profile |
-
-## 安装
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/Guangqi-Phys/qec-graph/main/install.sh | sh
-```
-
-再次运行同一命令即可更新。单文件可执行程序内置 Python。
-下载支持 macOS（Apple Silicon）以及 Linux（x86_64 和 arm64）。
-[GitHub Releases](https://github.com/Guangqi-Phys/qec-graph/releases)
 
 ## 快速开始
 

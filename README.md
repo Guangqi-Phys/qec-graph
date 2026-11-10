@@ -11,54 +11,28 @@ and publishes an immutable machine release. The same release serves the CLI, the
 read-only MCP server and the generated Obsidian view; the human view is never an
 authority and `human/notes/` is never read.
 
-## How it works
+## Install
 
-```mermaid
-flowchart TB
-    subgraph Ingest["1. Claim, archive and unpack"]
-        A["inputs/ packages<br/>TeX · tar · tar.gz · ZIP · gzip"]
-        B{"content check + safe unpack<br/>path, link, member and size limits"}
-        C["archive/blobs/sha256<br/>+ immutable receipts"]
-        D["verified source tree"]
-        E{"entry point<br/>config override or unique document"}
-        A --> B --> C --> D --> E
-    end
-
-    subgraph Extract["2. Extract and model"]
-        F["LaTeX parser<br/>sections · environments · labels · refs · includes"]
-        G["immutable extraction snapshot<br/>graph.json · SQLite/FTS5"]
-        H["research records<br/>quantum_code · check_matrix · distance_estimate<br/>syndrome_measurement_circuit · noise_model_instance"]
-        I["field evidence · proposals · hash-bound review"]
-        E --> F --> G --> H --> I
-    end
-
-    subgraph Publish["3. Validate and publish"]
-        J["candidate machine release"]
-        K{"validate hashes, spans,<br/>refs, reviews, assets, SQLite"}
-        L["CURRENT pointer<br/>machine release"]
-        M["previous release retained"]
-        I --> J --> K
-        K -->|pass| L
-        K -->|fail| M
-    end
-
-    subgraph Read["4. Fixed-release read surfaces"]
-        N["CLI and Python queries<br/>search · show · deps · impact · context<br/>codes · performance · software"]
-        O["read-only MCP over stdio<br/>13 tools · qec:// source resources"]
-        P["human/generated Obsidian pages<br/>Index · Status · Changes · entities"]
-        Q["human/notes<br/>private, never read"]
-        L --> N
-        L --> O
-        L --> P
-        Q -.-> P
-    end
+```sh
+curl -fsSL https://raw.githubusercontent.com/Guangqi-Phys/qec-graph/main/install.sh | sh
 ```
 
-One workspace writer claims inbox files, archives the original bytes, stages a
-candidate release, validates it, publishes `CURRENT`, and only then consumes the
-claimed input copies. Queries and MCP sessions pin one release, so a later
-`sync` cannot change an open session's answers. A failed publication leaves the
-previous release readable.
+Run the same command to update. The standalone executable bundles Python.
+Downloads are available for macOS (Apple Silicon) and Linux (x86_64 and arm64).
+[GitHub Releases](https://github.com/Guangqi-Phys/qec-graph/releases)
+
+## How it works
+
+```text
+inputs/ --> archive/ --> source tree --> parser --> snapshot
+snapshot --> research records --> review --> candidate release
+candidate release --> validate --> CURRENT
+CURRENT --> CLI / MCP / human/generated
+```
+
+One writer archives source bytes, extracts structure, records evidence, validates
+a candidate release, then publishes `CURRENT`. Readers pin that release; a failed
+publication keeps the previous one.
 
 > [!NOTE]
 > QEC Graph is not a TeX engine, a PDF/OCR pipeline, a large-code distance
@@ -90,16 +64,6 @@ previous release readable.
 | MCP server | local stdio JSON-RPC `2025-06-18`, read-only tools, source resources, per-call budgets, no path or shell arguments |
 | Human view | deterministic `human/Index.md` and `human/generated/` pages, per-page atomic writes, tombstones, `human_stale` recovery |
 | Distribution | wheel/sdist, standalone executables, research Compose profile and read-only MCP isolation profile |
-
-## Install
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/Guangqi-Phys/qec-graph/main/install.sh | sh
-```
-
-Run the same command to update. The standalone executable bundles Python.
-Downloads are available for macOS (Apple Silicon) and Linux (x86_64 and arm64).
-[GitHub Releases](https://github.com/Guangqi-Phys/qec-graph/releases)
 
 ## Quick start
 
