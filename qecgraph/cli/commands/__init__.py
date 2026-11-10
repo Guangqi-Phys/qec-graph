@@ -1,9 +1,12 @@
 """Dispatch parsed command names to the corresponding workflow."""
 
-from . import lean, query, records, source, workspace
+from . import ai, lean, query, records, source, workspace
 
 
 HANDLERS = {
+    'ai-test': ai.test,
+    'ai-status': ai.status,
+    'ai-config': ai.config,
     'doctor': workspace.doctor,
     'snapshot': workspace.snapshots,
     'inputs': workspace.inputs,
