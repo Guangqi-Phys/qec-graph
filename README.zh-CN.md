@@ -37,7 +37,7 @@ curl -fsSL https://raw.githubusercontent.com/Guangqi-Phys/qec-graph/main/install
 ```
 
 再次运行同一命令即可更新。单文件可执行程序内置 Python。
-下载支持 macOS（Apple Silicon 和 x86_64）以及 Linux（x86_64 和 arm64）。
+下载支持 macOS（Apple Silicon）以及 Linux（x86_64 和 arm64）。
 [GitHub Releases](https://github.com/Guangqi-Phys/qec-graph/releases)
 
 ## 快速开始

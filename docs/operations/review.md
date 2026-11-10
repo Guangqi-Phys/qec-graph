@@ -73,7 +73,9 @@ qecgraph check-css --hx legacy/knowledge_starter/assets/matrices/HX.gf2.json --h
 qecgraph codes --corpus build/corpus --n-min 13 --n-max 13 --distance-at-least 3 --metric-definition-id definition:css-distance
 ```
 
-The CSS plugin supports only the binary CSS convention with +1 phase; it checks
+The default `verified` policy accepts computed/certificate evidence; add
+`--evidence-policy source_reported --metric-revision REV` to select a reported
+bound explicitly. The CSS plugin supports only the binary CSS convention with +1 phase; it checks
 explicit shape, coordinates, GF(2) rank, commutation and logical pairing. Finite
 distance enumeration must be requested explicitly, defaults to n≤20 and has an
 absolute cap of 22; k=0 is outside the domain and never fabricates a distance.

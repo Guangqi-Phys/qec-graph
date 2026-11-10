@@ -40,7 +40,7 @@ curl -fsSL https://raw.githubusercontent.com/Guangqi-Phys/qec-graph/main/install
 ```
 
 Run the same command to update. The standalone executable bundles Python.
-Downloads are available for macOS (Apple Silicon and x86_64) and Linux (x86_64 and arm64).
+Downloads are available for macOS (Apple Silicon) and Linux (x86_64 and arm64).
 [GitHub Releases](https://github.com/Guangqi-Phys/qec-graph/releases)
 
 ## Quick start

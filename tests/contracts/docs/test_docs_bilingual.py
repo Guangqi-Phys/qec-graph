@@ -1,4 +1,5 @@
 import re
+import unicodedata
 import unittest
 from urllib.parse import unquote, urlsplit
 
@@ -26,6 +27,38 @@ PAIRS = (
     ('SECURITY.md', 'SECURITY.zh-CN.md'),
 )
 LINK = re.compile(r'\[[^\]\n]+\]\(([^\s)]+)\)')
+
+
+def _github_slug(text):
+    """Approximate GitHub's heading anchor algorithm, including Unicode text."""
+    text = re.sub(r'`([^`]*)`', r'\1', text)
+    text = re.sub(r'\[([^\]]*)\]\([^)]*\)', r'\1', text)
+    text = re.sub(r'<[^>]+>', '', text).strip().lower()
+    kept = []
+    for character in text:
+        category = unicodedata.category(character)
+        if character in ' -_' or category[0] in 'LMN' or category == 'Pc':
+            kept.append(character)
+    return ''.join(kept).replace(' ', '-')
+
+
+def _anchors(path):
+    seen, result = {}, set()
+    fenced = False
+    for line in (ROOT / path).read_text(encoding='utf-8').splitlines():
+        if line.strip().startswith('```'):
+            fenced = not fenced
+            continue
+        if fenced:
+            continue
+        match = re.match(r'^(#{1,6})\s+(.*?)\s*$', line)
+        if not match:
+            continue
+        slug = _github_slug(match.group(2))
+        count = seen.get(slug, 0)
+        seen[slug] = count + 1
+        result.add(slug if count == 0 else f'{slug}-{count}')
+    return result
 
 
 def headings(text):
@@ -84,6 +117,18 @@ class BilingualDocumentationTests(unittest.TestCase):
                 self.assertEqual(len(rows(chinese)), len(rows(english)),
                                  f'{english} and {chinese} table rows differ')
 
+    def test_internal_link_labels_are_not_stale_sequence_numbers(self):
+        label_pattern = re.compile(r'\[([^\]\n]+)\]\(([^\s)]+)\)')
+        for pair in PAIRS:
+            for name in pair:
+                for label, link in label_pattern.findall((ROOT / name).read_text(encoding='utf-8')):
+                    url = urlsplit(link)
+                    if url.scheme or url.netloc or not url.path:
+                        continue
+                    with self.subTest(page=name, label=label, target=link):
+                        self.assertFalse(label.strip().isdigit(),
+                                         f'{name} uses the bare sequence number {label!r} as link text')
+
     def test_links_in_both_languages_resolve(self):
         for pair in PAIRS:
             for name in pair:
@@ -96,6 +141,10 @@ class BilingualDocumentationTests(unittest.TestCase):
                     with self.subTest(page=name, target=url.path):
                         self.assertTrue(target.is_relative_to(ROOT))
                         self.assertTrue(target.exists(), f'{name} links to missing {url.path}')
+                        if url.fragment and target.suffix == '.md':
+                            fragment = unquote(url.fragment).lower()
+                            self.assertIn(fragment, {anchor.lower() for anchor in _anchors(target.relative_to(ROOT))},
+                                          f'{name} links to a missing heading #{url.fragment} in {target.relative_to(ROOT)}')
 
 
 if __name__ == '__main__':

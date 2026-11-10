@@ -72,8 +72,8 @@ reference table.
 
 ## Language and status
 
-Current pages are deliberately bilingual: the quick start, workspace and
-splitter guides are Chinese; advanced usage, data/search and design are English.
+Every current page is bilingual: `page.md` is English and `page.zh-CN.md` is
+Simplified Chinese, with matching headings, tables and executable examples.
 Each page declares its status at the top. **Only Current pages describe 0.4.x.**
 
 There are no redirect-only or archive pages. Superseded material lives in Git

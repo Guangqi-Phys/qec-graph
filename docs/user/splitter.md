@@ -176,6 +176,8 @@ split_project(
     out,
     project_root=None,
     config_path=None,
+    *,
+    force=False,
 ) -> dict
 ```
 
@@ -286,7 +288,7 @@ and the new `snapshot_id`; the old snapshot remains queryable by ID.
 | `1` | A path, configuration, output-directory or other unrecoverable error; stderr has the error JSON |
 | `2` | A partial snapshot was saved; stdout has the result and diagnostics; inspect `extraction_status` |
 
-Argument-usage errors also follow argparse's exit `2`; in that case stderr shows
+Argument-usage errors exit `64`; in that case stderr shows
 usage and no split-result JSON is produced. Automation can distinguish the two
 cases by whether stdout has a result and by `extraction_status`.
 

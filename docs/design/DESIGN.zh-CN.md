@@ -322,6 +322,10 @@ parser diagnostic，不是数学环。
 它不展开任意宏、不判断条件、不执行 TeX、不推断数学真值。partial 抽取是有效且
 显式标记的快照；`--strict` 把它留在 staging，不推进 `CURRENT`。
 
+数学块之外的 `\lean` 和 `\uses` 作为带诊断的 `describes` / `references` 关联保留，
+不升级为类型化证明依赖。`\def` 和 `\let` 仅为后续可静态判定的 `\ifdefined` 标记
+已定义，替换文本保持不透明。
+
 ### 5.2 来源块与规范化 claim
 
 parser 的 theorem/lemma 是 **source block**：文档在固定区间说了什么。规范化
@@ -359,7 +363,7 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 - 缺失/无结果表示固定范围内无匹配；不是不存在证明。
 
 默认查询排除非活动边（`stale`、`unbound_review`、`unresolved`）和 candidate/
-proposed 信息，除非显式请求。`show` 是 audit 视图，保留所有状态。任何截断都
+proposed/`needs_review` 信息，除非显式请求。`show` 是 audit 视图，保留所有状态。任何截断都
 显式；来源陈述/假设不被静默缩短。
 
 ---
@@ -405,6 +409,8 @@ proposed 信息，除非显式请求。`show` 是 audit 视图，保留所有状
 - `0` — 请求工作完成（或无变化）。
 - `1` — 致命失败；没有新 release。
 - `2` — partial batch/未解决输入/派生视图 stale，带可读报告。
+- `4` — 缺少必需文件或精确查询目标。
+- `5` — writer lock 或输入目标已被其他所有者占用。
 - `64` — 命令用法错误。
 - `130` — 被中断。
 - 机器 JSON 错误带稳定 error code/message/details；人类错误写到 stderr。自动化应读结构化状态，不只从 `2` 推断语义。

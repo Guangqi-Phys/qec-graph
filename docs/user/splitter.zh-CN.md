@@ -159,6 +159,8 @@ split_project(
     out,
     project_root=None,
     config_path=None,
+    *,
+    force=False,
 ) -> dict
 ```
 
@@ -235,7 +237,7 @@ qecgraph validate --store work/qec-demo
 | `1` | 路径、配置、输出目录或其他无法完成的运行错误；stderr 给出错误 JSON |
 | `2` | 已保存 partial 快照，stdout 中有结果和诊断，应检查 `extraction_status` |
 
-参数用法错误也遵循 argparse 的惯例退出 `2`，此时 stderr 显示 usage，不产生 split-result JSON。自动化调用可据 stdout 是否有结果及 `extraction_status` 区分这两种情况。
+参数用法错误退出 `64`，此时 stderr 显示 usage，不产生 split-result JSON。自动化调用可据 stdout 是否有结果及 `extraction_status` 区分这两种情况。
 
 partial 的含义是已经保存可用部分，并不表示回滚。例如，一个引理被正确抽取，但后面的 `input` 文件缺失时，输出仍包含该引理和准确的原文，同时明确记录缺失文件。
 

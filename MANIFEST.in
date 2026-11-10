@@ -3,7 +3,8 @@ graft examples
 graft legacy/knowledge_starter
 include legacy/README.md
 graft tools
-include AGENTS.md CHANGELOG.md CITATION.cff CONTRIBUTING.md SECURITY.md install.sh
+include AGENTS.md CHANGELOG.md CITATION.cff CONTRIBUTING.md CONTRIBUTING.zh-CN.md \
+    SECURITY.md SECURITY.zh-CN.md README.zh-CN.md install.sh
 recursive-include docs *.md
 graft validation
 include lean/axiom-policy.json lean/targets.json

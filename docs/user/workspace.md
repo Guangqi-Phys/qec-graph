@@ -139,9 +139,11 @@ python tools/mcp_isolated_macos.py --python /path/to/installed-venv/bin/python -
 
 The container configuration uses `compose.mcp-isolated.yaml`; set
 `QEC_MACHINE_DIR`, `QEC_MCP_UID` and `QEC_MCP_GID` and mount only the machine
-directory read-only. The configuration parses, but Docker runtime verification
-is still pending. Do not treat MCP roots or a plain `--workspace` argument as
-operating-system isolation.
+directory read-only. The Linux profile was verified with an alternate local
+Ubuntu base; see
+[the isolation record](../../validation/audit/0.4.0rc1/linux-isolation.json).
+That is not a claim of a generic Docker Hub build. Do not treat MCP roots or a
+plain `--workspace` argument as operating-system isolation.
 
 ## Migrate from a legacy corpus
 

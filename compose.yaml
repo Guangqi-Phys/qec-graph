@@ -1,4 +1,4 @@
-# Optional research CLI only. Lean environment is defined in docs/05_LEAN.md.
+# Optional research CLI only. Lean is deferred; see docs/design/DESIGN.md §10.
 # Create output first: mkdir -p build/container
 # Set the host user when needed: QEC_UID=$(id -u) QEC_GID=$(id -g) docker compose run --rm research
 services:

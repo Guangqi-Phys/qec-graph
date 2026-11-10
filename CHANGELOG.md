@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- `\lean` and `\uses` outside a mathematical block are preserved as `describes` /
+  `references` with a diagnostic instead of producing an invalid typed endpoint that
+  aborts extraction. A `\def`/`\let` now marks its name as defined for a later
+  statically decidable `\ifdefined`, and a failed structural scan is an error so
+  `--strict` keeps the snapshot in staging.
+- The human renderer refuses to replace a pre-existing `human/Index.md` that is not a
+  generated page, and a failure to write the derived operational status no longer
+  reports a published release as failed.
+- Distance hard filters now default to computed/certificate evidence. Source-reported
+  evidence requires `--evidence-policy source_reported` and an exact metric revision;
+  corpus queries expose the same switch. Lean build evidence is not part of the default
+  policy.
+- Candidate publication and `validate` now re-check stored research records, so a
+  replaced source projection cannot leave dangling field locators in a published
+  release. Damaged research revisions are reported as validation issues instead of
+  escaping as an internal error.
+- Read projections load the deferred Lean integration only when a state actually
+  contains Lean projects or Lean evidence; ordinary database, query and MCP paths no
+  longer import it.
+- Command-usage conflicts (for example `--store` together with `--release`) exit with
+  code 64 and a `USAGE` envelope instead of code 1.
 - The `qecgraph` package is grouped into `core/`, `source/`, `domain/`,
   `render/`, `mcp/` and `lean/` implementation packages. `store.py`,
   `workspace.py` and `corpus.py` remain cohesive service modules for a later
@@ -30,8 +51,9 @@
   and extraction tool identity are deliberately unchanged in this release.
 - Documentation pages now use a common status + `## On this page` structure,
   GitHub alerts, task-oriented tables and Mermaid diagrams. The root README
-  links the main reading paths directly. A `markdownlint-cli2` CI job checks
-  heading/list/link-fragment structure.
+  links the main reading paths directly. A local `markdownlint-cli2` check
+  covers heading/list/link-fragment structure; CI keeps only ruff, mypy,
+  advisory pyright and unit tests.
 - Lean is explicitly **deferred** in 0.4.x. The experimental code and
   validation fixtures remain only for regression; the CLI group is marked
   experimental, and the database, query and MCP paths do not invoke Lean.

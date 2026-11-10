@@ -297,6 +297,8 @@ Each edge keeps `source`, `target`, `relation`, `status`, and `evidence`.
 
 It does not expand arbitrary macros, evaluate conditionals, execute TeX, or infer mathematical truth. A partial extraction is a valid, explicitly marked snapshot; `--strict` keeps it in staging without advancing `CURRENT`.
 
+`\lean` and `\uses` outside a mathematical block are preserved as `describes` / `references` associations with a diagnostic; they do not become typed proof dependencies. `\def` and `\let` mark a name as defined for a later statically decidable `\ifdefined`, while their replacement text stays opaque.
+
 ### 5.2 Source block vs normalized claim
 
 A parser theorem/lemma is a **source block**: what the document says at a fixed span. A normalized `claim` is a separate revisioned domain object with explicit statement, quantifiers, hypotheses, definitions, subject, and evidence. The two may be many-to-many; similar text or parameters never merge identities. `proof_of` points at the intended target and does not assert that the proof is valid.
@@ -322,7 +324,7 @@ Evidence policy:
 - Lean is deferred; if experimental Lean evidence is ever evaluated, it is not semantic equivalence and is not part of default filters.
 - Missing/no-result means no match in the fixed scope; it is not proof of nonexistence.
 
-Default query behavior excludes inactive edges (`stale`, `unbound_review`, `unresolved`) and candidate/proposed information unless explicitly requested. `show` is the audit view and keeps all states. Any truncation is explicit; source statements/hypotheses are not silently shortened.
+Default query behavior excludes inactive edges (`stale`, `unbound_review`, `unresolved`) and candidate/proposed/`needs_review` information unless explicitly requested. `show` is the audit view and keeps all states. Any truncation is explicit; source statements/hypotheses are not silently shortened.
 
 ---
 
@@ -364,6 +366,8 @@ Any failure must leave the old release readable, the original package recoverabl
 - `0` — requested work completed (or no change).
 - `1` — fatal failure; no new release.
 - `2` — partial batch/unresolved input/derived view stale, with a readable report.
+- `4` — a required file or exact query target is missing.
+- `5` — the writer lock or an input destination is held by another owner.
 - `64` — command usage error.
 - `130` — interrupted.
 - Machine JSON errors carry a stable error code/message/details; human errors go to stderr. Automation should read the structured status, not infer semantics from `2` alone.

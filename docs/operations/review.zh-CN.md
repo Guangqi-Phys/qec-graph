@@ -1,6 +1,6 @@
 # 类型验证、证据与审核
 
-> **状态：当前，适用于旧 corpus 审核接口。** Workspace review/apply semantics are in the [system design](../design/DESIGN.zh-CN.md#6-review-evidence-and-query-eligibility).
+> **状态：当前，适用于旧 corpus 审核接口。** Workspace review/apply semantics are in the [system design](../design/DESIGN.zh-CN.md#6-审核证据和查询资格).
 
 > [English](review.md) · **中文**
 
@@ -23,7 +23,7 @@ P2 新记录使用 `qecgraph.record.v3`。相对 P1 v2，新增逐 kind 必填�
 严格引用和受管理资产结构。权威 Schema 随 Python 包发布于
 [`qecgraph/validators/schemas/`](../../qecgraph/validators/schemas)。仓库根旧的
 `schemas/` 兼容路径已移除，直接使用打包路径。Legacy v3 还包含实验性的 `lean_declaration` kind 与关系字段；Lean 在 0.4.x
-中延期，不属于受支持工作流，也不是验证结论。见[系统设计 §10](../design/DESIGN.zh-CN.md#10-lean-deferred-not-supported)。
+中延期，不属于受支持工作流，也不是验证结论。见[系统设计 §10](../design/DESIGN.zh-CN.md#10-lean延期不支持)。
 
 原 v2 记录和历史哈希仍可读取，不就地改写。用 `migrate <旧记录目录> --out <新目录>`
 显式生成新 revision，完整旧对象及旧哈希保存在 `extensions.pre_validation_record`。
@@ -58,7 +58,9 @@ qecgraph check-css --hx legacy/knowledge_starter/assets/matrices/HX.gf2.json --h
 qecgraph codes --corpus build/corpus --n-min 13 --n-max 13 --distance-at-least 3 --metric-definition-id definition:css-distance
 ```
 
-CSS 插件只支持 +1 相位的二元 CSS 约定；校验显式形状、坐标、GF(2) 秩、对易及逻辑配对。
+默认 `verified` 策略只接受 computed/certificate 证据；显式选择来源报告界时加上
+`--evidence-policy source_reported --metric-revision REV`。CSS 插件只支持 +1 相位的
+二元 CSS 约定；校验显式形状、坐标、GF(2) 秩、对易及逻辑配对。
 有限距离检查必须显式开启，默认 n≤20，绝对上限 22；k=0 返回定义域外，不补造距离。
 普通 HGP 示例实际得到 n=13、k=1、dX=dZ=3（validation/review/css-check.json），仍是 Python computed_exact。
 非对易矩阵不会获得 CSS 有效结果。此接口不运行 Lean，不写审核记录。

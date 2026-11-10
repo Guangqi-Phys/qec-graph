@@ -1,4 +1,5 @@
 import importlib.util
+import shlex
 import unittest
 
 
@@ -7,6 +8,40 @@ spec = importlib.util.spec_from_file_location(
     'qec_check_distribution', ROOT / 'tools' / 'check_distribution.py')
 check_distribution = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(check_distribution)
+
+
+class ContainerAndManifestTests(unittest.TestCase):
+    def test_dockerfile_copy_sources_exist_in_the_checkout(self):
+        instructions, current = [], ''
+        for line in (ROOT / 'Dockerfile').read_text(encoding='utf-8').splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith('#'):
+                continue
+            if stripped.endswith('\\'):
+                current += stripped[:-1] + ' '
+                continue
+            instructions.append(current + stripped)
+            current = ''
+        if current:
+            instructions.append(current)
+        for instruction in instructions:
+            parts = shlex.split(instruction)
+            if not parts or parts[0].upper() not in {'COPY', 'ADD'}:
+                continue
+            arguments = [part for part in parts[1:] if not part.startswith('--')]
+            sources = arguments[:-1]
+            self.assertTrue(len(arguments) >= 2 and sources, instruction)
+            for source in sources:
+                if '://' in source:
+                    continue
+                with self.subTest(instruction=instruction, source=source):
+                    self.assertTrue((ROOT / source).exists(), f'{source} is copied but missing from the checkout')
+
+    def test_source_distribution_manifest_ships_both_languages(self):
+        manifest = (ROOT / 'MANIFEST.in').read_text(encoding='utf-8')
+        for name in ('README.zh-CN.md', 'CONTRIBUTING.zh-CN.md', 'SECURITY.zh-CN.md'):
+            with self.subTest(name=name):
+                self.assertIn(name, manifest)
 
 
 class DistributionMetadataTests(unittest.TestCase):

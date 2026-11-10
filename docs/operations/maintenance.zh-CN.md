@@ -8,7 +8,7 @@
 > [English](maintenance.md) · **中文**
 
 工作区日常运行 `init`、`sync`、`status` 和 `validate`，见[工作区说明](../user/workspace.zh-CN.md)。
-运行时先读本包 `AGENTS.md`、[架构](../design/DESIGN.zh-CN.md#2-system-overview) 和 [数据契约](../design/DESIGN.zh-CN.md#4-data-contracts)。
+运行时先读本包 `AGENTS.md`、[架构](../design/DESIGN.zh-CN.md#2-系统总览) 和 [数据契约](../design/DESIGN.zh-CN.md#4-数据契约)。
 以下命令以本包根目录为工作目录；各步骤成功后再执行下一步。
 
 ## On this page
@@ -62,7 +62,7 @@ qecgraph deps thm:hgp-css --store build/demo
 qecgraph context thm:hgp-length --store build/demo
 ```
 
-只需要原文切块时使用 [03](../user/splitter.zh-CN.md) 的 `qecgraph split` 流程。
+只需要原文切块时使用 [切割器参考](../user/splitter.zh-CN.md) 的 `qecgraph split` 流程。
 接入旧领域样例时可给 ingest 增加 `--catalog legacy/knowledge_starter/records`；它只导入 JSON 记录。
 旧记录引用的矩阵、验证脚本与报告依旧位于完整 `legacy/knowledge_starter/` 中，必须一起保存。
 每次运行记录输入路径、命令、退出码、snapshot ID 和 diagnostics。
@@ -83,7 +83,7 @@ qecgraph context thm:hgp-length --store build/demo
 7. 提交人工记录和代码，归档重要报告；将发布提交、输入清单与 snapshot ID 关联。
 
 默认 ingest 会在完整性验证后发布 partial 快照；正式发布可用 `--strict`，partial 保存在 staging 且 CURRENT 不变。
-详见 [增量和恢复](../design/DESIGN.zh-CN.md#73-incremental-and-watch)。
+详见 [增量和 watch](../design/DESIGN.zh-CN.md#73-增量和-watch)。
 同一输入、配置、工具源码和依赖指纹再次 ingest 应复用相同 snapshot ID。
 已发布快照只读；发现损坏应保留现场并从输入重建到新的 store，不能修改清单掩盖损坏。
 
@@ -103,7 +103,7 @@ qecgraph context thm:hgp-length --store build/demo
 逐文件 AST 复用和 watch 已实现，语义投影每次重建；当前没有通用领域产物的增量依赖闭包。
 目标任务清单应记录输入 ID＋revision＋hash、处理器版本、配置、输出及依赖边。
 建立完整依赖闭包后再按变化传播；未解析依赖应显式阻止“全部仍有效”的结论。
-依赖方向和反向影响查询按 [02](../design/DESIGN.zh-CN.md#4-data-contracts) 执行，不把普通引用一律当证明依赖。
+依赖方向和反向影响查询按 [数据契约](../design/DESIGN.zh-CN.md#4-数据契约) 执行，不把普通引用一律当证明依赖。
 旧证据继续属于旧输入，不因失效被删除；新结果与旧结果通过后继关系连接。
 审核更新必须重新比较陈述、假设和依赖，不能仅把 expected hash 替换成新值。
 
@@ -111,7 +111,7 @@ qecgraph context thm:hgp-length --store build/demo
 
 SQLite、FTS 和向量索引由权威记录生成。新索引在临时目录完整构建、校验，然后切换入口。
 当前会先生成完整快照，再原子替换 `CURRENT.json`；本地 POSIX writer lock 拒绝跨进程并发写入。
-用 `recover-store` 检查发布状态，详见 [11](../design/DESIGN.zh-CN.md#73-incremental-and-watch)。
+用 `recover-store` 检查发布状态，详见 [增量和 watch](../design/DESIGN.zh-CN.md#73-增量和-watch)。
 不要混用一个快照的关系表和另一个快照的全文或向量数据。
 新增索引记录 source snapshot、Schema、模型版本、维度、归一化、配置及输入文本哈希。
 中文召回、定理完整性、参数硬条件和来源定位都进入查询回归；向量相似度不决定证据等级。

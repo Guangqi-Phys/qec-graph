@@ -44,7 +44,7 @@ qecgraph record-add examples/claim.example.json --corpus build/corpus
 qecgraph claim-link examples/claim-link.example.json --corpus build/corpus
 ```
 
-P1 引入 `qecgraph.record.v2`；P2 新写入使用严格的 `qecgraph.record.v3`，迁移见 [10](review.zh-CN.md)。
+P1 引入 `qecgraph.record.v2`；P2 新写入使用严格的 `qecgraph.record.v3`，迁移见 [审核指南](review.zh-CN.md)。
 `id` 和 `revision` 由作者指定；内容哈希及协议由程序补齐。
 同一 ID/revision 不能覆盖不同内容；新修订保留旧文件。不同 ID 即使标题和参数相同也独立保存。
 自动输入默认 `review.status=proposed`；导入或语法解析不构成人工审核。
