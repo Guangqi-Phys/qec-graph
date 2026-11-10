@@ -57,7 +57,7 @@ AI 是可选能力。配置后，`sync` 会把多根 TeX 包规范化为一个�
 | OpenAI | `openai` | `OPENAI_API_KEY` |
 | Anthropic | `anthropic` | `ANTHROPIC_API_KEY` |
 | OpenRouter | `openai_compatible` | `OPENROUTER_API_KEY` |
-| Claude Code | `cli` | 已有的本地 CLI 登录 |
+| Claude Code | `cli` | bare 模式下的 `ANTHROPIC_API_KEY` |
 
 设置 provider、model 和 key。`api_key` 可以直接填，也可以留空并用
 `api_key_env`：

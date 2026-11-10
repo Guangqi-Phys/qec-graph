@@ -63,7 +63,7 @@ remains authoritative; AI output stays `proposed` until reviewed.
 | OpenAI | `openai` | `OPENAI_API_KEY` |
 | Anthropic | `anthropic` | `ANTHROPIC_API_KEY` |
 | OpenRouter | `openai_compatible` | `OPENROUTER_API_KEY` |
-| Claude Code | `cli` | existing local CLI login |
+| Claude Code | `cli` | `ANTHROPIC_API_KEY` in bare mode |
 
 Set the provider, model and key. `api_key` may be filled inline, or leave it
 empty and use `api_key_env`:

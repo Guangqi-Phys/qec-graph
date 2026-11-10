@@ -8,6 +8,7 @@ import stat
 from ...llm.client import LLMClient
 from ...llm.config import AIConfigError, load_ai_config
 from ...llm.providers.base import Message
+from ...llm.providers.cli import is_claude
 from ...workspace import CONFIG, locate
 from ..render import emit_report
 
@@ -45,15 +46,16 @@ def status(args):
     root, ai = _config(args)
     selected = ai.selected
     config_path = root / CONFIG
+    needs_key = selected.kind != 'cli' or is_claude(selected.name, selected.command)
     mode = stat.S_IMODE(config_path.stat().st_mode) if config_path.is_file() else None
     payload = {'status': 'ok', 'workspace': str(root), 'enabled': ai.enabled,
                'provider': ai.provider, 'model': ai.model,
                'kind': selected.kind, 'config_mode': None if mode is None else oct(mode),
                'config_private': mode is not None and mode & 0o077 == 0,
-               'configured': bool(selected.resolved_key()) if selected.kind != 'cli'
+               'configured': bool(selected.resolved_key()) if needs_key
                else bool(selected.command),
                'allow_source_upload': ai.allow_source_upload}
-    if selected.kind != 'cli':
+    if needs_key:
         payload['api_key_source'] = ('inline' if selected.api_key
                                      else 'environment' if selected.api_key_env else 'none')
     return emit_report(payload, exit_code=0)

@@ -67,6 +67,10 @@ never calls either command automatically.
 
 `max_parallel_packages` controls concurrent AI preparation; publication and input consumption remain serial.
 
+The Claude Code provider uses bare mode with tools, MCP and session persistence
+disabled. Set `ANTHROPIC_API_KEY` and remove custom CLI arguments when upgrading
+a workspace that used the local subscription login.
+
 Daily use is `qec-graph sync`, `qec-graph status` and `qec-graph validate`.
 The terminal updates one progress line and ends with success or an error. `sync`
 clears copies in `inputs/` only after successful archive and publication;

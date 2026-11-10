@@ -62,6 +62,9 @@ api_key = ""
 
 `max_parallel_packages` 控制并发 AI 准备；发布和输入消费仍保持串行。
 
+Claude Code provider 使用 bare 模式，禁用工具、MCP 和会话持久化。
+曾使用本地订阅登录的工作区升级时，请设置 `ANTHROPIC_API_KEY` 并移除自定义 CLI 参数。
+
 日常使用 `qec-graph sync`、`qec-graph status` 和 `qec-graph validate`。
 终端更新同一条进度行，结束时显示成功或错误。`sync` 在成功归档并发布后清理 `inputs/` 中的副本，失败件留待重试。
 加 `--json` 可查看详细报告。除 `init` 外，命令优先使用显式的 `--workspace`，

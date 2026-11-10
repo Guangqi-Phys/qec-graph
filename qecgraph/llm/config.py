@@ -28,6 +28,7 @@ DEFAULT_PROVIDERS = {
     'claude_code': {
         'kind': 'cli',
         'command': 'claude',
+        'api_key_env': 'ANTHROPIC_API_KEY',
         'args': ['-p', '--output-format', 'json'],
     },
 }
@@ -204,5 +205,7 @@ api_key = ""
 [ai.providers.claude_code]
 kind = "cli"
 command = "claude"
+api_key_env = "ANTHROPIC_API_KEY"
+api_key = ""
 args = ["-p", "--output-format", "json"]
 '''
