@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Workspace migration reserves the destination name with an atomic `mkdir` before
+  copying, so a directory that appears during the copy cannot be silently replaced.
 - Registry and store pointer/state reads now reject symlinked or multiply-linked
   authority files instead of following them; writes already did.
 - Successful workspace claims are removed after their commit receipt, and empty

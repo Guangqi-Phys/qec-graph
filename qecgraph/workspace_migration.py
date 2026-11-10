@@ -40,13 +40,19 @@ def migrate_corpus(corpus, destination, revision=None):
     if raw_target.is_symlink():
         raise ValueError('Migration destination must not be a symlink')
     target = raw_target.resolve()
-    if target.exists() or target.is_relative_to(source.root) or source.root.is_relative_to(target):
+    if target.is_relative_to(source.root) or source.root.is_relative_to(target):
         raise ValueError('Migration destination must be a new, independent directory')
     if not source.root.is_dir():
         raise ValueError('A legacy corpus directory is required')
     target.parent.mkdir(parents=True, exist_ok=True)
-    staging = Path(tempfile.mkdtemp(prefix='.' + target.name + '-migration-', dir=target.parent))
     try:
+        target.mkdir()
+    except FileExistsError as exc:
+        raise ValueError('Migration destination must be a new, independent directory') from exc
+    reserved = True
+    staging = None
+    try:
+        staging = Path(tempfile.mkdtemp(prefix='.' + target.name + '-migration-', dir=target.parent))
         ws = Workspace(staging)
         ws.init(no_ingest=True)
         workspace_id = ws.config()['workspace_id']
@@ -89,10 +95,14 @@ def migrate_corpus(corpus, destination, revision=None):
                   'rejected_records': [], 'review_policy': 'Preserve existing bindings; never infer new reviewed facts',
                   'source_policy': 'Legacy source snapshots preserved; original download bytes are not fabricated'}
         atomic_json(ws.path('.qecgraph/migration.json'), report)
-        if target.exists():
-            raise ValueError('Migration destination appeared during copy')
         os.rename(staging, target)
+        reserved = False
         return report
     finally:
-        if staging.exists():
+        if staging is not None and staging.exists():
             shutil.rmtree(staging)
+        if reserved:
+            try:
+                target.rmdir()
+            except OSError:
+                pass

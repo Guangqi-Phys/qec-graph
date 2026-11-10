@@ -166,7 +166,7 @@ workspace/
 └── .qecgraph/                    # claim/rotation/staging internals
 ```
 
-Store and corpus have their own managed roots. Do not merge their pointer formats or edit their state by hand. Migrations copy into a new location; they do not rewrite the old store in place.
+Store and corpus have their own managed roots. Do not merge their pointer formats or edit their state by hand. Migrations copy into a new location and reserve the destination name before copying; they do not rewrite the old store in place.
 
 ### 3.3 Identity is not a hash, title, or parameter tuple
 
