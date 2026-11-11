@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.6.2 — 2026-11-11
+
 - Integrated the searchable-knowledge design and retained `Human.md` as the
   original requirements. Added version-bound document outlines, continuous
   section/file reads and source/field coverage, including unparsed source text.
@@ -17,6 +19,12 @@
 - Added reproducible direct-reading/search/context measurements. Offline and
   registered-source checks do not establish model quality, Lean verification
   or production-scale capacity.
+- Expanded the English and Chinese guides with the four graph views,
+  ThoughtsGraph categories, evidence rules and query examples.
+- Upgrade readers and writers together before sharing releases that contain
+  `research_thought` records or retrieval index bindings. Existing CLI names
+  and the default legacy MCP profile remain available. Vector indexing stays
+  opt-in; enabling `[ai].extract_proposals` now includes thought proposals.
 
 ## 0.6.1 — 2026-11-11
 
