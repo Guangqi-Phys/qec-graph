@@ -88,6 +88,17 @@ for the skill, review boundaries and upgrade behavior.
 `max_parallel_packages` bounds this optional extraction.
 Publication and input consumption remain serial.
 
+Multi-file TeX papers use the same default AI extraction: the request includes
+the selected entry and all body/appendix files registered through its includes.
+Every file has explicit line numbers and a content hash; citations name the
+actual file. Unrelated manuscripts in the same archive are excluded. Missing
+files and budget failures remain explicit; a request is never silently truncated.
+Thought answers use short, searchable key sentences as quotations (preferably
+under 240 characters, at most 480); explanations and conditions stay in the AI
+answer. New extraction uses skill v4; existing proposals remain readable.
+An invalid response gets at most one correction request with the same evidence
+and checks. A second rejection remains pending for a later sync.
+
 The Claude Code provider uses bare mode with tools, MCP and session persistence
 disabled. Set `ANTHROPIC_API_KEY` and remove custom CLI arguments when upgrading
 a workspace that used the local subscription login.

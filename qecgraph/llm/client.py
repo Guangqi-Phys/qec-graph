@@ -99,7 +99,8 @@ class LLMClient:
             try:
                 schema_validator.validate(data)
             except ValidationError as exc:
-                raise ResponseSchemaError(f'model response does not match schema ({exc.validator})') from None
+                location = json.dumps(list(exc.absolute_path), ensure_ascii=False)
+                raise ResponseSchemaError(f'model response does not match schema ({exc.validator} at {location})') from None
             if validate is not None:
                 validate(data)
             return data
@@ -147,7 +148,15 @@ class LLMClient:
             spent += _usage_cost(completion.usage)
             if spent > self.config.max_cost_usd:
                 raise BudgetExceeded(f'AI cost limit exceeded: {spent:.4f} USD')
-            data = validated(completion.text)
+            try:
+                data = validated(completion.text)
+            except LLMError as exc:
+                exc.rejected_response = {
+                    'text': redact(completion.text, self.secrets), 'model': completion.model,
+                    'usage': completion.usage, 'request_id': completion.request_id,
+                    'prompt_sha256': prompt_hash, 'error': redact(str(exc), self.secrets),
+                }
+                raise
             result = {'data': data, 'text': completion.text, 'model': completion.model,
                       'usage': completion.usage, 'request_id': completion.request_id}
             if use_cache and self.cache is not None:

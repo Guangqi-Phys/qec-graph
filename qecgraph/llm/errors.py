@@ -5,6 +5,10 @@ from __future__ import annotations
 class LLMError(RuntimeError):
     """Base error for model configuration, transport or response failures."""
 
+    # Kept out of the printable error; callers may use this untrusted, redacted
+    # response for a bounded correction request after validation rejects it.
+    rejected_response: dict | None = None
+
 
 class ProviderError(LLMError):
     """A provider request failed.

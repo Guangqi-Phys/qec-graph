@@ -340,22 +340,38 @@ class Workspace:
         return (SourceTree(tree.format, {**tree.files, 'main.tex': normalized.source.data}),
                 normalization_binding(artifact, manifest))
 
-    def _extract_ai(self, client, material, previous, limits):
+    def _extract_ai(self, client, material, previous, limits, version):
         from .llm.artifacts import load_normalization
         from .llm.extract import extract
-        from .llm.normalize import assemble, entrypoint_plan
+        from .llm.normalize import original_document
         from .llm.redact import redact
 
         try:
+            digest = material['archive_sha256']
+            raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
+            if hashlib.sha256(raw).hexdigest() != digest:
+                raise ValueError('Archived source hash mismatch')
+            tree = unpack(raw, limits)
+            if tree.digest != material['source_tree_hash']:
+                raise ValueError('Archived source tree mismatch')
             if material.get('normalization_id'):
-                normalized, _ = load_normalization(self.registry.root, material)
+                normalized, _ = load_normalization(self.registry.root, material, tree=tree)
             else:
-                digest = material['archive_sha256']
-                raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
-                if hashlib.sha256(raw).hexdigest() != digest:
-                    raise ValueError('Archived source hash mismatch')
-                normalized = assemble(unpack(raw, limits), entrypoint_plan(material['entrypoint']))
-        except (OSError, ValueError, RuntimeError):
+                normalized = original_document(tree, material['entrypoint'])
+            # Use the selected entry's registered file closure, not every .tex
+            # in an archive: unrelated manuscripts must not enter the request.
+            graph, _, _ = self.registry._load_verified_source(version)
+            additional = {}
+            for node in graph['nodes']:
+                if node['kind'] != 'source_file':
+                    continue
+                path = node['data']['path']
+                source = normalized if path == material['entrypoint'] else original_document(tree, path)
+                if source.sha256 != node['data']['sha256']:
+                    raise ValueError('AI evidence differs from its registered source')
+                if path != material['entrypoint']:
+                    additional[path] = source
+        except (OSError, ValueError, RuntimeError, KeyError):
             return [], [{'error': 'AI extraction could not read its registered source'}]
 
         completed = {item['skill'] for item in previous.get('written', []) if item.get('proposal_sha256')}
@@ -363,7 +379,8 @@ class Workspace:
         for skill in AI_EXTRACTION_SKILLS:
             if skill not in completed:
                 try:
-                    results.append(extract(normalized, client, skill, projection_path=material['entrypoint']))
+                    results.append(extract(normalized, client, skill, projection_path=material['entrypoint'],
+                                           additional_sources=additional))
                 except (OSError, ValueError, RuntimeError) as exc:
                     errors.append({'skill': skill, 'error': redact(str(exc), client.secrets)})
         return results, errors
@@ -400,7 +417,8 @@ class Workspace:
                 jobs.setdefault(identity, material)
 
         def extract_one(identity):
-            return self._extract_ai(client, jobs[identity], previous.get(identity, {}), limits)
+            return self._extract_ai(client, jobs[identity], previous.get(identity, {}), limits,
+                                    versions[identity[0]])
 
         workers = min(client.config.max_parallel_packages, len(jobs))
         if workers > 1:

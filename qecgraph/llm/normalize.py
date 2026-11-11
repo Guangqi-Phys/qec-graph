@@ -111,6 +111,15 @@ def entrypoint_plan(path):
             'label_renames': {}, 'unresolved': []}
 
 
+def original_document(tree: SourceTree, path: str):
+    """Wrap registered original bytes without assembling or changing labels."""
+    data = tree.files[path]
+    return NormalizedSource(tree.digest, data, entrypoint_plan(path), ({
+        'normalized': {'byte_start': 0, 'byte_end': len(data)},
+        'origin': {'path': path, 'byte_start': 0, 'byte_end': len(data)},
+        'kind': 'original'},))
+
+
 def _check_plan(tree, plan):
     try:
         schema = load_skill('normalize_package').schema

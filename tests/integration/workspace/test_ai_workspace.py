@@ -158,6 +158,41 @@ class AIWorkspaceTests(unittest.TestCase):
                 self.assertEqual(report['inputs'][0]['entrypoint'], 'selected.tex')
                 self.assertEqual(report['inputs'][0]['ai_extraction']['status'], 'complete')
 
+    def test_default_ai_extraction_reads_registered_nested_body_and_appendix(self):
+        main = TEX.replace(b'Hello', b'\\input{sections/body}\n\\input{appendix}\n\\input{empty}')
+        body = b'Included body.\n\\input{nested}\n'
+        (self.root / 'inputs/paper.tar').write_bytes(tar_bytes({
+            'main.tex': main, 'sections/body.tex': body,
+            'sections/nested.tex': '条件 é😀\r\nNested result.\r\n'.encode(),
+            'appendix.tex': b'Appendix evidence.\n',
+            'empty.tex': b'',
+            'unrelated.tex': b'UNRELATED_PRIVATE_MARKER',
+        }))
+        empty = answer({'items': [], 'unresolved': []})
+        with patch('qecgraph.llm.client.LLMClient.complete_json', return_value=empty) as client:
+            report = self.workspace.sync()
+        self.assertEqual(report['status'], 'published')
+        self.assertEqual(client.call_count, 4)
+        for call in client.call_args_list:
+            content = call.args[0][-1].content
+            sources = {row['path']: row for row in json.loads(content)['sources']}
+            self.assertEqual(set(sources), {'main.tex', 'sections/body.tex', 'sections/nested.tex', 'appendix.tex', 'empty.tex'})
+            self.assertEqual(sources['sections/nested.tex']['lines'][0], [1, '条件 é😀\r\n'])
+            self.assertNotIn('UNRELATED_PRIVATE_MARKER', content)
+        self.assertTrue(self.workspace.validate()['passed'])
+
+    def test_duplicate_source_labels_do_not_block_line_cited_ai_extraction(self):
+        (self.root / 'inputs/paper.tex').write_bytes(TEX.replace(
+            b'Hello', b'\\section{First}\\label{repeated}\nHello.\n\\section{Second}\\label{repeated}\nWorld.'))
+        with patch('qecgraph.llm.client.LLMClient.complete_json',
+                   return_value=answer({'items': [], 'unresolved': []})) as client:
+            report = self.workspace.sync()
+        self.assertEqual(client.call_count, 4)
+        self.assertEqual(report['inputs'][0]['ai_extraction']['status'], 'complete')
+        for call in client.call_args_list:
+            source = json.loads(call.args[0][-1].content)['sources'][0]
+            self.assertEqual(''.join(row[1] for row in source['lines']).count('\\label{repeated}'), 2)
+
     def test_missing_http_credentials_leave_offline_sync_available_with_concurrency(self):
         self.configure('provider = "claude_code"', 'provider = "openrouter"')
         self.configure('api_key_env = "OPENROUTER_API_KEY"', 'api_key_env = "QECGRAPH_TEST_UNSET_KEY"')

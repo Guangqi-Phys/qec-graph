@@ -642,6 +642,24 @@ API keys are redacted and the configuration file is created mode `0600`.
 | Parser-first structure recovery | Implemented for eligible original TeX entries, with proposed block kinds |
 | Theorem/assumption/data/thought proposals | Enabled by default when credentials are configured; written as `machine/ai/proposals`; explicit review decisions are recorded, conversion to canonical research records is not automatic |
 
+The four semantic extraction skills use v4 evidence instructions. Requests
+contain the main projection plus the selected entry's registered TeX file
+closure, including nested body and appendix inputs. Each file is checked against
+both the archive and source snapshot, then supplied as numbered exact lines
+with its own path, hash and original-byte segment map. Unrelated files in an
+archive are excluded. The model uses supplied line numbers; citations resolve
+against the matching file and quotations still require an exact contiguous
+original substring. Generated wrappers and stitched quotations are rejected.
+Multi-file papers use this path by default with `extract_proposals = true`;
+no separate AI switch or manual concatenation is required. Input budgets apply
+to the complete request; exceeding them fails explicitly without truncation.
+After schema or source validation rejects a v4 response, extraction may make
+one corrective request with the same evidence and the rejected output marked
+as untrusted data. The full request budget and all validators apply again.
+Both request IDs, prompt hashes and usages are retained in successful proposal
+provenance. A second rejection remains pending; invalid responses are not cached
+as successes or published. Transport retries retain their separate existing limit.
+
 ### 15.1 Parser-first body extraction rollout
 
 **Status: Implemented.** The table records the implementation and acceptance sequence.
@@ -733,7 +751,7 @@ remain separate records so their evidence and revisions can evolve independently
 | `addresses_refs`, `motivated_by_refs`, `extends_refs`, `contradicts_refs` | Exact revisions of other `research_thought` records, with field-level evidence |
 | `related_refs` | Exact revisions of allowed research kinds, such as a construction, experiment or decoder; parser occurrences remain accessible through source evidence |
 
-`extract_thoughts` v3 produces `qecgraph.ai.proposal` packages, exposed for opt-in
+`extract_thoughts` v4 produces `qecgraph.ai.proposal` packages, exposed for opt-in
 search as `research_thought_proposal` items. These are distinct from published
 research records. Explicit review and record import remain separate steps; no
 AI result or approval automatically creates a canonical record. Both records
@@ -749,7 +767,13 @@ main topics. Each value carries a verbatim quotation and source line references;
 dates and URLs receive additional checks. Old packages without `paper` still
 validate. Cross-record relations require separate curation. Validation checks
 format and quotations, not scientific correctness or the truth of metadata.
-v0.6.2 shipped v1; v2 refined instructions and v3 extends the output schema.
+Skill v4 reads numbered multi-file evidence and asks for short, searchable key
+sentences, preferably under 240 characters. New thought/metadata quotations
+over 480 characters or batches over 18 central thoughts are rejected before caching; explanations and qualifications
+belong in the answer with context references. Old packages retain their original
+quotation lengths and remain readable. v0.6.2 shipped v1; v2 refined
+instructions, v3 extended the output schema, and v4 improves evidence input and
+quotation instructions without changing the output fields.
 Upgrading a skill affects new or missing extraction jobs, not completed batches, whose versioned proposals
 remain unchanged during sync/rebuild.
 

@@ -162,8 +162,11 @@ research records such as a construction, decoder or experiment. An `assumption`
 thought captures the paper's premise; it does not automatically create a
 reviewed theorem dependency. Current source-bound AI proposals and registered
 thoughts render together in `human/YYYY/MM/*_thoughts.md`, one file per paper.
-AI answers remain proposed; missing answers are explicit. Skill v3 also extracts
+AI answers remain proposed; missing answers are explicit. Since v3, the skill also extracts
 quoted bibliographic metadata and main topics for the note's Obsidian properties.
+Skill v4 reads numbered body/appendix files and quotes short key sentences
+(preferably under 240 characters, at most 480 for new extraction), keeping
+explanations in the answer. Existing proposals remain readable.
 Human/private notes are never inputs. [Layout and migration](workspace.md#obsidian-and-machine-isolation)
 
 ### Fields, revisions, and evidence

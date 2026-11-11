@@ -5,7 +5,7 @@ import re
 import tempfile
 import unittest
 
-from qecgraph.llm.client import LLMClient
+from qecgraph.llm.client import BudgetExceeded, LLMClient, ResponseSchemaError
 from qecgraph.llm.extract import ExtractionError, extract
 from qecgraph.llm.normalize import NormalizedSource, entrypoint_plan
 from qecgraph.llm.providers.base import Completion
@@ -22,7 +22,91 @@ def original_source(text, path='paper.tex'):
     },))
 
 
+def invalid_provider(data):
+    return FakeProvider(*(Completion(json.dumps(data), 'offline-model') for _ in range(2)))
+
+
 class ThoughtSkillTests(unittest.TestCase):
+    def test_one_correction_request_preserves_evidence_validation_and_provenance(self):
+        text = 'Short source sentence.\n'
+        item = {'category': 'problem', 'statement': '问题的中文说明。', 'attribution': 'editorial_inference',
+                'source_quote': 'Invented quote.', 'source_refs': ['paper.tex:1']}
+        invalid = {'items': [item], 'unresolved': []}
+        valid = copy.deepcopy(invalid)
+        valid['items'][0]['source_quote'] = 'Short source sentence.'
+        provider = FakeProvider(Completion(json.dumps(invalid), 'offline-model', request_id='failed-request'),
+                                Completion(json.dumps(valid), 'offline-model', request_id='corrected-request'))
+        with tempfile.TemporaryDirectory() as directory:
+            client = LLMClient(config(max_input_chars=30000), provider=provider, cache_dir=directory)
+            result = extract(original_source(text), client, 'extract_thoughts', projection_path='paper.tex')
+            self.assertEqual(len(list(Path(directory).glob('*.json'))), 1)
+        self.assertEqual(provider.calls, 2)
+        self.assertEqual(result.data, valid)
+        self.assertEqual(result.proposal['provenance']['request_id'], 'corrected-request')
+        rejected, = result.proposal['provenance']['validation_retries']
+        self.assertEqual(rejected['request_id'], 'failed-request')
+        self.assertNotIn('text', rejected)
+        self.assertNotEqual(rejected['prompt_sha256'], result.ai_result.prompt_sha256)
+
+    def test_correction_does_not_bypass_full_request_budget(self):
+        quote = 'Q' * 10000
+        data = {'items': [{'category': 'problem', 'statement': '短回答', 'source_quote': quote,
+                           'attribution': 'editorial_inference', 'source_refs': ['paper.tex:1']}], 'unresolved': []}
+        provider = FakeProvider(Completion(json.dumps(data), 'offline-model'))
+        client = LLMClient(config(max_input_chars=30000), provider=provider)
+        with self.assertRaises(BudgetExceeded):
+            extract(original_source(quote), client, 'extract_thoughts', projection_path='paper.tex')
+        self.assertEqual(provider.calls, 1)
+
+    def test_numbered_multifile_evidence_preserves_unicode_and_short_quotes(self):
+        main = original_source('Title\r\n\\input{body}\r\n', 'paper.tex')
+        body = original_source('条件 é😀\r\nOnly simulated noise was studied.\r\n', 'body.tex')
+        quote = 'Only simulated noise was studied.'
+        response = {'items': [{'category': 'assumption', 'statement': '只研究模拟噪声。',
+                               'attribution': 'editorial_inference', 'source_quote': quote,
+                               'source_refs': ['body.tex:2']}], 'unresolved': []}
+
+        class Provider(FakeProvider):
+            def complete(self, messages, **kwargs):
+                self.evidence = json.loads(messages[1].content)
+                return super().complete(messages, **kwargs)
+
+        provider = Provider(Completion(json.dumps(response), 'offline-model'))
+        result = extract(main, LLMClient(config(max_input_chars=30000), provider=provider),
+                         'extract_thoughts', projection_path='paper.tex', additional_sources={'body.tex': body})
+        source = provider.evidence['sources'][1]
+        self.assertEqual(source['lines'][0], [1, '条件 é😀\r\n'])
+        self.assertEqual(''.join(row[1] for row in source['lines']), body.text)
+        self.assertEqual(result.proposal['evidence_sources'][1], {'path': 'body.tex', 'sha256': body.sha256})
+        self.assertEqual(result.data, response)
+        for refs, quoted, error in ((['paper.tex:2'], quote, 'not verbatim'),
+                                     (['missing.tex:2'], quote, 'supplied projection'),
+                                     (['body.tex:1-2'], '条件 é😀 Only simulated noise was studied.', 'not verbatim')):
+            with self.subTest(refs=refs, quote=quoted):
+                invalid = copy.deepcopy(response)
+                invalid['items'][0].update(source_refs=refs, source_quote=quoted)
+                client = LLMClient(config(max_input_chars=30000), provider=invalid_provider(invalid))
+                with self.assertRaisesRegex(ExtractionError, error):
+                    extract(main, client, 'extract_thoughts', projection_path='paper.tex',
+                            additional_sources={'body.tex': body})
+
+    def test_new_extraction_rejects_long_quotes_but_old_proposals_remain_readable(self):
+        from qecgraph.llm.extract import validate_extraction
+        quote = 'A' * 481
+        data = {'items': [{'category': 'problem', 'statement': quote, 'source_quote': quote,
+                           'attribution': 'author_explicit', 'source_refs': ['paper.tex:1']}], 'unresolved': []}
+        self.assertEqual(validate_extraction('extract_thoughts', data), data)
+        client = LLMClient(config(max_input_chars=30000), provider=invalid_provider(data))
+        with self.assertRaisesRegex(ResponseSchemaError, 'maxLength'):
+            extract(original_source(quote), client, 'extract_thoughts', projection_path='paper.tex')
+
+        item = {**data['items'][0], 'statement': 'A', 'source_quote': 'A'}
+        many = {'items': [item] * 19, 'unresolved': []}
+        self.assertEqual(validate_extraction('extract_thoughts', many), many)
+        client = LLMClient(config(max_input_chars=30000), provider=invalid_provider(many))
+        with self.assertRaisesRegex(ResponseSchemaError, 'maxItems'):
+            extract(original_source('A'), client, 'extract_thoughts', projection_path='paper.tex')
+
     def test_worked_example_survives_real_extraction_validation(self):
         # Exercise the instructions' own example so line numbers, quotations and
         # output fields cannot silently drift apart when the prompt is edited.
@@ -30,7 +114,8 @@ class ThoughtSkillTests(unittest.TestCase):
         examples = re.findall(r'```json\n(.*?)\n```', skill.body, re.DOTALL)
         self.assertEqual(len(examples), 2)
         evidence, expected = map(json.loads, examples)
-        normalized = original_source(evidence['text'], evidence['projection_path'])
+        source_text = ''.join(row[1] for row in evidence['sources'][0]['lines'])
+        normalized = original_source(source_text, evidence['projection_path'])
 
         class Provider(FakeProvider):
             def complete(self, messages, **kwargs):
@@ -43,10 +128,11 @@ class ThoughtSkillTests(unittest.TestCase):
                          projection_path=evidence['projection_path'])
         self.assertEqual(result.data, expected)
         self.assertEqual(result.proposal['review_status'], 'proposed')
-        self.assertEqual(result.proposal['provenance']['skill_version'], 3)
+        self.assertEqual(result.proposal['provenance']['skill_version'], 4)
         self.assertEqual(result.proposal['normalization_id'], normalized.sha256)
         self.assertEqual(provider.messages[0].content, skill.system_prompt)
-        self.assertEqual(json.loads(provider.messages[1].content)['text'], evidence['text'])
+        self.assertEqual(json.loads(provider.messages[1].content)['sources'][0]['lines'],
+                         evidence['sources'][0]['lines'])
         self.assertEqual({item['attribution'] for item in result.data['items']},
                          {'author_explicit', 'editorial_inference'})
         conclusion = next(item for item in result.data['items'] if item['category'] == 'conclusion')
@@ -79,7 +165,7 @@ class ThoughtSkillTests(unittest.TestCase):
         self.assertNotEqual(old.ai_result.prompt_sha256, new.ai_result.prompt_sha256)
         self.assertEqual(old.proposal, preserved)
         self.assertEqual(old.proposal['provenance']['skill_version'], 1)
-        self.assertEqual(new.proposal['provenance']['skill_version'], 3)
+        self.assertEqual(new.proposal['provenance']['skill_version'], 4)
 
     def test_generated_and_stitched_quotes_are_rejected_before_caching(self):
         # Non-ASCII source bytes and an injected wrapper exercise the distinction
@@ -103,7 +189,7 @@ class ThoughtSkillTests(unittest.TestCase):
             with self.subTest(quote=quote), tempfile.TemporaryDirectory() as directory:
                 item = {'category': 'conclusion', 'statement': quote, 'source_quote': quote,
                         'attribution': 'author_explicit', 'source_refs': refs}
-                provider = FakeProvider(Completion(json.dumps({'items': [item], 'unresolved': []}), 'offline-model'))
+                provider = invalid_provider({'items': [item], 'unresolved': []})
                 client = LLMClient(config(max_input_chars=30000), provider=provider, cache_dir=directory)
                 with self.assertRaisesRegex(ExtractionError, error):
                     extract(normalized, client, 'extract_thoughts', projection_path='paper.tex')
@@ -138,7 +224,7 @@ class ThoughtSkillTests(unittest.TestCase):
                 invalid = copy.deepcopy(response)
                 invalid['paper'][field] = replacement
                 client = LLMClient(config(max_input_chars=30000), cache_dir=directory,
-                                   provider=FakeProvider(Completion(json.dumps(invalid), 'offline-model')))
+                                   provider=invalid_provider(invalid))
                 with self.assertRaisesRegex(ExtractionError, error):
                     extract(original_source(source), client, 'extract_thoughts', projection_path='paper.tex')
                 self.assertEqual(list(Path(directory).glob('*.json')), [])

@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- Semantic extraction skills v4 read numbered source lines from the selected
+  entry and its registered nested TeX body/appendix files by default. Every
+  supplied file is checked against the archive and snapshot; unrelated papers
+  remain excluded. Citations resolve to the actual file and exact quotations
+  remain mandatory. Explicit hypotheses must preserve original whitespace.
+- Thought quotations now request short, searchable key sentences, preferably
+  under 240 characters, with a 480-character limit on new extraction. Explanations
+  stay in the Chinese AI answer; each new response has at most 18 central thoughts.
+  Existing proposal packages remain readable.
+- Already registered original papers with duplicate TeX labels can enter AI
+  extraction using exact file/line citations; their labels are preserved, and
+  label-based queries retain the parser's ambiguity diagnostics.
+- Invalid v4 extraction responses get at most one correction request, still
+  subject to full evidence, schema and request-budget checks. Successful
+  proposals retain rejected-request provenance; invalid responses never become
+  successful cache entries or published proposals.
+
 - Thoughts filenames now use the first author's surname. Folder year/month
   prefers the arXiv package identifier (`2611.12971v2.tar.gz` → `2026/11/`)
   over manuscript dates. Sync/rebuild snapshots original receipt filenames,
