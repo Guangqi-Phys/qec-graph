@@ -163,7 +163,7 @@ workspace/
 │   └── .writer.lock              # single-writer lock
 ├── human/
 │   └── YYYY/MM/
-│       └── FirstAuthor_First_Two_thoughts.md
+│       └── Surname_First_Two_thoughts.md
 └── .qecgraph/                    # claim/rotation/staging internals
 ```
 
@@ -417,7 +417,7 @@ The typed JSON envelope (`ok/data` or `error/code/message/details/scope`) is sha
 ## 9. Human view
 
 `human/` contains only one generated ThoughtsGraph Markdown note per registered
-paper (`work_id`), under `human/YYYY/MM/FirstAuthor_First_Two_thoughts.md`.
+paper (`work_id`), under `human/YYYY/MM/Surname_First_Two_thoughts.md`.
 This layout is **Unreleased on main**; the published v0.6.2 uses the earlier vault.
 
 - Each note contains the nine questions from [Human.md](Human.md), AI answers,
@@ -434,9 +434,23 @@ This layout is **Unreleased on main**; the published v0.6.2 uses the earlier vau
   title-block commands (including RevTeX metadata after `\begin{document}`)
   provide a fallback without evaluating macros. Without topic
   metadata, recognized QEC phrases in the title supply tags. Missing information
-  stays unknown; a source date is never replaced by the import date or `\today`.
-- The first author's full name and the title's first two whitespace-delimited
-  words form the filename. Unsafe characters become underscores. Unknown author
+  stays unknown; dates are never taken from the import time or `\today`.
+- Folder year/month comes first from the modern arXiv identifier in the original
+  package name: `arXiv-2611.12971v2.tar.gz` gives `2026/11/`. The `YYMM` prefix
+  identifies the initial submission month, including for later versions; see
+  [arXiv identifier format](https://info.arxiv.org/help/arxiv_identifier.html).
+  Filename parsing is local and does not establish a paper identity or version.
+  Non-arXiv names fall back to the source date. Conflicting package months stay
+  unknown instead of choosing a filename arbitrarily.
+- Sync/rebuild copies receipt filenames into `materials[*].original_names` in
+  the machine release. An empty sync backfills older workspaces without needing
+  source re-extraction. Rendering reads only this fixed snapshot, not live receipts.
+- The first author's surname and the title's first two whitespace-delimited
+  words form the filename; `author` in YAML keeps the full ordered author list.
+  Comma-separated surname-first names retain their first component; otherwise
+  use the final word with common family-name particles (e.g. `van Loock`),
+  preserving hyphens and excluding `Jr.`/`Sr.`/generational suffixes. Unsegmented
+  single-word names stay intact. Unsafe characters become underscores. Unknown author
   and title use `UnknownAuthor` and `Untitled_Paper`; missing year/month use
   `unknown`, including `YYYY/unknown/` when only a year is known. Collisions add a
   short work-ID hash before `_thoughts.md`.

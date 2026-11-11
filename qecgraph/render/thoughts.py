@@ -101,6 +101,34 @@ def _component(value, fallback, limit=60):
     return value.rstrip('_-') or fallback
 
 
+def _surname(name):
+    # Preserve an explicitly surname-first form. Otherwise keep the final
+    # name, its conventional particles and hyphens, excluding generational suffixes.
+    if ',' in name:
+        return name.split(',', 1)[0].strip()
+    parts = name.split()
+    while len(parts) > 1 and parts[-1].rstrip('.').casefold() in {'jr', 'sr', 'ii', 'iii', 'iv'}:
+        parts.pop()
+    start = len(parts) - 1
+    particles = {'da', 'das', 'de', 'del', 'della', 'den', 'der', 'di', 'dos', 'du', 'la', 'le', 'van', 'von'}
+    while start > 0 and parts[start - 1].casefold() in particles:
+        start -= 1
+    return ' '.join(parts[start:])
+
+
+def _arxiv_months(names):
+    """Recognize modern arXiv YYMM identifiers in archived package names."""
+    pattern = re.compile(r'(?<![A-Za-z0-9.])([0-9]{2})(0[1-9]|1[0-2])\.([0-9]{4,5})'
+                         r'(?:v[1-9][0-9]*)?(?=$|[.\s_-])', re.IGNORECASE)
+    months = set()
+    for name in names:
+        for match in pattern.finditer(name):
+            yymm = int(match[1] + match[2])
+            if yymm >= 704 and len(match[3]) == (5 if yymm >= 1501 else 4):
+                months.add(f'20{match[1]}-{match[2]}')
+    return months
+
+
 def _tag(value):
     value = re.sub(r'[^\w/-]+', '-', unicodedata.normalize('NFC', value), flags=re.UNICODE).strip('-/')
     return ('topic-' + value if value.isdecimal() else value) if value else None
@@ -127,6 +155,13 @@ def _metadata(session, version, proposals):
     if work['title'] != work['id']:
         result['title'] = work['title']
     result['link'] = public_url(version.get('canonical_url')) or public_url(result['link'])
+    names = [name for m in session.state.get('materials', {}).values()
+             if m.get('source_version_id') == version['id'] for name in m.get('original_names', [])]
+    months = _arxiv_months(names)
+    # An arXiv month identifies the initial submission, including for v2+.
+    # Conflicting package months are unknown, not resolved by filename order.
+    result['folder_date'] = next(iter(months)) if len(months) == 1 else (
+        None if months else result['published_date'])
     if not result['topics'] and result['title']:
         # Only literal title topics are used without AI; do not infer a paper's
         # main subject from arbitrary mentions in its references or full text.
@@ -158,10 +193,10 @@ def render_pages(session):
         versions.sort(key=_version_order)
         metadata = _metadata(session, versions[0], proposals)
         title = metadata['title'] or 'Untitled Paper'
-        author = metadata['authors'][0] if metadata['authors'] else 'UnknownAuthor'
+        author = _surname(metadata['authors'][0]) if metadata['authors'] else 'UnknownAuthor'
         words = title.split()[:2]
         stem = '_'.join([_component(author, 'UnknownAuthor'), *(_component(w, 'Untitled', 45) for w in words)])
-        date = metadata['published_date'] or ''
+        date = metadata['folder_date'] or ''
         year, month = (date[:4] or 'unknown'), (date[5:7] or 'unknown')
         path = f'{year}/{month}/{stem}_thoughts.md'
         if path.casefold() in used:
@@ -178,7 +213,7 @@ def render_pages(session):
         front += ['  - ' + yaml_value(name) for name in metadata['authors']]
         front += ['---', '', '# ' + inline(title), '', '> AI 回答属于待审核提案；请结合原文依据阅读。']
         if not metadata['title'] or not metadata['authors'] or not date or len(date) < 7:
-            front += ['', '> 部分书目信息尚未提供；未知作者、标题或年月使用占位名称，不使用导入日期代替发表日期。']
+            front += ['', '> 部分书目信息尚未提供或年月存在冲突；未知字段使用占位名称，不使用导入日期代替论文年月。']
         if len(versions) > 1:
             front += ['', '> 本文包含多个登记版本；回答逐条标明来源版本，未合并成单一结论。']
         sections = ['\n'.join(front)]

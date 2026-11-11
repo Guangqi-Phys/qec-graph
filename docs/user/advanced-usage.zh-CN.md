@@ -182,9 +182,11 @@ stderr 或 `QECGRAPH_DEPRECATIONS=1` 时发出提示。设置
 ## 管理 Obsidian vault 和研究记录
 
 把工作区的 `human/` 目录作为 Obsidian vault 打开，按 `YYYY/MM/` 浏览
-`一作名_文章前两个词_thoughts.md`。每篇论文只有一份笔记，包含九个 ThoughtsGraph 问题、
+`一作姓_文章前两个词_thoughts.md`。每篇论文只有一份笔记，包含九个 ThoughtsGraph 问题、
 AI 回答和原文依据。最前面依次放 YAML 的 `tags`、`link`、`title`、`author`，
-tags 是文章主要主题。运行 `qec-graph human build` 从当前 machine release 重建，不调用 AI。
+tags 是文章主要主题。文件名只取一作姓，目录优先取 arXiv 包名里的 `YYMM`，例如
+`2611.12971v2.tar.gz` → `2026/11/`。运行 `qec-graph human build` 从当前 machine release
+重建，不调用 AI。
 
 这是 main 上的 Unreleased 布局，替代 v0.6.2 的实体页 vault。首次迁移直接删除整个旧
 受管理 `human/`，包括 `notes/`，不做备份。不再生成索引、墓碑页或其他文件，个人笔记

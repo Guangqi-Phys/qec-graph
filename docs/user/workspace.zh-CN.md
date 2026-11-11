@@ -149,7 +149,7 @@ CLI 可用 `query-tool TOOL --workspace ~/qec --arguments request.json` 调用�
 ## Obsidian 和机器访问隔离
 
 在 Obsidian 中打开 `~/qec/human`，按年月目录浏览。每篇论文只有一个
-`human/YYYY/MM/一作名_文章前两个词_thoughts.md`，正文放九个 ThoughtsGraph 问题、
+`human/YYYY/MM/一作姓_文章前两个词_thoughts.md`，正文放九个 ThoughtsGraph 问题、
 AI 回答及原文依据。文件最前面是 Obsidian YAML：
 
 ```yaml
@@ -165,8 +165,13 @@ author:
 ```
 
 这只是格式示例。实际属性来自登记材料与有引用的 AI 元数据：tags 是论文主要主题，
-author 按原文顺序排列，文件名取一作全名与标题按空白分隔的前两个词。年月使用来源日期；
-缺少的年月用 `unknown`，不使用导入时间。未知作者/标题用 `UnknownAuthor`/`Untitled_Paper`，
+author 按原文顺序保留完整姓名，文件名只取一作姓氏与标题按空白分隔的前两个词，
+如 Diego Ruiz 对应 `Ruiz_Entropy_threshold_thoughts.md`。年月优先取 arXiv 原始包名：
+`arXiv-2611.12971v2.tar.gz` 对应 `2026/11/`，与论文正文日期、下载时间无关；v2 等版本
+后缀不改变首次提交年月。非 arXiv 包名才回退到来源日期，缺少或冲突的年月用 `unknown`。
+sync/rebuild 会将回执包名纳入机器快照；旧库先运行一次 `qec-graph sync` 补齐，再由
+`human build` 读取固定快照。新路径发布后删除旧的全名笔记。
+未知作者/标题用 `UnknownAuthor`/`Untitled_Paper`，
 同名论文追加 work ID 短哈希。同一 work 的多个版本共用一份文件，回答保留各自的版本。
 [完整契约](../design/DESIGN.zh-CN.md#9-人类视图)
 

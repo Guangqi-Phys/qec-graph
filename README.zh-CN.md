@@ -41,7 +41,7 @@ qec-graph validate
 语义提案抽取默认开启；设置 `extract_proposals = false` 可跳过这些 skill。
 
 成功导入后原始包留在 `archive/`，收件箱副本被清除。把 `human/` 作为 Obsidian
-vault 打开，按 `YYYY/MM/` 浏览每篇论文的 `一作名_文章前两个词_thoughts.md`，
+vault 打开，按 `YYYY/MM/` 浏览每篇论文的 `一作姓_文章前两个词_thoughts.md`，
 包含九个问题、AI 回答和主题标签。此布局目前属于 main 的 Unreleased 改动；
 从 v0.6.2 旧布局迁移时直接删除旧 `human/` 内容，不做备份。
 [布局与迁移规则](docs/user/workspace.zh-CN.md#obsidian-和机器访问隔离)。反复失败的包用
@@ -126,7 +126,7 @@ ThoughtsGraph 使用带原文引用的 `research_thought` 记录和类型化关�
 | `release` | 验证全部内容并发布不可变 release | [系统设计](docs/design/DESIGN.zh-CN.md#7-工作区事务与发布协议)、[维护](docs/operations/maintenance.zh-CN.md) | staged records 和 snapshots | 含 `format`、`revision` 的 `machine/CURRENT.json`；`machine/states/<revision>.json` |
 | `CLI` | 读取固定 workspace、store 或 corpus 作用域 | [进阶用法](docs/user/advanced-usage.zh-CN.md)、[数据与检索](docs/user/data-and-search.zh-CN.md) | `--workspace`、`--machine`、`--store` 或 `--corpus`；`query-tool` 的 JSON 参数 | 终端文本或版本化 JSON |
 | `MCP` | 通过本地 stdio 提供只读工具 | [MCP 设置](#mcp)、[数据与检索](docs/user/data-and-search.zh-CN.md) | stdio 上的 JSON-RPC 2.0；固定一个 release；legacy/research/compatible profile | JSON-RPC 帧、text/structured content、`qec://source/...` resources |
-| `human/` | 渲染 Obsidian 视图，绝不回写 | [工作区说明](docs/user/workspace.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#9-人类视图) | 已发布机器 release | `human/YYYY/MM/一作名_文章前两个词_thoughts.md`；管理状态在 `.qecgraph/` |
+| `human/` | 渲染 Obsidian 视图，绝不回写 | [工作区说明](docs/user/workspace.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#9-人类视图) | 已发布机器 release | `human/YYYY/MM/一作姓_文章前两个词_thoughts.md`；管理状态在 `.qecgraph/` |
 
 单个 writer 拥有整条流水线。读取端固定一个 `CURRENT` release；验证失败时旧
 release 保持可读。人类笔记永不作为知识输入。

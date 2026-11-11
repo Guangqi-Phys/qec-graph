@@ -211,9 +211,11 @@ output. Animation requires an interactive terminal.
 ## Manage the Obsidian vault and research records
 
 Open the workspace's `human/` directory in Obsidian and browse
-`YYYY/MM/FirstAuthor_First_Two_thoughts.md`. Each paper has one note containing
+`YYYY/MM/Surname_First_Two_thoughts.md`. Each paper has one note containing
 nine ThoughtsGraph questions, AI answers and quotations. YAML starts with `tags`,
-`link`, `title`, `author`; tags describe the main topics. Run `qec-graph human build`
+`link`, `title`, `author`; tags describe the main topics. Filenames use only the
+first author's surname; the original arXiv package's `YYMM` sets the folder
+(e.g. `2611.12971v2.tar.gz` → `2026/11/`). Run `qec-graph human build`
 to regenerate notes from the current machine release without calling AI.
 
 This main/Unreleased layout replaces the v0.6.2 entity-page vault. The first

@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from qecgraph.render.human import build_human
-from qecgraph.render.thoughts import QUESTIONS
+from qecgraph.render.thoughts import QUESTIONS, render_pages
 from qecgraph.source.package import unpack
 from qecgraph.core.transactions import atomic_bytes, atomic_json
 from qecgraph.workspace import Workspace
@@ -45,7 +45,7 @@ class HumanTests(unittest.TestCase):
         self.assertEqual(result['status'], 'current', result)
         self.assertEqual(result['generated_pages'], 1)
         before = self.generated()
-        self.assertEqual(list(before), ['2025/06/Ada_Lovelace_Surface_codes_thoughts.md'])
+        self.assertEqual(list(before), ['2025/06/Lovelace_Surface_codes_thoughts.md'])
         raw, = before.values()
         text = raw.decode()
         self.assertTrue(text.startswith('---\ntags:\n  - "surface-codes"\n  - "erasure"\n  - "quantum-error-correction"\n'
@@ -71,6 +71,60 @@ class HumanTests(unittest.TestCase):
         text = next(iter(self.generated().values())).decode()
         self.assertIn('tags: []\nlink: null\ntitle: null\nauthor: []\n', text)
 
+    def test_arxiv_package_month_overrides_source_date_and_preserves_full_authors(self):
+        name = 'arXiv-2611.12971v2.tar.gz'
+        (self.root / 'inputs/first').rename(self.root / 'inputs' / name)
+        release = self.ws.sync()['release_id']
+        state, _ = self.ws.registry.read(release)
+        material, = state['materials'].values()
+        self.assertEqual(material['original_names'], [name])
+        self.assertIsNone(material['upstream_version'])
+        result = build_human(self.root, release)
+        self.assertEqual(result['status'], 'current', result)
+        self.assertEqual(list(self.generated()), ['2026/11/Lovelace_Surface_codes_thoughts.md'])
+        self.assertIn('author:\n  - "Ada Lovelace"\n  - "Grace Hopper"', next(iter(self.generated().values())).decode())
+        self.assertEqual(self.ws.rebuild()['release_id'], release)
+
+    def test_empty_sync_backfills_names_and_retires_old_full_name_note(self):
+        name = 'arXiv-2611.12971v2.tar.gz'
+        (self.root / 'inputs/first').rename(self.root / 'inputs' / name)
+        # Simulate a pre-upgrade release, which did not snapshot receipt names.
+        with patch.object(Workspace, '_archived_names', return_value={}):
+            old = self.ws.sync()['release_id']
+        before = WorkspaceSession(self.ws.registry.root, old)
+        self.assertEqual(list(render_pages(before)[0]), ['2025/06/Lovelace_Surface_codes_thoughts.md'])
+        work_id, = before.state['works']
+        relative = '2025/06/Ada_Lovelace_Surface_codes_thoughts.md'
+        page = self.root / 'human' / relative
+        page.parent.mkdir(parents=True)
+        page.write_text('previous generated note')
+        atomic_json(self.root / '.qecgraph/human-published.json', {
+            'format': 'qecgraph.human.thoughts', 'release_id': old,
+            'pages': [relative], 'work_pages': {work_id: relative}})
+        receipt_bytes = {p: p.read_bytes() for p in (self.root / 'archive/receipts').glob('*.json')}
+        with patch.object(Workspace, '_prepare', side_effect=AssertionError('No source re-extraction needed')):
+            latest = self.ws.sync()['release_id']
+        after = WorkspaceSession(self.ws.registry.root, latest)
+        self.assertNotEqual(latest, old)
+        self.assertEqual(before.state['versions'], after.state['versions'])
+        # Rendering stays pinned even though archive metadata is now available.
+        self.assertEqual(list(render_pages(before)[0]), ['2025/06/Lovelace_Surface_codes_thoughts.md'])
+        self.assertEqual(build_human(self.root, latest)['status'], 'current')
+        self.assertEqual(list(self.generated()), ['2026/11/Lovelace_Surface_codes_thoughts.md'])
+        self.assertFalse(page.exists())
+        self.assertFalse((self.root / 'human/2025').exists())
+        self.assertEqual({p: p.read_bytes() for p in receipt_bytes}, receipt_bytes)
+        self.assertEqual(self.ws.sync()['status'], 'unchanged')
+
+    def test_conflicting_package_months_do_not_pick_an_arbitrary_date(self):
+        (self.root / 'inputs/first').rename(self.root / 'inputs/arXiv-2611.12971.tar.gz')
+        (self.root / 'inputs/arXiv-2610.12345.tar.gz').write_bytes(PAPER)
+        release = self.ws.sync()['release_id']
+        result = build_human(self.root, release)
+        self.assertEqual(result['status'], 'current', result)
+        self.assertEqual(list(self.generated()), ['unknown/unknown/Lovelace_Surface_codes_thoughts.md'])
+        self.assertIn('年月存在冲突', next(iter(self.generated().values())).decode())
+
     def test_revtex_title_block_after_document_and_author_decorations(self):
         source = br'''\documentclass{revtex4-2}
 \begin{document}
@@ -87,7 +141,7 @@ class HumanTests(unittest.TestCase):
         (self.root / 'inputs/first').write_bytes(source)
         result = build_human(self.root, self.ws.sync()['release_id'])
         self.assertEqual(result['status'], 'current', result)
-        self.assertEqual(list(self.generated()), ['unknown/unknown/Ada_Lovelace_Surface_codes_thoughts.md'])
+        self.assertEqual(list(self.generated()), ['unknown/unknown/Lovelace_Surface_codes_thoughts.md'])
         text = next(iter(self.generated().values())).decode()
         self.assertIn('author:\n  - "Ada Lovelace"\n  - "Grace Hopper"', text)
         self.assertIn('  - "Surface-codes"', text)
@@ -97,7 +151,7 @@ class HumanTests(unittest.TestCase):
         release = self.ws.sync()['release_id']
         build_human(self.root, release)
         before = self.generated()
-        (self.root / 'inputs/second').write_bytes(PAPER.replace(b'We study', b'We further study'))
+        (self.root / 'inputs/second').write_bytes(PAPER.replace(b'Ada Lovelace', b'Byron Lovelace'))
         newest = self.ws.sync()['release_id']
         self.assertEqual(build_human(self.root, release)['status'], 'superseded')
         self.assertEqual(self.generated(), before)
@@ -105,7 +159,7 @@ class HumanTests(unittest.TestCase):
         self.assertEqual(result['status'], 'current', result)
         self.assertEqual(len(self.generated()), 2)
         self.assertEqual(len({p.casefold() for p in self.generated()}), 2)
-        self.assertTrue(all(re.fullmatch(r'2025/06/Ada_Lovelace_Surface_codes(?:_[0-9a-f]{12})?_thoughts.md', p)
+        self.assertTrue(all(re.fullmatch(r'2025/06/Lovelace_Surface_codes(?:_[0-9a-f]{12})?_thoughts.md', p)
                             for p in self.generated()))
 
     def test_two_registered_versions_share_one_paper_note(self):
@@ -142,7 +196,7 @@ class HumanTests(unittest.TestCase):
         self.assertIn(old, self.generated())
         result = build_human(self.root, newest)
         self.assertEqual(result['status'], 'current', result)
-        self.assertEqual(list(self.generated()), ['2026/07/Ada_Lovelace_Renamed_paper_thoughts.md'])
+        self.assertEqual(list(self.generated()), ['2026/07/Lovelace_Renamed_paper_thoughts.md'])
         self.assertFalse((self.root / 'human/2025').exists())
         self.assertIn('link: "https://example.org/paper"', next(iter(self.generated().values())).decode())
         self.assertFalse((self.root / '.qecgraph/human-pending.json').exists())
@@ -163,7 +217,7 @@ class HumanTests(unittest.TestCase):
         with patch('qecgraph.render.human._read_regular', side_effect=read):
             result = build_human(self.root, release)
         self.assertEqual(result['status'], 'current', result)
-        self.assertEqual(list(self.generated()), ['2025/06/Ada_Lovelace_Surface_codes_thoughts.md'])
+        self.assertEqual(list(self.generated()), ['2025/06/Lovelace_Surface_codes_thoughts.md'])
         self.assertFalse((vault / 'notes').exists())
         self.assertFalse(any('backup' in p.name for p in self.root.iterdir()))
         self.assertEqual(self.note.read_bytes(), b'private\x00note')

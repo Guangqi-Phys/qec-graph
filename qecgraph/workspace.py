@@ -736,6 +736,22 @@ class Workspace:
                 digests.add(digest)
         return digests
 
+    def _archived_names(self):
+        """Snapshot receipt filenames for views without using them as source IDs."""
+        names = {}
+        for path in self.path('archive/receipts').iterdir():
+            if JOB.fullmatch(path.stem) and path.suffix == '.json':
+                receipt = read_json(self.path('archive/receipts/' + path.name))
+                if not isinstance(receipt, dict):
+                    raise ValueError('Invalid archive receipt')
+                digest, name = receipt.get('archive_sha256'), receipt.get('original_name')
+                if (not isinstance(digest, str) or not HEX.fullmatch(digest)
+                        or not isinstance(name, str) or not name or name in {'.', '..'}
+                        or '\x00' in name or Path(name).name != name):
+                    raise ValueError('Invalid archive receipt filename binding')
+                names.setdefault(digest, set()).add(name)
+        return {digest: sorted(values) for digest, values in names.items()}
+
     def _finish_claims(self, claims, materials, release, limit, keep_inputs):
         # Recovery replays the exact claim and verifies the published result.
         for job, meta, digest in claims:
@@ -860,6 +876,11 @@ class Workspace:
                 identity = material.get('source_version_id'), material.get('source_snapshot_id')
                 if identity in ai_results and material.get('processing_completed'):
                     material['ai_extraction'] = ai_results[identity]
+            # Also backfill pre-existing materials on an empty sync. Human
+            # rendering reads this fixed release, never live archive receipts.
+            for digest, names in self._archived_names().items():
+                if digest in materials:
+                    materials[digest]['original_names'] = names
             update(package_count + 1, 'Publishing workspace')
             # Explicit version metadata, never inferred from filenames.
             parsed_versions = {m['source_version_id'] for m in materials.values() if m.get('source_version_id')}

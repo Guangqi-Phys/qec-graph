@@ -13,7 +13,9 @@
 - 登记与输入消费是不同事务状态。仅消费已归档、校验且承诺阶段已发布的认领副本。
 - 研究 agent 与 MCP 只接触登记的机器资源；不得把 `human/` 或私人笔记当成检索输入。
   人类生成器只读固定机器发布；强隔离部署只给机器读权限。
-- `human/YYYY/MM/一作名_文章前两个词_thoughts.md` 每篇论文一份，文件头依次是 tags/link/title/author。
+- `human/YYYY/MM/一作姓_文章前两个词_thoughts.md` 每篇论文一份，文件名只取一作 last name。
+  年月优先取归档包名的 arXiv YYMM（2611.12971 → 2026/11）；包名随机器 release 发布，
+  渲染不读实时回执、不以包名改写论文身份。文件头依次是 tags/link/title/author，author 保留全名。
   正文只含九问、回答及出处；状态放 `.qecgraph/`，个人笔记放 human 外。按已确认的迁移要求，
   旧生成器管理的整个 human（包括旧 notes）直接删除，不读内容、不备份；不删除无管理记录的外部 vault。
 

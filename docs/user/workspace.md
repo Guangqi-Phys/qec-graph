@@ -181,7 +181,7 @@ pending extraction or unresolved.
 ## Obsidian and machine isolation
 
 Open `~/qec/human` in Obsidian and browse the year/month folders. Each paper has
-one `FirstAuthor_First_Two_thoughts.md` containing the nine ThoughtsGraph questions,
+one `Surname_First_Two_thoughts.md` containing the nine ThoughtsGraph questions,
 AI answers and source quotations. The first content is Obsidian YAML:
 
 ```yaml
@@ -198,8 +198,15 @@ author:
 
 This is a format example; actual properties come from the registered source and
 quoted AI metadata. Tags are the paper's main topics, authors retain source order,
-and the first author plus the first two title words form the filename. Source
-month/year determine `YYYY/MM/`; missing parts use `unknown`, not the import date.
+and the first author's surname plus the first two title words form the filename
+(e.g. `Ruiz_Entropy_threshold_thoughts.md` for Diego Ruiz). The YAML `author` list
+keeps full names. The original arXiv package name determines `YYYY/MM/` first:
+`arXiv-2611.12971v2.tar.gz` goes into `2026/11/`, regardless of the manuscript date
+or download time. Version suffixes do not change that initial submission month.
+Non-arXiv names fall back to the source date; missing or conflicting months use
+`unknown`. Sync/rebuild snapshots receipt filenames into the machine release;
+run `qec-graph sync` once to backfill an older workspace, then `human build` uses
+only that fixed release. Full-name note paths are removed as new paths publish.
 Missing author/title use `UnknownAuthor`/`Untitled_Paper`; filename collisions
 receive a short work-ID hash. Multiple versions of one work share one note;
 answers retain their own source versions. [Full contract](../design/DESIGN.md#9-human-view)

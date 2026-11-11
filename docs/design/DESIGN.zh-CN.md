@@ -177,7 +177,7 @@ workspace/
 │   └── .writer.lock              # single-writer lock
 ├── human/
 │   └── YYYY/MM/
-│       └── FirstAuthor_First_Two_thoughts.md
+│       └── Surname_First_Two_thoughts.md
 └── .qecgraph/                    # claim/rotation/staging internals
 ```
 
@@ -475,7 +475,7 @@ Python、CLI 和 MCP 共享。MCP protocol errors 和 business-query errors 保�
 ## 9. 人类视图
 
 `human/` 只保存 ThoughtsGraph 问答 Markdown，每篇登记论文（`work_id`）一个文件：
-`human/YYYY/MM/一作名_文章前两个词_thoughts.md`。
+`human/YYYY/MM/一作姓_文章前两个词_thoughts.md`。
 本布局属于 **main 上的 Unreleased 改动**；已发布 v0.6.2 仍使用旧布局。
 
 - 正文固定包含 [Human.md](Human.md) 的九个问题、AI 回答、逐字原文依据和版本/行号。
@@ -489,7 +489,17 @@ Python、CLI 和 MCP 共享。MCP protocol errors 和 business-query errors 保�
   日期、链接和主题词；字面 TeX 标题区命令作为回退，
   包括 RevTeX 中位于 `\begin{document}` 后的元数据，不执行宏。缺少主题元数据时，仅从标题
   匹配已知 QEC 主题词。缺失信息保留未知，不用导入日期或 `\today` 代替论文日期。
-- 文件名使用第一作者全名和标题按空白分隔的前两个词，危险字符转下划线。未知作者和标题
+- 目录年月优先取原始包名中的现代 arXiv 编号：`arXiv-2611.12971v2.tar.gz` 对应
+  `2026/11/`。`YYMM` 表示首次提交年月，后续 v2 等版本仍用同一年月；规则见
+  [arXiv 编号格式](https://info.arxiv.org/help/arxiv_identifier.html)。解析在本地完成，
+  不根据文件名推断或改写论文身份、来源版本。非 arXiv 包名回退到来源日期；包名年月冲突
+  时保留未知，不随意选一个文件名。
+- sync/rebuild 把归档回执的原始包名写入 machine release 的 `materials[*].original_names`。
+  旧库可通过一次空收件箱 sync 补齐，无须为了包名重抽来源；渲染只读固定快照，不读实时回执。
+- 文件名只取第一作者姓氏（last name）和标题按空白分隔的前两个词，YAML `author` 仍保留
+  完整作者列表。逗号分隔的“姓, 名”形式取逗号前部分；其余取最后一个词，保留常见姓氏
+  前缀（如 `van Loock`）和连字符，去掉 Jr./Sr. 等后缀。未分词的单词姓名原样保留。
+  危险字符转下划线。未知作者和标题
   用 `UnknownAuthor`、`Untitled_Paper`；未知年月用 `unknown`，仅知年份时为
   `YYYY/unknown/`。同名论文在 `_thoughts.md` 前增加 work ID 的短哈希，避免覆盖。
 - 同一 work 的多个版本共用一份文件，回答逐条标明来源版本。书目信息选择最小的显式数字

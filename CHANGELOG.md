@@ -2,8 +2,13 @@
 
 ## Unreleased
 
+- Thoughts filenames now use the first author's surname. Folder year/month
+  prefers the arXiv package identifier (`2611.12971v2.tar.gz` → `2026/11/`)
+  over manuscript dates. Sync/rebuild snapshots original receipt filenames,
+  including on empty sync for older workspaces; rendering remains pinned to
+  machine data. Rebuilding removes old full-name/date paths without backups.
 - Replaced the human entity-page vault with one ThoughtsGraph note per paper at
-  `human/YYYY/MM/FirstAuthor_First_Two_thoughts.md`, with the nine questions,
+  `human/YYYY/MM/Surname_First_Two_thoughts.md`, with the nine questions,
   source-bound AI answers and leading Obsidian `tags`, `link`, `title`, `author`.
   Topic tags and bibliography use source metadata; unknown dates stay unknown.
 - The first migration deletes the old managed `human/` tree, including old

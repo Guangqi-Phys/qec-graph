@@ -74,7 +74,7 @@ AI 真正需要阅读的可能是：
 | `machine/snapshots/<release>/catalog.json` | 当前来源目录、对象目录、处理状态和覆盖信息 |
 | `machine/snapshots/<release>/search.sqlite` | 全文、字段与关系查询投影 |
 | `qec_get_context(...)` | 按问题组合可直接阅读的上下文；可实时生成，也可缓存 |
-| `human/YYYY/MM/一作名_文章前两个词_thoughts.md` | 每篇论文一份九问与 AI 回答，独立的人类阅读区 |
+| `human/YYYY/MM/一作姓_文章前两个词_thoughts.md` | 每篇论文一份九问与 AI 回答，独立的人类阅读区 |
 
 有四点核心要求：
 
@@ -163,7 +163,7 @@ AI 提议即使引用准确也仍是 proposed，不自动成为已审核记录�
 ### 我想要的 human 文件布局
 
 `human/` 里每篇文章只保留一个文件：
-`human/YYYY/MM/一作名_文章前两个词_thoughts.md`，不用再加“文章”这层目录。
+`human/YYYY/MM/一作姓_文章前两个词_thoughts.md`，不用再加“文章”这层目录。
 正文放上面的九个 ThoughtsGraph 问题和 AI 的回答，回答附原文依据；缺少证据就明确留空说明。
 文件最前面按 Obsidian 格式放：
 
@@ -180,7 +180,10 @@ author:
 ```
 
 这只是格式示例，实际 tags 使用文章主要讨论的主题词；title 放完整标题，author 按论文顺序
-列出作者，文件名取第一作者。年月来自论文明确给出的日期，缺失信息不要猜。
+列出完整作者，文件名只取第一作者的姓（last name），不要名。例如 `Diego Ruiz`
+使用 `Ruiz_…_thoughts.md`。年月直接取 arXiv 包名的编号前四位：
+`arXiv-2611.12971v2.tar.gz` 就放到 `human/2026/11/`，不取论文里的 `\date` 或导入时间。
+没有可用 arXiv 编号时才回退到明确的来源日期，仍缺失的信息不要猜。
 `human/` 不存索引、实体页、原文副本、状态文件或其他内容。旧版内容直接删除，不做备份。
 生成状态放在 `.qecgraph/`；私人笔记另放。实现细节与迁移规则见
 [系统设计的人类视图](DESIGN.zh-CN.md#9-人类视图)。
