@@ -95,6 +95,24 @@ class AIWorkspaceTests(unittest.TestCase):
             self.assertNotIn('remote private diagnostic', output)
             self.assertIn('HTTP 401', output)
 
+    def test_interrupted_http_body_leaves_pending_ai_and_publishes_source(self):
+        from http.client import IncompleteRead
+        from unittest.mock import MagicMock
+
+        self.configure('provider = "claude_code"', 'provider = "openrouter"')
+        (self.root / 'inputs/paper.tex').write_bytes(TEX)
+        response = MagicMock(status=200, headers={})
+        response.__enter__.return_value = response
+        response.read.side_effect = IncompleteRead(b'PRIVATE_PARTIAL_RESPONSE')
+        with patch.dict('os.environ', {'OPENROUTER_API_KEY': 'offline-test-key'}), patch(
+                'urllib.request.urlopen', return_value=response), patch('qecgraph.llm.client.time.sleep'):
+            report = self.workspace.sync()
+        self.assertEqual(report['status'], 'partial_batch')
+        self.assertTrue(report['inputs'][0]['input_consumed'])
+        self.assertEqual(report['inputs'][0]['ai_extraction']['status'], 'pending')
+        self.assertNotIn('PRIVATE_PARTIAL_RESPONSE', json.dumps(report))
+        self.assertTrue(self.workspace.validate()['passed'])
+
     def test_sync_retries_only_failed_ai_skill_from_archive(self):
         from qecgraph.llm.errors import ProviderError
 

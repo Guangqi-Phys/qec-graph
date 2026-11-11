@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Treat interrupted/chunked HTTP response bodies as retryable AI transport
+  failures, including error-response bodies. Exhausted retries leave extraction
+  pending while valid source publication can complete; partial provider text
+  stays out of reports.
+
 - Semantic extraction skills v4 read numbered source lines from the selected
   entry and its registered nested TeX body/appendix files by default. Every
   supplied file is checked against the archive and snapshot; unrelated papers

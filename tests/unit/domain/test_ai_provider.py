@@ -28,6 +28,39 @@ def response(text='{"ok": true}', model='test-model'):
 
 
 class OpenAIProviderTests(unittest.TestCase):
+    def test_truncated_chunked_response_is_retried_without_exposing_body(self):
+        from http.client import IncompleteRead
+        from unittest.mock import MagicMock, patch
+        from qecgraph.llm.client import LLMClient
+        from tests.unit.domain.test_ai_client import config, SCHEMA
+
+        reply = MagicMock(status=200, headers={})
+        reply.__enter__.return_value = reply
+        reply.read.side_effect = [IncompleteRead(b'private partial response'), response()]
+        provider = OpenAICompatibleProvider('openrouter', base_url='https://example.test/v1', api_key='secret')
+        client = LLMClient(config(), provider=provider, sleeper=lambda _: None)
+        with patch('urllib.request.urlopen', return_value=reply) as transport:
+            result = client.complete_json([Message('user', 'test')], SCHEMA)
+        self.assertEqual(transport.call_count, 2)
+        self.assertEqual(result.attempts, 2)
+        self.assertEqual(result.data, {'ok': True})
+
+    def test_truncated_http_error_body_becomes_safe_transport_failure(self):
+        from http.client import HTTPMessage, IncompleteRead
+        from io import BytesIO
+        from urllib.error import HTTPError
+        from unittest.mock import patch
+        from qecgraph.llm.providers.http import UrllibTransport
+
+        class BrokenBody(BytesIO):
+            def read(self, *args):
+                raise IncompleteRead(b'private error diagnostic')
+
+        error = HTTPError('https://example.test', 502, 'upstream failure', HTTPMessage(), BrokenBody())
+        with patch('urllib.request.urlopen', side_effect=error), self.assertRaises(ConnectionError) as caught:
+            UrllibTransport().request('POST', 'https://example.test', headers={}, body=b'{}', timeout=1)
+        self.assertNotIn('private', str(caught.exception))
+
     def provider(self, transport):
         return OpenAICompatibleProvider('openrouter', base_url='https://example.test/v1',
                                        api_key='secret', transport=transport)
