@@ -45,12 +45,13 @@ This document is the single source of truth for the system's architecture, data 
 
 ## 1. Scope and non-goals
 
-QEC Graph turns LaTeX papers and explicit QEC research records into a provenance-preserving local workspace. It is designed for four questions:
+QEC Graph turns LaTeX papers and explicit QEC research records into a provenance-preserving local workspace. It is designed for five questions:
 
 1. Where exactly was a statement, definition, proof, table, or parameter written?
 2. What does the source claim, what is explicitly recorded, what was reviewed, and what was computed?
 3. Which codes, check-matrix representations, circuits, noise models, decoders, experiments, and software versions are connected to a result?
 4. What can be handed to a read-only agent without silently turning candidates, upper bounds, or author claims into facts?
+5. Which problems, motivations, approaches and open questions does a paper express, and how do they connect to its results and prior work?
 
 **It is not:**
 
@@ -195,7 +196,7 @@ Duplicate labels are ambiguous and must be resolved with an exact ID. Missing re
 |---|---|---|
 | `qecgraph.research` | Current workspace research records (27 kinds, 47 typed relations) | `qecgraph/validators/schemas/research.schema.json` |
 | `qecgraph.record` | Corpus records (current format) | `qecgraph/validators/schemas/record.schema.json` |
-| `qecgraph.graph` | Extraction graph and three views | `qecgraph/validators/schemas/graph.schema.json` |
+| `qecgraph.graph` | Extraction graph and SourceGraph/LemmaGraph/DataGraph projections | `qecgraph/validators/schemas/graph.schema.json` |
 | `qecgraph.annotations` | Human/AI additions to an extraction store | packaged schema |
 | `qecgraph.proposal`, `qecgraph.review` | Review envelopes | packaged schemas |
 | `qecgraph.lean-export` | Experimental/deferred Lean export envelope | packaged schema |
@@ -238,6 +239,7 @@ The domain model is intentionally split; these are not interchangeable:
 | `hardware_model` / `execution_environment` | Hardware claims and simulation CPU/GPU environments are separate |
 | `software_usage` | Mention, citation, source-reported use, and locally observed use are different evidence levels |
 | `catalog_source` | A software catalog entry is not an installed/tested release |
+| `research_thought` | A quoted author statement or attributed interpretation is not a verified result or inferred proof dependency |
 
 Required minimums include:
 
@@ -249,6 +251,7 @@ Required minimums include:
 - `experiment`: exact code/check-matrix representation/circuit/noise-model instance/decoder/metric/source revisions.
 - `performance_data_point`: experiment, noise-model instance, metric, value, coordinates, shots/discards/uncertainty, selection policy; no interpolation across curves.
 - `software_usage`: usage kind, project, release (or explicit unknown), and source/experiment binding.
+- `research_thought`: category, statement, attribution, exact source quotation and paper-version reference; real records bind statement and quotation to the same source span.
 
 Check weight always binds to the actual check-matrix representation and check set, including sector (`X`/`Z`/`mixed`), scope (`stabilizer`/`gauge`/`measured`), and min/max/mean/histogram. In a symplectic representation, a `Y` contributes one support position.
 
@@ -263,6 +266,7 @@ The canonical relation registry is `qecgraph.research.RELATIONS` / graph validat
 - experiments: `uses_circuit`, `uses_noise`, `uses_decoder`, `reports`, `supports`, `contradicts`;
 - Lean: `formalizes`, `maps_declaration`, `maps_source_occurrence`, `has_build_evidence`, `lean_type_depends_on`, `lean_proof_depends_on` (and transitive variants);
 - catalogs: `catalog:*` preserve imported meaning; they do not become proof edges.
+- thoughts: `addresses_refs`, `motivated_by_refs`, `extends_refs`, `contradicts_refs` link thoughts; `related_refs` links research objects. Each target includes its exact revision.
 
 Each edge keeps `source`, `target`, `relation`, `status`, and `evidence`.
 
@@ -587,7 +591,7 @@ API keys are redacted and the configuration file is created mode `0600`.
 | Versioned skill packs | Implemented |
 | Source-mapped normalization | Implemented for ambiguous packages |
 | Parser-first structure recovery | Implemented for eligible original TeX entries, with proposed block kinds |
-| Theorem/assumption/data proposals | Opt-in, implemented as `machine/ai/proposals`; explicit review decisions are recorded, conversion to canonical research records is not automatic |
+| Theorem/assumption/data/thought proposals | Opt-in, implemented as `machine/ai/proposals`; explicit review decisions are recorded, conversion to canonical research records is not automatic |
 
 ### 15.1 Parser-first body extraction rollout
 
@@ -657,12 +661,42 @@ missing values and unextracted fields remain explicit.
 | DataGraph | Codes, presentations, distance, circuits, noise, decoders, experiments and software | Co-occurrence does not establish a shared experiment |
 | ThoughtsGraph | Problem, motivation, approach/outcome, intuition, assumptions, conclusion, open questions, surprises, side results | Author statements and interpretations remain distinct, with exact source evidence |
 
-ThoughtsGraph adds a revisioned `research_thought` record with a category,
-statement, attribution, paper-version reference and typed links. It must not
-read private notes or manufacture reasoning the authors did not report. An
-optional versioned AI extraction skill emits proposals with exact quotations;
-publication as research records still requires the explicit review path.
 These are four views of shared identities, not four independent databases.
+The extraction snapshot retains its three named source/lemma/data projections.
+ThoughtsGraph is implemented through revisioned `research_thought` records,
+typed queries and generated pages; no separate `thoughtsgraph.json` snapshot
+is currently emitted. Source spans connect these records to the original paper.
+
+#### ThoughtsGraph contract
+
+ThoughtsGraph preserves source-grounded research intent and interpretation.
+The nine categories and reading workflow are described in the
+[research thoughts reference](../user/data-and-search.md#research-thoughts--thoughtsgraph).
+One record captures one thought; multiple categories or different source claims
+remain separate records so their evidence and revisions can evolve independently.
+
+| Field or relation | Contract |
+|---|---|
+| `category` | One of the nine supported research-thought categories |
+| `statement`, `source_quote` | Nonempty statement and verbatim quotation; `author_explicit` requires them to be identical |
+| `attribution` | `author_explicit` or `editorial_inference`; attribution does not establish review or mathematical validity |
+| `source_ref`, `field_evidence` | Exact `paper_version` revision; real statements and quotations bind the same registered source span, whose text is checked at publication |
+| `relation_to_prior` | `extends`, `strengthens`, `contradicts`, `unrelated` or null; a recorded interpretation, not an automatically established scientific result |
+| `addresses_refs`, `motivated_by_refs`, `extends_refs`, `contradicts_refs` | Exact revisions of other `research_thought` records, with field-level evidence |
+| `related_refs` | Exact revisions of allowed research kinds, such as a construction, experiment or decoder; parser occurrences remain accessible through source evidence |
+
+`extract_thoughts` v1 produces `qecgraph.ai.proposal` packages, exposed for opt-in
+search as `research_thought_proposal` items. These are distinct from published
+research records. Explicit review and record import remain separate steps; no
+AI result or approval automatically creates a canonical record. Both records
+and proposals retain their actual review status. Candidate interpretation links
+require opt-in traversal; citations and thought links do not become proof edges.
+
+Registered records render under `human/generated/thoughts/`, showing the
+statement, author quotation, attribution and provenance. The generator and all
+query paths never read private notes. An absent category means coverage is
+missing; it does not establish that the paper lacks such a thought. Do not
+manufacture authors' unreported reasoning.
 
 ### 16.2 Storage, retrieval and reading units
 
@@ -761,14 +795,14 @@ disk before choosing another backend. Do not emit a Markdown file per search uni
 
 ### 16.6 Incremental delivery and acceptance
 
-| Stage | Initial audit | Required delivery |
+| Stage | Current status | Delivery |
 |---|---|---|
-| 1. Design integration | Existing source archive, research, review and fixed-scope MCP | Preserve Human.md, reconcile summary and commit the implementation contract |
-| 2. Source reading | Block reads exist; document navigation is incomplete | Outline/full-file/section reads, strict versions, coverage and generic search/fetch |
-| 3. ThoughtsGraph | Not implemented | Nine categories, typed evidence, validated AI proposals, retrieval and human rendering |
-| 4. Retrieval | Lexical/structured only | Offline versioned vector projection, hybrid ranking and source fallback |
-| 5. Task contexts | Generic graph traversal exists | Purpose-aware context, typed trace, exact query aliases and missing-component reports |
-| 6. Evaluation | Existing regression and replay tools | Reproducible retrieval/context baselines, real-source checks where available, documentation and final push |
+| 1. Design integration | Complete | Retained Human.md, integrated summary and committed implementation contract |
+| 2. Source reading | Implemented | Outline/full-file/section reads, strict versions, coverage and generic search/fetch |
+| 3. ThoughtsGraph | Implemented | Nine categories, typed evidence, validated AI proposals, retrieval and human rendering |
+| 4. Retrieval | Implemented; semantic quality unmeasured | Offline versioned vector projection, hybrid ranking and source fallback |
+| 5. Task contexts | Implemented; structural selection | Purpose-aware context, typed trace, exact query aliases and missing-component reports |
+| 6. Evaluation | Mechanics checked; scientific QA pending | Reproducible retrieval/context baselines, available real-source checks and documented limits |
 
 Each stage is tested and committed separately; update its actual status with the
 implementation. Do not treat a roadmap or generated fixture as a finished

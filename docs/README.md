@@ -30,6 +30,7 @@ flowchart TD
 | A new user | [Quick start](user/quickstart.md) | Shortest path from archive to first query |
 | Importing or maintaining a workspace | [Workspace guide](user/workspace.md) | Archive configuration, entry points, Obsidian and provider handoff |
 | Querying records or sources | [Data and search](user/data-and-search.md) | Record types, evidence policy and CLI/MCP queries |
+| Understanding graph roles or research ideas | [Four graph views](user/data-and-search.md#how-the-four-graphs-work-together) | SourceGraph, LemmaGraph, DataGraph and ThoughtsGraph; thought categories, evidence and queries |
 | Configuring AI extraction | [Workspace guide](user/workspace.md#ai-configuration) | Provider templates, API keys, normalization and proposal review |
 | Running commands | [Advanced usage](user/advanced-usage.md) | Install, exit codes, grouped commands and release checks |
 | Working on the splitter | [Single-paper splitter](user/splitter.md) | Source spans, fragment layout and LaTeX limits |

@@ -11,6 +11,7 @@ served the query, so you can trace a result back to the same data later.
 ## On this page
 
 - [What the workspace stores](#what-the-workspace-stores)
+- [How the four graphs work together](#how-the-four-graphs-work-together)
 - [Research record types](#research-record-types)
 - [Search by keyword, source, or structured fields](#search-by-keyword-source-or-structured-fields)
 - [AI proposals](#ai-proposals)
@@ -39,6 +40,29 @@ explicit records and evidence. Source links preserve what the paper reports.
 Mathematical checks and semantic review carry separate evidence. Lean is
 deferred in 0.6.x; any experimental Lean fixture is not a verification claim.
 [Graph semantics and data contracts](../design/DESIGN.md#4-data-contracts)
+
+## How the four graphs work together
+
+SourceGraph provides document structure and exact source locations. LemmaGraph
+organizes definitions, assumptions, statements and proof/dependency relations.
+DataGraph connects QEC objects to their representations, experimental conditions
+and reported results. ThoughtsGraph records why a problem matters, how the paper
+approaches it and what questions remain. They share source versions and object
+identities rather than maintaining four separate databases.
+
+```mermaid
+flowchart LR
+    T["ThoughtsGraph: questions and ideas"] -->|"related records"| D["DataGraph: objects and conditions"]
+    T -->|"quoted source"| S["SourceGraph: text and versions"]
+    D -->|"source evidence"| S
+    L["LemmaGraph: statements and dependencies"] -->|"statement and proof spans"| S
+```
+
+For example, understanding a decoder improvement may start with its motivation
+and approach in ThoughtsGraph, continue with the experiment/noise/metric bindings
+in DataGraph, and follow mathematical claims through LemmaGraph. SourceGraph
+provides the original text throughout. The arrows show reading paths; only
+explicit, evidence-bound relationships establish a recorded dependency or link.
 
 ## Research record types
 
@@ -102,6 +126,42 @@ failure rate. [Linked synthetic fixture](../../tests/fixtures/performance_contex
 Importing the bundled catalog creates catalog, project, distribution, and
 algorithm records. A usage record needs evidence of what the paper or run
 actually used, including the version when available. [Bundled software catalog](../../qecgraph/catalog/software_catalog.seed.json)
+
+### Research thoughts — ThoughtsGraph
+
+The `research_thought` kind preserves one source-grounded thought per record.
+Its nine categories correspond to the questions retained in
+[Human.md](../design/Human.md):
+
+| `category` | What to retain |
+|---|---|
+| `problem` | The question or limitation the paper addresses |
+| `motivation` | Why that question matters |
+| `approach` | The proposed method or route to a solution |
+| `intuition` | An intuition or guiding idea stated in the paper |
+| `assumption` | A premise or restriction important to the argument |
+| `conclusion` | The reported outcome and its scope |
+| `open_question` | An unresolved issue or suggested next question |
+| `surprising_result` | A surprising or counterintuitive finding identified in the source |
+| `side_result` | A result outside the main line of the paper |
+
+Read `approach` together with `conclusion` to assess what was accomplished.
+`relation_to_prior` can record an extension, strengthening or contradiction of
+prior work; it remains unknown when the source does not establish the relation.
+
+Each record includes `statement`, the verbatim `source_quote`, `attribution`
+and a `source_ref` to an exact `paper_version` revision. For `author_explicit`,
+the statement must equal the quotation. `editorial_inference` identifies a
+human or AI interpretation supported by that quotation. Real records bind both
+fields to the same source span; successful quotation checks do not verify the
+paper's conclusion or turn an interpretation into the author's words.
+
+`addresses_refs`, `motivated_by_refs`, `extends_refs` and `contradicts_refs`
+link exact revisions of other thoughts. `related_refs` can connect a thought to
+research records such as a construction, decoder or experiment. An `assumption`
+thought captures the paper's premise; it does not automatically create a
+reviewed theorem dependency. Generated pages for registered thought records
+appear under `human/generated/thoughts/`. Private `human/notes/` is never input.
 
 ### Fields, revisions, and evidence
 
@@ -206,6 +266,44 @@ decision is retained and reported as stale. Proposal references use
 `projection_path:first-last` with 1-based inclusive lines. The projection maps
 back to the archived source. Existing unbound proposals are retained on disk.
 Run `sync` with AI configured to generate bound proposals from the archive.
+
+### Extract and read research thoughts
+
+With a provider configured and `[ai].extract_proposals = true`, `sync` runs
+`extract_thoughts` v1 alongside the other extraction skills. The output keeps
+exact quotations and source references and remains a proposal, including when
+`attribution` is `author_explicit`. A review decision does not automatically
+convert it to a `research_thought` record.
+
+Search bound thought proposals through the research profile:
+
+```sh
+qec-graph query-tool qec_search --workspace . --profile research --arguments /dev/stdin <<'JSON'
+{"query":"decoder","kind":"research_thought_proposal","include_proposals":true,"limit":5}
+JSON
+```
+
+Use a returned ID with `qec_fetch` to inspect the proposal and its quotation.
+Check the original passage and record an explicit review decision. To publish
+a research record, prepare the source-bound JSON and use the
+[research import workflow](advanced-usage.md#manage-the-obsidian-vault-and-research-records);
+its evidence and review status remain explicit.
+
+Search registered thought records separately:
+
+```sh
+qec-graph query-tool qec_search --workspace . --profile research --arguments /dev/stdin <<'JSON'
+{"query":"decoder","kind":"research_thought","limit":5}
+JSON
+```
+
+Pass a record's `id` and `revision` to `qec_get_context` with `purpose: "thought"`
+for linked records and evidence, or to `qec_trace` for typed relationships.
+Editorial-inference relations are candidates and require `include_candidates`
+to follow. Missing components stay explicit. An empty result does not mean
+the paper contains no such idea; search its source text and check extraction
+coverage. Proposal search requires opt-in; registered records may still have
+draft/proposed review status.
 
 ## Read and reproduce a query result
 

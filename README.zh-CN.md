@@ -93,6 +93,23 @@ qec-graph sync
 
 ## 工作流程
 
+### 四种图视图
+
+QEC Graph 从四个相互关联的视角组织同一套来源和记录：
+
+| 视图 | 帮助理解什么 |
+|---|---|
+| SourceGraph | 原文位置、文档层级、上下文与精确来源版本 |
+| LemmaGraph | 定义、假设、陈述、证明文字及其依赖状态 |
+| DataGraph | 一个结果对应的码、矩阵、电路、噪声、decoder 和实验条件 |
+| ThoughtsGraph | 论文的问题、动机、方法、直觉、假设、结论、开放问题、反直觉发现和支线结果 |
+
+ThoughtsGraph 使用带原文引用的 `research_thought` 记录和类型化关系。
+作者陈述与整理者解读分开，AI 输出保持 proposed。四种图共享身份与来源证据。
+详见[图的分工与思路查询](docs/user/data-and-search.zh-CN.md#四种图如何配合)。
+
+### 发布流水线
+
 流水线是单 writer；每个节点都为下一节点留下具名产物。实现文档位于 `docs/user/`、`docs/design/` 和 `docs/operations/`。
 
 | 节点 | 目的 | 实现文档 | 输入 | 输出 |
@@ -105,7 +122,7 @@ qec-graph sync
 | `review` | 把提案和决定绑定到精确内容 | [审核](docs/operations/review.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#6-审核证据和查询资格) | proposal JSON 和显式决定 | `machine/proposals/<hash>.json`、`machine/reviews/<hash>.json`、`machine/states/<revision>.json` |
 | `release` | 验证全部内容并发布不可变 release | [系统设计](docs/design/DESIGN.zh-CN.md#7-工作区事务与发布协议)、[维护](docs/operations/maintenance.zh-CN.md) | staged records 和 snapshots | 含 `format`、`revision` 的 `machine/CURRENT.json`；`machine/states/<revision>.json` |
 | `CLI` | 读取固定 workspace、store 或 corpus 作用域 | [进阶用法](docs/user/advanced-usage.zh-CN.md)、[数据与检索](docs/user/data-and-search.zh-CN.md) | `--workspace`、`--machine`、`--store` 或 `--corpus`；`query-tool` 的 JSON 参数 | 终端文本或版本化 JSON |
-| `MCP` | 通过本地 stdio 提供只读工具 | [MCP 设置](#mcp)、[数据与检索](docs/user/data-and-search.zh-CN.md) | stdio 上的 JSON-RPC 2.0；固定一个 release；13 个工具 | JSON-RPC 帧、text/structured content、`qec://source/...` resources |
+| `MCP` | 通过本地 stdio 提供只读工具 | [MCP 设置](#mcp)、[数据与检索](docs/user/data-and-search.zh-CN.md) | stdio 上的 JSON-RPC 2.0；固定一个 release；legacy/research/compatible profile | JSON-RPC 帧、text/structured content、`qec://source/...` resources |
 | `human/` | 渲染 Obsidian 视图，绝不回写 | [工作区说明](docs/user/workspace.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#9-人类视图) | 已发布机器 release | `human/Index.md`、`human/generated/**/*.md`、`human/generated/.qecgraph-manifest.json`；`human/notes/` 不变 |
 
 单个 writer 拥有整条流水线。读取端固定一个 `CURRENT` release；验证失败时旧
@@ -272,6 +289,7 @@ opencode mcp list
 | 运行最短示例 | [快速开始](docs/user/quickstart.zh-CN.md) |
 | 配置工作区、归档或 Obsidian | [工作区说明](docs/user/workspace.zh-CN.md) |
 | 搜索记录、码或性能点 | [数据与检索](docs/user/data-and-search.zh-CN.md) |
+| 理解四种图并阅读研究思路 | [图的分工与 ThoughtsGraph](docs/user/data-and-search.zh-CN.md#四种图如何配合) |
 | 查命令、退出码或发布检查 | [进阶用法](docs/user/advanced-usage.zh-CN.md) |
 | 理解身份、证据和发布 | [系统设计](docs/design/DESIGN.zh-CN.md) |
 | 浏览文档索引 | [docs/README.zh-CN.md](docs/README.zh-CN.md) |

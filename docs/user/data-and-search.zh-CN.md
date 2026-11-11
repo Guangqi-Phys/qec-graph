@@ -10,6 +10,7 @@ QEC Graph 保存原始来源、从来源抽取的图，以及带版本的研究�
 ## 本页目录
 
 - [工作区保存什么](#工作区保存什么)
+- [四种图如何配合](#四种图如何配合)
 - [研究记录类型](#研究记录类型)
 - [按关键词、来源或结构化字段检索](#按关键词来源或结构化字段检索)
 - [AI proposals](#ai-proposals)
@@ -34,6 +35,26 @@ QEC Graph 保存原始来源、从来源抽取的图，以及带版本的研究�
 实验条件和性能点依赖显式记录和证据。来源链接保留论文实际报告的内容。
 数学检查和语义审核携带独立证据。Lean 在 0.6.x 中延期；任何实验 Lean fixture
 都不是验证结论。[图语义和数据契约](../design/DESIGN.zh-CN.md#4-数据契约)
+
+## 四种图如何配合
+
+SourceGraph 提供文档层级与精确来源位置；LemmaGraph 组织定义、假设、陈述、证明文字
+及依赖关系；DataGraph 将 QEC 对象与具体呈现、实验条件和报告结果关联；ThoughtsGraph
+保存问题的重要性、论文采用的思路以及遗留的问题。它们共享来源版本和对象身份，
+不是四套各自维护的数据库。
+
+```mermaid
+flowchart LR
+    T["ThoughtsGraph：问题与思路"] -->|"相关记录"| D["DataGraph：对象与条件"]
+    T -->|"原文引用"| S["SourceGraph：文本与版本"]
+    D -->|"来源证据"| S
+    L["LemmaGraph：陈述与依赖"] -->|"陈述和证明区间"| S
+```
+
+例如，要理解某个 decoder 的改进，可以从 ThoughtsGraph 的动机与方法出发，在
+DataGraph 核对实验、噪声与度量，再通过 LemmaGraph 查看涉及的数学陈述。
+整个过程都能回到 SourceGraph 阅读原文。图中箭头表示阅读路径；实际记录的依赖或关联
+以显式、带证据的关系为准。
 
 ## 研究记录类型
 
@@ -94,6 +115,36 @@ QEC Graph 保存原始来源、从来源抽取的图，以及带版本的研究�
 导入自带 catalog 会创建 catalog、project、distribution 和 algorithm 记录。
 usage 记录需要论文或运行实际使用内容的证据，包括已知版本。
 [自带软件 catalog](../../qecgraph/catalog/software_catalog.seed.json)
+
+### 研究思路 — ThoughtsGraph
+
+`research_thought` 每条记录保存一项有来源依据的研究思路，九个类别对应
+[Human.md](../design/Human.md) 中保留的问题：
+
+| `category` | 保存什么 |
+|---|---|
+| `problem` | 论文针对的问题或已有工作的局限 |
+| `motivation` | 这个问题为什么重要 |
+| `approach` | 提出的方法或解决路线 |
+| `intuition` | 论文明确描述的直觉或关键想法 |
+| `assumption` | 对论证重要的前提或限制 |
+| `conclusion` | 报告的结果及其适用范围 |
+| `open_question` | 未解决的问题或提出的后续问题 |
+| `surprising_result` | 来源指出的不同寻常或反直觉发现 |
+| `side_result` | 主线之外的结果 |
+
+“是否解决了问题”需要结合 `approach` 与 `conclusion` 阅读。
+`relation_to_prior` 可记录对前人工作的补充、加强或矛盾；来源没有确立关系时保留未知。
+
+每条记录包含 `statement`、逐字原文 `source_quote`、归属 `attribution`，以及指向
+精确 `paper_version` 修订的 `source_ref`。`author_explicit` 要求陈述与引用完全相同；
+`editorial_inference` 表示人工或 AI 根据引用做出的解读。真实记录的两项内容都需绑定
+同一来源区间。引用校验通过不证明论文结论正确，也不会把解读变成作者的原话。
+
+`addresses_refs`、`motivated_by_refs`、`extends_refs`、`contradicts_refs` 关联其他
+思路的精确修订；`related_refs` 可关联构造、decoder、实验等研究记录。
+`assumption` 思路保存论文前提，不会自动产生经审核的定理依赖。已登记思路记录的生成
+页面位于 `human/generated/thoughts/`；私人 `human/notes/` 永不作为输入。
 
 ### 字段、修订和证据
 
@@ -184,6 +235,40 @@ AI 抽取会把 `qecgraph.ai.proposal` 写入 `machine/ai/proposals/`。它们�
 任一绑定变化时保留原决定，并显示为失效。提案引文使用
 `projection_path:first-last`，行号从 1 开始并包含两端，投影可映射回归档来源。
 旧版未绑定的提案保留在磁盘。配置 AI 后运行 `sync`，可从归档生成已绑定的提案。
+
+### 提取与阅读研究思路
+
+配置 provider 并启用 `[ai].extract_proposals = true` 后，`sync` 与其他抽取 skill
+一起运行 `extract_thoughts` v1。输出保留精确引用和来源位置，始终是提案；
+即使 `attribution` 为 `author_explicit` 也不例外。审核决定不会自动将其转换为
+`research_thought` 记录。
+
+通过研究 profile 搜索已绑定来源的思路提案：
+
+```sh
+qec-graph query-tool qec_search --workspace . --profile research --arguments /dev/stdin <<'JSON'
+{"query":"decoder","kind":"research_thought_proposal","include_proposals":true,"limit":5}
+JSON
+```
+
+将返回的 ID 传给 `qec_fetch`，查看提案与原文引用，核对原文后记录明确的审核决定。
+要发布研究记录，需准备绑定来源的 JSON 并使用
+[research 导入流程](advanced-usage.zh-CN.md#管理-obsidian-vault-和研究记录)；
+记录仍保留明确的证据和审核状态。
+
+另行搜索已登记的思路记录：
+
+```sh
+qec-graph query-tool qec_search --workspace . --profile research --arguments /dev/stdin <<'JSON'
+{"query":"decoder","kind":"research_thought","limit":5}
+JSON
+```
+
+将记录的 `id`、`revision` 传给 `qec_get_context`，设置 `purpose: "thought"`，
+读取相关记录与证据；或使用 `qec_trace` 查看类型化关系。整理者解读的关系是 candidate，
+跟随这些关系需要 `include_candidates`。缺失组件会明确列出。搜索为空不代表论文没有
+相关想法，应继续查询原文并检查抽取覆盖。提案搜索需要显式开启；已登记记录也可能仍为
+draft/proposed 审核状态。
 
 ## 读取和复现查询结果
 

@@ -48,12 +48,13 @@ Lean 边界的唯一权威来源。如果代码、测试和本文不一致，以
 
 ## 1. 范围与非目标
 
-QEC Graph 把 LaTeX 论文和显式 QEC 研究记录变成保留来源的本地工作区。它面向四个问题：
+QEC Graph 把 LaTeX 论文和显式 QEC 研究记录变成保留来源的本地工作区。它面向五个问题：
 
 1. 一个陈述、定义、证明、表格或参数究竟写在哪里？
 2. 来源声称什么、显式记录了什么、审核了什么、计算了什么？
 3. 哪些码、表示、电路、噪声模型、解码器、实验和软件版本与一个结果相连？
 4. 什么可以交给只读 agent，而不会把候选、上界或作者声明悄悄变成事实？
+5. 论文表达了哪些问题、动机、方法与开放问题，它们如何联系具体结果和前人工作？
 
 **它不是：**
 
@@ -211,7 +212,7 @@ Store 和 corpus 有各自受管理根目录。不要合并它们的 pointer 格
 |---|---|---|
 | `qecgraph.research` | 当前 workspace 研究记录（27 kinds、47 typed relations） | `qecgraph/validators/schemas/research.schema.json` |
 | `qecgraph.record` | corpus 记录（当前格式） | `qecgraph/validators/schemas/record.schema.json` |
-| `qecgraph.graph` | 抽取图和三种视图 | `qecgraph/validators/schemas/graph.schema.json` |
+| `qecgraph.graph` | 抽取图及 SourceGraph/LemmaGraph/DataGraph 投影 | `qecgraph/validators/schemas/graph.schema.json` |
 | `qecgraph.annotations` | 对抽取 store 的人工/AI 增补 | packaged schema |
 | `qecgraph.proposal`、`qecgraph.review` | 审核信封 | packaged schemas |
 | `qecgraph.lean-export` | 实验性/延期 Lean 导出信封 | packaged schema |
@@ -256,6 +257,7 @@ Store 和 corpus 有各自受管理根目录。不要合并它们的 pointer 格
 | `hardware_model` / `execution_environment` | 硬件声称与模拟 CPU/GPU 环境分开 |
 | `software_usage` | 提及、引用、来源报告使用和本地观察使用是不同证据等级 |
 | `catalog_source` | 软件 catalog 条目不是已安装/测试的 release |
+| `research_thought` | 作者原文或注明归属的解读不等于已验证结果，也不自动建立证明依赖 |
 
 必需最低字段包括：
 
@@ -267,6 +269,7 @@ Store 和 corpus 有各自受管理根目录。不要合并它们的 pointer 格
 - `experiment`：精确 code/check-matrix representation/circuit/noise-model instance/decoder/metric/source revisions。
 - `performance_data_point`：experiment、noise-model instance、metric、value、coordinates、shots/discards/uncertainty、selection policy；不跨曲线插值。
 - `software_usage`：usage kind、project、release（或显式 unknown），以及 source/experiment 绑定。
+- `research_thought`：类别、陈述、归属、精确原文引用和论文版本引用；真实记录的陈述与引用绑定同一来源区间。
 
 Check weight 始终绑定实际 check-matrix representation 和 check 集，包括 sector（`X`/`Z`/`mixed`）、
 scope（`stabilizer`/`gauge`/`measured`）和 min/max/mean/histogram。在 symplectic
@@ -284,6 +287,7 @@ scope（`stabilizer`/`gauge`/`measured`）和 min/max/mean/histogram。在 sympl
 - 实验：`uses_circuit`、`uses_noise`、`uses_decoder`、`reports`、`supports`、`contradicts`；
 - Lean：`formalizes`、`maps_declaration`、`maps_source_occurrence`、`has_build_evidence`、`lean_type_depends_on`、`lean_proof_depends_on`（及传递变体）；
 - catalog：`catalog:*` 保留导入含义；它们不变成证明边。
+- 思路：`addresses_refs`、`motivated_by_refs`、`extends_refs`、`contradicts_refs` 关联思路；`related_refs` 关联研究对象，目标均包含精确修订。
 
 每条边保留 `source`、`target`、`relation`、`status` 和 `evidence`。
 
@@ -640,7 +644,7 @@ Provider 在 `qecgraph.toml` 中选择（OpenAI、Anthropic、OpenRouter 或本�
 | 版本化 skill packs | 已实现 |
 | 来源映射规范化 | 已实现于歧义文献包 |
 | 软件优先的结构回退 | 已实现于符合条件的原始 TeX 入口，块分类保留为 proposed |
-| 定理/假设/数据 proposal | 已写入 `machine/ai/proposals`；显式审核决定会记录，但不会自动转换为权威研究记录 |
+| 定理/假设/数据/思路 proposal | 显式启用后写入 `machine/ai/proposals`；审核决定会记录，但不会自动转换为权威研究记录 |
 
 ### 15.1 软件优先的正文抽取实施计划
 
@@ -693,10 +697,34 @@ syndrome 电路、噪声（包括 idle/loss）、decoder、硬件保真度与实
 | DataGraph | 码、呈现、距离、电路、噪声、decoder、实验与软件 | 同文出现不代表属于同一实验 |
 | ThoughtsGraph | 问题、动机、方法/结果、直觉、假设、结论、开放问题、反直觉发现、支线结论 | 作者陈述与解读分开，绑定确切来源证据 |
 
-ThoughtsGraph 增加版本化 `research_thought` 记录，包含类别、陈述、归属、
-论文版本引用及类型化关系。不读私人笔记，不捏造作者未报告的思考过程。
-可选的版本化 AI skill 产生带精确引用的提议；成为 research record 仍须经过显式审核。
-四种图共享身份与来源，不是四个独立数据库。
+四种图共享身份与来源，不是四个独立数据库。抽取快照仍保留 source/lemma/data
+三个命名投影；ThoughtsGraph 由版本化 `research_thought` 记录、类型化查询和生成页面
+实现，当前不会另行输出 `thoughtsgraph.json` 快照。来源区间将这些记录连接回论文原文。
+
+#### ThoughtsGraph 契约
+
+ThoughtsGraph 保存有来源依据的研究意图与解读。九个类别和阅读流程见
+[研究思路参考](../user/data-and-search.zh-CN.md#研究思路--thoughtsgraph)。
+每条记录表达一项思路；不同类别或不同来源主张分别保存，使证据和修订可以独立演进。
+
+| 字段或关系 | 契约 |
+|---|---|
+| `category` | 九个受支持研究思路类别之一 |
+| `statement`、`source_quote` | 非空陈述和逐字原文引用；`author_explicit` 要求二者相同 |
+| `attribution` | `author_explicit` 或 `editorial_inference`；归属不代表审核通过或数学有效 |
+| `source_ref`、`field_evidence` | 精确 `paper_version` 修订；真实陈述与引用绑定同一登记来源区间，发布时核对原文 |
+| `relation_to_prior` | `extends`、`strengthens`、`contradicts`、`unrelated` 或 null；是记录的解读，不是自动确立的科学结论 |
+| `addresses_refs`、`motivated_by_refs`、`extends_refs`、`contradicts_refs` | 其他 `research_thought` 记录的精确修订，附字段证据 |
+| `related_refs` | 允许的研究类型的精确修订，如构造、实验或 decoder；解析块仍通过来源证据访问 |
+
+`extract_thoughts` v1 产生 `qecgraph.ai.proposal` 包，显式开启搜索后以
+`research_thought_proposal` 条目暴露，与已发布研究记录分开。明确审核与记录导入是
+两个步骤，AI 结果或批准都不会自动创建规范记录。记录和提案保留实际审核状态；
+候选解读关系需显式开启遍历，引用和思路关联不会转为证明依赖。
+
+已登记记录渲染到 `human/generated/thoughts/`，展示陈述、作者原文、归属和来源。
+生成器与查询从不读取私人笔记。某个类别没有记录表示覆盖缺失，不代表论文不存在该类
+思路；不得捏造作者未披露的推理过程。
 
 ### 16.2 存储、检索与阅读单位
 
@@ -771,14 +799,14 @@ Lean → 原始陈述、量词、假设和已有映射。上下文选择是结�
 
 ### 16.6 分阶段交付与验收
 
-| 阶段 | 初始审计 | 交付要求 |
+| 阶段 | 当前状态 | 交付内容 |
 |---|---|---|
-| 1. 设计整合 | 已有来源归档、研究记录、审核和固定范围 MCP | 保留 Human.md，消解总结冲突，提交实现契约 |
-| 2. 原文阅读 | 已有块读取，文档导航不完整 | 目录/完整源文件/章节、严格版本、覆盖、通用 search/fetch |
-| 3. ThoughtsGraph | 未实现 | 九类思路、类型化证据、校验 AI 提议、检索、人类视图 |
-| 4. 检索 | 仅词法与结构化 | 离线版本化向量投影、混合排序、原文回退 |
-| 5. 任务上下文 | 已有通用图遍历 | 按用途组装、类型化 trace、精确查询别名、缺失组成报告 |
-| 6. 评测 | 已有回归和复现工具 | 可复现检索/上下文基线、可得真实来源验证、文档、最终 push |
+| 1. 设计整合 | 已完成 | 保留 Human.md，整合总结，提交实现契约 |
+| 2. 原文阅读 | 已实现 | 目录/完整源文件/章节、严格版本、覆盖、通用 search/fetch |
+| 3. ThoughtsGraph | 已实现 | 九类思路、类型化证据、校验 AI 提议、检索、人类视图 |
+| 4. 检索 | 已实现；语义质量未测 | 离线版本化向量投影、混合排序、原文回退 |
+| 5. 任务上下文 | 已实现；结构性选择 | 按用途组装、类型化 trace、精确查询别名、缺失组成报告 |
+| 6. 评测 | 机制已验证；科学问答待评测 | 可复现检索/上下文基线、可得真实来源检查、明确记录限制 |
 
 每阶段单独测试并提交，随实现更新真实状态。不把路线图或生成 fixture 当成科学结果。
 PDF/OCR、读图提取、自动证明和千篇/万篇生产验证不属于本轮实现。

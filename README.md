@@ -101,6 +101,24 @@ several roots remains archived and asks for an entry point instead.
 
 ## How it works
 
+### Four graph views
+
+QEC Graph organizes the same sources and records through four connected views:
+
+| View | What it helps you understand |
+|---|---|
+| SourceGraph | Where a passage appears, its document structure, context and exact source version |
+| LemmaGraph | Definitions, assumptions, statements, proof text and the status of their dependencies |
+| DataGraph | Which codes, matrices, circuits, noise models, decoders and experiment conditions belong to a result |
+| ThoughtsGraph | The paper's problems, motivations, approaches, intuitions, assumptions, conclusions, open questions, surprises and side results |
+
+ThoughtsGraph uses source-quoted `research_thought` records and typed links.
+Author statements and editorial interpretations stay distinct; AI output remains
+proposed. All four views share identities and provenance. See
+[graph roles and thought queries](docs/user/data-and-search.md#how-the-four-graphs-work-together).
+
+### Publication pipeline
+
 The pipeline is one writer; each stage leaves a named artifact for the next. Implementation docs live under `docs/user/`, `docs/design/` and `docs/operations/`.
 
 | Node | Purpose | Implementation docs | Input | Output |
@@ -113,7 +131,7 @@ The pipeline is one writer; each stage leaves a named artifact for the next. Imp
 | `review` | Bind proposals and decisions to exact content | [Review](docs/operations/review.md), [System design](docs/design/DESIGN.md#6-review-evidence-and-query-eligibility) | proposal JSON and explicit decision | `machine/proposals/<hash>.json`, `machine/reviews/<hash>.json`, `machine/states/<revision>.json` |
 | `release` | Validate everything and publish one immutable release | [System design](docs/design/DESIGN.md#7-workspace-transaction-and-publication-protocol), [Maintenance](docs/operations/maintenance.md) | staged records and snapshots | `machine/CURRENT.json` with `format` and `revision`; `machine/states/<revision>.json` |
 | `CLI` | Read a fixed workspace, store or corpus scope | [Advanced usage](docs/user/advanced-usage.md), [Data and search](docs/user/data-and-search.md) | `--workspace`, `--machine`, `--store` or `--corpus`; JSON arguments for `query-tool` | terminal text or versioned JSON |
-| `MCP` | Serve read-only tools over local stdio | [MCP setup](#mcp), [Data and search](docs/user/data-and-search.md) | JSON-RPC 2.0 over stdio; one pinned release; 13 tools | JSON-RPC frames, text/structured content, `qec://source/...` resources |
+| `MCP` | Serve read-only tools over local stdio | [MCP setup](#mcp), [Data and search](docs/user/data-and-search.md) | JSON-RPC 2.0 over stdio; one pinned release; legacy/research/compatible profile | JSON-RPC frames, text/structured content, `qec://source/...` resources |
 | `human/` | Render an Obsidian view; never write back | [Workspace guide](docs/user/workspace.md), [System design](docs/design/DESIGN.md#9-human-view) | published machine release | `human/Index.md`, `human/generated/**/*.md`, `human/generated/.qecgraph-manifest.json`; `human/notes/` untouched |
 
 One writer owns the pipeline. Readers pin one `CURRENT` release; a failed
@@ -289,6 +307,7 @@ Use `qec-graph mcp config --machine /path/to/machine` for a machine-only mount.
 | Run the shortest example | [Quick start](docs/user/quickstart.md) |
 | Configure a workspace, archive or Obsidian | [Workspace guide](docs/user/workspace.md) |
 | Search records, codes or performance data points | [Data and search](docs/user/data-and-search.md) |
+| Understand the four graphs and read research thoughts | [Graph roles and ThoughtsGraph](docs/user/data-and-search.md#how-the-four-graphs-work-together) |
 | Look up commands, exit codes or release checks | [Advanced usage](docs/user/advanced-usage.md) |
 | Understand identities, evidence and publication | [System design](docs/design/DESIGN.md) |
 | Browse the documentation index | [docs/README.md](docs/README.md) |

@@ -29,6 +29,7 @@ flowchart TD
 | 新用户 | [中文快速开始](user/quickstart.zh-CN.md) | 从归档到首次查询的最短路径 |
 | 导入或维护工作区 | [工作区说明](user/workspace.zh-CN.md) | 归档配置、入口、Obsidian 和 provider 交接 |
 | 查询记录或来源 | [数据与检索](user/data-and-search.zh-CN.md) | 记录类型、证据策略和 CLI/MCP 查询 |
+| 理解图的分工或论文思路 | [四种图视图](user/data-and-search.zh-CN.md#四种图如何配合) | SourceGraph、LemmaGraph、DataGraph、ThoughtsGraph，以及思路类别、证据与查询 |
 | 配置 AI 抽取 | [工作区说明](user/workspace.zh-CN.md#ai-配置) | Provider 模板、API key、规范化和 proposal 审核 |
 | 运行命令 | [进阶用法](user/advanced-usage.zh-CN.md) | 安装、退出码、命令分组和发布检查 |
 | 处理 splitter | [单篇 LaTeX 切割](user/splitter.zh-CN.md) | 来源区间、片段布局和 LaTeX 限制 |
