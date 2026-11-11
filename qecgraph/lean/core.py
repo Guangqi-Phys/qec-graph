@@ -15,6 +15,7 @@ from importlib.metadata import version
 from jsonschema import Draft202012Validator
 
 from .. import __version__
+from ..core.progress import phase
 from ..core.graph import canonical, hash_text, read_json, strict_json_loads
 from ..core.transactions import atomic_json, writer_lock
 
@@ -143,6 +144,7 @@ def build_project(project, out, *, lake=None, clean=True, export_declarations=Tr
     started = time.perf_counter()
 
     def execute(name, arguments):
+        phase('Lean: ' + name.replace('_', ' '), detail='Waiting for subprocess; timeout 180s')
         command = [str(x) for x in arguments]
         proc = subprocess.run(command, cwd=project, capture_output=True, text=True, encoding='utf-8', timeout=180)
         (run / (name + '.stdout.txt')).write_text(proc.stdout, encoding='utf-8')
@@ -212,6 +214,7 @@ def build_project(project, out, *, lake=None, clean=True, export_declarations=Tr
                                         'raw_stdout_sha256': hashlib.sha256((run / 'export.stdout.txt').read_bytes()).hexdigest()}
                 report['declaration_export'] = 'exported'
                 policy = read_json(project / 'axiom-policy.json')
+                phase('Auditing transitive Lean axiom dependencies')
                 audit = audit_export(export, policy, targets)
                 atomic_json(run / 'audit.json', audit)
                 report['axiom_audit'] = audit['status']

@@ -243,6 +243,7 @@ def extract(normalized, client, skill_name, *, projection_path='main.tex', addit
     from .normalize import NormalizedSource
     from .skills import load_skill
     from .providers.base import Message
+    from ..core.progress import phase
 
     if not isinstance(normalized, NormalizedSource):
         raise ExtractionError('normalized source is required')
@@ -280,6 +281,7 @@ def extract(normalized, client, skill_name, *, projection_path='main.tex', addit
         if skill.version < 4 or not exc.rejected_response:
             raise
         rejected = exc.rejected_response
+        phase('Correcting rejected AI response', detail='One correction request using the same registered source evidence')
         # One correction request, with the same full evidence and validation.
         # The prior answer is data, not trusted instructions. Failed responses
         # never become proposals or successful cache entries.

@@ -7,6 +7,8 @@ source.  File digests are SHA-256 of the original bytes, including CRLF/BOM.
 """
 from __future__ import annotations
 
+from ..core.progress import phase
+
 from hashlib import sha256
 from pathlib import Path
 import re
@@ -626,6 +628,7 @@ class _ProjectParser:
         return context
 
     def parse_nodes(self, path: str):
+        phase('Parsing LaTeX source', detail=path)
         text, aliases = self.structures[path]
         key = None
         if self.node_cache:

@@ -74,13 +74,12 @@ qec-graph validate --workspace "$workspace"
 qec-graph query search HGP --workspace "$workspace" --limit 2
 ```
 
-在重定向终端中，自带论文产生以下结果行。
+自带论文的结果行示例（实际耗时会变化）：
 
 ```text
-[################] init: OK (0/0 packages indexed)
-[################] sync: OK (1/1 packages indexed)
-[################] status: OK (1/1 packages indexed)
-[################] validate: OK
+✓ sync: OK  00:02 | 1/1 packages indexed
+✓ status: OK  00:00 | 1/1 packages indexed
+✓ validate: OK  00:01
 ```
 
 前两个搜索结果是公式 `eq:hgp-checks` 和 `eq:hgp-commutation`。它们的 `source`
@@ -96,10 +95,50 @@ qec-graph query search HGP --workspace "$workspace" --limit 2
 `--workspace`。日常命令 `sync`、`status` 和 `validate` 在当前目录不在已初始化
 工作区时，可用 `QECGRAPH_WORKSPACE` 作为回退。
 
-工作区维护命令默认打印一行结果。终端中，较长操作还会在这一行显示进度。
+工作区维护命令保留一行最终结果。所有业务命令共用 stderr 上的动态进度面板，
+只要 stderr 是终端，即使 stdout 被重定向也能显示。帮助和版本命令立即返回。
 脚本中请传 `--json` 获取完整报告，包括使用 `--workspace` 或重定向输出时。
 partial 状态在两种模式下都退出 2。无效命令语法退出 64。命令选项用
 `qec-graph help <command>`，已安装版本用 `qec-graph --version`。
+
+面板采用克制的琥珀金色、明确的当前阶段，以及总耗时和阶段耗时。紧凑点阵将
+四排微点装入一个字符高度，最多占 12 个字符宽。点阵按实际完成工作逐步点亮，
+金色流光只改变亮度，不增加完成数。有确切总量时显示准确的完成数/总数
+与一位小数百分比。每组点阵衡量其命名阶段
+（包、字节、文件、笔记或向量），不估算整个命令的时间完成比例；新阶段独立计数。
+AI/网络等待及隔离的人类视图渲染等未知工作量阶段不显示百分比或虚构的剩余时间。
+完成的阶段和最终点阵保留在终端滚动历史中。阶段切换、重试、失败和中断都有
+独立标记，结束时不会无声清除。
+
+独立呼吸灯紧挨 **AI** 字样，固定小圆点与文字纵向对齐，只改变亮度，表示本地
+请求仍在处理或等待，不代表掌握模型内部
+推理或 token 进度。每篇论文同时列出四项任务：Theorems、Assumptions、Data 和
+Research thoughts，区分排队、执行中、完成、复用和失败；失败项不增加完成数。
+同一篇论文的任务顺序执行，不同论文可以并行。旧面板只显示当前任务，所以一次
+较长的 assumptions 请求可能一直占据画面。现在 AI 详情会保留 provider/model、
+请求次数、超时、重试退避、返回时提供的 token 数、校验和缓存复用信息。
+抽取完成仍然只产生 proposed 内容，不代表科学验证。
+
+| 显示选项 | 行为 |
+| --- | --- |
+| `--progress auto` | stderr 为终端时显示面板；重定向 stderr 时静默（默认） |
+| `--progress plain` | 追加阶段和计数日志，无动画或 ANSI 控制码 |
+| `--progress off` | 隐藏活动，保留结果和错误 |
+| `--verbose` | 不带动画的诊断活动日志 |
+| `--quiet` | 隐藏进度和成功的人类报告；保留显式 JSON 与错误 |
+| `--color never` / `NO_COLOR=1` | 保留终端布局，关闭颜色 |
+
+```sh
+qec-graph sync --json --progress plain
+qec-graph validate --progress off
+qec-graph help progress
+```
+
+窄终端优先缩短标签，保留计数。不支持 Unicode 的终端使用 ASCII；`TERM=dumb`
+关闭自动动画。MCP 使用普通服务活动日志，stdout 始终保留为 JSON-RPC。
+设计参考 [Rich progress](https://rich.readthedocs.io/en/latest/progress.html)
+和 [Command Line Interface Guidelines](https://clig.dev/#robustness)。
+渲染器不引入新的运行依赖，现有 JSON 报告保持兼容。
 
 | 任务 | 从工作区根目录运行的命令 |
 | --- | --- |

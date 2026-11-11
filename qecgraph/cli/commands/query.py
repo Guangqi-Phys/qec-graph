@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from ...core.graph import read_json
+from ...core.progress import phase
 from ...query import QuerySession
 from ...store import current_snapshot, snapshot_reference, validate_snapshot
 from ..errors import QueryError, UsageError
@@ -143,7 +144,9 @@ def mcp_config(args):
 
 def mcp_serve(args):
     from ...mcp.server import serve_stdio
-    return serve_stdio(_ai_session(args), verbose=args.verbose)
+    session = _ai_session(args)
+    phase('MCP ready; waiting for requests', detail='Read-only stdio session')
+    return serve_stdio(session, verbose=args.verbose)
 
 
 def query_tool(args):

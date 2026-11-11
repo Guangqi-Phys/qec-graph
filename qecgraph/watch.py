@@ -1,6 +1,8 @@
 """Debounced polling watch; scheduling only, always the same ingestion pipeline."""
 from __future__ import annotations
 
+from .core.progress import phase
+
 import hashlib
 import math
 import sqlite3
@@ -106,12 +108,14 @@ def run(watcher, *, interval=0.5, max_polls=None, emit=None):
     polls = 0
     try:
         while max_polls is None or polls < max_polls:
+            phase('Checking source changes')
             event = watcher.poll()
             polls += 1
             if event:
                 if emit:
                     emit(event)
             if max_polls is None or polls < max_polls:
+                phase('Watching for source changes', detail='Idle; Ctrl+C to stop')
                 time.sleep(interval)
     except KeyboardInterrupt:
         pass

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from contextvars import copy_context
 from datetime import datetime, timezone
 import errno
 import hashlib
@@ -18,6 +19,7 @@ import uuid
 from . import PARSER_VERSION, __version__
 from .source.extraction import RULE_VERSION, proposals
 from .domain.research_store import stage_records
+from .core.progress import ProgressStep, outcome, phase, task, track
 from .core.graph import canonical, hash_text, read_json, strict_json_loads
 from .registry import Registry
 from .source.package import Limits, PackageError, SourceTree, unpack
@@ -98,14 +100,16 @@ def _hash_regular(path, limit, *, copy_to=None):
     digest = hashlib.sha256()
     size = 0
     with _regular_input(path, limit) as (stream, before):
-        while chunk := stream.read(min(_CHUNK_BYTES, limit - size + 1)):
-            size += len(chunk)
-            if size > limit:
-                raise PackageError('limit_exceeded', 'Source byte limit exceeded')
-            digest.update(chunk)
-            if copy_to is not None:
-                copy_to.write(chunk)
-        _check_input_read(stream, before, size)
+        with task("Hashing source bytes", total=before.st_size, unit="bytes") as hashed:
+            while chunk := stream.read(min(_CHUNK_BYTES, limit - size + 1)):
+                size += len(chunk)
+                if size > limit:
+                    raise PackageError('limit_exceeded', 'Source byte limit exceeded')
+                digest.update(chunk)
+                if copy_to is not None:
+                    copy_to.write(chunk)
+                hashed.advance(len(chunk))
+            _check_input_read(stream, before, size)
     return digest.hexdigest()
 
 
@@ -358,6 +362,7 @@ class Workspace:
             written.append(binding)
         return {**previous, 'written': written}
 
+    @task('Preparing AI source evidence')
     def _extract_ai(self, client, material, previous, limits, version, reusable=()):
         import copy
         from .core.language import require_english
@@ -394,6 +399,7 @@ class Workspace:
                 if path != material['entrypoint']:
                     additional[path] = source
         except (OSError, ValueError, RuntimeError, KeyError):
+            outcome('failed', detail='AI extraction could not read its registered source')
             return [], [{'error': 'AI extraction could not read its registered source'}]
 
         completed = {item['skill'] for item in previous.get('written', []) if item.get('proposal_sha256')}
@@ -431,13 +437,38 @@ class Workspace:
                                   prompt_sha256=provenance['prompt_sha256'])
             results.append(ExtractionResult(binding['skill'], data, proposal, ai_result))
             completed.add(binding['skill'])
-        for skill in AI_EXTRACTION_SKILLS:
-            if skill not in completed:
-                try:
-                    results.append(extract(normalized, client, skill, projection_path=material['entrypoint'],
-                                           additional_sources=additional))
-                except (OSError, ValueError, RuntimeError) as exc:
-                    errors.append({'skill': skill, 'error': redact(str(exc), client.secrets)})
+        labels = dict(zip(AI_EXTRACTION_SKILLS, ('Theorems', 'Assumptions', 'Data', 'Research thoughts')))
+        steps = tuple(ProgressStep(skill, label) for skill, label in labels.items())
+        with task('AI extraction tasks', total=len(steps), unit='tasks', kind='ai_plan', steps=steps) as plan:
+            for skill, label in labels.items():
+                plan.step(skill, 'running')
+                with task(label, kind='ai_step') as activity:
+                    if skill in completed:
+                        detail = 'Reusing source-bound proposal; no new request'
+                        activity.outcome('reused', detail=detail)
+                        plan.step(skill, 'reused', detail=detail)
+                        plan.advance()
+                        continue
+                    try:
+                        result = extract(normalized, client, skill, projection_path=material['entrypoint'],
+                                         additional_sources=additional)
+                    except (OSError, ValueError, RuntimeError) as exc:
+                        error = redact(str(exc), client.secrets)
+                        errors.append({'skill': skill, 'error': error})
+                        activity.outcome('failed', detail=error)
+                        plan.step(skill, 'failed', detail=error)
+                    else:
+                        results.append(result)
+                        state = 'reused' if result.ai_result.cached else 'finished'
+                        detail = (f'{len(result.data.get("items", []))} items | '
+                                  f'{len(result.data.get("unresolved", []))} unresolved | proposed')
+                        activity.outcome(state, detail=detail)
+                        plan.step(skill, state, detail=detail)
+                        plan.advance()
+            if errors:
+                plan.outcome('partial', detail=f'{len(errors)} tasks need attention; failed tasks are not counted as done')
+        if errors:
+            outcome('partial')
         return results, errors
 
     def _stage_ai(self, identity, previous, results, errors):
@@ -479,19 +510,32 @@ class Workspace:
         }
 
         def extract_one(identity):
-            return self._extract_ai(client, jobs[identity], previous.get(identity, {}), limits,
-                                    versions[identity[0]], reusable[identity])
+            material = jobs[identity]
+            name = next(iter(material.get('original_names', [])), material['archive_sha256'][:12])
+            with task(name, kind='package') as package:
+                result = self._extract_ai(client, material, previous.get(identity, {}), limits,
+                                          versions[identity[0]], reusable[identity])
+                if result[1]:
+                    package.outcome('partial')
+                return result
 
         workers = min(client.config.max_parallel_packages, len(jobs))
-        if workers > 1:
-            with ThreadPoolExecutor(max_workers=workers) as pool:
-                pending = {pool.submit(extract_one, identity): identity for identity in jobs}
-                for future in as_completed(pending):
-                    identity = pending.pop(future)
-                    previous[identity] = self._stage_ai(identity, previous.get(identity, {}), *future.result())
-        else:
-            for identity in jobs:
-                previous[identity] = self._stage_ai(identity, previous.get(identity, {}), *extract_one(identity))
+        with task('Processing AI packages', total=len(jobs), unit='packages') as batch:
+            if workers > 1:
+                with ThreadPoolExecutor(max_workers=workers) as pool:
+                    pending = {pool.submit(copy_context().run, extract_one, identity): identity for identity in jobs}
+                    for future in as_completed(pending):
+                        identity = pending.pop(future)
+                        previous[identity] = self._stage_ai(identity, previous.get(identity, {}), *future.result())
+                        if previous[identity]['status'] == 'pending':
+                            batch.outcome('partial')
+                        batch.advance()
+            else:
+                for identity in jobs:
+                    previous[identity] = self._stage_ai(identity, previous.get(identity, {}), *extract_one(identity))
+                    if previous[identity]['status'] == 'pending':
+                        batch.outcome('partial')
+                    batch.advance()
 
     def sync(self, *, dry_run=False, keep_inputs=False, progress=None):
         if dry_run:
@@ -681,6 +725,7 @@ class Workspace:
         report['structure_recovery'] = {'status': 'pending', 'reason': reason}
         return None
 
+    @task('Verifying archived source bytes')
     def _prepare(self, cfg, state, digest, prior, reused, limits, *, captured, manifest_hashes, tool_identity, ai_client=None, progress=None):
         result = {'archive_sha256': digest, 'status': 'archived_only', 'processing_completed': False,
                   'semantic_status': 'not_extracted', 'processor': PROCESSOR}
@@ -691,6 +736,7 @@ class Workspace:
             raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
             if hashlib.sha256(raw).hexdigest() != digest:
                 raise ValueError('Archived source hash mismatch')
+            phase('Unpacking source package')
             tree = unpack(raw, limits)
             del raw
             tree_hash = tree.digest
@@ -707,6 +753,7 @@ class Workspace:
                     entry = candidates[0]
                 elif entry is None and len(candidates) > 1 and (ai_client is not None or prior.get('normalization_id')):
                     try:
+                        phase('Resolving TeX entry point')
                         if progress:
                             progress(0, 'Resolving TeX entry point')
                         extract_tree, normalization = self._resolve_normalization(ai_client, tree, prior)
@@ -790,12 +837,13 @@ class Workspace:
 
     def _archive_inbox(self, limit, keep_inputs):
         claims, rows = [], []
-        for path in self._inbox():
+        for path in track(list(self._inbox()), 'Claiming inbox files', unit='files', detail=lambda p: p.name):
             if path.is_symlink() or not stat.S_ISREG(path.lstat().st_mode):
                 rows.append({'input': path.name, 'status': 'unsafe_input', 'input_consumed': False})
                 continue
             self._claim(path, keep_inputs)
-        for job, meta in self._pending_jobs():
+        for job, meta in track(list(self._pending_jobs()), 'Archiving inbox packages', unit='packages',
+                               detail=lambda item: item[1]['name']):
             try:
                 digest = self._archive(job, meta, limit)
             except (OSError, ValueError) as exc:
@@ -936,7 +984,9 @@ class Workspace:
                     version = self._matching_extraction(state, prior, fingerprint)
                     if version is not None:
                         reused[(version['id'], prior['entrypoint'], prior.get('normalization_sha256'))] = version
-            for index, digest in enumerate(sorted(digests), start=1):
+            names = self._archived_names()
+            for index, digest in enumerate(track(sorted(digests), package_stage, unit='packages',
+                    detail=lambda digest: next(iter(names.get(digest, [])), digest[:12])), start=1):
                 prior = materials.get(digest, {})
                 version = self._matching_extraction(state, prior, fingerprint)
                 if rebuild or version is None:
@@ -951,6 +1001,9 @@ class Workspace:
                             identity = (registered['id'], registered['snapshot_id'])
                             staged_proposals[identity] = generate(graph, snapshot, registered)
                 update(index + 1, f'{package_stage} {index}/{package_count}')
+            for digest, original_names in names.items():
+                if digest in materials:
+                    materials[digest]['original_names'] = original_names
             if ai_client is not None and ai_client.config.extract_proposals and digests:
                 update(package_count + 1, 'Extracting AI proposals')
                 self._complete_ai(ai_client, materials, digests, state['versions'], ai_results, limits)
@@ -960,9 +1013,6 @@ class Workspace:
                     material['ai_extraction'] = ai_results[identity]
             # Also backfill pre-existing materials on an empty sync. Human
             # rendering reads this fixed release, never live archive receipts.
-            for digest, names in self._archived_names().items():
-                if digest in materials:
-                    materials[digest]['original_names'] = names
             update(package_count + 1, 'Publishing workspace')
             # Explicit version metadata, never inferred from filenames.
             parsed_versions = {m['source_version_id'] for m in materials.values() if m.get('source_version_id')}
@@ -991,10 +1041,13 @@ class Workspace:
                 pair = (material.get('work_id'), material.get('upstream_version'))
                 material['source_version_conflict'] = len(collisions.get(pair, ())) > 1
             from .retrieval import stage_index
+            phase('Building retrieval index')
             stage_index(self.registry, state, cfg.get('retrieval', {}), repair=rebuild)
+            phase('Preparing candidate release')
             candidate = self.registry.prepare_publication(state)
             # This verifies every registered snapshot, including reused ones,
             # before publishing the pointer or consuming any input claims.
+            phase('Validating candidate release')
             validation = self.registry.validate(candidate, check_live_lean=False, manifest_hashes=manifest_hashes)
             if (not validation['passed'] or any(issue['severity'] == 'error'
                                                 for issue in self._normalization_issues(state, limits))
@@ -1004,6 +1057,7 @@ class Workspace:
                 raise ValueError('Workspace configuration changed while preparing; retry')
             if tool_identity is not None and tool_identity != extraction_tool_identity():
                 raise ValueError('Extraction tools changed while preparing; retry')
+            phase('Publishing workspace')
             release = self.registry.publish_prepared(candidate)
         return old, release, materials, proposal_map
 
@@ -1019,12 +1073,14 @@ class Workspace:
         self._cleanup_empty_claims()
         claims, rows = [], []
         if scan_inputs:
+            phase('Archiving inbox packages')
             if progress:
                 progress(0, 1, 'Archiving inbox packages')
             claims, rows = self._archive_inbox(limits.input_bytes, keep_inputs)
         claimed_digests = {digest for _, _, digest in claims}
         digests = set(claimed_digests)
         if rebuild:
+            phase('Scanning the archive')
             if progress:
                 progress(0, 1, 'Scanning the archive')
             digests.update(self._archived_digests())
@@ -1037,6 +1093,7 @@ class Workspace:
         steps = len(digests) + 3
 
         def update(done, message):
+            phase(message)
             if progress:
                 progress(done, steps, message)
 
@@ -1104,6 +1161,7 @@ class Workspace:
         cfg = self.config()
         from .workspace_query import check_machine_tree
         check_machine_tree(self.registry.root)
+        phase('Checking the current release')
         if progress:
             progress(1, 3, 'Checking the current release')
         state, fixed = self.registry.read()
@@ -1112,7 +1170,8 @@ class Workspace:
         issues = result.setdefault('issues', [])
         if progress:
             progress(2, 3, 'Verifying archived packages')
-        for digest in state.get('materials', {}):
+        for digest in track(state.get('materials', {}), 'Verifying archived packages', unit='packages',
+                            detail=lambda value: value[:12]):
             try:
                 if not HEX.fullmatch(digest):
                     raise ValueError('Invalid archive hash')
@@ -1120,6 +1179,7 @@ class Workspace:
                     raise ValueError('Archive hash mismatch')
             except (OSError, ValueError) as exc:
                 issues.append({'code': 'archive_invalid', 'archive_sha256': digest, 'message': str(exc)})
+        phase('Verifying source mappings and AI proposal bindings')
         issues.extend(self._normalization_issues(state, Limits(**cfg.get('limits', {}))))
         issues.extend(proposal_issues(self.registry, state))
         passed = result.get('passed', False) and not any(i.get('severity') != 'warning' for i in issues)

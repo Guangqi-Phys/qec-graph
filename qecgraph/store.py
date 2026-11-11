@@ -1,6 +1,8 @@
 """Immutable extraction snapshots with a rebuildable SQLite query projection."""
 from __future__ import annotations
 
+from .core.progress import phase, task, track
+
 import errno
 import hashlib
 import json
@@ -236,6 +238,7 @@ def ingest(entry, project_id, out, project_root=None, config_path=None, annotati
         return result
 
 
+@task('Preparing source extraction')
 def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None,
                    *, strict=False, incremental=False, tool_identity=None, recover_source=None):
     from .source.parser import parse_project
@@ -261,9 +264,11 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
     if incremental:
         from .source.incremental import ParseCache
         node_cache = ParseCache(out, root, config)
+    phase('Parsing LaTeX source', detail=entry.name)
     parsed = parse_project(entry, project_root=root, config=config, node_cache=node_cache)
     if recover_source is not None and strict and any(d['severity'] == 'error' for d in parsed['diagnostics']):
         parsed = recover_source(parsed) or parsed
+    phase('Verifying source bytes and references')
     source_bytes = {}
     for item in parsed["files"]:
         raw = item["text"].encode("utf-8")
@@ -337,7 +342,7 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
                 for rel, raw in files.items():
                     path = safe_relative(temporary / directory, rel)
                     write_output(path.relative_to(temporary).as_posix(), raw)
-            for node in graph["nodes"]:
+            for node in track(graph["nodes"], "Writing source fragments", unit="nodes"):
                 kind = node["kind"]
                 if not kind or not all(c.isalnum() or c == "_" for c in kind):
                     raise ValueError(f"Unsafe node kind: {kind}")
@@ -354,6 +359,7 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
             write_output_json("inputs/annotations.json", annotations)
             write_output_json("inputs/parser_config.json", config)
             write_output_json("inputs/catalog.json", catalog)
+            phase("Building SQLite search index")
             build_sqlite(temporary / "graph.sqlite", graph)
             with _open_regular_snapshot_file(temporary / "graph.sqlite") as database:
                 output_hashes["graph.sqlite"] = hashlib.file_digest(database, "sha256").hexdigest()
@@ -380,6 +386,7 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
                         "fingerprint_inputs": fingerprint, "source_files": source_manifest,
                         "resources": resource_manifest, "outputs": outputs,
                         "coordinate_system": "Unicode codepoints, [start,end); line numbers 1-based inclusive"})
+            phase("Validating extracted snapshot")
             validate_snapshot(temporary, expected_snapshot_id=snapshot_id)
             temporary.rename(target)
         except BaseException:
@@ -401,6 +408,7 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
         if current_catalog != catalog_inputs:
             raise ValueError('Catalog changed during build; retry')
     if not staged:
+        phase("Publishing source snapshot")
         publish_pointer(out / 'CURRENT.json', CURRENT_FORMAT, snapshot_id=snapshot_id,
                         path='snapshots/' + snapshot_id)
     report = read_json(target / "report.json")
@@ -558,34 +566,36 @@ def _hash_snapshot_output(root, relative, directory_fd, copy_to):
 
 
 def _validate_output_hashes(root, outputs, captured, required, copy_to):
-    seen = set()
-    for folder, group in groupby(outputs, key=lambda row: row["path"].rpartition("/")[0]):
-        directory_fd = None
-        try:
-            for output in group:
-                relative = output["path"]
-                if relative in seen:
-                    raise ValueError(f"Duplicate snapshot output: {relative}")
-                seen.add(relative)
-                digest = captured.get(relative)
-                if digest is None:
-                    if relative.startswith("/"):
-                        raise ValueError("Expected a relative archive path")
-                    if directory_fd is None:
-                        directory = _safe_relative_to_resolved(root, folder)
-                        directory_fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
-                    digest = _hash_snapshot_output(root, relative, directory_fd, copy_to)
-                if digest != output["sha256"]:
-                    raise ValueError(f"Snapshot file changed: {relative}")
-                expected_digest = required.get(relative)
-                if expected_digest is not None and digest != expected_digest:
-                    raise ValueError(f"Snapshot output does not match the archived source: {relative}")
-        finally:
-            if directory_fd is not None:
-                os.close(directory_fd)
-    missing = {*captured, *required} - seen
-    if missing:
-        raise ValueError(f"Required snapshot outputs missing: {', '.join(sorted(missing))}")
+    with task('Verifying snapshot files', total=len(outputs), unit='files') as checked:
+        seen = set()
+        for folder, group in groupby(outputs, key=lambda row: row["path"].rpartition("/")[0]):
+            directory_fd = None
+            try:
+                for output in group:
+                    relative = output["path"]
+                    if relative in seen:
+                        raise ValueError(f"Duplicate snapshot output: {relative}")
+                    seen.add(relative)
+                    digest = captured.get(relative)
+                    if digest is None:
+                        if relative.startswith("/"):
+                            raise ValueError("Expected a relative archive path")
+                        if directory_fd is None:
+                            directory = _safe_relative_to_resolved(root, folder)
+                            directory_fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+                        digest = _hash_snapshot_output(root, relative, directory_fd, copy_to)
+                    if digest != output["sha256"]:
+                        raise ValueError(f"Snapshot file changed: {relative}")
+                    expected_digest = required.get(relative)
+                    if expected_digest is not None and digest != expected_digest:
+                        raise ValueError(f"Snapshot output does not match the archived source: {relative}")
+                    checked.advance()
+            finally:
+                if directory_fd is not None:
+                    os.close(directory_fd)
+        missing = {*captured, *required} - seen
+        if missing:
+            raise ValueError(f"Required snapshot outputs missing: {', '.join(sorted(missing))}")
 
 
 def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_hashes=None, copy_to=None):

@@ -396,9 +396,43 @@ Returned results include the scope identity, source/evidence status, and truncat
 
 ### 8.2 CLI
 
-The CLI is grouped by noun (`workspace`, `query`, `review`, `mcp`, `human`, `software`, `maintain`, `snapshot`, `inputs`, `doctor`, `version`, `help`, plus an experimental/deferred `lean` group). Flat legacy names remain available with deprecation notices. Global options include `--json`, `--quiet`, `--verbose`, `--debug`, `--color`, and `--version`.
+The CLI is grouped by noun (`workspace`, `query`, `review`, `mcp`, `human`, `software`, `maintain`, `snapshot`, `inputs`, `doctor`, `version`, `help`, plus an experimental/deferred `lean` group). Flat legacy names remain available with deprecation notices. Global options include `--json`, `--quiet`, `--verbose`, `--debug`, `--color`, `--progress`, and `--version`.
 
 Human output is concise and stateful: workspace/release, indexed/pending/failed/quarantined counts, human-view state, and a next action. `--json` is the only machine-output switch; TTY detection affects styling, not the data model. Errors are actionable and never raw Python/OS/TOML tracebacks unless `--debug` is requested.
+
+Activity events live in `core/progress.py`, independent of terminal output. A
+context-local subscriber in `cli/progress.py` renders an amber activity panel on
+stderr; each AI worker receives its own copied context and nested task identity.
+Known phase totals use compact Braille micro-dot cells (four dot rows in one
+text row, at most 12 characters wide), completed units and one decimal
+of percentage, capped below 100% until every unit finishes. Unknown totals use animation and elapsed
+time, never a synthetic percentage or ETA. Phase changes reset the counter;
+publication, network waits and the isolated human renderer stay indeterminate.
+Phase transitions and final outcomes are appended permanently above the live
+region; final dot matrices, failed counts and all completed stages remain in
+scrollback. Typed step events keep all four AI extraction tasks visible, including
+queued, reused and failed tasks. Failed tasks do not increment completed counts.
+Each provider request has a separate breathing light next to `AI`, independent
+of the dot matrix; a fixed middle bullet keeps its vertical position while
+luminance breathes. The light signals local liveness, not model-internal progress.
+Provider/model, timeout, attempts, backoff, reported token counts and response
+validation remain inspectable. Overflow activity cycles within the viewport;
+history retains every final record without an in-memory history limit.
+The CLI starts activity before dispatch for every business command. Reports
+clear only the live region before output; completion, errors and interruption
+retain final records and stop the refresh worker. Help/version are immediate, and MCP uses plain service
+activity. Non-TTY stderr is quiet by default; `--progress plain` or `--verbose`
+provides an append-only log. `--progress off` and `--quiet` suppress activity,
+including with `--json`. Terminal width, Unicode support and color settings
+change presentation only; stdout payloads and exit codes retain their contracts.
+
+Visual reference: [CodeGraph v1.6.2, `shimmer-worker.ts`](https://github.com/colbymchenry/codegraph/blob/6560052a6f856855d3f71eee838fd66ccfa4285d/src/ui/shimmer-worker.ts),
+commit `6560052a6f856855d3f71eee838fd66ccfa4285d`,
+[MIT, copyright 2026 Colby Mchenry](https://github.com/colbymchenry/codegraph/blob/6560052a6f856855d3f71eee838fd66ccfa4285d/LICENSE).
+The installed v1.6.2 glyph and shimmer modules informed the compact density,
+amber range (`#a06409`–`#fbbf24`), muted rails and green completion marks. QEC
+Graph implements its own Braille fill, brightness animation and persistent
+history in Python; the referenced implementation is not vendored.
 
 ### 8.3 MCP
 

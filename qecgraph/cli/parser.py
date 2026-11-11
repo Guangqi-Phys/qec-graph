@@ -35,7 +35,9 @@ class _ArgumentParser(argparse.ArgumentParser):
         self.add_argument('--quiet', action='store_true', default=argparse.SUPPRESS,
                           help='Suppress progress and successful reports; keep errors and explicit JSON')
         self.add_argument('--color', choices=('auto', 'always', 'never'), default=argparse.SUPPRESS,
-                          help='Control color in terminal summaries (default: auto)')
+                          help='Control color in progress and summaries (default: auto)')
+        self.add_argument('--progress', choices=('auto', 'plain', 'off'), default=argparse.SUPPRESS,
+                          help='Activity on stderr: live terminal, plain log, or off (default: auto)')
 
     def error(self, message):
         raise UsageError(message)
@@ -507,9 +509,9 @@ def _build_parser(entrypoint=None):
 def _command_index(argv: list[str], start=0) -> int:
     while start < len(argv):
         flag = argv[start]
-        if flag in {'--json', '--debug', '--quiet', '--verbose'} or flag.startswith('--color='):
+        if flag in {'--json', '--debug', '--quiet', '--verbose'} or flag.startswith(('--color=', '--progress=')):
             start += 1
-        elif flag == '--color':
+        elif flag in {'--color', '--progress'}:
             start += 2
         else:
             return start
@@ -578,6 +580,12 @@ def parse_command(argv: list[str], *, entrypoint: tuple[str, str] | None = None)
     if entrypoint is None and not hasattr(args, 'action') and flat_name in _LEGACY_PATHS:
         display = 'review FILE' if flat_name == 'review' else flat_name
         args.alias = (display, _LEGACY_PATHS[flat_name])
+    args.display_command = next((f'{group} {verb}' for group, (_, actions) in _GROUPS.items()
+                                 for verb, command in actions.items()
+                                 if command == args.command and command not in _SHORTCUTS), args.command)
+    if args.command == 'inputs':
+        args.display_command += ' ' + args.input_action
     args.verbose = args.verbose and not args.quiet
+    args.progress = 'off' if args.quiet else getattr(args, 'progress', 'auto')
     args.quiet = args.quiet and not args.json
     return args

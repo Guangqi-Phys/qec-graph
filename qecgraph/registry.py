@@ -1,6 +1,8 @@
 """Versioned corpus registry: explicit identities, immutable source snapshots."""
 from __future__ import annotations
 
+from .core.progress import phase, task
+
 import hashlib
 import shutil
 import stat
@@ -307,15 +309,18 @@ class Registry:
         state, fixed = self.read(registry_revision)
         return self._validate_state(state, fixed, check_live_lean=check_live_lean, manifest_hashes=manifest_hashes)
 
+    @task('Validating record references and evidence')
     def _validate_state(self, state, fixed, *, check_live_lean=True, verified_spans=None, manifest_hashes=None):
         from .validators import registry_issues, validate_graph_types
         from .corpus import _project_state
         verified_spans = {} if verified_spans is None else verified_spans
         records = self.records_from_state(state)
         issues = registry_issues(self, records)
+        phase('Verifying source snapshots and graph projections')
         graph, _ = _project_state(self, state, fixed, check_live_lean=check_live_lean,
                                   verify_sources=True, records=records, verified_spans=verified_spans,
                                   manifest_hashes=manifest_hashes)
+        phase('Checking graph types and reviewed dependency cycles')
         validate_graph_types(graph.graph)
         from .domain.status import reviewed_cycles
         issues.extend(reviewed_cycles(graph.graph))
@@ -325,6 +330,7 @@ class Registry:
         issues.extend({'code': 'lean_build_stale', 'severity': 'warning', 'record_id': node['id'],
                        'reasons': node['build_binding']['reasons']}
                       for node in graph.graph['nodes'] if node.get('build_binding', {}).get('effective_status') == 'stale')
+        phase('Validating research records and source bindings')
         if state.get('research_records'):
             try:
                 from .domain.research import validate_bundle
@@ -334,6 +340,7 @@ class Registry:
                 validate_sources(self, state, research, verified_spans=verified_spans)
             except (OSError, ValueError, KeyError, TypeError) as exc:
                 issues.append({'code': 'research_invalid', 'severity': 'error', 'message': str(exc)})
+        phase('Verifying retrieval index integrity')
         if state.get('retrieval_index'):
             try:
                 from .retrieval import read_index

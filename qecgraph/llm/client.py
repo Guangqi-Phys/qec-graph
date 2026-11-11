@@ -14,6 +14,7 @@ from jsonschema.exceptions import ValidationError
 
 from ..core.graph import canonical, strict_json_loads
 from ..core.language import require_english
+from ..core.progress import outcome, phase, task
 from .cache import ResponseCache, cache_key
 from .config import AIConfig
 from .errors import LLMError, ProviderError
@@ -63,6 +64,16 @@ def _usage_cost(usage):
     return 0.0
 
 
+def _usage_summary(usage):
+    """Only display actual, numeric provider counters, never response content."""
+    parts = []
+    for label, keys in (('input', ('input_tokens', 'prompt_tokens')), ('output', ('output_tokens', 'completion_tokens'))):
+        value = next((usage[key] for key in keys if key in usage), None)
+        if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+            parts.append(f'{value:,} {label} tokens')
+    return ' | '.join(parts)
+
+
 class LLMClient:
     def __init__(self, config: AIConfig, *, provider: Provider | None = None,
                  cache_dir: str | Path | None = None, sleeper=None):
@@ -81,6 +92,7 @@ class LLMClient:
                 'endpoint': getattr(self.provider, 'endpoint', None) or (configured and configured.base_url),
                 'command': configured and configured.command, 'args': configured and configured.args}
 
+    @task('Preparing AI request', kind='ai')
     def complete_json(self, messages: Sequence[Message], schema: Mapping[str, Any], *,
                       model: str | None = None, temperature: float = 0.0,
                       max_output_tokens: int | None = None, use_cache: bool = True,
@@ -118,6 +130,7 @@ class LLMClient:
                                                 sort_keys=True, separators=(',', ':')).encode()).hexdigest()
         run_id = uuid.uuid4().hex
         if use_cache and self.cache is not None:
+            phase('Checking cached AI response')
             cached = self.cache.get(key)
             if (cached is not None and isinstance(cached.get('text'), str)
                     and isinstance(cached.get('model'), str) and cached['model']
@@ -130,6 +143,8 @@ class LLMClient:
                 except (ValueError, KeyError, LLMError):
                     pass
                 else:
+                    phase('Reusing validated AI response', detail='Cache hit; no provider request')
+                    outcome('reused')
                     return LLMResult(data=data, text=cached['text'], model=cached['model'],
                                      usage=cached['usage'], request_id=cached.get('request_id'),
                                      attempts=0, cached=True, run_id=run_id, prompt_sha256=prompt_hash)
@@ -137,6 +152,9 @@ class LLMClient:
         spent = 0.0
         for attempt in range(1, self.config.max_retries + 2):
             try:
+                phase('Waiting for AI provider', detail=redact(
+                    f'attempt {attempt}/{self.config.max_retries + 1} | timeout {self.config.timeout_seconds:g}s'
+                    f' | {self.config.provider} / {selected_model}', self.secrets))
                 completion: Completion = self.provider.complete(
                     messages, model=selected_model, response_schema=schema,
                     temperature=temperature, max_output_tokens=max_output_tokens,
@@ -144,15 +162,22 @@ class LLMClient:
             except ProviderError as exc:
                 last_error = exc
                 if not exc.retryable or attempt > self.config.max_retries:
+                    outcome('failed', detail=redact(str(exc), self.secrets))
                     raise ProviderError(redact(str(exc), self.secrets), status=exc.status,
                                         retryable=exc.retryable, code=exc.code) from None
-                self.sleeper(min(2 ** (attempt - 1), 8))
+                delay = min(2 ** (attempt - 1), 8)
+                phase('Waiting to retry AI request', detail=f'retry in {delay}s | next attempt {attempt + 1}'
+                      + (f' | HTTP {exc.status}' if exc.status else ''))
+                self.sleeper(delay)
                 continue
             except (LLMError, OSError) as exc:
+                outcome('failed', detail=redact(str(exc), self.secrets))
                 raise LLMError(redact(str(exc), self.secrets)) from None
+            phase('AI response received', detail=_usage_summary(completion.usage))
             spent += _usage_cost(completion.usage)
             if spent > self.config.max_cost_usd:
                 raise BudgetExceeded(f'AI cost limit exceeded: {spent:.4f} USD')
+            phase('Validating AI response and source evidence')
             try:
                 data = validated(completion.text)
             except LLMError as exc:
@@ -165,7 +190,9 @@ class LLMClient:
             result = {'data': data, 'text': completion.text, 'model': completion.model,
                       'usage': completion.usage, 'request_id': completion.request_id}
             if use_cache and self.cache is not None:
+                phase('Saving validated AI response to cache')
                 self.cache.put(key, result)
+            phase('AI response validated', detail='Response checks passed; result remains proposed')
             return LLMResult(data=data, text=completion.text, model=completion.model,
                              usage=completion.usage, request_id=completion.request_id,
                              attempts=attempt, cached=False, run_id=run_id, prompt_sha256=prompt_hash)

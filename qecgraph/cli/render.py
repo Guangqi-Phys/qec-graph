@@ -1,101 +1,14 @@
-"""Terminal check_matrix for CLI commands."""
+"""CLI reports; live activity rendering is owned by progress.py."""
 from __future__ import annotations
 
 import json
 import os
 import sys
-from threading import Event, Thread
-from time import monotonic
 
 from .. import __version__
+from ..core.progress import hide
+from .progress import WorkspaceProgress
 from .errors import QecError, UsageError
-
-
-class WorkspaceProgress:
-    def __init__(self, action, *, quiet=False, color='auto', animate=True):
-        self.action = action
-        self.quiet = quiet
-        self.stderr = sys.stderr
-        terminal = sys.stdout.isatty() and self.stderr.isatty() and os.environ.get('TERM') != 'dumb'
-        self.live = terminal and not quiet and animate
-        forced = os.environ.get('FORCE_COLOR')
-        self.color = (color == 'always' or color == 'auto' and not os.environ.get('NO_COLOR')
-                      and (forced != '0' if forced is not None else terminal))
-        self.state = (0, 1, 'Opening workspace')
-        self.started = None
-        self.stopped = Event()
-        self.worker = None
-        self.spinner, self.full, self.empty, self.ok, self.error = '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏', '█', '░', '✓', '✗'
-        try:
-            (self.spinner + self.full + self.empty + self.ok + self.error).encode(self.stderr.encoding or 'ascii')
-        except UnicodeEncodeError:
-            self.spinner, self.full, self.empty, self.ok, self.error = '|/-\\', '#', '.', '+', '!'
-
-    def start(self):
-        if self.live:
-            self.started = monotonic()
-            self._draw(0)
-            self.worker = Thread(target=self._animate, daemon=True)
-            self.worker.start()
-
-    def _animate(self):
-        frame = 1
-        while not self.stopped.wait(0.1):
-            self._draw(frame)
-            frame += 1
-
-    def _paint(self, value, code):
-        return f'\x1b[{code}m{value}\x1b[0m' if self.color else value
-
-    def _draw(self, frame):
-        done, total, message = self.state
-        try:
-            columns = os.get_terminal_size(self.stderr.fileno()).columns or 80
-        except OSError:
-            columns = 80
-        spinner = self.spinner[frame % len(self.spinner)]
-        label = f' {self.action}: {message}'
-        elapsed = f'  {monotonic() - self.started:.1f}s'
-        filled = 12 * done // total
-        bar = self.full * filled + self.empty * (12 - filled)
-        width = max(0, columns - 2)  # Leave one column free to avoid terminal wrapping.
-        if total > 1 and len(label + elapsed) + len(bar) + 2 <= width:
-            label += '  ' + bar
-        if len(label + elapsed) <= width:
-            label += elapsed
-        print('\r\x1b[K' + self._paint(spinner, '36') + label[:width],
-              end='', file=self.stderr, flush=True)
-
-    def update(self, done, total, message):
-        self.state = (done, total, message)
-
-    def phase(self, message):
-        self.update(*self.state[:2], message)
-
-    def close(self):
-        if self.started is not None:
-            self.stopped.set()
-            if self.worker is not None and self.worker.is_alive():
-                self.worker.join()
-            self.started = None
-            print('\r\x1b[K', end='', file=self.stderr, flush=True)
-
-    def finish(self, message, code):
-        self.close()
-        if self.quiet and not code:
-            return 0
-        message = ' '.join(''.join(char if char.isprintable() else ' ' for char in message).split())
-        if len(message) > 180:
-            message = message[:177] + '...'
-        if self.live:
-            marker = self._paint(self.error, '31') if code else self._paint(self.ok, '32')
-        else:
-            done, total, _ = self.state
-            filled = 16 * done // total if code else 16
-            marker = self._paint(f"[{'#' * filled}{'.' * (16 - filled)}]", '31' if code else '32')
-        outcome = 'ERROR: ' + message if code else 'OK' + (f' ({message})' if message else '')
-        print(f'{marker} {self.action}: {outcome}', file=self.stderr if code else sys.stdout)
-        return code
 
 
 def _input_problem(row):
@@ -152,11 +65,13 @@ def workspace_summary(action, result, code):
 
 def print_json(result, *, compact=False, stream=None, flush=False):
     """Write one JSON value; compact mode keeps stream records on one line."""
+    hide()
     print(json.dumps(result, ensure_ascii=False, indent=None if compact else 2),
           file=stream, flush=flush)
 
 
 def print_doctor(result):
+    hide()
     print(f"QEC Graph {__version__} · {result['workspace']}")
     for name, check in result['checks'].items():
         details = ', '.join(f'{key}={value}' for key, value in check.items()
@@ -184,7 +99,7 @@ def report_error(error: QecError, command: str | None, *, json_mode: bool,
         stream = sys.stderr if command == 'serve-mcp' else sys.stdout
         print_json(error.envelope(command), compact=True, stream=stream)
     elif progress:
-        return progress.finish(str(error), error.exit_code)
+        return progress.finish(str(error), error.exit_code, summary=True)
     elif isinstance(error, UsageError):
         print(f'error: {error}. {error.hint}', file=sys.stderr)
     else:

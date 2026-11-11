@@ -451,11 +451,36 @@ release，重新连接/固定。
 CLI 按名词分组（`workspace`、`query`、`review`、`mcp`、`human`、`software`、
 `maintain`、`snapshot`、`inputs`、`doctor`、`version`、`help`，以及实验性/延期
 `lean` 组）。扁平旧名称仍可用，带弃用提示。全局选项包括 `--json`、`--quiet`、
-`--verbose`、`--debug`、`--color` 和 `--version`。
+`--verbose`、`--debug`、`--color`、`--progress` 和 `--version`。
 
 人类输出简洁且有状态：workspace/release、indexed/pending/failed/quarantined
 计数、human-view 状态和下一步动作。`--json` 是唯一机器输出开关；TTY 检测影响
 样式，不影响数据模型。错误可操作，除非请求 `--debug`，绝不输出原始 Python/OS/TOML traceback。
+
+活动事件位于 `core/progress.py`，独立于终端输出。`cli/progress.py` 中的上下文
+局部订阅者在 stderr 渲染琥珀色活动面板；每个 AI worker 获得独立复制的上下文和
+嵌套任务身份。已知阶段总量使用紧凑 Braille 微点阵（一个字符高度内四排点，最多
+12 字符宽）、已完成单位及一位小数百分比，全部完成前不显示
+100%。未知总量使用动画和耗时，不伪造百分比或 ETA。阶段切换重置计数；发布、
+网络等待及隔离的人类视图渲染保持不定量状态。阶段切换和最终结果追加到动态区域
+上方，最终点阵、失败时的真实计数及所有已完成阶段均保留在滚动历史中。类型化
+步骤事件持续显示四项 AI 抽取任务，包括排队、复用和失败状态；失败项不计入完成数。
+每次 provider 请求在 `AI` 旁独立显示呼吸灯，与点阵分离；固定居中的圆点只改变
+亮度，不切换字形或纵向位置。灯表示本地请求仍在运行，
+不表示模型内部进度。provider/model、超时、尝试次数、退避、返回的 token 数和
+响应校验均可查看。超出视口的活动循环显示；历史保留每条最终记录，无内存历史上限。
+CLI 在分派每个业务命令前启动活动。报告输出前只清理动态区域；完成、错误和中断
+保留最终记录并停止刷新线程。帮助/版本立即返回，MCP
+使用普通服务日志。非 TTY stderr 默认静默；`--progress plain` 或 `--verbose`
+提供追加日志。`--progress off` 和 `--quiet` 抑制活动，包括 `--json` 模式。
+终端宽度、Unicode 和颜色设置只影响展示；stdout 数据和退出码保持原契约。
+
+视觉参考：[CodeGraph v1.6.2 的 `shimmer-worker.ts`](https://github.com/colbymchenry/codegraph/blob/6560052a6f856855d3f71eee838fd66ccfa4285d/src/ui/shimmer-worker.ts)，
+实际 commit `6560052a6f856855d3f71eee838fd66ccfa4285d`，
+[MIT 许可证，版权 2026 Colby Mchenry](https://github.com/colbymchenry/codegraph/blob/6560052a6f856855d3f71eee838fd66ccfa4285d/LICENSE)。
+已检查本机 v1.6.2 的字形与流光模块，参考其紧凑密度、琥珀色范围
+（`#a06409`–`#fbbf24`）、弱化边线和绿色完成标记。QEC Graph 的 Braille 填充、
+亮度动画和持久历史均自行用 Python 实现，未引入参考项目的实现代码。
 
 ### 8.3 MCP
 

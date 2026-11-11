@@ -7,6 +7,7 @@ import re
 import shutil
 import tempfile
 
+from ..core.progress import phase, track
 from ..core.transactions import atomic_bytes, atomic_json, writer_lock
 from ..workspace import HEX, Workspace, _read_regular, now, read_operational_status
 from ..workspace_query import WorkspaceSession
@@ -85,6 +86,7 @@ def build_human(workspace=None, release=None):
             if not current and not legacy and vault.exists() and any(vault.iterdir()):
                 raise ValueError('human/ contains files outside the renderer history')
             session = WorkspaceSession(ws.registry.root, latest)
+            phase('Preparing Obsidian thoughts notes')
             pages, targets = render_pages(session)
             if any(not NOTE.fullmatch(p) for p in pages):
                 raise ValueError('Renderer produced an invalid note path')
@@ -96,7 +98,7 @@ def build_human(workspace=None, release=None):
             with tempfile.TemporaryDirectory(prefix='render-', dir=staging_root) as staging:
                 stage = Path(staging)
                 changed = set()
-                for relative, raw in pages.items():
+                for relative, raw in track(pages.items(), 'Staging Obsidian notes', unit='notes'):
                     if not legacy:
                         destination = ws.path('human/' + relative)
                         if relative not in previous and destination.exists():
@@ -113,15 +115,17 @@ def build_human(workspace=None, release=None):
                 if legacy and vault.exists():
                     # User-requested migration: delete the old tree, no backup.
                     # rmtree unlinks child symlinks; ws.path rejects a linked root.
+                    phase('Removing the managed legacy view')
                     shutil.rmtree(vault)
                 vault.mkdir(parents=True, exist_ok=True)
                 # A new-format pending state also marks legacy deletion complete.
                 # Until it exists, an interrupted deletion is safe to retry.
                 atomic_json(ws.path('.qecgraph/human-pending.json'), {**state, 'retired': retired})
-                for relative in sorted(changed):
+                for relative in track(sorted(changed), 'Publishing Obsidian notes', unit='notes'):
                     atomic_bytes(ws.path('human/' + relative), (stage / relative).read_bytes())
-                for relative in retired:
+                for relative in track(retired, 'Removing obsolete managed notes', unit='notes'):
                     _prune_note(ws, relative)
+                phase('Recording human view publication')
                 atomic_json(ws.path('.qecgraph/human-published.json'), state)
                 ws.path('.qecgraph/human-pending.json').unlink(missing_ok=True)
             _operational(ws, latest, 'current', latest)

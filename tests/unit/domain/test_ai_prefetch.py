@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from qecgraph.llm.client import LLMResult
+from qecgraph.core.progress import phase, reporting, task
 from qecgraph.llm.config import DEFAULT_MODEL
 from qecgraph.workspace import Workspace
 from tests.unit.parsing.test_source_package import tar_bytes
@@ -39,6 +40,7 @@ class PrefetchTests(unittest.TestCase):
 
         def complete(messages, schema, **kwargs):
             nonlocal active, maximum
+            phase('Offline provider probe')
             with lock:
                 active += 1
                 maximum = max(maximum, active)
@@ -49,7 +51,48 @@ class PrefetchTests(unittest.TestCase):
                              usage={}, request_id='r', attempts=1, cached=False,
                              run_id='run', prompt_sha256='p' * 64)
 
-        with patch('qecgraph.llm.client.LLMClient.complete_json', side_effect=complete):
+        events = []
+        with reporting(events.append), task('Sync workspace'), patch(
+                'qecgraph.llm.client.LLMClient.complete_json', side_effect=complete):
             result = self.ws.sync()
         self.assertEqual(result['status'], 'published')
         self.assertGreaterEqual(maximum, 2)
+        self.assertTrue({'alpha.tar', 'beta.tar'} <= {event.label for event in events})
+        self.assertEqual(sum(event.label == 'Offline provider probe' and event.state == 'running'
+                             for event in events), 8)
+        batch = [event for event in events if event.label == 'Processing AI packages'
+                 and event.total is not None and event.state == 'running']
+        self.assertEqual([(event.completed, event.total) for event in batch], [(0, 2), (1, 2), (2, 2)])
+        plans = [event for event in events if event.steps]
+        self.assertTrue(all(len(event.steps) == 4 for event in plans))
+        finished = [event for event in plans if event.state == 'finished']
+        self.assertEqual(len(finished), 2)
+        self.assertTrue(all(event.completed == 4 and all(step.state == 'finished' for step in event.steps)
+                            for event in finished))
+
+    def test_failed_ai_step_remains_visible_and_retry_reuses_completed_steps(self):
+        (self.root / 'inputs' / 'paper.tex').write_bytes(TEX)
+        call = 0
+
+        def complete(*args, **kwargs):
+            nonlocal call
+            call += 1
+            if call == 2:
+                raise ValueError('offline test failure')
+            return LLMResult(data={'items': [], 'unresolved': []}, text='{}', model='m',
+                             usage={}, request_id='r', attempts=1, cached=False,
+                             run_id='run', prompt_sha256='p' * 64)
+
+        events = []
+        with reporting(events.append), patch('qecgraph.llm.client.LLMClient.complete_json', side_effect=complete):
+            self.ws.sync()
+        plan = next(event for event in events if event.steps and event.state == 'partial')
+        self.assertEqual((plan.completed, plan.total), (3, 4))
+        self.assertEqual([step.state for step in plan.steps], ['finished', 'failed', 'finished', 'finished'])
+        self.assertEqual(plan.steps[1].detail, 'offline test failure')
+        events.clear()
+        with reporting(events.append), patch('qecgraph.llm.client.LLMClient.complete_json', side_effect=complete):
+            self.ws.sync()
+        plan = next(event for event in events if event.steps and event.state == 'finished')
+        self.assertEqual((plan.completed, plan.total, call), (4, 4, 5))
+        self.assertEqual([step.state for step in plan.steps], ['reused', 'finished', 'reused', 'reused'])

@@ -4,9 +4,9 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import subprocess
-import sys
 
 from ...core.graph import read_json, strict_json_loads
+from ...core.progress import phase
 from ..errors import UsageError
 from ..process import cli_command
 from ..render import emit_report, print_doctor, workspace_summary
@@ -78,8 +78,6 @@ def _render_release(workspace, release):
 
 
 def workspace_action(args, progress):
-    if progress and not getattr(args, 'dry_run', False):
-        progress.start()
     from ...workspace import CONFIG, Workspace, locate
     if getattr(args, 'snapshot', None):
         raise UsageError('--snapshot requires --store')
@@ -94,29 +92,18 @@ def workspace_action(args, progress):
     if args.command != 'init' and not ws.path(CONFIG).is_file():
         raise ValueError('No initialized workspace found. Set QECGRAPH_WORKSPACE or use --workspace.')
 
-    def update(done, total, message):
-        if progress:
-            progress.update(done, total, message)
-        if args.verbose:
-            print(f'qec-graph {args.command}: {message}', file=sys.stderr, flush=True)
-
-    if (progress or args.verbose) and args.command != 'status':
-        options['progress'] = update
     if args.command == 'init':
         result = ws.prepare()
     else:
         result = getattr(ws, args.command)(**options)
     if args.command in _WORKSPACE_WRITE_COMMANDS and result.get('release_id') and not args.no_human:
-        if progress:
-            progress.phase('Rendering Obsidian views')
-        if args.verbose:
-            print(f'qec-graph {args.command}: Rendering Obsidian views', file=sys.stderr, flush=True)
+        phase('Rendering Obsidian views', detail='Waiting for the isolated renderer; timeout 120s')
         result['human'] = _render_release(ws.root, result['release_id'])
     renderer_failed = (args.command in _WORKSPACE_WRITE_COMMANDS
                        and result.get('human', {}).get('status') in ('human_stale', 'superseded'))
     code = 2 if result['status'] in {'partial_batch', 'invalid'} or renderer_failed else 0
     if progress:
-        return progress.finish(*workspace_summary(args.command, result, code))
+        return progress.finish(*workspace_summary(args.command, result, code), summary=True)
     return emit_report(result, exit_code=code)
 
 

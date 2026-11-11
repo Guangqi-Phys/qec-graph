@@ -1,6 +1,8 @@
 """Offline adapter for a bounded directory of upstream software identities."""
 from __future__ import annotations
 
+from ..core.progress import phase, track
+
 from importlib.resources import files
 
 from ..core.graph import canonical, hash_text, strict_json_loads
@@ -103,13 +105,15 @@ def refresh(registry, *, project_id=None, limit=20, timeout=8):
     if not projects:
         raise ValueError('No matching project in this workspace; import the seed first')
     prepared, reports = [], []
-    for project in projects[:limit]:
+    for project in track(projects[:limit], 'Refreshing software metadata', unit='projects',
+                         detail=lambda record: record['id']):
         origin = _official_repo_url(project['data'].get('repository_url'))
         if origin is None:
             reports.append({'project_ref': ref(project), 'status': 'unsupported_source'})
             continue
         fullname, url = origin
         try:
+            phase('Waiting for GitHub repository metadata', detail=f'{fullname} | timeout {timeout}s')
             raw = _fetch_metadata(url, timeout)
             info = strict_json_loads(raw.decode('utf-8'), source='GitHub repository response')
             if (not isinstance(info, dict) or not isinstance(info.get('full_name'), str)
@@ -139,6 +143,7 @@ def refresh(registry, *, project_id=None, limit=20, timeout=8):
         prepared.append(observation)
         reports.append({'project_ref': ref(project), 'status': 'observed', 'observation_ref': ref(observation)})
     if prepared:
+        phase('Publishing software observations')
         release = publish_records(registry, prepared)['release_id']
     return {'status': 'observed' if reports and all(r['status'] == 'observed' for r in reports) else 'partial',
             'release_id': release, 'results': reports, 'truncated': len(projects) > limit,

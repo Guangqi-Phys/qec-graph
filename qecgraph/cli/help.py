@@ -66,6 +66,28 @@ EXAMPLES = {
 }
 
 TOPICS = {
+    'progress': '''Terminal progress
+  All business commands describe their current activity on stderr.
+  Known work uses a compact amber micro-dot matrix, exact counts and one-decimal percentages.
+  Completed phases and their final dot matrices remain in terminal scrollback.
+  Unknown work shows an animated indicator and elapsed time, never an invented ETA.
+  AI has its own breathing light beside "AI"; it indicates a pending request, not a percentage.
+  Each paper lists Theorems, Assumptions, Data and Research thoughts with their states.
+  AI details include provider/model, attempts, timeout, retry and response validation.
+  Cached proposals show "reused"; failed tasks remain visible and are not counted as done.
+
+  --progress auto   Live display when stderr is a terminal (default)
+  --progress plain  Append-only activity log, including in CI and pipes
+  --progress off    Suppress activity; keep reports and errors
+  --verbose         Diagnostic activity log without animation
+  --quiet           Suppress activity and successful human reports
+  --color never     Keep the layout without color
+
+  JSON and MCP stdout stay machine-readable. Help and version return immediately.
+  MCP uses plain service activity; redirected stderr is silent in auto mode.
+
+Example:
+  qec-graph sync --json --progress plain > report.json''',
     'errors': '''Exit codes
   0    completed successfully
   1    input, storage, or internal failure

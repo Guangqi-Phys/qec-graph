@@ -1,6 +1,8 @@
 """Optional immutable retrieval projections; source records remain authoritative."""
 from __future__ import annotations
 
+from .core.progress import phase, task, track
+
 from collections import Counter
 import hashlib
 import json
@@ -82,6 +84,7 @@ def local_vector(text, dimension):
     return {i: x/norm for i, x in vector.items()} if norm else {}
 
 
+@task('Waiting for embedding provider')
 def external_embeddings(texts, cfg):
     from .llm.providers.http import UrllibTransport
     secret = os.environ.get(cfg['api_key_env'])
@@ -150,6 +153,7 @@ def read_index(machine, binding):
     return data
 
 
+@task('Preparing retrieval index')
 def stage_index(registry, state, raw_config, *, repair=False):
     """Called under the existing writer lock, before release validation/publication."""
     cfg = configuration(raw_config)
@@ -171,7 +175,7 @@ def stage_index(registry, state, raw_config, *, repair=False):
         return
     chunks, pending, total_chars = [], [], 0
     reusable = {c['text_sha256']: c['vector'] for c in previous['chunks']} if previous and previous['identity'] == model else {}
-    for unit in units:
+    for unit in track(units, 'Indexing searchable source text', unit='passages'):
         text = unit['search_text']
         total_chars += len(text)
         if total_chars > cfg['max_total_chars']:
@@ -189,11 +193,12 @@ def stage_index(registry, state, raw_config, *, repair=False):
             chunks.append(chunk)
             if vector is None:
                 pending.append((chunk, part))
-    for start in range(0, len(pending), 16):
+    for start in track(range(0, len(pending), 16), 'Generating embeddings', unit='batches'):
         batch = pending[start:start+16]
         vectors = external_embeddings([text for _, text in batch], cfg)
         for (chunk, _), vector in zip(batch, vectors):
             chunk['vector'] = vector
+    phase('Writing retrieval index')
     projection = {'format': FORMAT, 'identity': model, 'configuration': cfg,
                   'corpus_sha256': binding, 'unit_count': len(units), 'chunks': chunks,
                   'coverage': 'Complete registered search text; chunk offsets address derived search text, not source'}

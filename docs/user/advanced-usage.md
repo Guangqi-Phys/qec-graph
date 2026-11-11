@@ -81,13 +81,12 @@ qec-graph validate --workspace "$workspace"
 qec-graph query search HGP --workspace "$workspace" --limit 2
 ```
 
-The bundled paper produced these outcome lines in a redirected terminal.
+Example outcome lines for the bundled paper (elapsed times vary):
 
 ```text
-[################] init: OK (0/0 packages indexed)
-[################] sync: OK (1/1 packages indexed)
-[################] status: OK (1/1 packages indexed)
-[################] validate: OK
+✓ sync: OK  00:02 | 1/1 packages indexed
+✓ status: OK  00:00 | 1/1 packages indexed
+✓ validate: OK  00:01
 ```
 
 The first two search results were the equations `eq:hgp-checks` and
@@ -105,12 +104,59 @@ its parents. Pass `--workspace /path/to/workspace` to select one explicitly.
 daily commands `sync`, `status`, and `validate`, `QECGRAPH_WORKSPACE` can serve
 as a fallback when the current directory is outside an initialized workspace.
 
-Workspace maintenance commands print one outcome line by default. In a
-terminal, longer operations also show their progress on that line. Pass
+Workspace maintenance commands keep one final outcome line. All business
+commands share a live activity panel on stderr when it is a terminal, including
+when stdout is redirected. Help and version commands return immediately. Pass
 `--json` for the full report in scripts, including when using `--workspace`
 or redirecting output. A partial status exits with code 2 in either mode.
 Invalid command syntax exits with code 64. Run `qec-graph help <command>`
 for command options or `qec-graph --version` for the installed version.
+
+The panel uses a restrained amber accent, a named current phase, and total/phase
+elapsed time. A compact matrix fits four microscopic dot rows inside one text
+row, up to 12 characters wide. Measured work fills the dots; a subtle amber
+shimmer changes brightness without advancing the count. Known totals show an exact completed/total count
+and a one-decimal percentage. Each matrix measures its named
+phase (packages, bytes, files, notes, or vectors); it is not an estimate of the
+whole command's running time. A new phase starts its own count. Unknown work,
+including AI/network waits and the isolated human renderer, has no percentage
+or invented ETA. Completed phases and their final dot matrices remain in the
+terminal scrollback. Phase transitions, retries, failures and interruption are
+retained with distinct labels; they are never silently erased at completion.
+
+A separate breathing light sits directly beside **AI**. Its small bullet stays
+fixed and vertically aligned with the text; only brightness changes. It indicates an active
+local request/wait, not knowledge of the provider's internal reasoning or token
+progress. Each paper lists all four tasks: Theorems, Assumptions, Data and Research
+thoughts. Their states distinguish queued, running, done, reused and failed;
+failed tasks do not increment the task count. The tasks run sequentially within
+each paper, while different papers may run concurrently. Previously the live
+view showed only the current task, so a long assumptions request could dominate
+the display. AI details now retain provider/model, attempt, timeout, retry backoff,
+response token counts when reported, validation, and cache reuse. Completed
+extraction still produces proposed content, not scientific verification.
+
+| Display option | Behavior |
+| --- | --- |
+| `--progress auto` | Live panel on terminal stderr; silent redirected stderr (default) |
+| `--progress plain` | Append-only activity and counts, with no animation or ANSI codes |
+| `--progress off` | Hide activity, retaining reports and errors |
+| `--verbose` | Diagnostic activity log without animation |
+| `--quiet` | Hide progress and successful human reports; explicit JSON and errors remain |
+| `--color never` / `NO_COLOR=1` | Keep the terminal layout without color |
+
+```sh
+qec-graph sync --json --progress plain
+qec-graph validate --progress off
+qec-graph help progress
+```
+
+Narrow terminals shorten labels before dropping the count. Non-Unicode
+terminals use ASCII; `TERM=dumb` disables automatic animation. MCP uses plain
+service activity rather than an animated panel; its stdout remains JSON-RPC.
+The design draws on [Rich progress](https://rich.readthedocs.io/en/latest/progress.html)
+and the [Command Line Interface Guidelines](https://clig.dev/#robustness).
+The renderer adds no runtime dependency and preserves existing JSON reports.
 
 | Task | Command from the workspace root |
 | --- | --- |

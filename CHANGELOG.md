@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## 0.6.4 — 2026-11-11
+
+- Unify terminal activity across all CLI business commands: a responsive amber
+  panel, precise phase counts and percentages, elapsed timers, parallel AI rows,
+  provider attempts/backoff, and distinct success/partial/error states. Unknown
+  work remains indeterminate; no estimated percentage or ETA is fabricated.
+- Retain every completed phase and its compact micro-dot matrix in terminal history.
+  Give AI requests a separate breathing light beside `AI`, four persistent task
+  states per paper, cache/retry/validation details and reported response usage.
+  Failed extraction tasks stay visible and do not count as completed work.
+  Compact Braille cells replace large circles; a fixed, centered AI bullet breathes
+  through brightness only. The amber palette references CodeGraph v1.6.2.
+- Add `--progress auto|plain|off` and `help progress`. Progress uses stderr,
+  including when JSON stdout is redirected. Quiet, color, ASCII, narrow-terminal
+  and MCP protocol behavior remain explicit; existing reports and exit codes
+  are preserved. No additional runtime dependency is required.
+
 ## 0.6.3 — 2026-11-11
 
 - Generate English AI knowledge, software catalog text and human notes. Semantic

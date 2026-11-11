@@ -1,6 +1,8 @@
 """One source-bound research-question note per registered paper."""
 from __future__ import annotations
 
+from ..core.progress import track
+
 from datetime import datetime
 import json
 import re
@@ -190,7 +192,7 @@ def render_pages(session):
         works.setdefault(version['work_id'], []).append(version)
     records = [r for r in session.visible_research() if r['kind'] == 'research_thought']
     pages, targets, used = {}, {}, set()
-    for work_id, versions in sorted(works.items()):
+    for work_id, versions in track(sorted(works.items()), 'Rendering paper thoughts', unit='papers'):
         versions.sort(key=_version_order)
         metadata = _metadata(session, versions[0], proposals)
         title = metadata['title'] or 'Untitled Paper'

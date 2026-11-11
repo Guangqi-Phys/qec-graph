@@ -1,6 +1,8 @@
 """Explicit mathematical checks; these never confer human or Lean review."""
 from __future__ import annotations
 
+from ..core.progress import task
+
 import re
 
 from ..core.graph import canonical
@@ -96,12 +98,16 @@ def check_css(hx, hz, lx=None, lz=None, *, enumerate_distance=False, max_n=20):
             result['distance_status'] = 'out_of_domain_k_zero'
             return result
         dx, dz = n + 1, n + 1
-        for vector in range(1, 1 << n):
-            weight = vector.bit_count()
-            if weight < dx and _orthogonal([vector], z) and not in_span(vector, bx):
-                dx = weight
-            if weight < dz and _orthogonal([vector], x) and not in_span(vector, bz):
-                dz = weight
+        with task('Enumerating binary vectors', total=(1 << n) - 1, unit='vectors') as checked:
+            for start in range(1, 1 << n, 4096):
+                end = min(start + 4096, 1 << n)
+                for vector in range(start, end):
+                    weight = vector.bit_count()
+                    if weight < dx and _orthogonal([vector], z) and not in_span(vector, bx):
+                        dx = weight
+                    if weight < dz and _orthogonal([vector], x) and not in_span(vector, bz):
+                        dz = weight
+                checked.advance(end - start)
         result['distance'] = {'dX': dx, 'dZ': dz, 'd': min(dx, dz), 'relation': 'exact',
                               'evidence_kind': 'computed_exact', 'vectors': 1 << n,
                               'method': 'complete_binary_vector_enumeration'}
