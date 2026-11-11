@@ -531,7 +531,7 @@ Mapping summary:
 | Area | Status |
 |---|---|
 | Real-paper corpus | Six versioned arXiv sources in the pinned replay; not a comprehensive literature corpus |
-| LLM extraction | Optional local handoff only; no automatic provider call or quality claim |
+| LLM extraction | Optional configured providers for normalization, eligible structure recovery and opt-in proposals; schema/evidence validation, no quality claim |
 | Chart/curve digitization | Not implemented; values require explicit evidence |
 | PDF/OCR | Not implemented; LaTeX source is the supported input |
 | Vector/semantic retrieval | Optional local lexical vectors or OpenAI-compatible embeddings; BM25/cosine hybrid retrieval; quality requires corpus-specific evaluation |
@@ -783,6 +783,10 @@ Stage 4 is implemented: `[retrieval].enabled = true` builds a hash-bound project
 
 Stage 5 is implemented: purpose-aware context and typed directional tracing, current-evidence classification/check-weight/noise filters, comparison-condition grouping, missing/unknown/conflict reporting and separate source candidates. Record enumeration retains pagination; source candidates cannot satisfy hard conditions.
 
+Stage 6 is implemented: `tools/reproduce_knowledge.py` records A/B/C tool calls, evidence passage coverage, returned size, missing components, errors and timings against a pinned release. The 2026-11-11 run passed 339 tests and core reproduction; the synthetic comparison recovered 2/2 required passages with full reading and task context, versus 1/2 with block reading. Six read-only probes over the three locally registered real sources passed with all requested source passages present. Those sources had no vector index or domain records beyond paper versions, so their hybrid requests explicitly used lexical fallback. These are source/evidence mechanics, not a curated scientific QA or semantic retrieval benchmark. Reports remain local under `build/`; the [validation index](../../validation/README.md) records repeatable commands.
+
+Distribution checks also passed for wheel/sdist metadata and bundled schemas/skills, 16 installed CLI commands, workspace acceptance and the three synthetic knowledge cases from an independent Python 3.12.2 wheel installation. Ruff, mypy, documentation contracts and Markdown lint passed. Docker, Lean, live AI/embedding providers and the six pinned golden archives were not run in this iteration.
+
 ### 16.7 Evidence of benefit
 
 Compare A (direct reading where it fits), B (source search plus reading) and C
@@ -817,9 +821,6 @@ point, not an industry standard or an already completed benchmark.
 6. [CodeGraph](https://github.com/colbymchenry/codegraph)
 7. [leanblueprint](https://github.com/PatrickMassot/leanblueprint)
 8. [Error Correction Zoo data](https://github.com/errorcorrectionzoo/eczoo_data)
-
-Historical rationale and superseded pages are available in Git history only; they are not part of the current documentation tree.
-
 9. [OpenAI MCP search/fetch](https://developers.openai.com/api/docs/mcp)
 10. [MCP tools (deployed protocol)](https://modelcontextprotocol.io/specification/2025-06-18/server/tools)
 11. [Microsoft Learn MCP](https://learn.microsoft.com/en-us/training/support/mcp-developer-reference)
@@ -828,3 +829,5 @@ Historical rationale and superseded pages are available in Git history only; the
 14. [Anthropic tool design](https://www.anthropic.com/research/writing-tools-for-agents)
 15. [PostgreSQL text search](https://www.postgresql.org/docs/current/textsearch-controls.html)
 16. [pgvector](https://github.com/pgvector/pgvector)
+
+Historical rationale and superseded pages are available in Git history only; they are not part of the current documentation tree.

@@ -133,8 +133,9 @@ validation leaves the previous release readable. `human/notes/` is never read.
 | Research model | `qecgraph.research` records, 27 kinds, 47 typed relations, field evidence, explicit unknown/conflict states |
 | Review | Proposal/diff, explicit decide, hash-bound apply, stale review detection |
 | Query | Exact filters, bounded context, dependency/impact traversal, code/performance/software queries |
-| MCP | 13 fixed-scope read tools, `qec://source/...` resources, budgets, one pinned release per session |
-| AI assistance | optional provider config, source-mapped normalization of multiple TeX roots, proposed theorem/assumption/data extraction |
+| MCP | Legacy (13), research (7), or generic search/fetch (2) tools; source resources, budgets and one pinned release per session |
+| Knowledge retrieval | Full source/section/outline reads, optional local or external embeddings, hybrid search, task contexts and coverage reports |
+| AI assistance | Optional provider config, source-mapped normalization of multiple TeX roots, proposed theorem/assumption/data/thought extraction |
 | Human view | Generated Obsidian pages with stable links and tombstones; `human/notes/` is private |
 | Surfaces | Workspace is primary; single-paper store and multi-paper corpus remain available |
 
@@ -181,6 +182,12 @@ is convenient locally but is not an operating-system isolation boundary.
 strict deployment.
 
 ### Read tools
+
+The default `legacy` profile retains the tools below. Use
+`qec-graph mcp config --workspace . --profile research` for the seven research
+tools, or `--profile compatible` for generic `search`/`fetch` with registered
+public citation URLs. See [knowledge queries](docs/user/data-and-search.md#document-reading-profiles)
+for full-source reading, vector configuration and task context examples.
 
 | Tool group | Available tools |
 |---|---|

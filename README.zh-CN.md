@@ -124,8 +124,9 @@ release 保持可读。`human/notes/` 永不被读取。
 | 研究模型 | `qecgraph.research` 记录、27 kinds、47 typed relations、字段证据、显式 unknown/conflict 状态 |
 | 审核 | proposal/diff、显式 decide、哈希绑定 apply、stale review 检测 |
 | 查询 | 精确过滤、有界上下文、依赖/影响遍历、code/performance/software 查询 |
-| MCP | 13 个固定作用域只读工具、`qec://source/...` resources、budgets、每会话固定 release |
-| AI 辅助 | 可选 provider 配置、多 TeX 根的来源映射规范化、定理/假设/数据提议 |
+| MCP | legacy（13）、research（7）或通用 search/fetch（2）工具；来源资源、预算、每会话固定 release |
+| 知识检索 | 完整原文/章节/目录读取、可选本地或外部 embedding、混合搜索、任务上下文与覆盖报告 |
+| AI 辅助 | 可选 provider 配置、多 TeX 根的来源映射规范化、定理/假设/数据/思路提议 |
 | 人类视图 | 带稳定链接和 tombstone 的生成 Obsidian 页面；`human/notes/` 私有 |
 | 接口面 | workspace 为主；单篇 store 和多篇 corpus 仍可用 |
 
@@ -169,6 +170,11 @@ qec-graph mcp serve --machine "$PWD/machine"
 不可读。
 
 ### 读取工具
+
+默认 `legacy` profile 保留下列工具。使用
+`qec-graph mcp config --workspace . --profile research` 选择七个研究工具；
+`--profile compatible` 提供通用 `search`/`fetch`，使用已登记的公开引用 URL。
+完整原文读取、向量配置和任务上下文示例见[知识查询](docs/user/data-and-search.zh-CN.md#文档阅读-profiles)。
 
 | 工具组 | 可用工具 |
 |---|---|

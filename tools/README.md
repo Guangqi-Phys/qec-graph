@@ -11,6 +11,7 @@ tooling, not part of the installed `qecgraph` package.
 | Isolation | `reproduce_isolation.py`, `reproduce_linux_isolation.py`, `mcp_isolated_macos.py` | OS-level MCP isolation checks |
 | Release | `check_distribution.py`, `qec-graph.spec` | Distribution metadata checks and PyInstaller spec |
 | Performance | `bench.py` | Generated incremental workload and pinned-source benchmark |
+| Knowledge evidence | `reproduce_knowledge.py` | Compare complete reading, source search and task context; no LLM execution |
 | Lean (deferred) | `reproduce_lean.py`, `reproduce_lean_checks.py`, `reproduce_lean_mapping.py` | Historical/experimental Lean evidence only; not a supported workflow |
 
 The standard gates are:
@@ -20,5 +21,20 @@ python tools/reproduce.py --out build/reproduce
 python tools/check_distribution.py dist
 ```
 
-`tools/reproduce_*` scripts write machine-readable reports to `build/`; the
-`validation/` tree keeps selected historical reports by functional area.
+`tools/reproduce_*` scripts write machine-readable reports to `build/`;
+`validation/` indexes the current executable checks.
+
+Run the offline evidence comparison, or use a read-only registered machine release:
+
+```sh
+python tools/reproduce_knowledge.py --out build/knowledge-synthetic.json --include-payloads
+python tools/reproduce_knowledge.py --machine /path/to/machine --out build/knowledge-real.json --include-payloads
+```
+
+`--release` pins an older release. `--cases` accepts a JSON list with `name`,
+`query`, `kind`, `purpose`, `source_version_id` and `expected_evidence` (exact
+passage strings). Without cases, existing sources supply mechanical probes;
+these are not curated scientific questions. Reports disclose retrieval coverage
+and fallback. `--include-payloads` retains the exact tool responses locally;
+omit it to save only hashes and measurements. A/B/C measure evidence retrieval,
+not model answer accuracy or mathematical correctness.

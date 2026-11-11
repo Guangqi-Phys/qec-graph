@@ -591,7 +591,7 @@ build evidence 或 semantic equivalence。
 | 领域 | 状态 |
 |---|---|
 | 真实论文 corpus | 固定 replay 中有六个带版本 arXiv 来源；不是全面文献 corpus |
-| LLM extraction | 仅可选本地 handoff；不自动调用 provider，不声称质量 |
+| LLM extraction | 可选配置 provider，用于规范化、符合条件的结构恢复和显式启用的提案；校验 schema/证据，不声称质量 |
 | Chart/curve digitization | 未实现；值需要显式证据 |
 | PDF/OCR | 未实现；LaTeX 源是受支持输入 |
 | Vector/semantic retrieval | 可选本地词法向量或 OpenAI-compatible embedding，BM25/cosine 混合检索；质量须按语料实测 |
@@ -791,6 +791,10 @@ PDF/OCR、读图提取、自动证明和千篇/万篇生产验证不属于本轮
 
 阶段 5 已实现：按用途组装上下文、类型化双向追踪、当前证据绑定的分类/校验权重/噪声过滤、比较条件分组、缺失/未知/冲突报告和分开的原文候选。记录枚举保留分页；原文候选不能满足硬条件。
 
+阶段 6 已实现：`tools/reproduce_knowledge.py` 记录固定 release 的 A/B/C 工具调用、证据段落覆盖、返回大小、缺失组件、错误和耗时。2026-11-11 运行通过 339 项测试和核心复现；合成对照中全文与任务上下文找回 2/2 所需段落，单块阅读为 1/2。对本地三份已登记真实来源的六个只读探针均找回所请求的原文。该真实库尚无向量索引，也没有论文版本以外的领域记录，因此混合请求显式采用词法回退。这些结果验证来源与证据机制，不是经过整理的科学问答或语义检索基准。报告保留在本地 `build/`；[验证索引](../../validation/README.zh-CN.md) 给出可重复运行的命令。
+
+分发验证也已通过：wheel/sdist 元数据和随包 schema/skill、16 条已安装 CLI 命令、工作区验收，以及在独立 Python 3.12.2 wheel 安装中运行的三个合成知识用例。Ruff、mypy、文档契约和 Markdown 检查通过。本轮未运行 Docker、Lean、真实 AI/embedding provider 或六份固定 golden 归档。
+
 ### 16.7 收益证据
 
 在同语料、同模型、同预算下比较 A（能放进上下文的直接阅读）、B（原文搜索加阅读）、
@@ -822,9 +826,6 @@ C（B 加领域字段、关系和任务上下文）。记录实际工具输入�
 6. [CodeGraph](https://github.com/colbymchenry/codegraph)
 7. [leanblueprint](https://github.com/PatrickMassot/leanblueprint)
 8. [Error Correction Zoo data](https://github.com/errorcorrectionzoo/eczoo_data)
-
-历史理由和替代页面只在 Git history 中保留；不属于当前文档树。
-
 9. [OpenAI MCP search/fetch](https://developers.openai.com/api/docs/mcp)
 10. [MCP tools (deployed protocol)](https://modelcontextprotocol.io/specification/2025-06-18/server/tools)
 11. [Microsoft Learn MCP](https://learn.microsoft.com/en-us/training/support/mcp-developer-reference)
@@ -833,3 +834,5 @@ C（B 加领域字段、关系和任务上下文）。记录实际工具输入�
 14. [Anthropic tool design](https://www.anthropic.com/research/writing-tools-for-agents)
 15. [PostgreSQL text search](https://www.postgresql.org/docs/current/textsearch-controls.html)
 16. [pgvector](https://github.com/pgvector/pgvector)
+
+历史理由和替代页面只在 Git history 中保留；不属于当前文档树。

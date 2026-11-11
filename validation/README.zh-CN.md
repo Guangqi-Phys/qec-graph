@@ -13,6 +13,8 @@
 |---|---|
 | 单元、集成和契约测试 | `python -m unittest discover -s tests` |
 | 端到端抽取和查询复现 | `python tools/reproduce.py --out build/reproduce` |
+| 直接阅读 / 搜索 / 任务上下文证据 | `python tools/reproduce_knowledge.py --out build/knowledge-synthetic.json --include-payloads` |
+| 已登记真实来源阅读（只读） | `python tools/reproduce_knowledge.py --machine /path/to/machine --out build/knowledge-real.json --include-payloads` |
 | Workspace、MCP 和隔离检查 | `python tools/reproduce_workspace.py` 和 `python tools/reproduce_mcp.py` |
 | 发行分发包 | `python -m build` 后运行 `python tools/check_distribution.py dist/` |
 | 发行二进制 | `Standalone Release` GitHub workflow |

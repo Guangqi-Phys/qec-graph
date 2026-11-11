@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- Integrated the searchable-knowledge design and retained `Human.md` as the
+  original requirements. Added version-bound document outlines, continuous
+  section/file reads and source/field coverage, including unparsed source text.
+- Added selectable legacy (13 tools), research (7 tools), and generic
+  search/fetch (2 tools) MCP profiles on the same pinned machine release.
+- Added nine source-quoted research thought categories, typed links, generated
+  human pages and the optional `extract_thoughts` v1 AI proposal skill.
+- Added optional offline vector projections, BM25/cosine hybrid retrieval,
+  explicit OpenAI-compatible embedding configuration, integrity checks and
+  reusable model-bound chunk caches. Local vectors are a lexical baseline.
+- Added purpose-aware context, typed tracing, evidence-bound code/check-weight
+  and idle/loss filters, experiment-condition groups and explicit missing data.
+- Added reproducible direct-reading/search/context measurements. Offline and
+  registered-source checks do not establish model quality, Lean verification
+  or production-scale capacity.
+
 ## 0.6.1 — 2026-11-11
 
 - Fixed parsing of percent-encoded URLs in LaTeX links, including the

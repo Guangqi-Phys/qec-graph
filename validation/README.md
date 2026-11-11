@@ -15,6 +15,8 @@ reports cannot be mistaken for a claim about the current code.
 |---|---|
 | Unit, integration and contract tests | `python -m unittest discover -s tests` |
 | End-to-end extraction and query reproduction | `python tools/reproduce.py --out build/reproduce` |
+| Direct reading / search / task context evidence | `python tools/reproduce_knowledge.py --out build/knowledge-synthetic.json --include-payloads` |
+| Registered real-source reading (read-only) | `python tools/reproduce_knowledge.py --machine /path/to/machine --out build/knowledge-real.json --include-payloads` |
 | Workspace, MCP and isolation checks | `python tools/reproduce_workspace.py` and `python tools/reproduce_mcp.py` |
 | Release distributions | `python -m build` then `python tools/check_distribution.py dist/` |
 | Release binaries | The `Standalone Release` GitHub workflow |
