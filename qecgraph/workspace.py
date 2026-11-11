@@ -30,7 +30,7 @@ FORMAT = 'qecgraph.workspace'
 PROCESSOR = f'qecgraph-{__version__}:archive-structure-v1:parser-{PARSER_VERSION}:{RULE_VERSION}'
 HEX = re.compile(r'[0-9a-f]{64}')
 JOB = re.compile(r'[0-9a-f]{32}')
-AI_EXTRACTION_SKILLS = ('extract_theorems', 'extract_assumptions', 'extract_data')
+AI_EXTRACTION_SKILLS = ('extract_theorems', 'extract_assumptions', 'extract_data', 'extract_thoughts')
 _CHUNK_BYTES = 256 << 10
 
 

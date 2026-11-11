@@ -72,7 +72,7 @@ class AICliTests(unittest.TestCase):
         code, stdout, stderr = self.invoke('ai', 'proposals', '--json')
         self.assertEqual((code, stderr), (0, ''))
         result = json.loads(stdout)
-        self.assertEqual(result['count'], 3)
+        self.assertEqual(result['count'], 4)
         row = next(row for row in result['proposals'] if row['skill'] == 'extract_theorems')
         self.assertEqual(row['items'], 1)
         self.assertEqual(row['release_id'], report['release_id'])

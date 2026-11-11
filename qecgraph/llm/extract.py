@@ -91,6 +91,18 @@ def validate_extraction(skill, data):
         _validate_assumptions(data)
     elif skill == 'extract_data':
         _validate_data(data)
+    elif skill == 'extract_thoughts':
+        from .skills import load_skill
+        from jsonschema import Draft202012Validator
+        error = next(Draft202012Validator(load_skill(skill).schema).iter_errors(data), None)
+        if error:
+            raise ExtractionError('Thought schema: ' + error.message)
+        for item in data['items']:
+            _strings(item['source_refs'], 'thought source_refs')
+            if not item['statement'].strip() or not item['source_quote'].strip():
+                raise ExtractionError('Thought statement and source quote must not be blank')
+            if item['attribution'] == 'author_explicit' and item['statement'] != item['source_quote']:
+                raise ExtractionError('Explicit author thought must equal its verbatim quote')
     else:
         raise ExtractionError(f'unsupported extraction skill: {skill}')
     return data
@@ -120,7 +132,7 @@ def make_proposal(skill, data, *, source_tree_hash, ai_result, normalization_id=
     return proposal
 
 
-_EXTRACTION_SKILLS = {'extract_theorems', 'extract_assumptions', 'extract_data'}
+_EXTRACTION_SKILLS = {'extract_theorems', 'extract_assumptions', 'extract_data', 'extract_thoughts'}
 
 
 _LINE_REF = re.compile(r'(.+):([1-9][0-9]{0,8})(?:-([1-9][0-9]{0,8}))?')
@@ -161,6 +173,8 @@ def validate_source_refs(normalized, projection_path, skill, data):
     for item in data['items']:
         verbatim = item['statement'] if skill == 'extract_theorems' else (
             item['text'] if skill == 'extract_assumptions' and item.get('kind') == 'explicit' else None)
+        if skill == 'extract_thoughts':
+            verbatim = item['source_quote']
         check(item, verbatim)
         for hypothesis in item.get('hypotheses', []):
             check(hypothesis, hypothesis['text'] if hypothesis['kind'] == 'explicit' else None)

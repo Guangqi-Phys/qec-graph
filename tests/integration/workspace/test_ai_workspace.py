@@ -55,7 +55,7 @@ class AIWorkspaceTests(unittest.TestCase):
                                       {'op': 'include_body', 'source': 'a.tex'},
                                       {'op': 'append_body', 'source': 'b.tex'}], 'unresolved': []})
         empty = answer({'items': [], 'unresolved': []})
-        with patch('qecgraph.llm.client.LLMClient.complete_json', side_effect=[plan, empty, empty, empty]):
+        with patch('qecgraph.llm.client.LLMClient.complete_json', side_effect=[plan, empty, empty, empty, empty]):
             report = self.workspace.sync()
         session = WorkspaceSession(self.root / 'machine', report['release_id'])
         node = next(n for n in session.graph.source.graph['nodes'] if n.get('source') and '補遺 é😀' in n['latex'])
@@ -102,7 +102,7 @@ class AIWorkspaceTests(unittest.TestCase):
         package.write_bytes(TEX)
         empty = answer({'items': [], 'unresolved': []})
         with patch('qecgraph.llm.client.LLMClient.complete_json',
-                   side_effect=[empty, ProviderError('temporary provider error'), empty]):
+                   side_effect=[empty, ProviderError('temporary provider error'), empty, empty]):
             first = self.workspace.sync()
         self.assertEqual(first['status'], 'partial_batch')
         self.assertTrue(first['inputs'][0]['input_consumed'])
@@ -113,7 +113,7 @@ class AIWorkspaceTests(unittest.TestCase):
             second = self.workspace.sync()
             self.assertEqual(client.call_count, 1)
             self.assertEqual(second['inputs'][0]['ai_extraction']['status'], 'complete')
-            self.assertEqual(len(second['inputs'][0]['ai_extraction']['written']), 3)
+            self.assertEqual(len(second['inputs'][0]['ai_extraction']['written']), 4)
             self.assertEqual(self.workspace.sync()['status'], 'unchanged')
             self.assertEqual(client.call_count, 1)
 
@@ -124,7 +124,7 @@ class AIWorkspaceTests(unittest.TestCase):
                                                         {'path': 'b.tex', 'role': 'source'}],
                        'operations': [{'op': 'use_document', 'source': 'a.tex'}], 'unresolved': []})
         empty = answer({'items': [], 'unresolved': []})
-        with patch('qecgraph.llm.client.LLMClient.complete_json', side_effect=[plan, empty, empty, empty]):
+        with patch('qecgraph.llm.client.LLMClient.complete_json', side_effect=[plan, empty, empty, empty, empty]):
             first = self.workspace.sync()['inputs'][0]
         self.configure('enabled = true', 'enabled = false')
         with patch('qecgraph.llm.client.LLMClient.complete_json') as client:
@@ -152,7 +152,7 @@ class AIWorkspaceTests(unittest.TestCase):
                 empty = answer({'items': [], 'unresolved': []})
                 with patch('qecgraph.llm.client.LLMClient.complete_json', return_value=empty) as client:
                     report = workspace.sync()
-                    self.assertEqual(client.call_count, 3)
+                    self.assertEqual(client.call_count, 4)
                     for call in client.call_args_list:
                         self.assertNotIn('UNSELECTED_MARKER', call.args[0][-1].content)
                 self.assertEqual(report['inputs'][0]['entrypoint'], 'selected.tex')
@@ -195,7 +195,7 @@ class AIWorkspaceTests(unittest.TestCase):
                                       {'op': 'include_body', 'source': 'a.tex'},
                                       {'op': 'append_body', 'source': 'b.tex'}], 'unresolved': []})
         empty = answer({'items': [], 'unresolved': []})
-        with patch('qecgraph.llm.client.LLMClient.complete_json', side_effect=[plan, empty, empty, empty]):
+        with patch('qecgraph.llm.client.LLMClient.complete_json', side_effect=[plan, empty, empty, empty, empty]):
             initial = self.workspace.sync()['inputs'][0]
 
         registry = self.workspace.registry

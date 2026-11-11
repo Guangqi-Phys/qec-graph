@@ -107,6 +107,18 @@ def prepare(record):
         raise ValueError('A software release needs the exact distribution and version')
     if kind == 'execution_run' and not data['execution_evidence']:
         raise ValueError('An execution run requires actual execution evidence and environment')
+    if kind == 'research_thought':
+        if not data['statement'].strip() or not data['source_quote'].strip():
+            raise ValueError('Research thought needs a statement and source quote')
+        if data['attribution'] == 'author_explicit' and data['statement'] != data['source_quote']:
+            raise ValueError('An explicit author thought must preserve the quoted statement')
+        if not record['is_synthetic']:
+            for field in ('statement', 'source_quote'):
+                evidence = fields[_ptr(field)]
+                if not evidence.get('source_locator') or evidence.get('source_ref') != data['source_ref']:
+                    raise ValueError('Thought statement and quote need exact evidence from their paper version')
+            if fields['/data/statement']['source_locator'] != fields['/data/source_quote']['source_locator']:
+                raise ValueError('Thought statement and quotation must bind the same source span')
     if kind == 'software_usage':
         use = data['usage_kind']
         if use == 'source_reported_use' and not (data.get('source_ref') and data.get('experiment_ref')):

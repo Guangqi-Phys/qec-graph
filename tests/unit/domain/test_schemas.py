@@ -39,6 +39,8 @@ class SchemaTests(unittest.TestCase):
         binding = {'id': 'record:fixture', 'revision': 'r1'}
         records = {
             'algorithm': {},
+            'research_thought': {'category': 'problem', 'statement': 'Question?', 'source_quote': 'Question?',
+                                 'attribution': 'author_explicit', 'source_ref': binding},
             'catalog_source': {},
             'syndrome_measurement_circuit': {},
             'classical_code': {},

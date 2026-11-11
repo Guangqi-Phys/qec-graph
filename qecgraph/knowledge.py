@@ -121,6 +121,13 @@ class KnowledgeView:
 
     def fetch(self, args):
         identifier = args['identifier']
+        if identifier in self.proposal_items:
+            proposal = self.proposal_items[identifier]
+            if args.get('revision') and args['revision'] != proposal['revision']:
+                raise ToolError('NOT_FOUND', 'No such proposal revision')
+            if args.get('source_version_id') and args['source_version_id'] != proposal['source_version_id']:
+                raise ToolError('SOURCE_VERSION_UNAVAILABLE', 'Proposal belongs to another source version')
+            return {'proposal': proposal, 'view': 'proposal', 'evidence_status': 'proposed'}
         document_read = identifier in self.documents and not args.get('revision')
         record = None if document_read else self.session._research(identifier, args.get('revision'))
         if record:
@@ -177,6 +184,25 @@ class KnowledgeView:
                 'continuation': end if end < unit_end else None}
 
     @cached_property
+    def proposal_items(self):
+        from .llm.review import proposal_bindings, read_bound_proposal
+        from .llm.extract import validate_extraction
+        rows = {}
+        for binding, material in proposal_bindings(self.session.state).values():
+            if binding['skill'] != 'extract_thoughts':
+                continue
+            proposal = read_bound_proposal(self.session.registry, binding, material)
+            validate_extraction('extract_thoughts', {'items': proposal['items'], 'unresolved': proposal['unresolved']})
+            for index, item in enumerate(proposal['items']):
+                identifier = 'thought-proposal:' + hash_text(canonical([binding['proposal_sha256'], index]))
+                rows[identifier] = {'id': identifier, 'kind': 'research_thought_proposal',
+                                    'revision': binding['proposal_sha256'], 'review_status': 'proposed',
+                                    'source_version_id': proposal['source_version_id'],
+                                    'snapshot_id': proposal['snapshot_id'], 'data': item,
+                                    'provenance': proposal['provenance']}
+        return rows
+
+    @cached_property
     def search_units(self):
         units = []
         for node in self.nodes.values():
@@ -193,6 +219,9 @@ class KnowledgeView:
                           'search_text': canonical(record)})
         for material in self.session._materials.values():
             units.append({**material, 'title': material['id'], 'url': None, 'search_text': canonical(material)})
+        for proposal in self.proposal_items.values():
+            units.append({**{k: v for k, v in proposal.items() if k not in {'data', 'provenance'}},
+                          'title': proposal['data']['statement'], 'url': None, 'search_text': canonical(proposal)})
         return sorted(units, key=lambda u: (u['kind'] == 'source_file', u['id'], u.get('revision', '')))
 
     def search(self, args):
@@ -202,6 +231,8 @@ class KnowledgeView:
             self.version(args['source_version_id'])
         rows = []
         for unit in self.search_units:
+            if unit['kind'] == 'research_thought_proposal' and not args.get('include_proposals', False):
+                continue
             if args.get('kind') and unit['kind'] != args['kind']:
                 continue
             if args.get('source_version_id') and unit.get('source_version_id') != args['source_version_id']:
@@ -270,6 +301,7 @@ def descriptors(session, legacy):
     for name, props, required, description in (
         ('qec_fetch', properties, ['identifier'], 'Read a registered document, file, section or record. Outline is paginated; raw text preserves source bytes.'),
         ('qec_search', {'query': _string(4096), 'kind': _string(), 'source_version_id': _string(4096),
+                        'include_proposals': {'type': 'boolean'},
                         'offset': _integer(), 'limit': _integer(1, session.graph.max_results)}, ['query'],
          'Discover source and record candidates, including unextracted text. Empty results do not establish nonexistence.'),
         ('search', {'query': _string(4096)}, ['query'], 'Find citable evidence units with registered public URLs. Local-only papers require the research profile.'),

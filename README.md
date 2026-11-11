@@ -130,7 +130,7 @@ validation leaves the previous release readable. `human/notes/` is never read.
 |---|---|
 | Ingestion | TeX/gzip/tar/tar.gz/ZIP detection, safe unpacking, SHA-256 blobs and receipts, entry-point selection |
 | Provenance | UTF-8 byte hashes, Unicode codepoint half-open spans, 1-based lines, stable IDs and revisions |
-| Research model | `qecgraph.research` records, 26 kinds, 41 typed relations, field evidence, explicit unknown/conflict states |
+| Research model | `qecgraph.research` records, 27 kinds, 47 typed relations, field evidence, explicit unknown/conflict states |
 | Review | Proposal/diff, explicit decide, hash-bound apply, stale review detection |
 | Query | Exact filters, bounded context, dependency/impact traversal, code/performance/software queries |
 | MCP | 13 fixed-scope read tools, `qec://source/...` resources, budgets, one pinned release per session |

@@ -21,6 +21,7 @@ GROUPS = {
     'experiment': 'experiments', 'performance_curve': 'experiments', 'performance_data_point': 'experiments',
     'software_project': 'software', 'software_distribution': 'software', 'software_release': 'software',
     'algorithm': 'software', 'software_usage': 'software',
+    'research_thought': 'thoughts',
 }
 
 
@@ -93,6 +94,8 @@ def _link(path, label):
 
 def _title(record):
     data = record.get('data', {})
+    if record['kind'] == 'research_thought':
+        return data['category'] + ': ' + ' '.join(data['statement'].split())[:120]
     if record['kind'] == 'source_artifact':
         return record.get('work_id') or 'Source package ' + record['archive_sha256'][:12]
     title = ' '.join(str(record.get('title') or data.get('title') or data.get('name') or record['id']).split())
@@ -186,6 +189,10 @@ def _record_sections(record, session, targets, titles, relations, visible_revisi
     if span:
         sections += [f'{section_level} Source text', _excerpt(record.get('latex', ''), 800)]
     data = record.get('data', {})
+    if record['kind'] == 'research_thought':
+        sections += [f'{section_level} Research thought',
+                     _table([('Category', data['category']), ('Attribution', data['attribution'])]),
+                     _fenced(data['statement']), f'{section_level} Author quotation', _fenced(data['source_quote'])]
     if record['kind'] == 'paper_version':
         blocks = session.reading_blocks(record['id'], record['revision'])
         if blocks:

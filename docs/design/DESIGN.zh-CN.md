@@ -209,7 +209,7 @@ Store 和 corpus 有各自受管理根目录。不要合并它们的 pointer 格
 
 | Schema | 用途 | 位置 |
 |---|---|---|
-| `qecgraph.research` | 当前 workspace 研究记录（26 kinds、41 typed relations） | `qecgraph/validators/schemas/research.schema.json` |
+| `qecgraph.research` | 当前 workspace 研究记录（27 kinds、47 typed relations） | `qecgraph/validators/schemas/research.schema.json` |
 | `qecgraph.record` | corpus 记录（当前格式） | `qecgraph/validators/schemas/record.schema.json` |
 | `qecgraph.graph` | 抽取图和三种视图 | `qecgraph/validators/schemas/graph.schema.json` |
 | `qecgraph.annotations` | 对抽取 store 的人工/AI 增补 | packaged schema |
@@ -784,6 +784,8 @@ Lean → 原始陈述、量词、假设和已有映射。上下文选择是结�
 PDF/OCR、读图提取、自动证明和千篇/万篇生产验证不属于本轮实现。
 
 阶段 2 已实现：论文/文件/章节读取、严格版本选择、字段/来源覆盖和可选 MCP profiles。完整源文件从登记快照读取并核验哈希，包含解析块之外的文本。
+
+阶段 3 已实现：九类思路、精确引用记录及关系、`extract_thoughts` v1 提议和人类思路页面。启用 `[ai].extract_proposals = true` 时 sync 运行四个抽取 skill（含思路）；已有完整批次在下次 sync 补提取缺失 skill。`qec_search(include_proposals=true, kind="research_thought_proposal")` 发现候选思路而不提升为记录；精确 `qec_fetch` 保留 proposed 状态。
 
 ### 16.7 收益证据
 

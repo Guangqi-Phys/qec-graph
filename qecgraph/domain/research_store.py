@@ -75,6 +75,15 @@ def validate_sources(registry, state, records, *, require_source=True, verified_
                         and path == locator.get('path') and type(a) is int and type(b) is int and start <= a < b <= end):
                     continue
             raise ValueError('Source evidence does not resolve to a verbatim registered span')
+        if record['kind'] == 'research_thought':
+            locator = record['field_evidence']['/data/source_quote']['source_locator']
+            snapshot = safe_relative(registry.root, 'source_snapshots/' + locator['snapshot_id'])
+            graph, _ = load_validated_snapshot(snapshot, locator['snapshot_id'])
+            node = next(n for n in graph['nodes'] if n['id'] == locator['node_id'])
+            start = locator['char_start'] - node['source']['char_start']
+            end = locator['char_end'] - node['source']['char_start']
+            if record['data']['source_quote'] != node['latex'][start:end]:
+                raise ValueError('Thought quotation differs from its exact registered source span')
 
 
 def stage_records(registry, state, records, *, verified_spans=None):

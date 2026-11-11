@@ -193,7 +193,7 @@ Duplicate labels are ambiguous and must be resolved with an exact ID. Missing re
 
 | Schema | Use | Location |
 |---|---|---|
-| `qecgraph.research` | Current workspace research records (26 kinds, 41 typed relations) | `qecgraph/validators/schemas/research.schema.json` |
+| `qecgraph.research` | Current workspace research records (27 kinds, 47 typed relations) | `qecgraph/validators/schemas/research.schema.json` |
 | `qecgraph.record` | Corpus records (current format) | `qecgraph/validators/schemas/record.schema.json` |
 | `qecgraph.graph` | Extraction graph and three views | `qecgraph/validators/schemas/graph.schema.json` |
 | `qecgraph.annotations` | Human/AI additions to an extraction store | packaged schema |
@@ -776,6 +776,8 @@ scientific result. PDF/OCR, chart digitization, automatic theorem proving and
 thousand/ten-thousand-paper production validation remain outside this iteration.
 
 Stage 2 is implemented: document/file/section reads, strict version selection, field/source coverage and selectable MCP profiles. Full source files are read from registered snapshots with hash verification, including text outside parsed blocks.
+
+Stage 3 is implemented: nine thought categories, quotation-bound records and relations, `extract_thoughts` v1 proposals and generated thought pages. With `[ai].extract_proposals = true`, sync runs four extraction skills (including thoughts); older completed batches obtain the missing skill on the next sync. `qec_search(include_proposals=true, kind="research_thought_proposal")` discovers proposed thoughts without promoting them to records; exact `qec_fetch` retains their proposed state.
 
 ### 16.7 Evidence of benefit
 

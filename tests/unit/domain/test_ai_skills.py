@@ -10,7 +10,7 @@ class SkillTests(unittest.TestCase):
     def test_default_skill_packs_load_with_valid_schemas(self):
         skills = load_skills()
         self.assertEqual(sorted(skills), ['extract_assumptions', 'extract_data',
-                                          'extract_theorems', 'normalize_package', 'recover_structure'])
+                                          'extract_theorems', 'extract_thoughts', 'normalize_package', 'recover_structure'])
         for name, skill in skills.items():
             self.assertEqual(skill.name, name)
             self.assertGreaterEqual(skill.version, 1)

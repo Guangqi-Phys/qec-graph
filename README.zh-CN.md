@@ -121,7 +121,7 @@ release 保持可读。`human/notes/` 永不被读取。
 |---|---|
 | 导入 | TeX/gzip/tar/tar.gz/ZIP 识别、安全解包、SHA-256 blob 和 receipt、入口点选择 |
 | 来源保真 | UTF-8 字节哈希、Unicode codepoint 半开区间、行号从 1 开始、稳定 ID 和修订 |
-| 研究模型 | `qecgraph.research` 记录、26 kinds、41 typed relations、字段证据、显式 unknown/conflict 状态 |
+| 研究模型 | `qecgraph.research` 记录、27 kinds、47 typed relations、字段证据、显式 unknown/conflict 状态 |
 | 审核 | proposal/diff、显式 decide、哈希绑定 apply、stale review 检测 |
 | 查询 | 精确过滤、有界上下文、依赖/影响遍历、code/performance/software 查询 |
 | MCP | 13 个固定作用域只读工具、`qec://source/...` resources、budgets、每会话固定 release |

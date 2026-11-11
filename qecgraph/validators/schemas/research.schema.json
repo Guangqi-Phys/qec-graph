@@ -35,7 +35,8 @@
         "software_distribution",
         "software_project",
         "software_release",
-        "software_usage"
+        "software_usage",
+        "research_thought"
       ]
     },
     "data": {"type": "object", "properties": {"review_status": {"enum": [null, "proposed", "unreviewed"]}}},
@@ -90,7 +91,116 @@
     "nullable_refs": {"type": ["array", "null"], "items": {"$ref": "#/$defs/ref"}, "uniqueItems": true},
     "record_data": {
       "$defs": {
-        "algorithm": {},
+        "research_thought": {
+        "required": [
+          "category",
+          "statement",
+          "attribution",
+          "source_ref",
+          "source_quote"
+        ],
+        "properties": {
+          "category": {
+            "enum": [
+              "problem",
+              "motivation",
+              "approach",
+              "intuition",
+              "assumption",
+              "conclusion",
+              "open_question",
+              "surprising_result",
+              "side_result"
+            ]
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "attribution": {
+            "enum": [
+              "author_explicit",
+              "editorial_inference"
+            ]
+          },
+          "source_quote": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_ref": {
+            "$ref": "#/$defs/ref",
+            "x-qec-target-kinds": [
+              "paper_version"
+            ]
+          },
+          "relation_to_prior": {
+            "enum": [
+              null,
+              "extends",
+              "strengthens",
+              "contradicts",
+              "unrelated"
+            ]
+          },
+          "related_refs": {
+            "$ref": "#/$defs/nullable_refs",
+            "x-qec-target-kinds": [
+              "algorithm",
+              "catalog_source",
+              "syndrome_measurement_circuit",
+              "classical_code",
+              "code_family",
+              "quantum_code",
+              "code_parameters_mention",
+              "check_matrix",
+              "construction",
+              "decoder",
+              "distance_estimate",
+              "execution_environment",
+              "execution_run",
+              "hardware_model",
+              "metric",
+              "noise_model_instance",
+              "noise_model",
+              "paper_version",
+              "performance_data_point",
+              "performance_curve",
+              "experiment",
+              "software_catalog_observation",
+              "software_distribution",
+              "software_project",
+              "software_release",
+              "software_usage",
+              "research_thought"
+            ]
+          },
+          "addresses_refs": {
+            "$ref": "#/$defs/nullable_refs",
+            "x-qec-target-kinds": [
+              "research_thought"
+            ]
+          },
+          "motivated_by_refs": {
+            "$ref": "#/$defs/nullable_refs",
+            "x-qec-target-kinds": [
+              "research_thought"
+            ]
+          },
+          "extends_refs": {
+            "$ref": "#/$defs/nullable_refs",
+            "x-qec-target-kinds": [
+              "research_thought"
+            ]
+          },
+          "contradicts_refs": {
+            "$ref": "#/$defs/nullable_refs",
+            "x-qec-target-kinds": [
+              "research_thought"
+            ]
+          }
+        }
+      },
+      "algorithm": {},
         "catalog_source": {},
         "syndrome_measurement_circuit": {
           "properties": {
@@ -459,6 +569,10 @@
     {
       "if": {"properties": {"kind": {"const": "software_usage"}}},
       "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/software_usage"}}}
+    },
+    {
+      "if": {"properties": {"kind": {"const": "research_thought"}}},
+      "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/research_thought"}}}
     }
   ]
 }
