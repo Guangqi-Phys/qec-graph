@@ -31,7 +31,7 @@ mkdir my-qec
 cd my-qec
 qec-graph init
 # The command creates inputs/ and qecgraph.toml.
-# Optional AI: edit [ai] in qecgraph.toml, then:
+# AI: fill in your OpenRouter API key in qecgraph.toml or OPENROUTER_API_KEY, then:
 qec-graph ai status
 qec-graph ai test
 # Put downloaded LaTeX source packages in inputs/, then run:
@@ -42,9 +42,9 @@ qec-graph validate
 
 `init` never extracts or calls AI. It only prepares the inbox and configuration;
 `qec-graph sync` performs the import. The local parser handles ordinary
-packages. Configuring `[ai]` enables help with eligible parser failures and
-ambiguous multi-root packages. Set `extract_proposals = true` to run the
-optional semantic proposal skills on ordinary packages.
+packages. With an API key configured, AI can help with eligible parser failures
+and ambiguous multi-root packages. Semantic proposal extraction defaults to
+enabled; set `extract_proposals = false` to skip those skills.
 
 Successful imports keep the original package in `archive/` and clear its inbox
 copy. Open `human/` as an Obsidian vault and start at `Index.md`.
@@ -68,17 +68,19 @@ text. The raw query and source resources retain citations and bibliography.
 | OpenRouter | `openai_compatible` | `OPENROUTER_API_KEY` |
 | Claude Code | `cli` | `ANTHROPIC_API_KEY` in bare mode |
 
-Set the provider, model and key. `api_key` may be filled inline, or leave it
-empty and use `api_key_env`:
+The default provider is OpenRouter, with model
+`deepseek/deepseek-v4.1-flash-1017` and proposal extraction enabled. The generated
+`api_key` is empty: fill it in or set `OPENROUTER_API_KEY`. To use another
+provider, change both the provider and its model ID.
 
 ```toml
 [ai]
 enabled = true
 provider = "openrouter"
-model = "your-model-id"
+model = "deepseek/deepseek-v4.1-flash-1017"
 max_parallel_packages = 2
 structure_fallback = true
-extract_proposals = false
+extract_proposals = true
 
 [ai.providers.openrouter]
 kind = "openai_compatible"

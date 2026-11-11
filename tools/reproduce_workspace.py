@@ -22,6 +22,9 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
     env.pop('PYTHONPATH', None)
     env.pop('PYTHONHOME', None)
     env.pop('QECGRAPH_WORKSPACE', None)
+    # This acceptance run checks local imports, including defaults without a key.
+    for name in ('OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'OPENROUTER_API_KEY'):
+        env.pop(name, None)
     env['NO_COLOR'] = '1'
     checks = []
 
@@ -48,7 +51,9 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
     prepared = run('init', ['init', '--json'])
     assert prepared['status'] == 'initialized'
     ai = run('ai_policy_defaults', ['ai', 'status', '--json'])
-    assert ai['structure_fallback'] and not ai['extract_proposals']
+    assert ai['structure_fallback'] and ai['extract_proposals']
+    assert ai['provider'] == 'openrouter' and ai['model'] == 'deepseek/deepseek-v4.1-flash-1017'
+    assert not ai['configured']
     first = run('init_sync', ['sync', '--json'])
     assert first['status'] == 'published'
     assert first['counts']['registered'] == (2 if real_source else 1)

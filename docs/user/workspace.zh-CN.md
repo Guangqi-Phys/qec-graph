@@ -40,17 +40,19 @@ qec-graph validate
 ### AI 配置
 
 `init` 会写入 `[ai]` 表和 OpenAI、Anthropic、OpenRouter、Claude Code 的接入点。
-之后 `sync` 可以规范化多个 TeX 根文档并提取提议。优先把 key 放在
-`api_key_env`；直接写入 `qecgraph.toml` 的 key 受 `0600` 权限保护，但不应提交。
+默认选中 OpenRouter，模型为 `deepseek/deepseek-v4.1-flash-1017`；`api_key` 留空，
+由用户填写，或设置 `OPENROUTER_API_KEY` 环境变量。凭据可用后，`sync` 可以规范化
+多个 TeX 根文档、恢复符合条件的解析失败并抽取语义提案。
+直接写入 `qecgraph.toml` 的 key 受 `0600` 权限保护，但不应提交。
 
 ```toml
 [ai]
 enabled = true
 provider = "openrouter"
-model = "your-model-id"
+model = "deepseek/deepseek-v4.1-flash-1017"
 max_parallel_packages = 2
 structure_fallback = true
-extract_proposals = false
+extract_proposals = true
 
 [ai.providers.openrouter]
 kind = "openai_compatible"
@@ -68,7 +70,9 @@ api_key = ""
 回退成功的快照标为 `recovered_proposed`。读取含有此状态的发布前，先升级机器读取端。
 升级后的 CLI 和 MCP 继续读取历史快照。
 
-`extract_proposals` 默认关闭。将它设为 `true` 后，自动生成定理、假设、数据和研究思路提案。
+`extract_proposals` 默认开启。凭据可用后，`sync` 自动生成定理、假设、数据和研究思路提案。
+设置为 `false` 可跳过语义抽取；设置 `[ai].enabled = false` 可关闭 AI。
+已有配置中明确填写的接入点、模型和开关保持原值；新默认值用于新生成的配置及省略的选择项/开关。
 skill、审核边界与升级行为见[研究思路抽取流程](data-and-search.zh-CN.md#提取与阅读研究思路)。
 `max_parallel_packages` 限制该可选抽取的并发包数，发布和输入
 消费仍串行。

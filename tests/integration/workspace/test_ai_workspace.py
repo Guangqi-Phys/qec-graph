@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from qecgraph.llm.client import LLMResult
+from qecgraph.llm.config import DEFAULT_MODEL
 from qecgraph.workspace import Workspace
 from tests.unit.parsing.test_source_package import TEX, tar_bytes
 
@@ -23,8 +24,7 @@ class AIWorkspaceTests(unittest.TestCase):
         self.enterContext(patch.dict('os.environ', {'ANTHROPIC_API_KEY': 'offline-test-key'}))
         self.config = self.root / 'qecgraph.toml'
         self.configure('provider = "openrouter"', 'provider = "claude_code"')
-        self.configure('model = ""', 'model = "fake"')
-        self.configure('extract_proposals = false', 'extract_proposals = true')
+        self.configure(f'model = "{DEFAULT_MODEL}"', 'model = "fake"')
 
     def configure(self, old, new):
         self.config.write_text(self.config.read_text().replace(old, new))

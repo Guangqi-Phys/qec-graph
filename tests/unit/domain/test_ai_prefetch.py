@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from qecgraph.llm.client import LLMResult
+from qecgraph.llm.config import DEFAULT_MODEL
 from qecgraph.workspace import Workspace
 from tests.unit.parsing.test_source_package import tar_bytes
 
@@ -23,9 +24,8 @@ class PrefetchTests(unittest.TestCase):
         config = self.root / 'qecgraph.toml'
         text = config.read_text(encoding='utf-8')
         text = text.replace('provider = "openrouter"', 'provider = "claude_code"')
-        text = text.replace('model = ""', 'model = "prefetch-test"')
+        text = text.replace(f'model = "{DEFAULT_MODEL}"', 'model = "prefetch-test"')
         text = text.replace('max_parallel_packages = 1', 'max_parallel_packages = 2')
-        text = text.replace('extract_proposals = false', 'extract_proposals = true')
         config.write_text(text, encoding='utf-8')
 
     def test_sync_extracts_multiple_registered_packages_concurrently(self):

@@ -7,6 +7,7 @@ from unittest.mock import patch
 from qecgraph.core.graph import read_json
 from qecgraph.domain.research import make_record
 from qecgraph.domain.research_store import publish_records
+from qecgraph.llm.config import DEFAULT_MODEL
 from qecgraph.llm.extract import extract, ExtractionError
 from qecgraph.llm.skills import load_skill
 from qecgraph.workspace import Workspace
@@ -83,14 +84,13 @@ class ThoughtTests(unittest.TestCase):
             self.assertIn('Author quotation', pages[0].read_text())
             self.assertIn('author_explicit', pages[0].read_text())
 
-    def test_workspace_opt_in_writes_thought_proposals_without_promotion(self):
+    def test_workspace_defaults_write_thought_proposals_without_promotion(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             ws = Workspace(root)
             ws.prepare()
             config = root / 'qecgraph.toml'
-            config.write_text(config.read_text().replace('model = ""', 'model = "fake"').replace(
-                'extract_proposals = false', 'extract_proposals = true'))
+            config.write_text(config.read_text().replace(f'model = "{DEFAULT_MODEL}"', 'model = "fake"'))
             (root / 'inputs/paper.tex').write_text('\\documentclass{article}\n\\begin{document}\nA question remains.\n\\end{document}\n')
             item = {'category': 'open_question', 'statement': 'A question remains.', 'source_quote': 'A question remains.',
                     'attribution': 'author_explicit', 'source_refs': ['main.tex:3']}

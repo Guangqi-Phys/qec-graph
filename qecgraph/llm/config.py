@@ -8,6 +8,8 @@ import tomllib
 from typing import Mapping
 
 CONFIG_NAME = 'qecgraph.toml'
+DEFAULT_PROVIDER = 'openrouter'
+DEFAULT_MODEL = 'deepseek/deepseek-v4.1-flash-1017'
 PROVIDER_KINDS = frozenset({'openai', 'anthropic', 'openai_compatible', 'cli'})
 DEFAULT_PROVIDERS = {
     'openai': {
@@ -70,7 +72,7 @@ class AIConfig:
     providers: dict[str, ProviderConfig] = field(default_factory=dict)
     max_parallel_packages: int = 1
     structure_fallback: bool = True
-    extract_proposals: bool = False
+    extract_proposals: bool = True
 
     @property
     def selected(self) -> ProviderConfig:
@@ -134,12 +136,12 @@ def load_ai_config(root, environ: Mapping[str, str] | None = None) -> AIConfig:
         raise AIConfigError('[ai.providers] is missing')
     providers = {name: _provider_table(name, value) for name, value in providers_raw.items()}
     enabled = raw.get('enabled', True)
-    model = raw.get('model', '')
+    model = raw.get('model', DEFAULT_MODEL)
     if not isinstance(enabled, bool):
         raise AIConfigError('[ai].enabled must be a boolean')
     if not isinstance(model, str):
         raise AIConfigError('[ai].model must be a string')
-    provider = raw.get('provider')
+    provider = raw.get('provider', DEFAULT_PROVIDER)
     if not isinstance(provider, str) or not provider:
         raise AIConfigError('[ai].provider must be a nonempty string')
     def number(name, default, minimum, *, integer=False):
@@ -171,11 +173,11 @@ def load_ai_config(root, environ: Mapping[str, str] | None = None) -> AIConfig:
                     max_input_chars=parsed['max_input_chars'], allow_source_upload=flag('allow_source_upload', True),
                     providers=providers, max_parallel_packages=parsed['max_parallel_packages'],
                     structure_fallback=flag('structure_fallback', True),
-                    extract_proposals=flag('extract_proposals', False))
+                    extract_proposals=flag('extract_proposals', True))
 
 
 def render_config_template(workspace_id):
-    """Return the initial TOML, including provider examples and safe defaults."""
+    """Return the initial TOML with provider defaults and empty API keys."""
     return f'''format = "qecgraph.workspace"
 workspace_id = "{workspace_id}"
 
@@ -189,11 +191,12 @@ dimensions = 512
 chunk_chars = 2048
 allow_source_upload = false
 
-# AI is optional. Fill in the provider model and API key before running sync.
+# Fill in your OpenRouter API key below or set OPENROUTER_API_KEY before sync.
+# Set enabled = false to disable AI, or extract_proposals = false to skip proposals.
 [ai]
 enabled = true
-provider = "openrouter"
-model = ""
+provider = "{DEFAULT_PROVIDER}"
+model = "{DEFAULT_MODEL}"
 timeout_seconds = 180
 max_retries = 2
 max_cost_usd = 5.0
@@ -201,7 +204,7 @@ max_input_chars = 200000
 max_parallel_packages = 1
 allow_source_upload = true
 structure_fallback = true
-extract_proposals = false
+extract_proposals = true
 
 [ai.providers.openai]
 kind = "openai"

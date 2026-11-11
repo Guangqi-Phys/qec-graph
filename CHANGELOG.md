@@ -2,10 +2,15 @@
 
 ## Unreleased
 
+- Default AI configuration now enables semantic proposal extraction and selects
+  OpenRouter with `deepseek/deepseek-v4.1-flash-1017`. API keys remain empty for
+  users to supply inline or through the environment. Omitted selection/flag
+  fields use these defaults; existing explicit settings are preserved. Init
+  remains offline, and local imports still work without an API key.
 - Refined `extract_thoughts` as skill v2 with concrete category boundaries,
   evidence-reading steps, condition/attribution rules and a validated JSON
   example. Output fields remain compatible; completed extraction batches keep
-  their existing versioned proposals. Documented the AI opt-in, manual relation
+  their existing versioned proposals. Documented AI configuration, manual relation
   curation and lack of automatic re-extraction on skill upgrades.
 - Added offline fake-provider regressions for the worked example, prompt cache
   separation and rejection of generated or stitched quotations before caching.

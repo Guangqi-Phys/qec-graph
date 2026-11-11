@@ -177,13 +177,13 @@ class WorkspaceTests(unittest.TestCase):
     def test_ai_normalization_feeds_multi_root_packages_into_extraction(self):
         from unittest.mock import patch
         from qecgraph.llm.client import LLMResult
+        from qecgraph.llm.config import DEFAULT_MODEL
 
         self.ws.prepare()
         config = self.root / 'qecgraph.toml'
         text = config.read_text(encoding='utf-8')
         text = text.replace('provider = "openrouter"', 'provider = "claude_code"')
-        text = text.replace('model = ""', 'model = "normalizer-test"')
-        text = text.replace('extract_proposals = false', 'extract_proposals = true')
+        text = text.replace(f'model = "{DEFAULT_MODEL}"', 'model = "normalizer-test"')
         config.write_text(text, encoding='utf-8')
         supplement = b'\\documentclass{article}\n\\begin{document}\nSupplement text.\n\\end{document}\n'
         (self.inbox / 'bundle.tar').write_bytes(tar_bytes({'main.tex': TEX, 'supp.tex': supplement}))

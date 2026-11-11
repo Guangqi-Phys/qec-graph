@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from qecgraph.core.graph import read_json
+from qecgraph.llm.config import DEFAULT_MODEL
 from qecgraph.llm.providers.base import HttpResult
 from qecgraph.store import validate_snapshot
 from qecgraph.workspace import Workspace
@@ -22,7 +23,8 @@ class WorkspaceStructureRecoveryTests(unittest.TestCase):
         self.ws = Workspace(self.root)
         self.ws.prepare()
         self.cfg = self.root / 'qecgraph.toml'
-        self.configure('model = ""', 'model = "fake"')
+        self.configure(f'model = "{DEFAULT_MODEL}"', 'model = "fake"')
+        self.configure('extract_proposals = true', 'extract_proposals = false')
         self.enterContext(patch.dict('os.environ', {'OPENROUTER_API_KEY': 'offline-structure-test'}))
 
     def configure(self, old, new):
@@ -33,7 +35,7 @@ class WorkspaceStructureRecoveryTests(unittest.TestCase):
         return patch('qecgraph.llm.providers.http.UrllibTransport.request',
                      return_value=HttpResult(200, {}, json.dumps(body).encode()))
 
-    def test_ordinary_packages_never_call_provider_by_default(self):
+    def test_ordinary_packages_never_call_provider_when_proposals_disabled(self):
         (self.root / 'inputs/paper.tex').write_bytes(ORDINARY)
         with self.provider(plan()) as provider:
             result = self.ws.sync()

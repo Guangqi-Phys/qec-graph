@@ -535,7 +535,7 @@ Mapping summary:
 | Area | Status |
 |---|---|
 | Real-paper corpus | Six versioned arXiv sources in the pinned replay; not a comprehensive literature corpus |
-| LLM extraction | Optional configured providers for normalization, eligible structure recovery and opt-in proposals; schema/evidence validation, no quality claim |
+| LLM extraction | Configured providers for normalization, eligible structure recovery and default-enabled proposals; requires credentials, schema/evidence validation, no quality claim |
 | Chart/curve digitization | Not implemented; values require explicit evidence |
 | PDF/OCR | Not implemented; LaTeX source is the supported input |
 | Vector/semantic retrieval | Optional local lexical vectors or OpenAI-compatible embeddings; BM25/cosine hybrid retrieval; quality requires corpus-specific evaluation |
@@ -565,7 +565,11 @@ These are limits of the current release, not permission to fill gaps with plausi
 AI is an optional, local orchestration layer under `qecgraph/llm/`. `init` writes
 provider templates, and the local parser handles ordinary packages during
 `sync`. A configured provider can help resolve a multi-root package or recover
-an eligible structural parser failure. Routine semantic proposals are opt-in.
+an eligible structural parser failure. Routine semantic proposals default to
+enabled, with OpenRouter and `deepseek/deepseek-v4.1-flash-1017` selected. The
+template leaves API keys empty for the user; a missing key leaves local imports
+available without AI requests. Explicit existing settings are preserved, while
+omitted provider/model/proposal fields use the same defaults as new configurations.
 
 The normalizer receives a bounded inventory and source excerpts, returns a
 normalization plan, and the assembler copies the selected original bytes into a
@@ -591,7 +595,7 @@ API keys are redacted and the configuration file is created mode `0600`.
 | Versioned skill packs | Implemented |
 | Source-mapped normalization | Implemented for ambiguous packages |
 | Parser-first structure recovery | Implemented for eligible original TeX entries, with proposed block kinds |
-| Theorem/assumption/data/thought proposals | Opt-in, implemented as `machine/ai/proposals`; explicit review decisions are recorded, conversion to canonical research records is not automatic |
+| Theorem/assumption/data/thought proposals | Enabled by default when credentials are configured; written as `machine/ai/proposals`; explicit review decisions are recorded, conversion to canonical research records is not automatic |
 
 ### 15.1 Parser-first body extraction rollout
 
@@ -603,7 +607,7 @@ API keys are redacted and the configuration file is created mode `0600`.
 | 2 | Add the shared reading projection | Both extraction methods use the existing source-block graph; derived text hides recognized formatting and citations, preserves math, and separates bibliography while the raw view retains every original slice |
 | 3 | Add the versioned structure fallback skill and local verifier | A fake provider can classify exact, numbered body ranges; reject gaps, overlaps, fabricated fields, bad anchors, and uncertain plans |
 | 4 | Integrate the fallback with strict workspace publication | Call the provider only after an eligible parser failure. Bind accepted plans to source bytes and snapshot identity, preserve proposed classification, and reuse verified plans on rebuild |
-| 5 | Expose reading search, source status and operator controls | CLI and MCP agree on the fixed release. Existing raw search stays available, and ordinary imports have zero provider calls by default |
+| 5 | Expose reading search, source status and operator controls | CLI and MCP agree on the fixed release. Existing raw search stays available; ordinary imports have zero provider calls when semantic proposals are disabled |
 | 6 | Run full, installed-CLI and real-archive checks, then integrate | Keep each step reviewable in Git, push the branch, and merge into `main` after checks |
 
 The fallback starts after archive verification and entry selection. The first
@@ -633,9 +637,8 @@ store commands continue to use the local parser.
 
 `[ai].structure_fallback` governs new fallback calls and respects the existing
 enabled, provider, credentials and source-upload settings. Routine semantic
-extraction becomes an explicit opt-in through `[ai].extract_proposals`. Existing
-installations can set it to `true` to retain the previous automatic proposal
-workflow. Model output remains proposed. The implementation must cover
+extraction is controlled by `[ai].extract_proposals`, which defaults to `true`.
+An explicit `false` skips these skills. Model output remains proposed. The implementation must cover
 successful, declined, disabled, malformed, tampered and rebuilt cases with
 offline fixtures.
 

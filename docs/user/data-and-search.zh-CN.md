@@ -240,6 +240,8 @@ AI 抽取会把 `qecgraph.ai.proposal` 写入 `machine/ai/proposals/`。它们�
 
 配置 provider 并启用 `[ai].extract_proposals = true` 后，`sync` 与其他抽取 skill
 一起运行 `extract_thoughts`，同时要求 AI 已启用、凭据可用且允许上传来源。
+新配置默认开启提案抽取，选择 OpenRouter 和 `deepseek/deepseek-v4.1-flash-1017`，
+API key 留给用户填写。
 `extract_proposals = false` 时不运行这一步语义抽取；AI 规范化与结构回退另有控制开关。
 输出保留精确引用和来源位置，始终是提案；
 即使 `attribution` 为 `author_explicit` 也不例外。审核决定不会自动将其转换为

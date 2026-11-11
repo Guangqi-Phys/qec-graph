@@ -43,19 +43,20 @@ qec-graph validate
 ### AI configuration
 
 `init` writes an `[ai]` table and provider blocks for OpenAI, Anthropic,
-OpenRouter and Claude Code. An available provider can help with multi-root
-normalization and eligible local parser failures. Keep the key in
-`api_key_env` when possible. A key placed in
-`qecgraph.toml` is protected by mode `0600` but should not be committed.
+OpenRouter and Claude Code. OpenRouter is selected by default with model
+`deepseek/deepseek-v4.1-flash-1017`; `api_key` is empty for the user to fill in,
+or set `OPENROUTER_API_KEY`. An available provider can help with multi-root
+normalization, eligible local parser failures and semantic proposal extraction.
+A key placed in `qecgraph.toml` is protected by mode `0600` but should not be committed.
 
 ```toml
 [ai]
 enabled = true
 provider = "openrouter"
-model = "your-model-id"
+model = "deepseek/deepseek-v4.1-flash-1017"
 max_parallel_packages = 2
 structure_fallback = true
-extract_proposals = false
+extract_proposals = true
 
 [ai.providers.openrouter]
 kind = "openai_compatible"
@@ -77,8 +78,11 @@ recovery records `recovered_proposed` on the snapshot. Upgrade machine
 readers before pointing them at a release that uses this status. The updated
 CLI and MCP continue to read previously published snapshots.
 
-`extract_proposals` defaults to `false`. Set it to `true` to generate theorem,
-assumption, data and research-thought proposals. See the
+`extract_proposals` defaults to `true`: once credentials are available, `sync`
+generates theorem, assumption, data and research-thought proposals. Set it to
+`false` to skip this extraction, or set `[ai].enabled = false` to disable AI.
+Existing explicit provider, model and flag values are retained; new defaults
+apply to generated configurations and omitted selection/flag fields. See the
 [thought extraction workflow](data-and-search.md#extract-and-read-research-thoughts)
 for the skill, review boundaries and upgrade behavior.
 `max_parallel_packages` bounds this optional extraction.

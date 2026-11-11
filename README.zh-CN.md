@@ -28,7 +28,7 @@ mkdir my-qec
 cd my-qec
 qec-graph init
 # The command creates inputs/ and qecgraph.toml.
-# Optional AI: edit [ai] in qecgraph.toml, then:
+# AI: fill in your OpenRouter API key in qecgraph.toml or OPENROUTER_API_KEY, then:
 qec-graph ai status
 qec-graph ai test
 # Put downloaded LaTeX source packages in inputs/, then run:
@@ -38,8 +38,8 @@ qec-graph validate
 ```
 
 `init` 不抽取、不调用 AI，只准备收件箱和配置；导入由 `qec-graph sync` 执行。
-普通包由本地解析器处理。配置 `[ai]` 后，可对符合条件的解析失败和多入口歧义使用 AI。
-若希望普通包也运行语义提案 skill，请显式设置 `extract_proposals = true`。
+普通包由本地解析器处理。配置 API key 后，可对符合条件的解析失败和多入口歧义使用 AI。
+语义提案抽取默认开启；设置 `extract_proposals = false` 可跳过这些 skill。
 
 成功导入后原始包留在 `archive/`，收件箱副本被清除。把 `human/` 作为 Obsidian
 vault 打开，从 `Index.md` 开始。反复失败的包用
@@ -61,17 +61,18 @@ AI 是可选能力。选定原始入口后先运行本地解析器。符合条�
 | OpenRouter | `openai_compatible` | `OPENROUTER_API_KEY` |
 | Claude Code | `cli` | bare 模式下的 `ANTHROPIC_API_KEY` |
 
-设置 provider、model 和 key。`api_key` 可以直接填，也可以留空并用
-`api_key_env`：
+默认接入点为 OpenRouter，模型为 `deepseek/deepseek-v4.1-flash-1017`，提案抽取默认开启。
+生成的 `api_key` 留空，由用户填写，或设置 `OPENROUTER_API_KEY` 环境变量。
+改用其他接入点时，同时修改 provider 和对应的模型 ID。
 
 ```toml
 [ai]
 enabled = true
 provider = "openrouter"
-model = "your-model-id"
+model = "deepseek/deepseek-v4.1-flash-1017"
 max_parallel_packages = 2
 structure_fallback = true
-extract_proposals = false
+extract_proposals = true
 
 [ai.providers.openrouter]
 kind = "openai_compatible"

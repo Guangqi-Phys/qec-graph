@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from qecgraph.cli import main
+from qecgraph.llm.config import DEFAULT_MODEL
 
 
 class AICliTests(unittest.TestCase):
@@ -14,8 +15,11 @@ class AICliTests(unittest.TestCase):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         self.root = Path(temp.name)
-        with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+        self.enterContext(patch.dict('os.environ', {'OPENROUTER_API_KEY': ''}))
+        with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()), patch(
+                'qecgraph.llm.client.LLMClient.complete_json') as complete:
             self.assertEqual(main(['init', '--workspace', str(self.root)]), 0)
+            complete.assert_not_called()
 
     def invoke(self, *args):
         stdout, stderr = io.StringIO(), io.StringIO()
@@ -28,10 +32,10 @@ class AICliTests(unittest.TestCase):
         self.assertEqual((code, stderr), (0, ''))
         status = json.loads(stdout)
         self.assertEqual(status['provider'], 'openrouter')
-        self.assertEqual(status['model'], '')
+        self.assertEqual(status['model'], 'deepseek/deepseek-v4.1-flash-1017')
         self.assertFalse(status['configured'])
         self.assertTrue(status['structure_fallback'])
-        self.assertFalse(status['extract_proposals'])
+        self.assertTrue(status['extract_proposals'])
         self.assertNotIn('secret', stdout.lower())
         self.assertEqual(status['config_mode'], '0o600')
         self.assertTrue(status['config_private'])
@@ -50,8 +54,7 @@ class AICliTests(unittest.TestCase):
 
         config = self.root / 'qecgraph.toml'
         config.write_text(config.read_text().replace('provider = "openrouter"', 'provider = "claude_code"')
-                          .replace('model = ""', 'model = "fake"')
-                          .replace('extract_proposals = false', 'extract_proposals = true'))
+                          .replace(f'model = "{DEFAULT_MODEL}"', 'model = "fake"'))
         (self.root / 'inputs/main.tex').write_bytes(TEX)
 
         def complete(messages, schema, **kwargs):
@@ -109,8 +112,32 @@ class AICliTests(unittest.TestCase):
         from qecgraph.workspace import Workspace
         self.assertFalse(Workspace(self.root).validate()['passed'])
 
-    def test_test_reports_missing_model_without_network(self):
-        code, stdout, stderr = self.invoke('ai', 'test')
+    def test_test_reports_missing_key_without_network(self):
+        with patch('qecgraph.llm.providers.http.UrllibTransport.request') as transport:
+            code, stdout, stderr = self.invoke('ai', 'test')
+            transport.assert_not_called()
         self.assertEqual(code, 1)
         self.assertEqual(stdout, '')
-        self.assertIn('model is empty', stderr)
+        self.assertIn('missing API key', stderr)
+
+    def test_default_sync_extracts_all_four_skills_after_only_setting_key(self):
+        from qecgraph.llm.providers.base import HttpResult
+        from tests.unit.parsing.test_source_package import TEX
+
+        (self.root / 'inputs/paper.tex').write_bytes(TEX)
+        body = {'choices': [{'message': {'content': '{"items": [], "unresolved": []}'}}],
+                'model': 'offline-fixture'}
+        response = HttpResult(200, {}, json.dumps(body).encode())
+        with patch.dict('os.environ', {'OPENROUTER_API_KEY': 'offline-fixture-key'}), patch(
+                'qecgraph.llm.providers.http.UrllibTransport.request', return_value=response) as transport:
+            code, stdout, stderr = self.invoke('sync', '--json')
+            self.assertEqual((code, stderr), (0, ''))
+            report = json.loads(stdout)
+            extraction = report['inputs'][0]['ai_extraction']
+            self.assertEqual(extraction['status'], 'complete')
+            self.assertEqual({row['skill'] for row in extraction['written']}, {
+                'extract_theorems', 'extract_assumptions', 'extract_data', 'extract_thoughts'})
+            self.assertEqual(transport.call_count, 4)
+            for call in transport.call_args_list:
+                self.assertEqual(call.args[1], 'https://openrouter.ai/api/v1/chat/completions')
+                self.assertEqual(json.loads(call.kwargs['body'])['model'], 'deepseek/deepseek-v4.1-flash-1017')

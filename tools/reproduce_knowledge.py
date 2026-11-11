@@ -21,7 +21,8 @@ def fixture(root):
     workspace = Workspace(root)
     workspace.prepare()
     config = root / 'qecgraph.toml'
-    config.write_text(config.read_text().replace('enabled = false', 'enabled = true', 1))
+    config.write_text(config.read_text().replace('enabled = false', 'enabled = true', 1).replace(
+        '[ai]\nenabled = true', '[ai]\nenabled = false'))
     for name in ('memory', 'decoder', 'circuit'):
         text = (r'\documentclass{article}' + '\n' + r'\begin{document}' + '\n' +
                 r'\section{Example}' + '\n' +

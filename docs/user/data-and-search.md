@@ -271,7 +271,10 @@ Run `sync` with AI configured to generate bound proposals from the archive.
 
 With a provider configured and `[ai].extract_proposals = true`, `sync` runs
 `extract_thoughts` alongside the other extraction skills. AI must be enabled,
-credentials available and source upload allowed. With `extract_proposals = false`,
+credentials available and source upload allowed. New configurations enable
+proposal extraction by default and select OpenRouter with
+`deepseek/deepseek-v4.1-flash-1017`, leaving the API key for the user.
+With `extract_proposals = false`,
 this semantic extraction does not run; AI normalization/structure fallback has
 separate controls. The output keeps
 exact quotations and source references and remains a proposal, including when

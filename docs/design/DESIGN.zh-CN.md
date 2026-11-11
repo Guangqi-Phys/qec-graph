@@ -595,7 +595,7 @@ build evidence 或 semantic equivalence。
 | 领域 | 状态 |
 |---|---|
 | 真实论文 corpus | 固定 replay 中有六个带版本 arXiv 来源；不是全面文献 corpus |
-| LLM extraction | 可选配置 provider，用于规范化、符合条件的结构恢复和显式启用的提案；校验 schema/证据，不声称质量 |
+| LLM extraction | 配置 provider，用于规范化、符合条件的结构恢复和默认开启的提案；需要凭据，校验 schema/证据，不声称质量 |
 | Chart/curve digitization | 未实现；值需要显式证据 |
 | PDF/OCR | 未实现；LaTeX 源是受支持输入 |
 | Vector/semantic retrieval | 可选本地词法向量或 OpenAI-compatible embedding，BM25/cosine 混合检索；质量须按语料实测 |
@@ -624,7 +624,10 @@ build evidence 或 semantic equivalence。
 
 AI 是 `qecgraph/llm/` 下的可选本地编排层。`init` 只写 provider 模板，不调用模型、
 不抽取文献包。`sync` 由本地解析器处理普通包。配置 provider 后可协助解决多入口歧义，
-或恢复符合条件的结构解析失败。日常语义提案需显式开启。
+或恢复符合条件的结构解析失败。日常语义提案默认开启，接入点默认为 OpenRouter，
+模型为 `deepseek/deepseek-v4.1-flash-1017`。模板中的 API key 留空，由用户填写；
+缺少 key 时仍能本地导入，不发起 AI 请求。已有明确配置保持原值，省略的接入点、模型和
+提案开关使用与新配置相同的默认值。
 
 normalizer 接收有界 inventory 和原文片段，返回 normalization plan；assembler
 按计划复制原始字节生成派生 `main.tex`。原始压缩包和 source tree 仍是权威来源，
@@ -644,7 +647,7 @@ Provider 在 `qecgraph.toml` 中选择（OpenAI、Anthropic、OpenRouter 或本�
 | 版本化 skill packs | 已实现 |
 | 来源映射规范化 | 已实现于歧义文献包 |
 | 软件优先的结构回退 | 已实现于符合条件的原始 TeX 入口，块分类保留为 proposed |
-| 定理/假设/数据/思路 proposal | 显式启用后写入 `machine/ai/proposals`；审核决定会记录，但不会自动转换为权威研究记录 |
+| 定理/假设/数据/思路 proposal | 默认开启，配置凭据后写入 `machine/ai/proposals`；审核决定会记录，但不会自动转换为权威研究记录 |
 
 ### 15.1 软件优先的正文抽取实施计划
 
@@ -656,7 +659,7 @@ Provider 在 `qecgraph.toml` 中选择（OpenAI、Anthropic、OpenRouter 或本�
 | 2 | 增加共用阅读投影 | 两种抽取共用来源块图谱；阅读文本隐藏已识别的排版和引文，保留公式并隔离参考文献，原文视图保留逐字切片 |
 | 3 | 增加带版本的结构回退 skill 和程序校验 | 离线假 provider 能标注有行号的正文区间；拒绝遗漏、重叠、虚构字段、错误锚点和不确定计划 |
 | 4 | 接入工作区的严格发布流程 | 仅在符合条件的解析失败后调用模型；方案绑定原始字节和快照身份，分类保留 proposed，重建复用已校验方案 |
-| 5 | 接入阅读搜索、来源状态和配置 | CLI 与 MCP 读取同一固定发布。原文搜索继续可用，普通导入默认调用模型零次 |
+| 5 | 接入阅读搜索、来源状态和配置 | CLI 与 MCP 读取同一固定发布。原文搜索继续可用；关闭语义提案时，普通导入调用模型零次 |
 | 6 | 跑完整、安装版 CLI 与真实归档验收，再合并 | Git 中逐步可审阅，推送分支并在检查通过后合并到 `main` |
 
 回退在归档校验和入口选择之后执行。首版处理原始 UTF-8 入口，要求正文边界独占行且唯一，
@@ -674,8 +677,8 @@ Provider 在 `qecgraph.toml` 中选择（OpenAI、Anthropic、OpenRouter 或本�
 本地解析，使解析器修复可以取代回退投影。单论文 store 命令继续使用现有解析器。
 
 `[ai].structure_fallback` 控制新的回退调用，并遵循已有的启用、provider、凭据和来源上传配置。
-日常语义抽取改为通过 `[ai].extract_proposals` 显式启用。已有工作区可以设置为 `true`
-来延续自动提案流程。模型结果仍为 proposed。实现用离线夹具覆盖成功、拒绝、禁用、格式错误、
+日常语义抽取由 `[ai].extract_proposals` 控制，默认值为 `true`，显式设置 `false` 可跳过
+这些 skill。模型结果仍为 proposed。实现用离线夹具覆盖成功、拒绝、禁用、格式错误、
 篡改和重建。
 
 ## 16. 可搜索知识体系与实施路线
