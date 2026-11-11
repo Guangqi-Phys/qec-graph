@@ -11,8 +11,11 @@
 
 - 投递材料默认登记；`rebuild` 核对整个归档库存。不以发表状态、质量、审核分数筛论文。
 - 登记与输入消费是不同事务状态。仅消费已归档、校验且承诺阶段已发布的认领副本。
-- 研究 agent 与 MCP 只接触登记的机器资源；不得把 `human/`、尤其是 `human/notes/` 当成检索输入。
-  人类生成器只读固定机器发布，私有笔记不读不改；强隔离部署只给机器读权限。
+- 研究 agent 与 MCP 只接触登记的机器资源；不得把 `human/` 或私人笔记当成检索输入。
+  人类生成器只读固定机器发布；强隔离部署只给机器读权限。
+- `human/YYYY/MM/一作名_文章前两个词_thoughts.md` 每篇论文一份，文件头依次是 tags/link/title/author。
+  正文只含九问、回答及出处；状态放 `.qecgraph/`，个人笔记放 human 外。按已确认的迁移要求，
+  旧生成器管理的整个 human（包括旧 notes）直接删除，不读内容、不备份；不删除无管理记录的外部 vault。
 
 ## 数据的权威来源
 
@@ -66,5 +69,5 @@
 - AI 结果默认是 `proposed`，不得自动变成人工审核、verified 或 research record。
 - 规范化必须复制原始字节并保存 source mapping；不能把 AI 重写文本当作权威来源。
 - 所有 provider 输出先过 JSON Schema 和程序语义校验；失败时保留原始包和旧 release。
-- API key 不进入日志、测试 fixture、提交或 `human/notes/`；优先使用环境变量。
+- API key 不进入日志、测试 fixture、提交或 `human/`；优先使用环境变量。
 - 修改 skill 的步骤、prompt 或 schema 时提升版本，并用 fake provider 添加离线回归测试。

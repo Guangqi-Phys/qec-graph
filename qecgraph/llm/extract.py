@@ -103,9 +103,31 @@ def validate_extraction(skill, data):
                 raise ExtractionError('Thought statement and source quote must not be blank')
             if item['attribution'] == 'author_explicit' and item['statement'] != item['source_quote']:
                 raise ExtractionError('Explicit author thought must equal its verbatim quote')
+        if paper := data.get('paper'):
+            from datetime import date
+            from ..knowledge import public_url
+            for row in _paper_evidence(paper):
+                if not row['value'].strip() or not row['source_quote'].strip():
+                    raise ExtractionError('Paper metadata and quote must not be blank')
+            if paper['published_date'] is not None:
+                value = paper['published_date']['value']
+                if not re.fullmatch(r'[0-9]{4}(?:-[0-9]{2}){0,2}', value):
+                    raise ExtractionError('Paper date must be YYYY, YYYY-MM or YYYY-MM-DD')
+                try:
+                    date.fromisoformat(value + {4: '-01-01', 7: '-01', 10: ''}[len(value)])
+                except ValueError as exc:
+                    raise ExtractionError('Paper date is invalid') from exc
+            if paper['link'] is not None and (not public_url(paper['link']['value'])
+                                              or any(c.isspace() for c in paper['link']['value'])
+                                              or paper['link']['value'] not in paper['link']['source_quote']):
+                raise ExtractionError('Paper link must be a quoted public HTTP(S) URL')
     else:
         raise ExtractionError(f'unsupported extraction skill: {skill}')
     return data
+
+
+def _paper_evidence(paper):
+    return [row for field in ('title', 'published_date', 'link') if (row := paper.get(field)) is not None] + paper['authors'] + paper['topics']
 
 
 def make_proposal(skill, data, *, source_tree_hash, ai_result, normalization_id=None):
@@ -129,6 +151,8 @@ def make_proposal(skill, data, *, source_tree_hash, ai_result, normalization_id=
             'cached': ai_result.cached,
         },
     }
+    if 'paper' in data:
+        proposal['paper'] = data['paper']
     return proposal
 
 
@@ -140,7 +164,7 @@ _LINE_REF = re.compile(r'(.+):([1-9][0-9]{0,8})(?:-([1-9][0-9]{0,8}))?')
 
 def validate_source_refs(normalized, projection_path, skill, data):
     """Resolve model citations within supplied evidence and check verbatim claims."""
-    if not data['items']:
+    if not data['items'] and not (skill == 'extract_thoughts' and data.get('paper')):
         return
     text = normalized.text
     line_offsets = [0, *(match.end() for match in re.finditer(r'\n', text)), len(text)]
@@ -178,6 +202,9 @@ def validate_source_refs(normalized, projection_path, skill, data):
         check(item, verbatim)
         for hypothesis in item.get('hypotheses', []):
             check(hypothesis, hypothesis['text'] if hypothesis['kind'] == 'explicit' else None)
+    if skill == 'extract_thoughts' and data.get('paper'):
+        for row in _paper_evidence(data['paper']):
+            check(row, row['source_quote'])
 
 
 def extract(normalized, client, skill_name, *, projection_path='main.tex', extra_skills_dir=None, use_cache=True):

@@ -82,8 +82,7 @@ flowchart LR
     Validate --> Machine["machine/ immutable release"]
     Machine --> CLI["CLI query"]
     Machine --> MCP["read-only MCP"]
-    Machine --> Human["human/generated pages"]
-    Human --> Notes["human/notes (never read)"]
+    Machine --> Human["human/YYYY/MM/*_thoughts.md"]
 ```
 
 工作区是只有一个写者的本地目录。`init` 创建布局；`sync` 归档并处理收件箱包；
@@ -177,9 +176,8 @@ workspace/
 │   ├── operational/status.json   # sanitized operational projection
 │   └── .writer.lock              # single-writer lock
 ├── human/
-│   ├── Index.md
-│   ├── generated/                # rebuildable pages
-│   └── notes/                    # private; never read by generators/MCP
+│   └── YYYY/MM/
+│       └── FirstAuthor_First_Two_thoughts.md
 └── .qecgraph/                    # claim/rotation/staging internals
 ```
 
@@ -467,7 +465,7 @@ CLI 按名词分组（`workspace`、`query`、`review`、`mcp`、`human`、`soft
 - 会话固定一个 release；工具参数不能传任意 paths/SQL/shell 或改变 scope。
 - 预算：depth/nodes/results/characters；截断结果说明省略内容；预算过小返回显式错误，而不是部分根陈述。
 - Read tools 绝不写、运行 TeX/paper code 或触发 Lean builds。
-- 严格部署只挂载 machine 目录。`human/`、`inputs/` 和 `human/notes/` 必须不可读。MCP roots 不是访问控制机制。
+- 严格部署只挂载 machine 目录。`human/`、`inputs/` 和私人笔记 必须不可读。MCP roots 不是访问控制机制。
 
 类型化 JSON envelope（`ok/data` 或 `error/code/message/details/scope`）在适用处由
 Python、CLI 和 MCP 共享。MCP protocol errors 和 business-query errors 保持可区分。
@@ -476,14 +474,36 @@ Python、CLI 和 MCP 共享。MCP protocol errors 和 business-query errors 保�
 
 ## 9. 人类视图
 
-`human/` 是从一个机器 release 渲染、可独立打开的 Obsidian vault。
+`human/` 只保存 ThoughtsGraph 问答 Markdown，每篇登记论文（`work_id`）一个文件：
+`human/YYYY/MM/一作名_文章前两个词_thoughts.md`。
+本布局属于 **main 上的 Unreleased 改动**；已发布 v0.6.2 仍使用旧布局。
 
-- `human/generated/` 可重建；稳定页面路径、aliases、front matter、tags、indexes 和 tombstones 确定性生成。
-- `human/notes/` 是私有人类内容。生成器、查询、MCP、embeddings、日志和渲染器绝不读取它。不要添加不加区分扫描 vault 根的自动化。
-- 页面发布在目标目录内逐文件原子；不是全局 vault 事务。渲染中断报告 `human_stale`；从同一 release 重新渲染。不声称多文件原子性。
-- 重命名/删除的实体保留稳定 tombstone 页面以支持入链。
-- 人类视图是阅读辅助，不是权威；更正必须写成 machine 层的显式结构化修订。
-- machine 层绝不读取人类视图。
+- 正文固定包含 [Human.md](Human.md) 的九个问题、AI 回答、逐字原文依据和版本/行号。
+  缺少答案时明确显示尚无可用回答；匹配来源修订的 `research_thought` 记录也会显示，
+  保留实际审核状态。AI 提案始终是 `proposed`。
+- 文件最前面依次放 YAML 字段 `tags`、`link`、`title`、`author`。`tags` 只放论文主要
+  主题词，空格转连字符；`author` 按论文顺序列出作者；`link` 为公开 HTTP(S) URL 或 null，
+  缺失列表用 `[]`。格式遵循 [Obsidian properties](https://obsidian.md/help/properties)
+  和 [tags](https://obsidian.md/help/tags)，不再添加图类型、release、审核状态标签。
+- 登记标题和 canonical URL 优先；有来源引用的 AI `paper` 元数据提供标题、作者顺序、
+  日期、链接和主题词；字面 TeX 标题区命令作为回退，
+  包括 RevTeX 中位于 `\begin{document}` 后的元数据，不执行宏。缺少主题元数据时，仅从标题
+  匹配已知 QEC 主题词。缺失信息保留未知，不用导入日期或 `\today` 代替论文日期。
+- 文件名使用第一作者全名和标题按空白分隔的前两个词，危险字符转下划线。未知作者和标题
+  用 `UnknownAuthor`、`Untitled_Paper`；未知年月用 `unknown`，仅知年份时为
+  `YYYY/unknown/`。同名论文在 `_thoughts.md` 前增加 work ID 的短哈希，避免覆盖。
+- 同一 work 的多个版本共用一份文件，回答逐条标明来源版本。书目信息选择最小的显式数字
+  版本 `vN`；没有数字版本时按来源 ID 确定性排序，不声称它是最新版本。
+- `human/` 不再生成索引、实体页、原文预览、manifest、墓碑页或私人笔记目录。
+  管理状态和未完成发布日志位于 `.qecgraph/human-{published,pending}.json`。
+  个人笔记放在 `human/` 之外；生成笔记在重建时会被替换。
+- 迁移依据旧生成器的管理历史识别旧布局：**直接删除整个旧 `human/`，包括旧 `notes/`，
+  不读取其中内容，也不建立备份**。新内容先准备完成，再清理旧目录。没有管理记录的外部
+  vault 会被拒绝。后续重建只删除过时的受管理笔记和空年月目录，拒绝覆盖未登记的同名文件。
+- 发布仍是逐文件原子，不是整个 vault 的原子事务。中断时报告 `human_stale`，重新运行
+  `qec-graph human build` 完成发布和清理，machine release 不回滚。渲染不会调用 AI。
+- 人类笔记只是单向阅读视图，不作为查询、MCP 或 embedding 输入，也不成为权威数据；
+  更正通过 machine 层的显式结构化修订完成。
 
 ---
 
@@ -571,7 +591,7 @@ build evidence 或 semantic equivalence。
 | G11 | 显式 data relations 可扩展 matrix, check-matrix, metric and evidence context。 |
 | G12 | Partial extraction、truncation、unresolved targets 和 stale reviews 可观察。 |
 | G13 | 失败发布保持旧 release 可读、输入可恢复。 |
-| G14 | `human/notes/` 绝不被 generation/query/MCP 读取或覆盖。 |
+| G14 | 人类笔记和私人笔记不作为知识输入。旧 human 文件按 §9 迁移规则直接删除，不读取内容。 |
 | G15 | Workspace/MCP 会话不能混用两个 releases。 |
 
 ### 12.2 必需失败案例
@@ -720,18 +740,21 @@ ThoughtsGraph 保存有来源依据的研究意图与解读。九个类别和阅
 | `addresses_refs`、`motivated_by_refs`、`extends_refs`、`contradicts_refs` | 其他 `research_thought` 记录的精确修订，附字段证据 |
 | `related_refs` | 允许的研究类型的精确修订，如构造、实验或 decoder；解析块仍通过来源证据访问 |
 
-`extract_thoughts` v2 产生 `qecgraph.ai.proposal` 包，显式开启搜索后以
+`extract_thoughts` v3 产生 `qecgraph.ai.proposal` 包，显式开启搜索后以
 `research_thought_proposal` 条目暴露，与已发布研究记录分开。明确审核与记录导入是
 两个步骤，AI 结果或批准都不会自动创建规范记录。记录和提案保留实际审核状态；
 候选解读关系需显式开启遍历，引用和思路关联不会转为证明依赖。
 
 [Skill](../../qecgraph/llm/skills/extract_thoughts/SKILL.md) 给出类别边界、原文阅读步骤、
 归属与精确行号规则以及完整示例。条件随结果保留，缺失类别明确写入 `unresolved`。
-输出 schema 仅包含思路条目，跨记录关系需要另行整理。程序验证格式与原文引用，
-不据此保证分类和解读的科学正确性。v0.6.2 发布包使用 v1，v2 保持其输出字段。
+v3 优先生成中文解读，并新增可选 `paper` 元数据：标题、按顺序排列的作者、日期、公开
+链接和主要主题。每项均附逐字引用和来源行号，日期和 URL 另有程序校验；没有 `paper`
+的旧包仍可读取。跨记录关系需要另行整理。程序验证格式与引用，不据此保证解读的科学
+正确性或元数据的真实性。v0.6.2 使用 v1；v2 细化步骤，v3 扩展输出 schema。
 升级 skill 影响新任务和缺失的抽取任务；已完成批次的原版本提案在 sync/rebuild 时保持不变。
 
-已登记记录渲染到 `human/generated/thoughts/`，展示陈述、作者原文、归属和来源。
+当前来源绑定的 AI 提案和已登记记录汇入 `human/YYYY/MM/*_thoughts.md`（见 §9），
+按论文展示九个问题、回答、原文、归属和来源。
 生成器与查询从不读取私人笔记。某个类别没有记录表示覆盖缺失，不代表论文不存在该类
 思路；不得捏造作者未披露的推理过程。
 
@@ -797,8 +820,8 @@ Lean → 原始陈述、量词、假设和已有映射。上下文选择是结�
 发布后才消费认领输入。哈希缓存包含 parser/schema/skill/model/index 配置，
 变化只使受影响的投影失效，不覆盖旧 release。
 
-索引和上下文只消费登记的机器数据。`human/generated/` 是单向视图，
-`human/notes/` 保持私有。严格服务只挂载机器数据；整个工作区的 shell 访问会破坏该隔离。
+索引和上下文只消费登记的机器数据。`human/YYYY/MM/*_thoughts.md` 是单向视图，
+私人笔记放在 `human/` 之外。严格服务只挂载机器数据；整个工作区的 shell 访问会破坏该隔离。
 
 本地仍以 Python/文件/SQLite/FTS5 起步。PostgreSQL/pgvector、共享 HTTP 与独立 worker
 是未来部署选择，不是当前要求。假设一万篇、每篇 25–100 单元、768–1536 维 float32，
@@ -847,10 +870,10 @@ C（B 加领域字段、关系和任务上下文）。记录实际工具输入�
 | **D1 — 一个 workspace，一个 writer** | Immutable release + POSIX lock + atomic pointer；没有 distributed writer。 |
 | **D2 — 证据分层，不是评分** | Source/claim/review/computation/build 状态保持分离；默认过滤排除非活动状态。 |
 | **D3 — 只读 agents** | 固定 scope、有预算的 CLI/Python/MCP reads；没有 path/SQL/shell 访问；只有 stdout protocol。 |
-| **D4 — 人类视图隔离** | 从固定 machine release 生成页面；`human/notes/` 永不读取；逐页原子发布；`human_stale` 恢复。 |
+| **D4 — 人类视图隔离** | 从固定 machine release 为每篇论文生成一份 thoughts；human 不作为输入；逐文件原子发布、旧布局清理与 `human_stale` 恢复。 |
 | **D5 — Lean 延期** | 0.6.x 没有受支持验证声明。实验 fixtures 保留用于回归；实现前需要新设计，read paths 绝不执行 Lean。 |
 | **D6 — CodeGraph 仅供参考** | 架构比较，不复制代码，不导入性能声称；保留归属。 |
-| **D7 — 兼容优先于重写** | Store/corpus 继续受支持；workspace 是当前；迁移显式且非破坏。 |
+| **D7 — 兼容优先于重写** | Store/corpus 继续受支持；machine 迁移保留数据；human 布局重置在 §9 明确说明。 |
 | **D8 — Schema 所有权单一** | Packaged schemas 是规范；根副本是兼容性产物并检查相等；未知版本不重新解释。 |
 
 ## 附录 B — 主要参考

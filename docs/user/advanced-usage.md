@@ -210,24 +210,17 @@ output. Animation requires an interactive terminal.
 
 ## Manage the Obsidian vault and research records
 
-Open the workspace's `human/` directory as an Obsidian vault. Start at
-`Index.md`, and keep personal notes in `human/notes/`. Run
-`qec-graph human build` to regenerate the vault's derived pages from the
-current machine snapshot. [Vault layout and MCP isolation](workspace.md#obsidian-and-machine-isolation)
+Open the workspace's `human/` directory in Obsidian and browse
+`YYYY/MM/FirstAuthor_First_Two_thoughts.md`. Each paper has one note containing
+nine ThoughtsGraph questions, AI answers and quotations. YAML starts with `tags`,
+`link`, `title`, `author`; tags describe the main topics. Run `qec-graph human build`
+to regenerate notes from the current machine release without calling AI.
 
-The category indexes link to readable titles. A record page shows its source,
-review and verification status, eligible relations, and an expandable data
-section. Open **Release status and legend** from the vault index to see the
-fixed release's coverage and what each evidence status means.
-**Recent changes** compares that release with the previous rendered release.
-The first render establishes a baseline; rerendering the same release keeps
-the comparison intact.
-
-On the first render after upgrading, old generated page paths become links
-to their replacements. Removed entities retain an archived page for existing
-links. Personal notes remain in place. If you need to run an older renderer,
-restore its generated pages and `.qecgraph/human-*.json` histories from the
-same vault backup; the machine database does not require a downgrade.
+This main/Unreleased layout replaces the v0.6.2 entity-page vault. The first
+migration deletes the entire managed old `human/`, including `notes/`, without a
+backup. There are no indexes, tombstones or other generated human files. Keep
+personal notes elsewhere. Publication/recovery state stays in `.qecgraph/`.
+[Layout, missing metadata and migration](workspace.md#obsidian-and-machine-isolation)
 
 Use `qec-graph review list` to find proposal IDs and `qec-graph review show PROPOSAL_ID`
 to read a provider draft and its recorded decision. Use `qec-graph software import-seed`

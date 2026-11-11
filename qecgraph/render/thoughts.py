@@ -1,0 +1,215 @@
+"""One source-bound research-question note per registered paper."""
+from __future__ import annotations
+
+from datetime import datetime
+import json
+import re
+import unicodedata
+
+from pylatexenc.latex2text import LatexNodes2Text
+
+from ..core.graph import hash_text
+from ..knowledge import public_url
+from ..llm.extract import validate_extraction
+from ..llm.review import proposal_bindings, read_bound_proposal
+from ..source.reading import _group
+
+QUESTIONS = (
+    ('他们想解决什么问题？', ('problem',)),
+    ('为什么这个要解决的问题重要？', ('motivation',)),
+    ('他们解决了吗？是怎么解决的？', ('approach', 'conclusion')),
+    ('这个解决方案中用了什么直觉、想法？', ('intuition',)),
+    ('文章里面有什么重要的假设？', ('assumption',)),
+    ('整篇文章的结论是什么？是对之前结论的补充、加强还是推翻？', ('conclusion',)),
+    ('遗留下的问题是什么？有什么引发的后续提问？', ('open_question',)),
+    ('文章中有什么不同寻常、反直觉的发现？', ('surprising_result',)),
+    ('有什么不在主线上，但是有意思的结论？', ('side_result',)),
+)
+
+
+def inline(value):
+    return re.sub(r'([\\`*_{}\[\]()#+.!|<>])', r'\\\1', ' '.join(str(value).split()))
+
+
+def quote_block(text):
+    size = max((len(m[0]) for m in re.finditer(r'`+', text)), default=2)
+    fence = '`' * max(3, size + 1)
+    return f'{fence}latex\n{text}\n{fence}'
+
+
+def yaml_value(value):
+    return json.dumps(value, ensure_ascii=False).replace('\u0085', '\\u0085').replace(
+        '\u2028', '\\u2028').replace('\u2029', '\\u2029')
+
+
+def _plain(value):
+    return ' '.join(LatexNodes2Text().latex_to_text(value).split())
+
+
+def _date(value):
+    if not value or '\\' in value:
+        return None
+    for pattern, output in (('%Y-%m-%d', '%Y-%m-%d'), ('%Y/%m/%d', '%Y-%m-%d'),
+                            ('%B %d, %Y', '%Y-%m-%d'), ('%d %B %Y', '%Y-%m-%d'),
+                            ('%B %Y', '%Y-%m'), ('%Y-%m', '%Y-%m'), ('%Y', '%Y')):
+        try:
+            return datetime.strptime(value.strip(), pattern).strftime(output)
+        except ValueError:
+            continue
+    return None
+
+
+def _literal_metadata(text):
+    """Read literal title-block commands; do not evaluate arbitrary TeX macros."""
+    result = {'title': None, 'authors': [], 'published_date': None, 'topics': [], 'link': None}
+    # RevTeX places title/author/date after begin{document}. Read the front
+    # matter up to the first abstract, section or maketitle, not the whole paper.
+    stop = re.search(r'(?m)^[ \t]*\\(?:maketitle\b|section\b|begin\s*\{abstract\})', text)
+    preamble = text if stop is None else text[:stop.start()]
+    for match in re.finditer(r'(?m)^[ \t]*\\(title|author|date|keywords)(?:\[[^\]\n]*\])?\s*(?=\{)', preamble):
+        span = _group(preamble, match.end(), len(preamble))
+        if span is None:
+            continue
+        raw = preamble[span[0]:span[1]]
+        name = match[1]
+        if name == 'title':
+            result['title'] = _plain(raw) or None
+        elif name == 'date':
+            result['published_date'] = _date(raw)
+        elif name == 'keywords':
+            result['topics'] = [v.strip() for v in re.split(r'[,;]', _plain(raw)) if v.strip()]
+        elif name == 'author':
+            # Affiliation/correspondence commands are not names. Ambiguous comma
+            # or line-break author lists require the quoted AI metadata instead.
+            for drop in reversed(list(re.finditer(
+                    r'\\(?:thanks|email|affiliation|altaffiliation|institute|orcidlink|footnote|textsuperscript)\s*(?=\{)', raw))):
+                arg = _group(raw, drop.end(), len(raw))
+                if arg is not None:
+                    raw = raw[:drop.start()] + raw[arg[2]:]
+            for part in re.split(r'\\and\b', raw):
+                value = _plain(part)
+                if value and ',' not in value and r'\\' not in part:
+                    result['authors'].append(value)
+    return result
+
+
+def _component(value, fallback, limit=60):
+    value = unicodedata.normalize('NFC', value or '')
+    value = re.sub(r'[^\w-]+', '_', value, flags=re.UNICODE).strip('_-') or fallback
+    while len(value.encode('utf-8')) > limit:
+        value = value[:-1]
+    return value.rstrip('_-') or fallback
+
+
+def _tag(value):
+    value = re.sub(r'[^\w/-]+', '-', unicodedata.normalize('NFC', value), flags=re.UNICODE).strip('-/')
+    return ('topic-' + value if value.isdecimal() else value) if value else None
+
+
+def _metadata(session, version, proposals):
+    material = next((m for m in session.state.get('materials', {}).values()
+                     if m.get('source_version_id') == version['id']), {})
+    files = [(path, node) for (source, path), node in session.knowledge.files.items() if source == version['id']]
+    files.sort(key=lambda item: (item[0] != material.get('entrypoint'), item[0]))
+    result = {'title': None, 'authors': [], 'published_date': None, 'topics': [], 'link': None}
+    for _, node in files:
+        found = _literal_metadata(session.knowledge.file_text(node))
+        for field in result:
+            if not result[field] and found[field]:
+                result[field] = found[field]
+    for proposal in proposals:
+        if proposal['source_version_id'] != version['id'] or 'paper' not in proposal:
+            continue
+        for field, value in proposal['paper'].items():
+            if value:
+                result[field] = [row['value'] for row in value] if isinstance(value, list) else value['value']
+    work = session.state['works'][version['work_id']]
+    if work['title'] != work['id']:
+        result['title'] = work['title']
+    result['link'] = public_url(version.get('canonical_url')) or public_url(result['link'])
+    if not result['topics'] and result['title']:
+        # Only literal title topics are used without AI; do not infer a paper's
+        # main subject from arbitrary mentions in its references or full text.
+        topics = ('quantum error correction', 'surface codes?', 'color codes?', 'subsystem codes?',
+                  'LDPC', 'decod(?:er|ers|ing)', 'fault[- ]toleran(?:t|ce)', 'hypergraph product', 'erasure', 'loss')
+        result['topics'] = [m[0] for term in topics if (m := re.search(term, result['title'], re.IGNORECASE))]
+    return result
+
+
+def _version_order(version):
+    match = re.fullmatch(r'v?([0-9]+)', version.get('upstream_version') or '')
+    return (0, int(match[1]), version['id']) if match else (1, 0, version['id'])
+
+
+def render_pages(session):
+    proposals = []
+    for binding, material in proposal_bindings(session.state).values():
+        if binding['skill'] == 'extract_thoughts':
+            proposal = read_bound_proposal(session.registry, binding, material)
+            validate_extraction('extract_thoughts', {k: proposal[k] for k in ('items', 'unresolved', 'paper') if k in proposal})
+            proposals.append(proposal)
+    proposals.sort(key=lambda row: (row['source_version_id'], row['provenance']['run_id']))
+    works = {}
+    for version in session.state['versions'].values():
+        works.setdefault(version['work_id'], []).append(version)
+    records = [r for r in session.visible_research() if r['kind'] == 'research_thought']
+    pages, targets, used = {}, {}, set()
+    for work_id, versions in sorted(works.items()):
+        versions.sort(key=_version_order)
+        metadata = _metadata(session, versions[0], proposals)
+        title = metadata['title'] or 'Untitled Paper'
+        author = metadata['authors'][0] if metadata['authors'] else 'UnknownAuthor'
+        words = title.split()[:2]
+        stem = '_'.join([_component(author, 'UnknownAuthor'), *(_component(w, 'Untitled', 45) for w in words)])
+        date = metadata['published_date'] or ''
+        year, month = (date[:4] or 'unknown'), (date[5:7] or 'unknown')
+        path = f'{year}/{month}/{stem}_thoughts.md'
+        if path.casefold() in used:
+            path = f'{year}/{month}/{stem}_{hash_text(work_id)[:12]}_thoughts.md'
+        if path.casefold() in used:
+            raise ValueError('Thought note filename collision')
+        used.add(path.casefold())
+        targets[work_id] = path
+        tags = list(dict.fromkeys(tag for topic in metadata['topics'] if (tag := _tag(topic))))
+        front = ['---', 'tags:' + ('' if tags else ' []')]
+        front += ['  - ' + yaml_value(tag) for tag in tags]
+        front += ['link: ' + yaml_value(metadata['link']), 'title: ' + yaml_value(metadata['title']),
+                  'author:' + ('' if metadata['authors'] else ' []')]
+        front += ['  - ' + yaml_value(name) for name in metadata['authors']]
+        front += ['---', '', '# ' + inline(title), '', '> AI 回答属于待审核提案；请结合原文依据阅读。']
+        if not metadata['title'] or not metadata['authors'] or not date or len(date) < 7:
+            front += ['', '> 部分书目信息尚未提供；未知作者、标题或年月使用占位名称，不使用导入日期代替发表日期。']
+        if len(versions) > 1:
+            front += ['', '> 本文包含多个登记版本；回答逐条标明来源版本，未合并成单一结论。']
+        sections = ['\n'.join(front)]
+        for number, (question, categories) in enumerate(QUESTIONS, 1):
+            sections.append(f'## {number}. {question}')
+            answers = []
+            missing = []
+            for version in versions:
+                version_label = version.get('upstream_version') or version['id']
+                for proposal in proposals:
+                    if proposal['source_version_id'] != version['id']:
+                        continue
+                    missing += [s for s in proposal['unresolved'] if any(s.startswith(c + ':') for c in categories)]
+                    for item in proposal['items']:
+                        if item['category'] in categories:
+                            label = 'AI 回答' if item['attribution'] == 'editorial_inference' else 'AI 摘录（作者原文）'
+                            answers.append(f'**{label} · proposed**\n\n{inline(item["statement"])}\n\n'
+                                           f'原文依据（{inline(", ".join(item["source_refs"]))}；版本 {inline(version_label)}）：\n\n'
+                                           + quote_block(item['source_quote']))
+                for record in records:
+                    data = record['data']
+                    source = data.get('source_ref') or {}
+                    if source.get('id') != version['id'] or source.get('revision') != version['snapshot_id'] or data['category'] not in categories:
+                        continue
+                    status = record.get('effective_review', {}).get('status') or record.get('review_status', 'proposed')
+                    answers.append(f'**研究记录 · {inline(status)}**\n\n{inline(data["statement"])}\n\n'
+                                   f'原文依据（版本 {inline(version_label)}；{inline(data["attribution"])}）：\n\n'
+                                   + quote_block(data['source_quote']))
+            sections.extend(answers or ['尚无可用回答：未抽取或来源证据不足。'])
+            if missing:
+                sections.append('待补充：\n\n' + '\n'.join('- ' + inline(s) for s in sorted(set(missing))))
+        sections.append(f'<!-- qecgraph work_sha256={hash_text(work_id)} release={session.release} -->')
+        pages[path] = ('\n\n'.join(sections) + '\n').encode('utf-8')
+    return pages, targets

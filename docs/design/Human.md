@@ -2,7 +2,7 @@
 
 > 状态：保留的人类需求与思考笔记（2026-11-11）。实现契约和进度以
 > [系统设计](DESIGN.zh-CN.md#16-可搜索知识体系与实施路线)为准。
-> 本文件是仓库里的产品需求，不是工作区中禁止读取的 `human/notes/`。
+> 本文件是仓库里的产品需求，不是工作区的人类阅读输出或私人笔记。
 
 <!-- 这里是人类(Guangqi)的设计与思考空间 -->
 
@@ -74,7 +74,7 @@ AI 真正需要阅读的可能是：
 | `machine/snapshots/<release>/catalog.json` | 当前来源目录、对象目录、处理状态和覆盖信息 |
 | `machine/snapshots/<release>/search.sqlite` | 全文、字段与关系查询投影 |
 | `qec_get_context(...)` | 按问题组合可直接阅读的上下文；可实时生成，也可缓存 |
-| `human/generated/`、`human/notes/` | 保留你要求的独立人类阅读区 |
+| `human/YYYY/MM/一作名_文章前两个词_thoughts.md` | 每篇论文一份九问与 AI 回答，独立的人类阅读区 |
 
 有四点核心要求：
 
@@ -154,11 +154,36 @@ ThoughtsGraph 对应前面九个问题：研究问题、重要性、方法、直
 
 每条思路保留原文引用、论文版本和具体位置。作者明确陈述与人工/AI 解读分别标记；
 AI 提议即使引用准确也仍是 proposed，不自动成为已审核记录。这里保存的是论文中有依据的
-表达，不补写作者未披露的思考过程，也不读取我在 `human/notes/` 中的私人笔记。
+表达，不补写作者未披露的思考过程，也不读取我的私人笔记。私人笔记放在 `human/` 之外。
 
 例如，要理解“某种 decoder 为什么改善了表现”，我希望先在 ThoughtsGraph 找动机与方法，
 再到 DataGraph 核对实验条件；需要数学论证时展开 LemmaGraph，最后都能用 SourceGraph
 回到原文。实际字段与使用方法见[四种图与 ThoughtsGraph](../user/data-and-search.zh-CN.md#四种图如何配合)。
+
+### 我想要的 human 文件布局
+
+`human/` 里每篇文章只保留一个文件：
+`human/YYYY/MM/一作名_文章前两个词_thoughts.md`，不用再加“文章”这层目录。
+正文放上面的九个 ThoughtsGraph 问题和 AI 的回答，回答附原文依据；缺少证据就明确留空说明。
+文件最前面按 Obsidian 格式放：
+
+```yaml
+---
+tags:
+  - surface-codes
+  - erasure-decoding
+link: "https://example.org/paper"
+title: "Surface codes under erasure"
+author:
+  - "Ada Lovelace"
+---
+```
+
+这只是格式示例，实际 tags 使用文章主要讨论的主题词；title 放完整标题，author 按论文顺序
+列出作者，文件名取第一作者。年月来自论文明确给出的日期，缺失信息不要猜。
+`human/` 不存索引、实体页、原文副本、状态文件或其他内容。旧版内容直接删除，不做备份。
+生成状态放在 `.qecgraph/`；私人笔记另放。实现细节与迁移规则见
+[系统设计的人类视图](DESIGN.zh-CN.md#9-人类视图)。
 
 ### 知识服务与 MCP 入口
 

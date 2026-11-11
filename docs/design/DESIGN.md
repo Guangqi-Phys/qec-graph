@@ -78,8 +78,7 @@ flowchart LR
     Validate --> Machine["machine/ immutable release"]
     Machine --> CLI["CLI query"]
     Machine --> MCP["read-only MCP"]
-    Machine --> Human["human/generated pages"]
-    Human --> Notes["human/notes (never read)"]
+    Machine --> Human["human/YYYY/MM/*_thoughts.md"]
 ```
 
 A workspace is a local directory with a single writer. `init` creates the layout; `sync` archives and processes inbox packages; `rebuild` rechecks the complete archive; `status`, `validate`, and `doctor` are read-mostly inspection commands. A successful transaction publishes an immutable machine release and then renders a separate human view. Query and MCP sessions pin a release and never read a moving `CURRENT` mid-session.
@@ -163,9 +162,8 @@ workspace/
 │   ├── operational/status.json   # sanitized operational projection
 │   └── .writer.lock              # single-writer lock
 ├── human/
-│   ├── Index.md
-│   ├── generated/                # rebuildable pages
-│   └── notes/                    # private; never read by generators/MCP
+│   └── YYYY/MM/
+│       └── FirstAuthor_First_Two_thoughts.md
 └── .qecgraph/                    # claim/rotation/staging internals
 ```
 
@@ -410,7 +408,7 @@ Human output is concise and stateful: workspace/release, indexed/pending/failed/
 - A session is pinned to one fixed release; tool arguments cannot pass arbitrary paths/SQL/shell or change scope.
 - Budgets: depth/nodes/results/characters; truncated results state omitted content; a too-small budget returns an explicit error rather than a partial root statement.
 - Read tools never write, run TeX/paper code, or trigger Lean builds.
-- Strict deployment mounts only the machine directory. `human/`, `inputs/`, and `human/notes/` must not be readable. MCP roots are not an access-control mechanism.
+- Strict deployment mounts only the machine directory. `human/`, `inputs/`, and personal notes must not be readable. MCP roots are not an access-control mechanism.
 
 The typed JSON envelope (`ok/data` or `error/code/message/details/scope`) is shared by Python, CLI, and MCP where applicable. MCP protocol errors and business-query errors remain distinguishable.
 
@@ -418,14 +416,47 @@ The typed JSON envelope (`ok/data` or `error/code/message/details/scope`) is sha
 
 ## 9. Human view
 
-`human/` is an independently openable Obsidian vault rendered from one machine release.
+`human/` contains only one generated ThoughtsGraph Markdown note per registered
+paper (`work_id`), under `human/YYYY/MM/FirstAuthor_First_Two_thoughts.md`.
+This layout is **Unreleased on main**; the published v0.6.2 uses the earlier vault.
 
-- `human/generated/` is rebuildable; stable page paths, aliases, front matter, tags, indexes and tombstones are generated deterministically.
-- `human/notes/` is private human content. Generators, queries, MCP, embeddings, logging and renderers never read it. Do not add automation that scans the vault root indiscriminately.
-- Page publication is per-file atomic inside the target directory; it is not a global vault transaction. A interrupted render reports `human_stale`; re-render from the same release. Do not claim multi-file atomicity.
-- A renamed/removed entity keeps a stable tombstone page for incoming links.
-- The human view is a reading aid, not an authority; corrections must be written as explicit structured revisions in the machine layer.
-- The machine layer never reads the human view.
+- Each note contains the nine questions from [Human.md](Human.md), AI answers,
+  verbatim supporting quotations and source-version/line references. Missing
+  answers are explicitly unavailable. Matching `research_thought` records are
+  also shown with their actual review status. AI proposals remain `proposed`.
+- YAML front matter is the very first content, in this order: `tags`, `link`,
+  `title`, `author`. Tags are the paper's main topics; spaces become hyphens.
+  `author` is an ordered list, `link` is a public HTTP(S) URL or null, and missing
+  lists are empty. These follow [Obsidian properties](https://obsidian.md/help/properties)
+  and [tags](https://obsidian.md/help/tags). No graph/release/status tags are added.
+- Registered title and canonical URL take precedence. Source-bound AI `paper`
+  metadata supplies title, ordered authors, date, link and topics; literal TeX
+  title-block commands (including RevTeX metadata after `\begin{document}`)
+  provide a fallback without evaluating macros. Without topic
+  metadata, recognized QEC phrases in the title supply tags. Missing information
+  stays unknown; a source date is never replaced by the import date or `\today`.
+- The first author's full name and the title's first two whitespace-delimited
+  words form the filename. Unsafe characters become underscores. Unknown author
+  and title use `UnknownAuthor` and `Untitled_Paper`; missing year/month use
+  `unknown`, including `YYYY/unknown/` when only a year is known. Collisions add a
+  short work-ID hash before `_thoughts.md`.
+- Multiple versions of one work share one file, with answers labeled by source
+  version. Bibliographic metadata uses the lowest explicit numeric `vN`; when
+  none exists, a deterministic source-ID order applies, without claiming recency.
+- No index, entity pages, source previews, manifest, tombstones or private-notes
+  directory are generated in `human/`. Renderer state and pending publication
+  journals live in `.qecgraph/human-{published,pending}.json`. Keep personal notes
+  outside `human/`; generated notes are replaced on rebuild.
+- Migration recognizes the old renderer's history and **deletes the entire old
+  `human/` tree, including old `notes/`, without reading their contents or making
+  a backup**. All new content is prepared first. An unrelated, unregistered vault
+  is refused. Subsequent builds remove only obsolete managed notes and empty
+  year/month directories; unowned destination collisions are refused.
+- Publication remains per-file atomic, not a vault-wide transaction. A failure
+  reports `human_stale`; rerunning `qec-graph human build` completes publication
+  and cleanup without rolling back the machine release. Rendering does not call AI.
+- Notes are a one-way reading view, never query/MCP/embedding input or an
+  authority. Corrections belong in explicit structured machine revisions.
 
 ---
 
@@ -511,7 +542,7 @@ Mapping summary:
 | G11 | Explicit data relations can expand matrix, check-matrix, metric and evidence context. |
 | G12 | Partial extraction, truncation, unresolved targets and stale reviews are observable. |
 | G13 | A failed publication leaves the previous release readable and inputs recoverable. |
-| G14 | `human/notes/` is never read or overwritten by generation/query/MCP. |
+| G14 | Human/private notes are never knowledge inputs. Legacy human files are deleted without reading them during the documented migration (§9). |
 | G15 | A workspace/MCP session cannot mix two releases. |
 
 ### 12.2 Required failure cases
@@ -688,7 +719,7 @@ remain separate records so their evidence and revisions can evolve independently
 | `addresses_refs`, `motivated_by_refs`, `extends_refs`, `contradicts_refs` | Exact revisions of other `research_thought` records, with field-level evidence |
 | `related_refs` | Exact revisions of allowed research kinds, such as a construction, experiment or decoder; parser occurrences remain accessible through source evidence |
 
-`extract_thoughts` v2 produces `qecgraph.ai.proposal` packages, exposed for opt-in
+`extract_thoughts` v3 produces `qecgraph.ai.proposal` packages, exposed for opt-in
 search as `research_thought_proposal` items. These are distinct from published
 research records. Explicit review and record import remain separate steps; no
 AI result or approval automatically creates a canonical record. Both records
@@ -698,15 +729,19 @@ require opt-in traversal; citations and thought links do not become proof edges.
 The [skill](../../qecgraph/llm/skills/extract_thoughts/SKILL.md) defines category
 boundaries, source-reading steps, attribution and exact line references with a
 worked example. Conditions remain attached to outcomes and missing categories
-are explicit in `unresolved`. Its output schema contains thought items only;
-cross-record relations require separate curation. Validation checks format and
-quotations, not the scientific correctness of classifications or interpretations.
-v0.6.2 shipped v1; v2 preserves its output fields. Upgrading a skill affects new
-or missing extraction jobs, not completed batches, whose versioned proposals
+are explicit in `unresolved`. Skill v3 prefers Chinese editorial answers and
+adds optional `paper` metadata: title, ordered authors, date, public link and
+main topics. Each value carries a verbatim quotation and source line references;
+dates and URLs receive additional checks. Old packages without `paper` still
+validate. Cross-record relations require separate curation. Validation checks
+format and quotations, not scientific correctness or the truth of metadata.
+v0.6.2 shipped v1; v2 refined instructions and v3 extends the output schema.
+Upgrading a skill affects new or missing extraction jobs, not completed batches, whose versioned proposals
 remain unchanged during sync/rebuild.
 
-Registered records render under `human/generated/thoughts/`, showing the
-statement, author quotation, attribution and provenance. The generator and all
+Current, source-bound proposals and registered records render together in one
+paper note at `human/YYYY/MM/*_thoughts.md` (see §9), showing answers, quotations,
+attribution and provenance. The generator and all
 query paths never read private notes. An absent category means coverage is
 missing; it does not establish that the paper lacks such a thought. Do not
 manufacture authors' unreported reasoning.
@@ -793,7 +828,7 @@ Hash-bound caches include parser/schema/skill/model/index configuration; changes
 invalidate the affected projections without overwriting older releases.
 
 All indexing and context paths consume registered machine content only.
-`human/generated/` is a one-way view and `human/notes/` stays private. A strict
+`human/YYYY/MM/*_thoughts.md` is a one-way view; personal notes live outside `human/`. A strict
 service mounts only machine data; shell access to the whole workspace defeats
 that operating-system boundary.
 
@@ -852,10 +887,10 @@ point, not an industry standard or an already completed benchmark.
 | **D1 — One workspace, one writer** | Immutable release + POSIX lock + atomic pointer; no distributed writer. |
 | **D2 — Evidence is layered, not a score** | Source/claim/review/computation/build states remain separate; default filtering excludes inactive states. |
 | **D3 — Read-only agents** | Fixed-scope, budgeted CLI/Python/MCP reads; no path/SQL/shell access; stdout protocol only. |
-| **D4 — Human view isolation** | Generated pages from a pinned machine release; `human/notes/` never read; per-page atomic publication; `human_stale` recovery. |
+| **D4 — Human view isolation** | One thoughts note per paper from a pinned release; no human content used as input; per-file atomic publication and legacy cleanup; `human_stale` recovery. |
 | **D5 — Lean is deferred** | No supported verification claim in 0.6.x. Experimental fixtures remain for regression; a new design is required before implementation, and read paths never execute Lean. |
 | **D6 — CodeGraph is reference only** | Architecture comparison, no copied code, no imported performance claims; attribution retained. |
-| **D7 — Compatibility over a rewrite** | Store/corpus remain supported; workspace is current; migrations are explicit and non-destructive. |
+| **D7 — Compatibility over a rewrite** | Store/corpus remain supported; machine migrations preserve data. The human layout reset is explicitly documented in §9. |
 | **D8 — Schema ownership is singular** | Packaged schemas are canonical; unknown schemas are rejected, not reinterpreted. |
 
 ## Appendix B — Primary references

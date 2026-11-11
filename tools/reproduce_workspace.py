@@ -63,7 +63,7 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
         actual = next(item for item in first['inputs'] if item['archive_sha256'] == SUBSYSTEM_SHA)
         assert actual['entrypoint'] == 'subsys.tex' and actual['upstream_version'] is None
         assert actual['semantic_status'] == 'semantic_pending'
-    note = workspace / 'human/notes/private-validation-note.md'
+    note = workspace / 'private-validation-note.md'
     note.write_text('RFC002-PERSONAL-CANARY-9212', encoding='utf-8')
     (inbox / 'same-tree-new-compression').write_bytes(gzip.compress(TEX, mtime=2))
     second = run('sync', ['sync', '--json'])
@@ -142,8 +142,11 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
     assert replies[9]['structuredContent'] == reading
     assert 'private-validation-note' not in stdio and 'RFC002-PERSONAL-CANARY-9212' not in stdio
     assert note.read_text(encoding='utf-8') == 'RFC002-PERSONAL-CANARY-9212'
-    index = (workspace / 'human/Index.md').read_text(encoding='utf-8')
-    assert expected_release in index and '[[generated/' in index
+    notes = list((workspace / 'human').rglob('*_thoughts.md'))
+    assert len(notes) == (2 if real_source else 1)
+    assert all(expected_release in page.read_text(encoding='utf-8') for page in notes)
+    assert all(page.read_text(encoding='utf-8').startswith('---\ntags:') for page in notes)
+    assert not (workspace / 'human/Index.md').exists()
     upgrade = None
     if legacy_binary:
         def legacy(label, args):

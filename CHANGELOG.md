@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Replaced the human entity-page vault with one ThoughtsGraph note per paper at
+  `human/YYYY/MM/FirstAuthor_First_Two_thoughts.md`, with the nine questions,
+  source-bound AI answers and leading Obsidian `tags`, `link`, `title`, `author`.
+  Topic tags and bibliography use source metadata; unknown dates stay unknown.
+- The first migration deletes the old managed `human/` tree, including old
+  `notes/`, without reading private contents or making backups. Indexes, entity
+  pages, manifests and tombstones are no longer generated there. Renderer state
+  stays in `.qecgraph/`; interrupted publication and obsolete-note cleanup retry
+  safely. Keep personal notes outside `human/`.
+- Advanced `extract_thoughts` to skill v3 with Chinese editorial answers and
+  optional quoted paper metadata. Offline regressions cover metadata validation,
+  proposal-only rendering, filename collisions, migration and recovery.
 - Default AI configuration now enables semantic proposal extraction and selects
   OpenRouter with `deepseek/deepseek-v4.1-flash-1017`. API keys remain empty for
   users to supply inline or through the environment. Omitted selection/flag

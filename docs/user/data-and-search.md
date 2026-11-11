@@ -30,7 +30,7 @@ served the query, so you can trace a result back to the same data later.
 | Source graph | Parsed LaTeX files and blocks such as definitions, theorems, proofs, equations, tables, and figures. Nodes carry source paths, line and character spans, and content hashes. Edges capture structure, references, and explicitly qualified proof or dependency relations. |
 | Research records and assets | Typed records for QEC objects, experiments, and software, plus exact revision links and field-level evidence. Registered assets such as matrices, circuits, or data files have byte lengths and content hashes. Queries expose assets bound to eligible records. |
 | Releases and status | `machine/` stores immutable releases, source snapshots, records, and query indexes. Operational status reports package counts and whether the generated views are current. |
-| Human views | `human/Index.md` and `human/generated/` are derived Obsidian pages. Personal notes live in `human/notes/`. Workspace MCP reads from `machine/`. |
+| Human views | `human/YYYY/MM/*_thoughts.md` contains one derived question-and-answer note per paper. Personal notes live outside `human/`. Workspace MCP reads from `machine/`. |
 
 Importing a paper creates the source graph for supported TeX and can generate
 `code_parameters_mention` proposals for recognized parameter notation. A proposal carries
@@ -160,8 +160,11 @@ paper's conclusion or turn an interpretation into the author's words.
 link exact revisions of other thoughts. `related_refs` can connect a thought to
 research records such as a construction, decoder or experiment. An `assumption`
 thought captures the paper's premise; it does not automatically create a
-reviewed theorem dependency. Generated pages for registered thought records
-appear under `human/generated/thoughts/`. Private `human/notes/` is never input.
+reviewed theorem dependency. Current source-bound AI proposals and registered
+thoughts render together in `human/YYYY/MM/*_thoughts.md`, one file per paper.
+AI answers remain proposed; missing answers are explicit. Skill v3 also extracts
+quoted bibliographic metadata and main topics for the note's Obsidian properties.
+Human/private notes are never inputs. [Layout and migration](workspace.md#obsidian-and-machine-isolation)
 
 ### Fields, revisions, and evidence
 

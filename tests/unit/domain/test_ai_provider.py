@@ -62,11 +62,11 @@ class OpenAIProviderTests(unittest.TestCase):
                 else:
                     result = {'items': [], 'unresolved': []}
                 transport = FakeTransport(body=response(json.dumps(result)))
-                client = LLMClient(config(), provider=self.provider(transport))
+                client = LLMClient(config(max_input_chars=200000), provider=self.provider(transport))
                 messages = [Message('system', skill.system_prompt), Message('user', 'paper data')]
                 self.assertEqual(client.complete_json(messages, skill.schema).data, result)
                 payload = transport.requests[0][3]
-                if name in {'recover_structure', 'extract_thoughts'}:
+                if name == 'recover_structure':
                     self.assertEqual(payload['response_format']['type'], 'json_schema')
                     self.assertTrue(payload['response_format']['json_schema']['strict'])
                 else:

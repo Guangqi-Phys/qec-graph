@@ -4,14 +4,14 @@
 
 > [English](workspace.md) · **中文**
 
-`0.6.0` 是当前 release。已有的 `qecgraph`、`qec-latex-split`、
+`0.6.2` 是已发布版本；本说明跟随 main，包含 Unreleased 改动。已有的 `qecgraph`、`qec-latex-split`、
 `qecgraph-mcp` 及 SourceGraph、LemmaGraph、DataGraph 命令继续可用；Lean 为延期实验能力，见[系统设计](../design/DESIGN.zh-CN.md#10-lean延期不支持)。
 本说明描述受支持的工作流；[系统设计](../design/DESIGN.zh-CN.md)定义契约。
 [验证索引](../../validation/README.zh-CN.md)列出当前可执行检查；历史运行产物保留在
 Git history。
 
 > [!WARNING]
-> `human/notes/` 是私有笔记。生成器、查询和 MCP 都不会读取它；不要把它当作检索输入。
+> 人类笔记不作为检索输入。新布局迁移时直接删除旧生成器管理的整个 `human/`，不做备份；详见下文。
 
 ## 本页目录
 
@@ -25,7 +25,7 @@ Git history。
 在 Python 3.11+ POSIX 环境中安装实际 wheel。无需 API key。
 
 ```bash
-python -m pip install /path/to/qec_graph-0.6.0-py3-none-any.whl
+python -m pip install /path/to/qec_graph-0.6.2-py3-none-any.whl
 mkdir -p ~/qec
 cd ~/qec
 qec-graph init
@@ -148,10 +148,37 @@ CLI 可用 `query-tool TOOL --workspace ~/qec --arguments request.json` 调用�
 
 ## Obsidian 和机器访问隔离
 
-在 Obsidian 中打开 `~/qec/human` 为 vault，从 `Index.md` 进入。
-`human/generated` 是可重建页面；把个人内容放在 `human/notes`。
-生成器不读取 notes，旧实体页可留 tombstone。多页更新按文件原子替换；
-中途失败显示 `human_stale`，可运行 `qec-graph human build`，不会回滚机器发布。
+在 Obsidian 中打开 `~/qec/human`，按年月目录浏览。每篇论文只有一个
+`human/YYYY/MM/一作名_文章前两个词_thoughts.md`，正文放九个 ThoughtsGraph 问题、
+AI 回答及原文依据。文件最前面是 Obsidian YAML：
+
+```yaml
+---
+tags:
+  - surface-codes
+  - erasure-decoding
+link: "https://example.org/paper"
+title: "Surface codes under erasure"
+author:
+  - "Ada Lovelace"
+---
+```
+
+这只是格式示例。实际属性来自登记材料与有引用的 AI 元数据：tags 是论文主要主题，
+author 按原文顺序排列，文件名取一作全名与标题按空白分隔的前两个词。年月使用来源日期；
+缺少的年月用 `unknown`，不使用导入时间。未知作者/标题用 `UnknownAuthor`/`Untitled_Paper`，
+同名论文追加 work ID 短哈希。同一 work 的多个版本共用一份文件，回答保留各自的版本。
+[完整契约](../design/DESIGN.zh-CN.md#9-人类视图)
+
+`qec-graph human build` 只从当前固定 machine release 渲染，不调用 AI；配置的 AI 抽取
+发生在 `sync`，升级 skill 不会自动重抽已经完成的批次。没有答案时明确显示缺失。
+不再生成索引、实体页、原文预览、墓碑页或 `notes/`。个人笔记放在 `human/` 外面。
+
+**从 v0.6.2 旧布局迁移：** 此 Unreleased 实现首次渲染时识别旧管理历史，直接删除整个
+旧 `human/`，包括原有 `notes/`，不读取其中内容，也不生成备份，然后只输出论文笔记。
+没有管理记录的外部 vault 会被拒绝。之后文件名变化时删除旧的受管理笔记。
+状态和恢复日志放在 `.qecgraph/`；每份文件原子写入，中断显示 `human_stale`，重新运行
+`qec-graph human build` 即可继续完成，不回滚 machine release。
 
 单独授予 agent 和 MCP 机器发布目录，避免授予整个工作区。
 Linux 可用仓库的 `compose.mcp-isolated.yaml`。从已安装 QEC Graph 的 Python 环境

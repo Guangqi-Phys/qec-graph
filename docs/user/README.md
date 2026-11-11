@@ -44,7 +44,7 @@ flowchart LR
     B --> C[qec-graph sync]
     C --> D[qec-graph status]
     D --> E[qec-graph query search ...]
-    D --> F[Open human/Index.md in Obsidian]
+    D --> F[Browse human/YYYY/MM/ in Obsidian]
     D --> G[qec-graph mcp serve --machine ...]
 ```
 

@@ -1,7 +1,7 @@
 ---
 name: extract_thoughts
 description: Extract source-grounded research questions, ideas and outcomes as proposals.
-version: 2
+version: 3
 ---
 # Research thought extraction
 
@@ -60,7 +60,8 @@ Literal `\input`, URLs and missing figures/supplements do not supply their conte
   This attributes wording without verifying truth. Include adjacent text as needed
   to retain scope and resolve pronouns.
 - `editorial_inference`: `statement` may be a concise paraphrase or interpretation
-  supported by `source_quote`. Default to the source language. Translations and
+  supported by `source_quote`. Write clear Chinese answers for the human reading
+  notes, retaining scientific names and notation. Translations and
   paraphrases are never `author_explicit`. Retain qualifiers without adding
   mechanisms, stronger results or new hypotheses.
 - `source_quote` must be a contiguous, exact substring within one original
@@ -76,7 +77,7 @@ Literal `\input`, URLs and missing figures/supplements do not supply their conte
 
 ## Output contract
 
-Return only a JSON object with `items` and `unresolved`, without commentary or
+Return only a JSON object with `items`, `unresolved` and, when supported, `paper`, without commentary or
 Markdown fences. Each item has exactly `category`, `statement`, `attribution`,
 `source_quote` and `source_refs`, as defined in `output.schema.json`.
 
@@ -89,6 +90,27 @@ The application adds `review_status: proposed`. Do not emit verification fields,
 confidence, IDs or links (`addresses_refs`, `extends_refs`, `contradicts_refs`).
 Cross-record relations need separate evidence-bound curation. Review does not
 automatically import proposals as records.
+
+## Paper metadata for reading notes
+
+Include `paper` when the supplied source supports bibliographic metadata or topics.
+It has `title`, `authors`, `published_date`, `link` and `topics`. `authors` is an
+ordered list (first author first); `topics` is a list of up to 12 main subject
+phrases, most central first, e.g. quantum-LDPC, decoding, circuit-level-noise.
+These are the paper's subjects, not graph categories or review-status tags.
+Each non-null value/list item is an object with `value`, a verbatim `source_quote`
+and exact `source_refs` under the same rules as thoughts. Use a source-supported,
+readable full title and author names; exclude affiliations and correspondence notes.
+Use `null` for an unknown title, date or link, and `[]` for unknown authors/topics.
+Dates use YYYY, YYYY-MM or YYYY-MM-DD at the precision actually supplied. Never
+substitute today's date, an ingestion date, `\today`, or a date from a cited paper.
+Links must occur verbatim in the source and identify this paper; do not guess URLs.
+Older proposal packages may omit `paper` and remain readable.
+
+Answer the nine research questions through the existing categories. Question 3
+(whether and how the problem was solved) needs both approach and outcome;
+question 6 (relation to prior conclusions) must retain the source's comparison
+and conditions. State missing support in `unresolved` instead of inventing answers.
 
 ## Worked example
 
@@ -103,7 +125,8 @@ fields of the example evidence:
 ```
 
 The conclusion needs the condition on line 3 and outcome on line 4. The approach
-is paraphrased, so uses `editorial_inference`. Valid output:
+is paraphrased in Chinese, so uses `editorial_inference`. The topic has an
+exact source quote; unknown bibliography fields stay empty. Valid output:
 
 ```json
 {
@@ -113,28 +136,37 @@ is paraphrased, so uses `editorial_inference`. Valid output:
       "statement": "Slow decoding limits the use of code C.",
       "attribution": "author_explicit",
       "source_quote": "Slow decoding limits the use of code C.",
-      "source_refs": ["paper.tex:1"]
+      "source_refs": [
+        "paper.tex:1"
+      ]
     },
     {
       "category": "approach",
-      "statement": "The approach reuses syndrome subgraphs to reduce repeated work when decoding code C.",
+      "statement": "通过复用 syndrome 子图，减少对 code C 译码时的重复工作。",
       "attribution": "editorial_inference",
       "source_quote": "To decode code C, we reuse syndrome subgraphs to reduce repeated work.",
-      "source_refs": ["paper.tex:2"]
+      "source_refs": [
+        "paper.tex:2"
+      ]
     },
     {
       "category": "conclusion",
       "statement": "For circuit-level depolarizing noise with idle errors excluded,\ndecoder D lowers the per-round logical error rate of code C in the simulated range.",
       "attribution": "author_explicit",
       "source_quote": "For circuit-level depolarizing noise with idle errors excluded,\ndecoder D lowers the per-round logical error rate of code C in the simulated range.",
-      "source_refs": ["paper.tex:3-4"]
+      "source_refs": [
+        "paper.tex:3-4"
+      ]
     },
     {
       "category": "open_question",
       "statement": "Whether decoder D lowers the per-round logical error rate of code C when loss is included remains open.",
       "attribution": "author_explicit",
       "source_quote": "Whether decoder D lowers the per-round logical error rate of code C when loss is included remains open.",
-      "source_refs": ["paper.tex:5", "paper.tex:3-4"]
+      "source_refs": [
+        "paper.tex:5",
+        "paper.tex:3-4"
+      ]
     }
   ],
   "unresolved": [
@@ -143,7 +175,22 @@ is paraphrased, so uses `editorial_inference`. Valid output:
     "assumption: Noise conditions are retained with the conclusion rather than duplicated as a separate item.",
     "surprising_result: No explicit contrast with an expectation is supplied.",
     "side_result: No secondary outcome is identified in the supplied excerpt."
-  ]
+  ],
+  "paper": {
+    "title": null,
+    "authors": [],
+    "published_date": null,
+    "link": null,
+    "topics": [
+      {
+        "value": "decoding",
+        "source_quote": "Slow decoding limits the use of code C.",
+        "source_refs": [
+          "paper.tex:1"
+        ]
+      }
+    ]
+  }
 }
 ```
 

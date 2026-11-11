@@ -41,11 +41,13 @@ qec-graph validate
 | 目标 | 命令 / 入口 |
 |---|---|
 | 搜索来源与记录 | `qec-graph query search HGP --workspace .` |
-| 浏览人类视图 | 在 Obsidian 中打开 `human/`，从 `Index.md` 开始 |
+| 浏览人类视图 | 在 Obsidian 中打开 `human/`，浏览 `YYYY/MM/*_thoughts.md` |
 | 接入只读 MCP | `qec-graph mcp config --workspace .` |
 | 处理失败包 | `qec-graph inputs list`，再 `qec-graph inputs quarantine <name>` |
 
 成功导入后，原始包留在 `archive/`；失败包保留在 `inputs/` 以便重试。把 `human/`
-作为 Obsidian 仓库打开，从 `Index.md` 开始。**不要**把 `human/notes/` 当作检索输入。
+作为 Obsidian 仓库打开，按年月阅读每篇论文的一份 thoughts 问答。人类笔记不作为检索
+输入。此布局目前在 main（Unreleased），迁移会直接删除旧受管理 human 内容、不做备份；
+详见[布局说明](workspace.zh-CN.md#obsidian-和机器访问隔离)。
 
 [进阶用法](advanced-usage.zh-CN.md) · [数据与检索](data-and-search.zh-CN.md) · [工作区说明](workspace.zh-CN.md)

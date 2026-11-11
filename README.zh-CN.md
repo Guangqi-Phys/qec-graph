@@ -6,8 +6,7 @@
 
 QEC Graph 归档原始 LaTeX 源包，按精确来源区间抽取结构，把类型化的 QEC 研究记录
 和字段级证据链接起来，并发布不可变机器 release。同一个 release 同时服务 CLI、
-只读 MCP 服务器和生成的 Obsidian 视图；人类视图不是权威来源，`human/notes/`
-永不被读取。
+只读 MCP 服务器和生成的 Obsidian 视图；人类视图不作为权威来源或检索输入，私人笔记放在 `human/` 之外。
 
 ## 安装
 
@@ -42,7 +41,10 @@ qec-graph validate
 语义提案抽取默认开启；设置 `extract_proposals = false` 可跳过这些 skill。
 
 成功导入后原始包留在 `archive/`，收件箱副本被清除。把 `human/` 作为 Obsidian
-vault 打开，从 `Index.md` 开始。反复失败的包用
+vault 打开，按 `YYYY/MM/` 浏览每篇论文的 `一作名_文章前两个词_thoughts.md`，
+包含九个问题、AI 回答和主题标签。此布局目前属于 main 的 Unreleased 改动；
+从 v0.6.2 旧布局迁移时直接删除旧 `human/` 内容，不做备份。
+[布局与迁移规则](docs/user/workspace.zh-CN.md#obsidian-和机器访问隔离)。反复失败的包用
 `qec-graph inputs quarantine <name>` 处理。
 
 ## AI 抽取
@@ -124,10 +126,10 @@ ThoughtsGraph 使用带原文引用的 `research_thought` 记录和类型化关�
 | `release` | 验证全部内容并发布不可变 release | [系统设计](docs/design/DESIGN.zh-CN.md#7-工作区事务与发布协议)、[维护](docs/operations/maintenance.zh-CN.md) | staged records 和 snapshots | 含 `format`、`revision` 的 `machine/CURRENT.json`；`machine/states/<revision>.json` |
 | `CLI` | 读取固定 workspace、store 或 corpus 作用域 | [进阶用法](docs/user/advanced-usage.zh-CN.md)、[数据与检索](docs/user/data-and-search.zh-CN.md) | `--workspace`、`--machine`、`--store` 或 `--corpus`；`query-tool` 的 JSON 参数 | 终端文本或版本化 JSON |
 | `MCP` | 通过本地 stdio 提供只读工具 | [MCP 设置](#mcp)、[数据与检索](docs/user/data-and-search.zh-CN.md) | stdio 上的 JSON-RPC 2.0；固定一个 release；legacy/research/compatible profile | JSON-RPC 帧、text/structured content、`qec://source/...` resources |
-| `human/` | 渲染 Obsidian 视图，绝不回写 | [工作区说明](docs/user/workspace.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#9-人类视图) | 已发布机器 release | `human/Index.md`、`human/generated/**/*.md`、`human/generated/.qecgraph-manifest.json`；`human/notes/` 不变 |
+| `human/` | 渲染 Obsidian 视图，绝不回写 | [工作区说明](docs/user/workspace.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#9-人类视图) | 已发布机器 release | `human/YYYY/MM/一作名_文章前两个词_thoughts.md`；管理状态在 `.qecgraph/` |
 
 单个 writer 拥有整条流水线。读取端固定一个 `CURRENT` release；验证失败时旧
-release 保持可读。`human/notes/` 永不被读取。
+release 保持可读。人类笔记永不作为知识输入。
 
 > [!NOTE]
 > QEC Graph 不是 TeX 引擎、PDF/OCR 流水线、大规模码距求解器或 Lean 验证器。
@@ -145,7 +147,7 @@ release 保持可读。`human/notes/` 永不被读取。
 | MCP | legacy（13）、research（7）或通用 search/fetch（2）工具；来源资源、预算、每会话固定 release |
 | 知识检索 | 完整原文/章节/目录读取、可选本地或外部 embedding、混合搜索、任务上下文与覆盖报告 |
 | AI 辅助 | 可选 provider 配置、多 TeX 根的来源映射规范化、定理/假设/数据/思路提议 |
-| 人类视图 | 带稳定链接和 tombstone 的生成 Obsidian 页面；`human/notes/` 私有 |
+| 人类视图 | 每篇论文一份 Obsidian thoughts 笔记，包含主题标签、书目信息和九问 |
 | 接口面 | workspace 为主；单篇 store 和多篇 corpus 仍可用 |
 
 ## 已实现接口面
@@ -158,7 +160,7 @@ release 保持可读。`human/notes/` 永不被读取。
 | 审核与证据 | `proposal` / `review` envelope、字段级证据、reviewed dependency closure；stale/unbound 默认排除 |
 | 读取查询 | `search`、`show`、`deps`、`impact`、`context`、`codes`、`performance`、`software`；SQLite/FTS5 加确定性 fallback |
 | MCP 服务 | 本地 stdio JSON-RPC `2025-06-18`、只读工具、source resources、每调用 budget、不接受路径或 shell 参数 |
-| 人类视图 | 确定性的 `human/Index.md` 和 `human/generated/` 页面、逐页原子写、tombstone、`human_stale` 恢复 |
+| 人类视图 | 确定性的 `human/YYYY/MM/*_thoughts.md`、逐文件原子写、过时笔记清理、`human_stale` 恢复 |
 | AI 层 | provider 适配、schema 校验 client、版本化 skills、来源映射规范化、可审核 proposal |
 | 分发 | wheel/sdist、standalone executable、research Compose profile 和只读 MCP 隔离 profile |
 
@@ -184,7 +186,7 @@ qec-graph mcp serve --machine "$PWD/machine"
 ```
 
 严格部署只挂载 `machine/` 并传 `--machine`。`--workspace` 在本地方便，但不是
-操作系统隔离边界。严格部署中 `human/`、`inputs/`，尤其是 `human/notes/`，必须
+操作系统隔离边界。严格部署中 `human/`、`inputs/` 和私人笔记必须
 不可读。
 
 ### 读取工具

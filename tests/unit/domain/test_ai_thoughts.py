@@ -43,7 +43,7 @@ class ThoughtSkillTests(unittest.TestCase):
                          projection_path=evidence['projection_path'])
         self.assertEqual(result.data, expected)
         self.assertEqual(result.proposal['review_status'], 'proposed')
-        self.assertEqual(result.proposal['provenance']['skill_version'], 2)
+        self.assertEqual(result.proposal['provenance']['skill_version'], 3)
         self.assertEqual(result.proposal['normalization_id'], normalized.sha256)
         self.assertEqual(provider.messages[0].content, skill.system_prompt)
         self.assertEqual(json.loads(provider.messages[1].content)['text'], evidence['text'])
@@ -79,7 +79,7 @@ class ThoughtSkillTests(unittest.TestCase):
         self.assertNotEqual(old.ai_result.prompt_sha256, new.ai_result.prompt_sha256)
         self.assertEqual(old.proposal, preserved)
         self.assertEqual(old.proposal['provenance']['skill_version'], 1)
-        self.assertEqual(new.proposal['provenance']['skill_version'], 2)
+        self.assertEqual(new.proposal['provenance']['skill_version'], 3)
 
     def test_generated_and_stitched_quotes_are_rejected_before_caching(self):
         # Non-ASCII source bytes and an injected wrapper exercise the distinction
@@ -107,4 +107,38 @@ class ThoughtSkillTests(unittest.TestCase):
                 client = LLMClient(config(max_input_chars=30000), provider=provider, cache_dir=directory)
                 with self.assertRaisesRegex(ExtractionError, error):
                     extract(normalized, client, 'extract_thoughts', projection_path='paper.tex')
+                self.assertEqual(list(Path(directory).glob('*.json')), [])
+
+    def test_quoted_paper_metadata_is_preserved_and_validated_without_thought_items(self):
+        source = ('Surface codes under erasure\nAda Lovelace\n2025-06-15\n'
+                  'https://example.org/paper\nWe study surface codes under erasure.\n')
+        def evidence(value, line, quote=None):
+            return {'value': value, 'source_quote': quote or value, 'source_refs': [f'paper.tex:{line}']}
+        paper = {'title': evidence('Surface codes under erasure', 1),
+                 'authors': [evidence('Ada Lovelace', 2)],
+                 'published_date': evidence('2025-06-15', 3),
+                 'link': evidence('https://example.org/paper', 4),
+                 'topics': [evidence('surface codes', 5, 'We study surface codes under erasure.')]}
+        response = {'items': [], 'unresolved': [], 'paper': paper}
+        provider = FakeProvider(Completion(json.dumps(response), 'offline-model'))
+        client = LLMClient(config(max_input_chars=30000), provider=provider)
+        result = extract(original_source(source), client, 'extract_thoughts', projection_path='paper.tex')
+        self.assertEqual(result.proposal['paper'], paper)
+        self.assertEqual(result.proposal['review_status'], 'proposed')
+        for field, replacement, error in (
+            ('title', evidence('Invented title', 1), 'not verbatim'),
+            ('authors', [evidence('Ada Lovelace', 4)], 'not verbatim'),
+            ('published_date', evidence('2025-02-30', 3, '2025-06-15'), 'date is invalid'),
+            ('published_date', evidence('2025/06', 3), 'date must be'),
+            ('link', evidence('file:///private', 4), 'public HTTP'),
+            ('link', evidence('https://example.org/invented', 4, 'https://example.org/paper'), 'quoted public'),
+            ('topics', [evidence('erasure', 1, 'Invented quotation')], 'not verbatim'),
+        ):
+            with self.subTest(field=field, replacement=replacement), tempfile.TemporaryDirectory() as directory:
+                invalid = copy.deepcopy(response)
+                invalid['paper'][field] = replacement
+                client = LLMClient(config(max_input_chars=30000), cache_dir=directory,
+                                   provider=FakeProvider(Completion(json.dumps(invalid), 'offline-model')))
+                with self.assertRaisesRegex(ExtractionError, error):
+                    extract(original_source(source), client, 'extract_thoughts', projection_path='paper.tex')
                 self.assertEqual(list(Path(directory).glob('*.json')), [])

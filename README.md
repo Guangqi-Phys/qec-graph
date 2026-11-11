@@ -9,7 +9,7 @@ QEC Graph archives original LaTeX source packages, extracts their structure with
 exact source spans, links typed QEC research records and field-level evidence,
 and publishes an immutable machine release. The same release serves the CLI, the
 read-only MCP server and the generated Obsidian view; the human view is never an
-authority and `human/notes/` is never read.
+authority or a search input. Personal notes belong outside `human/`.
 
 ## Install
 
@@ -47,7 +47,10 @@ and ambiguous multi-root packages. Semantic proposal extraction defaults to
 enabled; set `extract_proposals = false` to skip those skills.
 
 Successful imports keep the original package in `archive/` and clear its inbox
-copy. Open `human/` as an Obsidian vault and start at `Index.md`.
+copy. Open `human/` in Obsidian and browse `YYYY/MM/*_thoughts.md`: one file
+per paper with nine research questions, AI answers and topic tags. This layout
+is currently on main (Unreleased); upgrading from the v0.6.2 layout deletes the
+old `human/` contents without a backup. [Layout and migration](docs/user/workspace.md#obsidian-and-machine-isolation)
 Use `qec-graph inputs quarantine <name>` for a package that keeps failing.
 
 ## AI extraction
@@ -134,10 +137,10 @@ The pipeline is one writer; each stage leaves a named artifact for the next. Imp
 | `release` | Validate everything and publish one immutable release | [System design](docs/design/DESIGN.md#7-workspace-transaction-and-publication-protocol), [Maintenance](docs/operations/maintenance.md) | staged records and snapshots | `machine/CURRENT.json` with `format` and `revision`; `machine/states/<revision>.json` |
 | `CLI` | Read a fixed workspace, store or corpus scope | [Advanced usage](docs/user/advanced-usage.md), [Data and search](docs/user/data-and-search.md) | `--workspace`, `--machine`, `--store` or `--corpus`; JSON arguments for `query-tool` | terminal text or versioned JSON |
 | `MCP` | Serve read-only tools over local stdio | [MCP setup](#mcp), [Data and search](docs/user/data-and-search.md) | JSON-RPC 2.0 over stdio; one pinned release; legacy/research/compatible profile | JSON-RPC frames, text/structured content, `qec://source/...` resources |
-| `human/` | Render an Obsidian view; never write back | [Workspace guide](docs/user/workspace.md), [System design](docs/design/DESIGN.md#9-human-view) | published machine release | `human/Index.md`, `human/generated/**/*.md`, `human/generated/.qecgraph-manifest.json`; `human/notes/` untouched |
+| `human/` | Render an Obsidian view; never write back | [Workspace guide](docs/user/workspace.md), [System design](docs/design/DESIGN.md#9-human-view) | published machine release | `human/YYYY/MM/FirstAuthor_First_Two_thoughts.md`; renderer state in `.qecgraph/` |
 
 One writer owns the pipeline. Readers pin one `CURRENT` release; a failed
-validation leaves the previous release readable. `human/notes/` is never read.
+validation leaves the previous release readable. Human notes are never knowledge inputs.
 
 > [!NOTE]
 > QEC Graph is not a TeX engine, a PDF/OCR pipeline, a large-code distance
@@ -156,7 +159,7 @@ validation leaves the previous release readable. `human/notes/` is never read.
 | MCP | Legacy (13), research (7), or generic search/fetch (2) tools; source resources, budgets and one pinned release per session |
 | Knowledge retrieval | Full source/section/outline reads, optional local or external embeddings, hybrid search, task contexts and coverage reports |
 | AI assistance | Optional provider config, source-mapped normalization of multiple TeX roots, proposed theorem/assumption/data/thought extraction |
-| Human view | Generated Obsidian pages with stable links and tombstones; `human/notes/` is private |
+| Human view | One Obsidian thoughts note per paper, with topic tags, bibliographic properties and nine questions |
 | Surfaces | Workspace is primary; single-paper store and multi-paper corpus remain available |
 
 ## Implemented surfaces
@@ -169,7 +172,7 @@ validation leaves the previous release readable. `human/notes/` is never read.
 | Review and evidence | `proposal` / `review` envelopes, field-level evidence, reviewed dependency closure, stale and unbound states excluded by default |
 | Read queries | `search`, `show`, `deps`, `impact`, `context`, `codes`, `performance`, `software`; SQLite/FTS5 with a deterministic fallback |
 | MCP server | local stdio JSON-RPC `2025-06-18`, read-only tools, source resources, per-call budgets, no path or shell arguments |
-| Human view | deterministic `human/Index.md` and `human/generated/` pages, per-page atomic writes, tombstones, `human_stale` recovery |
+| Human view | deterministic `human/YYYY/MM/*_thoughts.md` notes, per-file atomic writes, obsolete-note cleanup, `human_stale` recovery |
 | AI layer | provider adapters, schema-bound client, versioned skills, source-mapped normalization and reviewable proposals |
 | Distribution | wheel/sdist, standalone executables, research Compose profile and read-only MCP isolation profile |
 
@@ -198,7 +201,7 @@ qec-graph mcp serve --machine "$PWD/machine"
 
 For a strict deployment, mount only `machine/` and pass `--machine`. `--workspace`
 is convenient locally but is not an operating-system isolation boundary.
-`human/`, `inputs/` and especially `human/notes/` must not be readable in a
+`human/`, `inputs/` and personal notes must not be readable in a
 strict deployment.
 
 ### Read tools

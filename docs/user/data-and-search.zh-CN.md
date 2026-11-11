@@ -28,7 +28,7 @@ QEC Graph 保存原始来源、从来源抽取的图，以及带版本的研究�
 | 来源图 | 解析后的 LaTeX 文件与块，如定义、定理、证明、公式、表格和图片。节点带来源路径、行/字符区间和内容哈希。边表示结构、引用，以及明确限定的证明或依赖关系。 |
 | 研究记录和资产 | QEC 对象、实验和软件的类型化记录，以及精确修订链接和字段级证据。矩阵、电路或数据文件等登记资产带字节长度和内容哈希。查询只暴露绑定到合格记录的资产。 |
 | Release 和状态 | `machine/` 保存不可变 release、来源快照、记录和查询索引。运行状态报告包计数及生成视图是否最新。 |
-| 人类视图 | `human/Index.md` 和 `human/generated/` 是派生的 Obsidian 页面。个人笔记在 `human/notes/`。工作区 MCP 从 `machine/` 读取。 |
+| 人类视图 | `human/YYYY/MM/*_thoughts.md` 每篇论文一份派生问答笔记。个人笔记放在 `human/` 之外。工作区 MCP 从 `machine/` 读取。 |
 
 导入论文会为受支持 TeX 创建来源图，并可对识别出的参数记法生成
 `code_parameters_mention` 提案。提案带来源位置和未解决字段。结构化码参数、距离界、
@@ -143,8 +143,10 @@ usage 记录需要论文或运行实际使用内容的证据，包括已知版�
 
 `addresses_refs`、`motivated_by_refs`、`extends_refs`、`contradicts_refs` 关联其他
 思路的精确修订；`related_refs` 可关联构造、decoder、实验等研究记录。
-`assumption` 思路保存论文前提，不会自动产生经审核的定理依赖。已登记思路记录的生成
-页面位于 `human/generated/thoughts/`；私人 `human/notes/` 永不作为输入。
+`assumption` 思路保存论文前提，不会自动产生经审核的定理依赖。当前来源绑定的 AI 提案
+与已登记思路汇入 `human/YYYY/MM/*_thoughts.md`，每篇论文一份，AI 回答仍是 proposed，
+缺失答案明确显示。Skill v3 同时抽取带引用的书目信息和主要主题，供 Obsidian 属性使用。
+人类笔记和私人笔记永不作为输入。[布局与迁移](workspace.zh-CN.md#obsidian-和机器访问隔离)
 
 ### 字段、修订和证据
 

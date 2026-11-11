@@ -41,12 +41,14 @@ qec-graph validate
 | Goal | Command / entry point |
 |---|---|
 | Search sources and records | `qec-graph query search HGP --workspace .` |
-| Browse the human view | Open `human/` in Obsidian and start at `Index.md` |
+| Browse the human view | Open `human/` in Obsidian and browse `YYYY/MM/*_thoughts.md` |
 | Connect a read-only MCP client | `qec-graph mcp config --workspace .` |
 | Handle a failing package | `qec-graph inputs list`, then `qec-graph inputs quarantine <name>` |
 
 Successful imports keep the original package in `archive/`; failed packages stay
-in `inputs/` for retry. Open `human/` as an Obsidian vault and start at
-`Index.md`. **Do not** use `human/notes/` as a search input.
+in `inputs/` for retry. Open `human/` in Obsidian to read one thoughts note per
+paper under `YYYY/MM/`. Human notes are never search inputs. This main/Unreleased
+layout deletes the old managed human contents without a backup on migration;
+[read the layout guide](workspace.md#obsidian-and-machine-isolation).
 
 [Advanced usage](advanced-usage.md) · [Data and search](data-and-search.md) · [Workspace guide](workspace.md)

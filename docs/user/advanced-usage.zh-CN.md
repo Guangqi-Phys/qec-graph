@@ -181,18 +181,15 @@ stderr 或 `QECGRAPH_DEPRECATIONS=1` 时发出提示。设置
 
 ## 管理 Obsidian vault 和研究记录
 
-把工作区的 `human/` 目录作为 Obsidian vault 打开，从 `Index.md` 开始；个人笔记
-放在 `human/notes/`。运行 `qec-graph human build`，从当前机器快照重新生成
-vault 的派生页面。[Vault 布局和 MCP 隔离](workspace.zh-CN.md#obsidian-和机器访问隔离)
+把工作区的 `human/` 目录作为 Obsidian vault 打开，按 `YYYY/MM/` 浏览
+`一作名_文章前两个词_thoughts.md`。每篇论文只有一份笔记，包含九个 ThoughtsGraph 问题、
+AI 回答和原文依据。最前面依次放 YAML 的 `tags`、`link`、`title`、`author`，
+tags 是文章主要主题。运行 `qec-graph human build` 从当前 machine release 重建，不调用 AI。
 
-分类索引链接到可读标题。记录页显示来源、审核和验证状态、可用关系，以及可展开的
-数据区。从 vault 索引打开 **Release status and legend**，查看固定 release 的
-覆盖范围和各证据状态含义。**Recent changes** 将该 release 与上一次渲染的
-release 比较。第一次渲染建立基线；重新渲染同一 release 时比较仍保留。
-
-升级后第一次渲染时，旧生成页面路径变成指向替代页面的链接。已删除实体保留
-归档页以支持已有链接。个人笔记保持原位。需要运行旧渲染器时，从同一 vault
-备份恢复其生成页面和 `.qecgraph/human-*.json` 历史；机器数据库不需要降级。
+这是 main 上的 Unreleased 布局，替代 v0.6.2 的实体页 vault。首次迁移直接删除整个旧
+受管理 `human/`，包括 `notes/`，不做备份。不再生成索引、墓碑页或其他文件，个人笔记
+请放在别处。管理状态保存在 `.qecgraph/`。
+[布局、缺失元数据与迁移规则](workspace.zh-CN.md#obsidian-和机器访问隔离)
 
 用 `qec-graph review list` 查找 proposal ID，用 `qec-graph review show PROPOSAL_ID`
 读取 provider 草稿及已记录决定。用 `qec-graph software import-seed` 加载自带软件

@@ -184,10 +184,10 @@ class WorkspaceStructureRecoveryTests(unittest.TestCase):
         self.assertEqual(replies[-1]['result']['structuredContent'], response)
 
         self.assertEqual(build_human(self.root)['status'], 'current')
-        page, = (self.root / 'human/generated/sources').glob('paper-version--*.md')
+        page, = (self.root / 'human').rglob('*_thoughts.md')
         content = page.read_text()
-        self.assertIn('Reading preview', content)
-        self.assertIn('λ cites .', content)
+        self.assertIn('尚无可用回答', content)
+        self.assertNotIn('Reading preview', content)
         self.assertNotIn('Example', content)
 
     def test_upload_opt_out_and_body_budget_block_provider_calls(self):

@@ -4,7 +4,7 @@
 
 > **English** · [中文](workspace.zh-CN.md)
 
-`0.6.0` is the current release. The existing `qecgraph`,
+`0.6.2` is the published release; this guide follows main, including Unreleased changes. The existing `qecgraph`,
 `qec-latex-split` and `qecgraph-mcp` commands and the SourceGraph, LemmaGraph and
 DataGraph views remain available; Lean is a deferred experimental capability,
 see [the system design](../design/DESIGN.md#10-lean-deferred-not-supported).
@@ -13,8 +13,8 @@ defines the contract. The [validation index](../../validation/README.md) lists t
 current executable checks; historical run artifacts remain in Git history.
 
 > [!WARNING]
-> `human/notes/` is private. Generators, queries and MCP never read it; do not
-> use it as a search input.
+> Human notes are never search inputs. The new thoughts-only layout deletes
+> the managed old `human/` tree without a backup; see the migration below.
 
 ## On this page
 
@@ -28,7 +28,7 @@ current executable checks; historical run artifacts remain in Git history.
 Install the actual wheel in a Python 3.11+ POSIX environment. No API key is required.
 
 ```bash
-python -m pip install /path/to/qec_graph-0.6.0-py3-none-any.whl
+python -m pip install /path/to/qec_graph-0.6.2-py3-none-any.whl
 mkdir -p ~/qec
 cd ~/qec
 qec-graph init
@@ -180,12 +180,44 @@ pending extraction or unresolved.
 
 ## Obsidian and machine isolation
 
-Open `~/qec/human` as an Obsidian vault and start at `Index.md`.
-`human/generated` is rebuildable; put personal content in `human/notes`. The
-generator does not read notes; old entity pages may remain as tombstones.
-Multi-page updates replace each file atomically; a mid-way failure reports
-`human_stale`, and `qec-graph human build` can recover without rolling back the
-machine release.
+Open `~/qec/human` in Obsidian and browse the year/month folders. Each paper has
+one `FirstAuthor_First_Two_thoughts.md` containing the nine ThoughtsGraph questions,
+AI answers and source quotations. The first content is Obsidian YAML:
+
+```yaml
+---
+tags:
+  - surface-codes
+  - erasure-decoding
+link: "https://example.org/paper"
+title: "Surface codes under erasure"
+author:
+  - "Ada Lovelace"
+---
+```
+
+This is a format example; actual properties come from the registered source and
+quoted AI metadata. Tags are the paper's main topics, authors retain source order,
+and the first author plus the first two title words form the filename. Source
+month/year determine `YYYY/MM/`; missing parts use `unknown`, not the import date.
+Missing author/title use `UnknownAuthor`/`Untitled_Paper`; filename collisions
+receive a short work-ID hash. Multiple versions of one work share one note;
+answers retain their own source versions. [Full contract](../design/DESIGN.md#9-human-view)
+
+`qec-graph human build` renders the current fixed machine release without calling
+AI. `sync` performs configured AI extraction; existing completed batches are not
+automatically re-extracted after a skill upgrade. Missing answers stay explicit.
+There are no generated indexes, entity pages, source previews, tombstones or
+`notes/` directory. Personal notes belong outside `human/`.
+
+**Migration from the v0.6.2 layout:** the first render with this Unreleased
+implementation detects the old renderer history and deletes the whole old
+`human/`, including its old `notes/`, without reading contents or creating a
+backup. It then publishes only the paper notes. An unregistered external vault
+is refused. Later builds delete obsolete managed notes when filenames change.
+State and recovery journals live in `.qecgraph/`; each note is written atomically.
+A partial failure reports `human_stale`; rerun `qec-graph human build` to finish,
+without rolling back the machine release.
 
 Grant the machine release directory to agents and MCP only; do not grant the
 whole workspace. On Linux, use `compose.mcp-isolated.yaml` from the repository.
