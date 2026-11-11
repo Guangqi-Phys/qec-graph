@@ -534,7 +534,7 @@ Mapping summary:
 | LLM extraction | Optional local handoff only; no automatic provider call or quality claim |
 | Chart/curve digitization | Not implemented; values require explicit evidence |
 | PDF/OCR | Not implemented; LaTeX source is the supported input |
-| Vector/semantic retrieval | Not implemented; lexical/substring + structured filters only |
+| Vector/semantic retrieval | Optional local lexical vectors or OpenAI-compatible embeddings; BM25/cosine hybrid retrieval; quality requires corpus-specific evaluation |
 | Distance algorithms | Small-code enumeration/validation; no general large-code solver or certificate bridge |
 | Lean formalization | **Deferred.** Experimental code/fixtures only; no supported verification claim; DB/MCP unaffected |
 | Platforms | POSIX (macOS/Linux verified); Windows not supported/verified |
@@ -778,6 +778,8 @@ thousand/ten-thousand-paper production validation remain outside this iteration.
 Stage 2 is implemented: document/file/section reads, strict version selection, field/source coverage and selectable MCP profiles. Full source files are read from registered snapshots with hash verification, including text outside parsed blocks.
 
 Stage 3 is implemented: nine thought categories, quotation-bound records and relations, `extract_thoughts` v1 proposals and generated thought pages. With `[ai].extract_proposals = true`, sync runs four extraction skills (including thoughts); older completed batches obtain the missing skill on the next sync. `qec_search(include_proposals=true, kind="research_thought_proposal")` discovers proposed thoughts without promoting them to records; exact `qec_fetch` retains their proposed state.
+
+Stage 4 is implemented: `[retrieval].enabled = true` builds a hash-bound projection during sync/rebuild before publication. The local model is an offline lexical baseline; `openai_compatible` supports explicit remote embeddings with environment credentials and upload permission. Model revision, dimension, tokenizer and chunk configuration bind caches. New source text reuses unchanged chunk vectors; failed validation leaves the previous release. Research search supports keyword/vector/hybrid modes, pre-ranking filters, pagination, visible fallback and integrity-checked rebuild. Vector offsets refer to derived search text; authoritative citation coordinates come from fetch.
 
 ### 16.7 Evidence of benefit
 

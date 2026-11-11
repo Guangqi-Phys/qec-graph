@@ -200,14 +200,14 @@ class WorkspaceTests(unittest.TestCase):
                           usage={}, request_id='r', attempts=1, cached=False,
                           run_id='extraction-run', prompt_sha256='p' * 64)
         with patch.dict('os.environ', {'ANTHROPIC_API_KEY': 'offline-test-key'}), patch(
-                'qecgraph.llm.client.LLMClient.complete_json', side_effect=[ai, empty, empty, empty]):
+                'qecgraph.llm.client.LLMClient.complete_json', side_effect=[ai, empty, empty, empty, empty]):
             result = self.ws.sync()
         self.assertEqual(result['status'], 'published')
         self.assertEqual(len(result['inputs']), 1)
         material = result['inputs'][0]
         self.assertEqual(material['entrypoint'], 'main.tex')
         self.assertIn('normalization_id', material)
-        self.assertEqual(len(material['ai_extraction']['written']), 3)
+        self.assertEqual(len(material['ai_extraction']['written']), 4)
         self.assertEqual(material['ai_extraction']['errors'], [])
         self.assertTrue((self.root / 'machine/derived/normalizations').is_dir())
         self.assertTrue((self.root / 'machine/ai/proposals').is_dir())

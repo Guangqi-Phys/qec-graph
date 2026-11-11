@@ -179,6 +179,16 @@ def render_config_template(workspace_id):
     return f'''format = "qecgraph.workspace"
 workspace_id = "{workspace_id}"
 
+# Optional offline retrieval projection. Local vectors need no API or model download.
+[retrieval]
+enabled = false
+provider = "local"
+model = "qecgraph-word-char-hash"
+model_revision = "1"
+dimensions = 512
+chunk_chars = 2048
+allow_source_upload = false
+
 # AI is optional. Fill in the provider model and API key before running sync.
 [ai]
 enabled = true

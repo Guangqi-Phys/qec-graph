@@ -594,7 +594,7 @@ build evidence 或 semantic equivalence。
 | LLM extraction | 仅可选本地 handoff；不自动调用 provider，不声称质量 |
 | Chart/curve digitization | 未实现；值需要显式证据 |
 | PDF/OCR | 未实现；LaTeX 源是受支持输入 |
-| Vector/semantic retrieval | 未实现；只有 lexical/substring + structured filters |
+| Vector/semantic retrieval | 可选本地词法向量或 OpenAI-compatible embedding，BM25/cosine 混合检索；质量须按语料实测 |
 | Distance algorithms | 小码枚举/验证；没有通用大码 solver 或 certificate bridge |
 | Lean formalization | **延期。** 只有实验代码/fixtures；没有受支持验证声明；DB/MCP 不受影响 |
 | Platforms | POSIX（macOS/Linux 已验证）；Windows 不支持/未验证 |
@@ -786,6 +786,8 @@ PDF/OCR、读图提取、自动证明和千篇/万篇生产验证不属于本轮
 阶段 2 已实现：论文/文件/章节读取、严格版本选择、字段/来源覆盖和可选 MCP profiles。完整源文件从登记快照读取并核验哈希，包含解析块之外的文本。
 
 阶段 3 已实现：九类思路、精确引用记录及关系、`extract_thoughts` v1 提议和人类思路页面。启用 `[ai].extract_proposals = true` 时 sync 运行四个抽取 skill（含思路）；已有完整批次在下次 sync 补提取缺失 skill。`qec_search(include_proposals=true, kind="research_thought_proposal")` 发现候选思路而不提升为记录；精确 `qec_fetch` 保留 proposed 状态。
+
+阶段 4 已实现：`[retrieval].enabled = true` 在 sync/rebuild 发布前生成哈希绑定投影。本地模型为离线词法基线；`openai_compatible` 支持明确配置的外部 embedding，使用环境变量凭据和上传授权。模型版本、维度、分词与分块配置绑定缓存；新增来源复用未变化分块向量，校验失败保留旧 release。研究搜索支持 keyword/vector/hybrid、排序前过滤、分页、显式回退与校验重建。向量区间属于派生检索文本，权威引用坐标来自 fetch。
 
 ### 16.7 收益证据
 

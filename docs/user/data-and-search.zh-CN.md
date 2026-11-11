@@ -211,3 +211,31 @@ MCP 连接在启动时固定知识 release。`sync` 后重新连接以读取新�
 `canonical_url`，再 rebuild。不会为本地来源捏造 URL；它们仍可用研究 profile 访问。
 通用 fetch 超预算返回 `BUDGET_TOO_SMALL`，可改用研究范围读取或增加会话预算。
 `qec_status` 报告全文与仅元数据的覆盖情况。
+
+### 可选混合检索
+
+在 `qecgraph.toml` 启用本地投影，然后 sync 或 rebuild。本地模型对词法特征做哈希，
+是离线检索基线，不是预训练语义模型。索引含 BM25 词频和分块向量，不包含私人笔记。
+没有索引仍能检索原文。
+
+```toml
+[retrieval]
+enabled = true
+provider = "local"
+model = "qecgraph-word-char-hash"
+model_revision = "1"
+dimensions = 512
+chunk_chars = 2048
+allow_source_upload = false
+```
+
+语义 embedding 使用 OpenAI-compatible endpoint：设置 `provider` 为
+`"openai_compatible"`，填入真实 `model`、由操作者固定的 `model_revision`、
+`base_url`、支持的 `dimensions`、`api_key_env` 和 `allow_source_upload = true`。
+表内不存 key。入库与查询必须使用同一个模型/版本空间，仅维度相同不够。
+
+`qec_search` 支持 `mode: "keyword"`、`"vector"` 或 `"hybrid"`（默认）。
+`kind` 和精确 `source_version_id` 在排序前过滤。结果报告索引身份与覆盖。
+embedding 不可用时 hybrid 明确报告关键词回退，纯向量模式返回错误。
+原文和记录搜索结果都是发现候选，不证明硬条件成立。显式导入研究记录后用 sync 刷新投影。
+写事务发布前检查 `max_chunks` 与 `max_total_chars`，失败保留旧 release；rebuild 能恢复损坏的派生索引。

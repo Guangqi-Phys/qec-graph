@@ -239,3 +239,36 @@ citable evidence units. Register a version-specific public `canonical_url` in
 invented for local sources; they remain available in the research profile.
 Large generic fetches fail with `BUDGET_TOO_SMALL`; use research ranges or a
 larger session budget. `qec_status` reports full-text and metadata-only coverage.
+
+### Optional hybrid retrieval
+
+Enable the local projection in `qecgraph.toml`, then run sync or rebuild. The
+local model hashes lexical features; it is an offline retrieval baseline, not a
+pretrained semantic model. The index contains BM25 term counts and chunk vectors,
+never private notes. Source text remains searchable without an index.
+
+```toml
+[retrieval]
+enabled = true
+provider = "local"
+model = "qecgraph-word-char-hash"
+model_revision = "1"
+dimensions = 512
+chunk_chars = 2048
+allow_source_upload = false
+```
+
+For semantic embeddings, use an OpenAI-compatible endpoint. Set `provider` to
+`"openai_compatible"`, the actual `model`, an operator-pinned `model_revision`,
+`base_url`, supported `dimensions`, `api_key_env`, and `allow_source_upload = true`.
+Never put a key in this table. The model/revision must identify the same embedding
+space during ingestion and queries; dimensions alone are insufficient.
+
+`qec_search` accepts `mode: "keyword"`, `"vector"` or `"hybrid"` (default).
+`kind` and exact `source_version_id` restrict candidates before ranking. Results
+include index identity and coverage. Hybrid mode reports keyword fallback when
+embeddings are unavailable; vector-only mode returns an explicit error. Source
+and record results are discovery candidates, never proof of a hard condition.
+After explicit research-record imports, refresh the projection with sync.
+The writer checks `max_chunks` and `max_total_chars` before publishing; failures
+keep the previous release. Rebuild can restore a damaged derived index.

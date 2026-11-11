@@ -66,7 +66,7 @@ class OpenAIProviderTests(unittest.TestCase):
                 messages = [Message('system', skill.system_prompt), Message('user', 'paper data')]
                 self.assertEqual(client.complete_json(messages, skill.schema).data, result)
                 payload = transport.requests[0][3]
-                if name == 'recover_structure':
+                if name in {'recover_structure', 'extract_thoughts'}:
                     self.assertEqual(payload['response_format']['type'], 'json_schema')
                     self.assertTrue(payload['response_format']['json_schema']['strict'])
                 else:

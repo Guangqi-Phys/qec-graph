@@ -225,11 +225,12 @@ class KnowledgeView:
         return sorted(units, key=lambda u: (u['kind'] == 'source_file', u['id'], u.get('revision', '')))
 
     def search(self, args):
+        from .retrieval import unit_key
         if not args['query'].strip():
             raise ToolError('INVALID_ARGUMENT', 'Search query must not be blank')
         if args.get('source_version_id'):
             self.version(args['source_version_id'])
-        rows = []
+        allowed = {}
         for unit in self.search_units:
             if unit['kind'] == 'research_thought_proposal' and not args.get('include_proposals', False):
                 continue
@@ -237,21 +238,48 @@ class KnowledgeView:
                 continue
             if args.get('source_version_id') and unit.get('source_version_id') != args['source_version_id']:
                 continue
-            if args['query'].casefold() in unit['search_text'].casefold():
-                row = {k: v for k, v in unit.items() if k != 'search_text'}
-                pos = unit['search_text'].casefold().find(args['query'].casefold())
-                row.update(excerpt=unit['search_text'][max(0, pos-80):pos+240], evidence_status='source_or_record_candidate')
-                rows.append(row)
+            allowed[unit_key(unit)] = unit
+        mode = args.get('mode', 'hybrid')
+        fallback = None
+        if self.retrieval.current:
+            try:
+                ranked, status = self.retrieval.rank(args['query'], allowed, mode)
+            except ToolError as exc:
+                if mode != 'hybrid' or exc.code != 'EMBEDDING_UNAVAILABLE':
+                    raise
+                ranked, status = self.retrieval.rank(args['query'], allowed, 'keyword')
+                fallback = 'Embedding unavailable; returned keyword candidates'
+            method = 'BM25 / cosine vectors with reciprocal-rank fusion'
+        else:
+            if mode == 'vector':
+                raise ToolError('INDEX_UNAVAILABLE', 'Build a current index with sync/rebuild; keyword source search remains available')
+            ranked = [k for k, u in allowed.items() if args['query'].casefold() in u['search_text'].casefold()]
+            status = self.retrieval.status()
+            method = 'literal source and record search'
+            fallback = 'No current vector index; searched complete registered source text'
+        rows = []
+        for key in ranked:
+            unit = allowed[key]
+            row = {k: v for k, v in unit.items() if k != 'search_text'}
+            pos = max(0, unit['search_text'].casefold().find(args['query'].casefold()))
+            row.update(excerpt=unit['search_text'][max(0, pos-80):pos+240], evidence_status='source_or_record_candidate')
+            rows.append(row)
         return {**self.session._paginate(rows, args, min(20, self.session.graph.max_results)),
-                'query_semantics': 'discovery', 'method': 'literal source and record search',
+                'query_semantics': 'discovery', 'method': method, 'retrieval': status, 'fallback': fallback,
                 'absence': 'No match in this release does not establish nonexistence'}
+
+    @cached_property
+    def retrieval(self):
+        from .retrieval import RetrievalIndex
+        return RetrievalIndex(self)
 
     def coverage(self):
         fields = defaultdict(Counter)
         for record in self.session.visible.values():
             for field, evidence in record['field_evidence'].items():
                 fields[record['kind'] + ':' + field][evidence['status']] += 1
-        return {'record_kinds': dict(Counter(r['kind'] for r in self.session.visible.values())),
+        return {'retrieval': self.retrieval.status(),
+                'record_kinds': dict(Counter(r['kind'] for r in self.session.visible.values())),
                 'field_states': {field: dict(counts) for field, counts in sorted(fields.items())},
                 'full_text_versions': sorted(self.documents),
                 'metadata_only_materials': [m['id'] for m in self.session._materials.values()
@@ -302,6 +330,7 @@ def descriptors(session, legacy):
         ('qec_fetch', properties, ['identifier'], 'Read a registered document, file, section or record. Outline is paginated; raw text preserves source bytes.'),
         ('qec_search', {'query': _string(4096), 'kind': _string(), 'source_version_id': _string(4096),
                         'include_proposals': {'type': 'boolean'},
+                        'mode': {'enum': ['keyword', 'vector', 'hybrid']},
                         'offset': _integer(), 'limit': _integer(1, session.graph.max_results)}, ['query'],
          'Discover source and record candidates, including unextracted text. Empty results do not establish nonexistence.'),
         ('search', {'query': _string(4096)}, ['query'], 'Find citable evidence units with registered public URLs. Local-only papers require the research profile.'),

@@ -225,11 +225,16 @@ class Workspace:
             raise WorkspaceConfigError(path, 'The workspace configuration is not valid UTF-8') from exc
         if cfg.get('format') != FORMAT or not isinstance(cfg.get('workspace_id'), str):
             raise WorkspaceConfigError(path, 'Invalid workspace configuration')
-        if set(cfg) - {'format', 'workspace_id', 'limits', 'entrypoints', 'sources', 'ai'}:
+        if set(cfg) - {'format', 'workspace_id', 'limits', 'entrypoints', 'sources', 'ai', 'retrieval'}:
             raise WorkspaceConfigError(path, 'Unsupported workspace settings')
-        for field in ('limits', 'entrypoints', 'sources', 'ai'):
+        for field in ('limits', 'entrypoints', 'sources', 'ai', 'retrieval'):
             if not isinstance(cfg.get(field, {}), dict):
                 raise WorkspaceConfigError(path, f'{field} must be a table')
+        from .retrieval import configuration
+        try:
+            configuration(cfg.get('retrieval', {}))
+        except ValueError as exc:
+            raise WorkspaceConfigError(path, str(exc)) from exc
         try:
             Limits(**cfg.get('limits', {}))
         except TypeError as exc:
@@ -882,6 +887,8 @@ class Workspace:
             for material in materials.values():
                 pair = (material.get('work_id'), material.get('upstream_version'))
                 material['source_version_conflict'] = len(collisions.get(pair, ())) > 1
+            from .retrieval import stage_index
+            stage_index(self.registry, state, cfg.get('retrieval', {}), repair=rebuild)
             candidate = self.registry.prepare_publication(state)
             # This verifies every registered snapshot, including reused ones,
             # before publishing the pointer or consuming any input claims.

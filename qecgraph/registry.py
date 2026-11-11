@@ -334,6 +334,13 @@ class Registry:
                 validate_sources(self, state, research, verified_spans=verified_spans)
             except (OSError, ValueError, KeyError, TypeError) as exc:
                 issues.append({'code': 'research_invalid', 'severity': 'error', 'message': str(exc)})
+        if state.get('retrieval_index'):
+            try:
+                from .retrieval import read_index
+                read_index(self.root, state['retrieval_index'])
+            except (OSError, ValueError, KeyError, TypeError):
+                issues.append({'code': 'retrieval_index_invalid', 'severity': 'error',
+                               'message': 'Retrieval projection failed integrity validation; rebuild it'})
         passed = not any(issue.get('severity', 'error') == 'error' for issue in issues)
         return {'registry_revision': fixed, 'passed': passed, 'issues': issues,
                 'scope': 'structure, types, references, assets and source integrity; not mathematical verification',

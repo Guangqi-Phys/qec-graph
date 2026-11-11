@@ -51,7 +51,7 @@ def _integer(minimum=0, maximum=1000000000):
 
 
 class WorkspaceSession:
-    def __init__(self, machine, release_id=None, *, profile='legacy', **budgets):
+    def __init__(self, machine, release_id=None, *, profile='legacy', _candidate_state=None, **budgets):
         if profile not in {'legacy', 'research', 'compatible'}:
             raise ValueError('Unknown workspace tool profile')
         self.profile = profile
@@ -61,7 +61,11 @@ class WorkspaceSession:
         self.machine = machine.resolve()
         check_machine_tree(self.machine)
         self.registry = Registry(self.machine)
-        self.state, self.release = self.registry.read(release_id)
+        if _candidate_state is None:
+            self.state, self.release = self.registry.read(release_id)
+        else:
+            self.state = copy.deepcopy(_candidate_state)
+            self.release = hash_text(canonical(self.state))
         if not isinstance(self.state.get('workspace_id'), str):
             raise ValueError('A QEC workspace machine release is required')
         self.graph = ReadOnlySession(corpus=self.machine, check_live_lean=False,
