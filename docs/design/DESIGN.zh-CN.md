@@ -476,7 +476,7 @@ Python、CLI 和 MCP 共享。MCP protocol errors 和 business-query errors 保�
 
 `human/` 只保存 ThoughtsGraph 问答 Markdown，每篇登记论文（`work_id`）一个文件：
 `human/YYYY/MM/一作姓_文章前两个词_thoughts.md`。
-本布局属于 **main 上的 Unreleased 改动**；已发布 v0.6.2 仍使用旧布局。
+本布局已随 **v0.6.3** 发布；v0.6.2 使用旧布局。
 
 - 正文固定包含 [Human.md](Human.md) 的九个问题、AI 回答、逐字原文依据和版本/行号。
   缺少答案时明确显示尚无可用回答；匹配来源修订的 `research_thought` 记录也会显示，

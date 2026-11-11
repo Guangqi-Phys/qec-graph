@@ -218,7 +218,7 @@ first author's surname; the original arXiv package's `YYMM` sets the folder
 (e.g. `2611.12971v2.tar.gz` → `2026/11/`). Run `qec-graph human build`
 to regenerate notes from the current machine release without calling AI.
 
-This main/Unreleased layout replaces the v0.6.2 entity-page vault. The first
+The v0.6.3 layout replaces the v0.6.2 entity-page vault. The first
 migration deletes the entire managed old `human/`, including `notes/`, without a
 backup. There are no indexes, tombstones or other generated human files. Keep
 personal notes elsewhere. Publication/recovery state stays in `.qecgraph/`.

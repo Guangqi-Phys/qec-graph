@@ -4,7 +4,7 @@
 
 > **English** · [中文](workspace.zh-CN.md)
 
-`0.6.2` is the published release; this guide follows main, including Unreleased changes. The existing `qecgraph`,
+`0.6.3` is the published release described by this guide. The existing `qecgraph`,
 `qec-latex-split` and `qecgraph-mcp` commands and the SourceGraph, LemmaGraph and
 DataGraph views remain available; Lean is a deferred experimental capability,
 see [the system design](../design/DESIGN.md#10-lean-deferred-not-supported).
@@ -28,7 +28,7 @@ current executable checks; historical run artifacts remain in Git history.
 Install the actual wheel in a Python 3.11+ POSIX environment. No API key is required.
 
 ```bash
-python -m pip install /path/to/qec_graph-0.6.2-py3-none-any.whl
+python -m pip install /path/to/qec_graph-0.6.3-py3-none-any.whl
 mkdir -p ~/qec
 cd ~/qec
 qec-graph init
@@ -239,8 +239,7 @@ automatically re-extracted after a skill upgrade. Missing answers stay explicit.
 There are no generated indexes, entity pages, source previews, tombstones or
 `notes/` directory. Personal notes belong outside `human/`.
 
-**Migration from the v0.6.2 layout:** the first render with this Unreleased
-implementation detects the old renderer history and deletes the whole old
+**Migration from the v0.6.2 layout:** the first render with v0.6.3 detects the old renderer history and deletes the whole old
 `human/`, including its old `notes/`, without reading contents or creating a
 backup. It then publishes only the paper notes. An unregistered external vault
 is refused. Later builds delete obsolete managed notes when filenames change.

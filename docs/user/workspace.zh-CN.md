@@ -4,7 +4,7 @@
 
 > [English](workspace.md) · **中文**
 
-`0.6.2` 是已发布版本；本说明跟随 main，包含 Unreleased 改动。已有的 `qecgraph`、`qec-latex-split`、
+本说明对应已发布的 `0.6.3` 版本。已有的 `qecgraph`、`qec-latex-split`、
 `qecgraph-mcp` 及 SourceGraph、LemmaGraph、DataGraph 命令继续可用；Lean 为延期实验能力，见[系统设计](../design/DESIGN.zh-CN.md#10-lean延期不支持)。
 本说明描述受支持的工作流；[系统设计](../design/DESIGN.zh-CN.md)定义契约。
 [验证索引](../../validation/README.zh-CN.md)列出当前可执行检查；历史运行产物保留在
@@ -25,7 +25,7 @@ Git history。
 在 Python 3.11+ POSIX 环境中安装实际 wheel。无需 API key。
 
 ```bash
-python -m pip install /path/to/qec_graph-0.6.2-py3-none-any.whl
+python -m pip install /path/to/qec_graph-0.6.3-py3-none-any.whl
 mkdir -p ~/qec
 cd ~/qec
 qec-graph init
@@ -194,7 +194,7 @@ sync/rebuild 会将回执包名纳入机器快照；旧库先运行一次 `qec-g
 发生在 `sync`，升级 skill 不会自动重抽已经完成的批次。没有答案时明确显示缺失。
 不再生成索引、实体页、原文预览、墓碑页或 `notes/`。个人笔记放在 `human/` 外面。
 
-**从 v0.6.2 旧布局迁移：** 此 Unreleased 实现首次渲染时识别旧管理历史，直接删除整个
+**从 v0.6.2 旧布局迁移：** v0.6.3 首次渲染时识别旧管理历史，直接删除整个
 旧 `human/`，包括原有 `notes/`，不读取其中内容，也不生成备份，然后只输出论文笔记。
 没有管理记录的外部 vault 会被拒绝。之后文件名变化时删除旧的受管理笔记。
 状态和恢复日志放在 `.qecgraph/`；每份文件原子写入，中断显示 `human_stale`，重新运行

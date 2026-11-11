@@ -47,7 +47,7 @@ qec-graph validate
 
 成功导入后，原始包留在 `archive/`；失败包保留在 `inputs/` 以便重试。把 `human/`
 作为 Obsidian 仓库打开，按年月阅读每篇论文的一份 thoughts 问答。人类笔记不作为检索
-输入。此布局目前在 main（Unreleased），迁移会直接删除旧受管理 human 内容、不做备份；
+输入。此布局已随 v0.6.3 发布，迁移会直接删除旧受管理 human 内容、不做备份；
 详见[布局说明](workspace.zh-CN.md#obsidian-和机器访问隔离)。
 
 [进阶用法](advanced-usage.zh-CN.md) · [数据与检索](data-and-search.zh-CN.md) · [工作区说明](workspace.zh-CN.md)

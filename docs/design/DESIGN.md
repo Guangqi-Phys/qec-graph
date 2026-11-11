@@ -418,7 +418,7 @@ The typed JSON envelope (`ok/data` or `error/code/message/details/scope`) is sha
 
 `human/` contains only one generated ThoughtsGraph Markdown note per registered
 paper (`work_id`), under `human/YYYY/MM/Surname_First_Two_thoughts.md`.
-This layout is **Unreleased on main**; the published v0.6.2 uses the earlier vault.
+This layout ships in **v0.6.3**; v0.6.2 used the earlier vault.
 
 - Each note contains the nine questions from [Human.md](Human.md), AI answers,
   verbatim supporting quotations and source-version/line references. Missing

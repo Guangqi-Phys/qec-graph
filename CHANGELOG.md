@@ -2,75 +2,45 @@
 
 ## Unreleased
 
-- Preserve completed English AI proposals across tool-only source snapshot
-  upgrades after checking the full evidence-file hash set and revalidating
-  citations. Rebinding records the prior proposal hash/path, retains original
-  AI provenance and never transfers review status. Changed entry points or
-  evidence files require fresh extraction.
+## 0.6.3 — 2026-11-11
 
-- All generated AI knowledge, software catalog text and human notes now use
-  English. Semantic skills v5, normalization v3 and structure recovery v2 request
-  English throughout. Responses and cache hits reject Chinese text; original
-  source bytes and mathematical notation remain unchanged. Sync re-extracts
-  legacy Chinese proposals while reusing completed English results. The human
-  renderer rejects mixed-language output and consumes the same published results.
-
-- Documented and regression-tested shared ThoughtsGraph/human extraction:
-  graph queries and offline Markdown rendering reuse the same published proposal.
-  Parallel-paper tests verify concurrent extraction and serial writer staging;
-  `[ai].max_parallel_packages` controls the number of simultaneous papers.
-
-- Treat interrupted/chunked HTTP response bodies as retryable AI transport
-  failures, including error-response bodies. Exhausted retries leave extraction
-  pending while valid source publication can complete; partial provider text
-  stays out of reports.
-
-- Semantic extraction skills v4 read numbered source lines from the selected
-  entry and its registered nested TeX body/appendix files by default. Every
-  supplied file is checked against the archive and snapshot; unrelated papers
-  remain excluded. Citations resolve to the actual file and exact quotations
-  remain mandatory. Explicit hypotheses must preserve original whitespace.
-- Thought quotations now request short, searchable key sentences, preferably
-  under 240 characters, with a 480-character limit on new extraction. Explanations
-  stay in the English AI answer; each new response has at most 18 central thoughts.
-  Existing proposal packages remain readable.
-- Already registered original papers with duplicate TeX labels can enter AI
-  extraction using exact file/line citations; their labels are preserved, and
-  label-based queries retain the parser's ambiguity diagnostics.
-- Invalid v4 extraction responses get at most one correction request, still
-  subject to full evidence, schema and request-budget checks. Successful
-  proposals retain rejected-request provenance; invalid responses never become
-  successful cache entries or published proposals.
-
-- Thoughts filenames now use the first author's surname. Folder year/month
-  prefers the arXiv package identifier (`2611.12971v2.tar.gz` → `2026/11/`)
-  over manuscript dates. Sync/rebuild snapshots original receipt filenames,
-  including on empty sync for older workspaces; rendering remains pinned to
-  machine data. Rebuilding removes old full-name/date paths without backups.
-- Replaced the human entity-page vault with one ThoughtsGraph note per paper at
-  `human/YYYY/MM/Surname_First_Two_thoughts.md`, with the nine questions,
-  source-bound AI answers and leading Obsidian `tags`, `link`, `title`, `author`.
-  Topic tags and bibliography use source metadata; unknown dates stay unknown.
-- The first migration deletes the old managed `human/` tree, including old
-  `notes/`, without reading private contents or making backups. Indexes, entity
-  pages, manifests and tombstones are no longer generated there. Renderer state
-  stays in `.qecgraph/`; interrupted publication and obsolete-note cleanup retry
-  safely. Keep personal notes outside `human/`.
-- Advanced `extract_thoughts` to skill v3 with editorial answers and
-  optional quoted paper metadata. Offline regressions cover metadata validation,
-  proposal-only rendering, filename collisions, migration and recovery.
-- Default AI configuration now enables semantic proposal extraction and selects
-  OpenRouter with `deepseek/deepseek-v4.1-flash-1017`. API keys remain empty for
-  users to supply inline or through the environment. Omitted selection/flag
-  fields use these defaults; existing explicit settings are preserved. Init
-  remains offline, and local imports still work without an API key.
-- Refined `extract_thoughts` as skill v2 with concrete category boundaries,
-  evidence-reading steps, condition/attribution rules and a validated JSON
-  example. Output fields remain compatible; completed extraction batches keep
-  their existing versioned proposals. Documented AI configuration, manual relation
-  curation and lack of automatic re-extraction on skill upgrades.
-- Added offline fake-provider regressions for the worked example, prompt cache
-  separation and rejection of generated or stitched quotations before caching.
+- Generate English AI knowledge, software catalog text and human notes. Semantic
+  skills v5, normalization v3 and structure recovery v2 request English throughout;
+  response/cache validation rejects Chinese text. Sync re-extracts legacy Chinese
+  proposals while preserving original source bytes and scientific notation.
+- Render one Obsidian note per paper at
+  `human/YYYY/MM/Surname_First_Two_thoughts.md`, with nine research questions,
+  source-bound answers and leading `tags`, `link`, `title`, `author` properties.
+  Filenames use the first author's surname; folder dates prefer the arXiv YYMM
+  identifier from the original package name. Tags describe the paper's topics.
+- ThoughtsGraph and human notes share the same published extraction result.
+  Markdown rendering runs offline after machine publication. Configurable
+  `[ai].max_parallel_packages` enables concurrent papers with serial writer staging.
+- **Human layout migration:** the first render deletes the old managed `human/`
+  tree, including legacy `notes/`, without a backup. Keep personal notes outside
+  `human/`. Renderer state lives in `.qecgraph/`; interrupted rendering and obsolete
+  note cleanup can resume safely.
+- Enable semantic extraction by default with OpenRouter and
+  `deepseek/deepseek-v4.1-flash-1017`. API keys are left empty for users to supply.
+  Existing explicit settings are preserved, and `init` remains offline.
+- Extract from the selected TeX entry and all registered body/appendix files,
+  using numbered original lines and checking each file against its archive and
+  snapshot. Already registered sources with duplicate labels can use file/line
+  citations while label-based queries retain ambiguity diagnostics.
+- Keep thought quotations short and searchable: prefer fewer than 240 characters,
+  enforce at most 480, and return at most 18 central thoughts. Answers retain
+  qualifications; schema and exact-source checks run before caching/publication.
+  Invalid responses receive at most one correction request under the same checks.
+- Retry interrupted HTTP response bodies, including error bodies, as transport
+  failures. Exhausted retries leave AI extraction pending while valid source
+  publication can complete, without exposing partial provider response text.
+- Preserve completed English proposals across tool-only snapshot upgrades after
+  checking the entire evidence-file hash set and revalidating citations. Copies
+  record the previous proposal hash/path and retain original AI provenance;
+  reviews are never automatically rebound. Changed evidence requires extraction.
+- Keep all AI output proposed. Expanded documentation and offline regressions
+  cover language migration, evidence preservation, shared rendering, concurrency,
+  metadata, filename collisions, provider failures and publication recovery.
 
 ## 0.6.2 — 2026-11-11
 

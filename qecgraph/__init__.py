@@ -1,7 +1,7 @@
 """Provenance-preserving LaTeX extraction and typed QEC evidence graphs."""
 from pathlib import Path
 
-__version__ = "0.6.2"
+__version__ = "0.6.3"
 PARSER_VERSION = "0.2.1"
 __all__ = ["__version__", "split_project"]
 

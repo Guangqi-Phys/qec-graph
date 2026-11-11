@@ -18,7 +18,7 @@ curl -fsSL https://raw.githubusercontent.com/Guangqi-Phys/qec-graph/main/install
 ```
 
 Run the same command to update. The standalone executable bundles Python.
-Downloads are available for macOS (Apple Silicon) and Linux (x86_64 and arm64).
+Downloads are available for macOS and Linux on arm64 and x86_64.
 [GitHub Releases](https://github.com/Guangqi-Phys/qec-graph/releases)
 
 ## Quick start
@@ -49,7 +49,7 @@ enabled; set `extract_proposals = false` to skip those skills.
 Successful imports keep the original package in `archive/` and clear its inbox
 copy. Open `human/` in Obsidian and browse `YYYY/MM/*_thoughts.md`: one file
 per paper with nine research questions, AI answers and topic tags. This layout
-is currently on main (Unreleased); upgrading from the v0.6.2 layout deletes the
+ships in v0.6.3; upgrading from the v0.6.2 layout deletes the
 old `human/` contents without a backup. [Layout and migration](docs/user/workspace.md#obsidian-and-machine-isolation)
 Use `qec-graph inputs quarantine <name>` for a package that keeps failing.
 

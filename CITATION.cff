@@ -6,3 +6,5 @@ authors:
   - name: QEC Graph contributors
 repository-code: https://github.com/Guangqi-Phys/qec-graph
 license: MIT
+version: 0.6.3
+date-released: 2026-11-11

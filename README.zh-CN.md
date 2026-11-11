@@ -15,7 +15,7 @@ curl -fsSL https://raw.githubusercontent.com/Guangqi-Phys/qec-graph/main/install
 ```
 
 再次运行同一命令即可更新。单文件可执行程序内置 Python。
-下载支持 macOS（Apple Silicon）以及 Linux（x86_64 和 arm64）。
+下载支持 macOS 和 Linux，均提供 arm64 与 x86_64 架构。
 [GitHub Releases](https://github.com/Guangqi-Phys/qec-graph/releases)
 
 ## 快速开始
@@ -42,7 +42,7 @@ qec-graph validate
 
 成功导入后原始包留在 `archive/`，收件箱副本被清除。把 `human/` 作为 Obsidian
 vault 打开，按 `YYYY/MM/` 浏览每篇论文的 `一作姓_文章前两个词_thoughts.md`，
-包含九个问题、AI 回答和主题标签。此布局目前属于 main 的 Unreleased 改动；
+包含九个问题、AI 回答和主题标签。此布局已随 v0.6.3 发布；
 从 v0.6.2 旧布局迁移时直接删除旧 `human/` 内容，不做备份。
 [布局与迁移规则](docs/user/workspace.zh-CN.md#obsidian-和机器访问隔离)。反复失败的包用
 `qec-graph inputs quarantine <name>` 处理。
