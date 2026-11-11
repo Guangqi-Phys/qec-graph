@@ -314,7 +314,7 @@ class KnowledgeView:
 RESEARCH_TOOLS = ('qec_search', 'qec_fetch', 'qec_get_context', 'qec_query_codes',
                   'qec_query_performance', 'qec_trace', 'qec_status')
 ALIASES = {'qec_query_codes': 'qec_find_codes', 'qec_query_performance': 'qec_find_performance',
-           'qec_trace': 'qecgraph_deps', 'qec_status': 'qec_workspace_status'}
+           'qec_status': 'qec_workspace_status'}
 
 
 def descriptors(session, legacy):
@@ -323,10 +323,30 @@ def descriptors(session, legacy):
     by_name = {tool['name']: tool for tool in legacy}
     for alias, target in ALIASES.items():
         result.append({**copy.deepcopy(by_name[target]), 'name': alias})
+    from .knowledge_context import PURPOSES
+    by_name['qec_get_context']['inputSchema']['properties']['purpose'] = {'enum': list(PURPOSES)}
+    # result is a separate copy; retain legacy argument compatibility while adding purpose.
+    next(t for t in result if t['name'] == 'qec_get_context')['inputSchema']['properties']['purpose'] = {'enum': list(PURPOSES)}
+    for descriptor in result:
+        props = descriptor['inputSchema']['properties']
+        if descriptor['name'] == 'qec_query_codes':
+            props.update(k_min=_integer(), k_max=_integer(),
+                         classification={'enum': ['css', 'stabilizer', 'subsystem', 'nonadditive', 'other']},
+                         check_weight_max=_integer(), check_weight_sector={'enum': ['X', 'Z', 'mixed']},
+                         check_weight_scope={'enum': ['stabilizer', 'gauge', 'measured']}, source_query=_string(4096))
+        if descriptor['name'] == 'qec_query_performance':
+            props.update(circuit_id=_string(), source_version_id=_string(4096),
+                         idle={'enum': ['included', 'excluded']}, loss={'enum': ['included', 'excluded']},
+                         source_query=_string(4096))
     properties = {'identifier': _string(4096), 'source_version_id': _string(4096), 'revision': _string(),
                   'view': {'enum': ['raw', 'reading', 'outline']}, 'char_start': _integer(), 'char_end': _integer(),
                   'offset': _integer(), 'limit': _integer(1, session.graph.max_results)}
     for name, props, required, description in (
+        ('qec_trace', {'identifier': _string(4096), 'revision': _string(),
+                       'depth': _integer(0, session.graph.max_depth), 'max_nodes': _integer(1, session.graph.max_nodes),
+                       'relations': {'type': 'array', 'minItems': 1, 'maxItems': 50, 'uniqueItems': True, 'items': _string()},
+                       'direction': {'enum': ['outgoing', 'incoming', 'both']}, 'include_candidates': {'type': 'boolean'}},
+         ['identifier'], 'Trace typed source, evidence or research relations with a bounded depth. Citations are not proof dependencies.'),
         ('qec_fetch', properties, ['identifier'], 'Read a registered document, file, section or record. Outline is paginated; raw text preserves source bytes.'),
         ('qec_search', {'query': _string(4096), 'kind': _string(), 'source_version_id': _string(4096),
                         'include_proposals': {'type': 'boolean'},

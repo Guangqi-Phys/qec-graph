@@ -485,6 +485,16 @@ class WorkspaceSession:
                         'circuit': get(data.get('circuit_ref')), 'noise_model': get(data.get('noise_model_ref')),
                         'decoder': get(data.get('decoder_ref')), 'source': get(data.get('source_ref')),
                         'metric': metric, 'noise_model_instance': noise_instance, 'experiment': experiment}
+            if args.get('circuit_id') and (data.get('circuit_ref') or {}).get('id') != args['circuit_id']:
+                continue
+            if args.get('source_version_id') and (data.get('source_ref') or {}).get('id') != args['source_version_id']:
+                continue
+            from .knowledge_context import current_field, comparison_group
+            noise = bindings['noise_model']
+            if any(field in args and (not noise or not current_field(self, noise, field) or
+                                      (noise['data'].get(field) or {}).get('consideration') != args[field])
+                   for field in ('idle', 'loss')):
+                continue
             missing = [name for name, value in bindings.items() if value is None]
             if point['value'] is None:
                 missing.append('value')
@@ -496,6 +506,7 @@ class WorkspaceSession:
                 continue
             row = {'point': record, 'context': bindings, 'unresolved': missing,
                    'comparison_status': 'incomplete' if missing else 'conditions_bound',
+                   'comparison_group': comparison_group(bindings, missing),
                    'verification_status': 'not_verified_by_query'}
             if axis is None:
                 rows.append(row)
@@ -572,7 +583,14 @@ class WorkspaceSession:
             name = ALIASES.get(name, name)
             metadata = {'scope': self.scope, 'knowledge_snapshot': self.release, 'coverage': self._coverage}
             graph_metadata = {**metadata, 'continuation': None}
-            if name == 'qec_fetch':
+            source_query = args.pop('source_query', None)
+            if name == 'qec_trace':
+                from .knowledge_context import trace
+                data = trace(self, args)
+            elif name == 'qec_get_context' and args.get('purpose'):
+                from .knowledge_context import context
+                data = context(self, args, maximum, metadata)
+            elif name == 'qec_fetch':
                 data = self.knowledge.fetch(args)
             elif name == 'qec_search':
                 data = self.knowledge.search(args)
@@ -629,6 +647,8 @@ class WorkspaceSession:
                         return response
                     data = response['data']
             elif name == 'qec_find_codes':
+                extended = {k: args.pop(k) for k in ('k_min', 'k_max', 'classification', 'check_weight_max',
+                                                     'check_weight_sector', 'check_weight_scope') if k in args}
                 offset = args.pop('offset', 0)
                 limit = args.pop('limit', min(20, self.graph.max_results))
                 policy = args.pop('evidence_policy', 'verified')
@@ -663,10 +683,15 @@ class WorkspaceSession:
                         rows.append({'record': record, 'distance_estimates': matching})
                     else:
                         rows.append(record)
+                if extended:
+                    from .knowledge_context import filter_codes
+                    rows = filter_codes(self, rows, extended)
                 data = self._paginate(rows, {'offset': offset, 'limit': limit}, limit)
                 data['legacy_scan_truncated'] = legacy['truncated']
                 data['evidence_policy'] = policy
             elif name == 'qec_find_performance':
+                if args.get('source_version_id'):
+                    self.knowledge.version(args['source_version_id'])
                 data = self._performance(args)
             elif name == 'qec_find_software':
                 data = self._software(args)
@@ -675,6 +700,12 @@ class WorkspaceSession:
                 if not response['ok']:
                     return response
                 data = response['data']
+            if requested_name in {'qec_query_codes', 'qec_query_performance'}:
+                data['query_semantics'] = 'enumeration of explicit records in this fixed release'
+                data['source_fallback'] = {'tool': 'qec_search', 'reason': 'Unextracted materials may contain additional candidates'}
+                if source_query:
+                    data['source_candidates'] = self.knowledge.search({'query': source_query, 'limit': min(5, self.graph.max_results)})
+                data['field_coverage'] = self.knowledge.coverage()['field_states']
             data.update(metadata)
             data.setdefault('truncated', False)
             data.setdefault('continuation', None)

@@ -272,3 +272,29 @@ and record results are discovery candidates, never proof of a hard condition.
 After explicit research-record imports, refresh the projection with sync.
 The writer checks `max_chunks` and `max_total_chars` before publishing; failures
 keep the previous release. Rebuild can restore a damaged derived index.
+
+### Research context and exact conditions
+
+In the research profile, `qec_get_context` adds `purpose`:
+`theorem`, `performance`, `construction`, `thought` or `lean`. It returns whole
+source blocks/records, typed evidence links, `missing_components`, `unknown_fields`
+and `conflicts`. Local definitions are labeled context, not inferred dependencies.
+The root is never silently shortened. Lean mode only prepares reading material.
+
+`qec_trace` accepts an exact identifier/revision, `relations`, `direction`
+(`outgoing`, `incoming`, `both`), `depth`, `max_nodes` and `include_candidates`.
+Stale/unbound/unresolved edges remain excluded; candidate relations require opt-in.
+
+`qec_query_codes` retains the distance policy and adds `k_min`/`k_max`,
+`classification` (such as `css`), and the complete triplet `check_weight_max`,
+`check_weight_sector`, `check_weight_scope`. Classification and weight need current
+source evidence. Distance and weight must qualify on the same check-matrix revision.
+`qec_query_performance` adds exact `circuit_id`, `source_version_id`, `idle` and
+`loss` (`included`/`excluded`). Unknown noise conditions never satisfy those filters.
+Reported points are not interpolated. `comparison_group` groups identical bound
+conditions; missing conditions leave it null and mathematical validity is not asserted.
+
+These exact queries enumerate records with pagination and field coverage. Pass
+`source_query` to obtain a separately labeled, bounded set of raw-source candidates;
+those candidates do not count as confirmed parameter matches. Empty field results
+always retain a source-search route.

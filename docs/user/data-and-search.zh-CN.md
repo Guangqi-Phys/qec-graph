@@ -239,3 +239,24 @@ allow_source_upload = false
 embedding 不可用时 hybrid 明确报告关键词回退，纯向量模式返回错误。
 原文和记录搜索结果都是发现候选，不证明硬条件成立。显式导入研究记录后用 sync 刷新投影。
 写事务发布前检查 `max_chunks` 与 `max_total_chars`，失败保留旧 release；rebuild 能恢复损坏的派生索引。
+
+### 研究上下文与精确条件
+
+研究 profile 的 `qec_get_context` 增加 `purpose`：`theorem`、`performance`、
+`construction`、`thought` 或 `lean`。返回完整来源块/记录、类型化证据关系、
+`missing_components`、`unknown_fields` 和 `conflicts`。局部定义标为上下文，
+不推断为依赖；根陈述不静默截断。Lean 模式只准备阅读材料。
+
+`qec_trace` 接受精确 identifier/revision、`relations`、`direction`
+（`outgoing`、`incoming`、`both`）、`depth`、`max_nodes`、`include_candidates`。
+stale/unbound/unresolved 边继续排除，候选关系需显式启用。
+
+`qec_query_codes` 保留距离策略，增加 `k_min`/`k_max`、`classification`（如 `css`）
+以及必须一起使用的 `check_weight_max`、`check_weight_sector`、`check_weight_scope`。
+分类和权重需要当前来源证据；距离与权重必须在同一校验矩阵修订上满足。
+`qec_query_performance` 增加精确 `circuit_id`、`source_version_id`、`idle` 和
+`loss`（`included`/`excluded`）。未知噪声条件不能满足过滤；报告点不插值。
+`comparison_group` 对绑定条件完全一致的结果分组，条件缺失则为 null，不断言数学有效性。
+
+精确查询带分页和字段覆盖，枚举记录。传 `source_query` 可另获明确标记的有界原文候选，
+这些候选不计为确认参数匹配。字段没有结果时始终保留原文搜索路线。

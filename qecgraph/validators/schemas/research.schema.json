@@ -225,6 +225,7 @@
             "check_matrix_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["check_matrix"]},
             "distance_estimate_refs": {"$ref": "#/$defs/nullable_refs", "x-qec-target-kinds": ["distance_estimate"]},
             "code_type": {"enum": ["quantum", null]},
+        "classification": {"enum": ["css", "stabilizer", "subsystem", "nonadditive", "other", null]},
             "n": {"$ref": "#/$defs/positive_integer"},
             "K": {"$ref": "#/$defs/positive_integer"},
             "k": {"$ref": "#/$defs/nonnegative_integer"},
