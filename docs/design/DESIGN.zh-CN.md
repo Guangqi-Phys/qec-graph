@@ -779,6 +779,11 @@ v0.6.2 使用 v1；v2 细化步骤，v3 扩展输出 schema；v4 改进证据输
 不改变输出字段。
 升级 skill 影响新任务和缺失的抽取任务；已完成批次的原版本提案在 sync/rebuild 时保持不变。
 
+human 文件夹没有独立的 AI 抽取步骤。ThoughtsGraph 的提议视图和人类生成器读取固定
+machine release 中同一个哈希绑定的 `extract_thoughts` 包。Sync 先发布机器结果，再由
+程序生成 Markdown；重建 `human/` 可以离线进行，不改变原提议。
+`[ai].max_parallel_packages` 控制跨论文并发；同一论文内各 skill、发布与人类生成保持顺序。
+
 当前来源绑定的 AI 提案和已登记记录汇入 `human/YYYY/MM/*_thoughts.md`（见 §9），
 按论文展示九个问题、回答、原文、归属和来源。
 生成器与查询从不读取私人笔记。某个类别没有记录表示覆盖缺失，不代表论文不存在该类

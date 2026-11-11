@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Documented and regression-tested shared ThoughtsGraph/human extraction:
+  graph queries and offline Markdown rendering reuse the same published proposal.
+  Parallel-paper tests verify concurrent extraction and serial writer staging;
+  `[ai].max_parallel_packages` controls the number of simultaneous papers.
+
 - Treat interrupted/chunked HTTP response bodies as retryable AI transport
   failures, including error-response bodies. Exhausted retries leave extraction
   pending while valid source publication can complete; partial provider text

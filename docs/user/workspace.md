@@ -88,6 +88,12 @@ for the skill, review boundaries and upgrade behavior.
 `max_parallel_packages` bounds this optional extraction.
 Publication and input consumption remain serial.
 
+For example, set `[ai].max_parallel_packages = 3` to extract up to three papers
+concurrently. Skills within one paper still run in order. Once validated thought
+proposals are published to the machine release, ThoughtsGraph and `human/` read
+that same result. The Markdown generator does not make a second AI request;
+`qec-graph human build` can regenerate notes offline from the fixed release.
+
 Multi-file TeX papers use the same default AI extraction: the request includes
 the selected entry and all body/appendix files registered through its includes.
 Every file has explicit line numbers and a content hash; citations name the

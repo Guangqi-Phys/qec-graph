@@ -77,6 +77,11 @@ skill、审核边界与升级行为见[研究思路抽取流程](data-and-search
 `max_parallel_packages` 限制该可选抽取的并发包数，发布和输入
 消费仍串行。
 
+例如设置 `[ai].max_parallel_packages = 3`，即可同时抽取最多三篇论文；同一论文内的
+各个 skill 仍按顺序运行。校验后的思路提议先发布到 machine release，ThoughtsGraph
+与 `human/` 读取同一份结果。Markdown 生成器不会再次调用 AI；
+`qec-graph human build` 可以离线从固定发布重新生成笔记。
+
 多文件 TeX 论文同样默认进入 AI 抽取：请求包含已选主文件，以及通过其 include
 登记的正文和附录文件。每个文件提供明确行号和内容哈希，引用指向实际文件。
 同一压缩包中无关的稿件不会一起送出；缺文件或超预算明确报错，不静默截断。

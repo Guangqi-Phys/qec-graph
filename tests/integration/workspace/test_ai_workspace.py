@@ -176,6 +176,39 @@ class AIWorkspaceTests(unittest.TestCase):
                 self.assertEqual(report['inputs'][0]['entrypoint'], 'selected.tex')
                 self.assertEqual(report['inputs'][0]['ai_extraction']['status'], 'complete')
 
+    def test_packages_extract_concurrently_but_stage_on_the_writer_thread(self):
+        from threading import Barrier, Lock, get_ident
+
+        self.configure('max_parallel_packages = 1', 'max_parallel_packages = 2')
+        (self.root / 'inputs/first.tex').write_bytes(TEX)
+        (self.root / 'inputs/second.tex').write_bytes(TEX.replace(b'Hello', b'Second paper'))
+        ready, lock = Barrier(2), Lock()
+        sources, worker_threads, staging_threads = set(), set(), []
+        stage = self.workspace._stage_ai
+
+        def answer_in_parallel(messages, schema, **kwargs):
+            source = json.loads(messages[1].content)['source_tree_hash']
+            with lock:
+                first = source not in sources
+                sources.add(source)
+                worker_threads.add(get_ident())
+            if first:
+                ready.wait(timeout=5)
+            return answer({'items': [], 'unresolved': []})
+
+        def serial_stage(*args, **kwargs):
+            staging_threads.append(get_ident())
+            return stage(*args, **kwargs)
+
+        with patch('qecgraph.llm.client.LLMClient.complete_json', side_effect=answer_in_parallel) as client, patch.object(
+                self.workspace, '_stage_ai', side_effect=serial_stage):
+            report = self.workspace.sync()
+        self.assertEqual(report['status'], 'published')
+        self.assertEqual(client.call_count, 8)
+        self.assertEqual(len(worker_threads), 2)
+        self.assertEqual(staging_threads, [get_ident(), get_ident()])
+        self.assertTrue(self.workspace.validate()['passed'])
+
     def test_default_ai_extraction_reads_registered_nested_body_and_appendix(self):
         main = TEX.replace(b'Hello', b'\\input{sections/body}\n\\input{appendix}\n\\input{empty}')
         body = b'Included body.\n\\input{nested}\n'

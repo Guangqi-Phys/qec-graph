@@ -777,6 +777,13 @@ quotation instructions without changing the output fields.
 Upgrading a skill affects new or missing extraction jobs, not completed batches, whose versioned proposals
 remain unchanged during sync/rebuild.
 
+There is no separate AI extraction for the human folder. ThoughtsGraph's proposal
+view and the human renderer consume the same hash-bound `extract_thoughts`
+package from a fixed machine release. Sync publishes that release before the
+program renders Markdown; rebuilding `human/` is offline and leaves the proposal
+unchanged. `[ai].max_parallel_packages` enables concurrency across papers, while
+skills within a paper, release publication and human generation retain their order.
+
 Current, source-bound proposals and registered records render together in one
 paper note at `human/YYYY/MM/*_thoughts.md` (see §9), showing answers, quotations,
 attribution and provenance. The generator and all

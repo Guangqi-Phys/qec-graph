@@ -98,8 +98,9 @@ class ThoughtTests(unittest.TestCase):
             def answer(messages, schema, **kwargs):
                 return result_with({'items': [item] if 'research thought extractor' in messages[0].content else [], 'unresolved': []})
             with patch.dict('os.environ', {'OPENROUTER_API_KEY': 'offline-fixture'}), patch(
-                    'qecgraph.llm.client.LLMClient.complete_json', side_effect=answer):
+                    'qecgraph.llm.client.LLMClient.complete_json', side_effect=answer) as extraction:
                 result = ws.sync()
+                self.assertEqual(extraction.call_count, 4)
             self.assertEqual(result['status'], 'published', result)
             proposal = next((root / 'machine/ai/proposals').rglob('extract_thoughts-*.json'))
             self.assertEqual(read_json(proposal)['review_status'], 'proposed')
@@ -110,9 +111,15 @@ class ThoughtTests(unittest.TestCase):
             found = session.invoke('qec_search', {**args, 'include_proposals': True})['data']['results']
             self.assertEqual(len(found), 1)
             fetched = session.invoke('qec_fetch', {'identifier': found[0]['id']})['data']
+            self.assertEqual(fetched['proposal']['data'], item)
             self.assertEqual(fetched['proposal']['data']['source_quote'], 'A question remains.')
             self.assertEqual(fetched['evidence_status'], 'proposed')
-            rendered = build_human(root)
+            with patch.dict('os.environ', {'OPENROUTER_API_KEY': 'offline-fixture'}), patch(
+                    'qecgraph.llm.client.LLMClient.complete_json',
+                    side_effect=AssertionError('Human rendering must not extract again')) as extraction:
+                rendered = build_human(root)
+                self.assertEqual(build_human(root), rendered)
+                extraction.assert_not_called()
             self.assertEqual(rendered['status'], 'current', rendered)
             page, = (root / 'human').rglob('*_thoughts.md')
             text = page.read_text()
