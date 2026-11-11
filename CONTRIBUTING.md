@@ -34,7 +34,9 @@ the [changelog](CHANGELOG.md) for compatibility changes, and the
   are recovered from Git history.
 - `docs/design/DESIGN.md` is the only design document. Extend it in the same
   change as the implementation instead of adding a parallel design page.
-- Every documentation page under `docs/` is bilingual: `page.md` is English and
+- `docs/design/Human.md` is a retained, Chinese personal requirements note, not
+  a second design authority; it is exempt from translation and current-page layout.
+- Every current documentation page under `docs/` is bilingual: `page.md` is English and
   `page.zh-CN.md` is Simplified Chinese. Both start with a one-line status
   marker, carry a language switch, and keep the same heading levels, table shape
   and executable code blocks. Pages with more than one `##` section include a

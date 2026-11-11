@@ -7,7 +7,7 @@
 | | |
 |---|---|
 | **Status** | Current authoritative design (0.6.x) |
-| **Reviewed** | 2026-11-10 |
+| **Reviewed** | 2026-11-11 |
 | **Supersedes** | The earlier architecture, graph-contract, data-formats, incremental, MCP and CodeGraph design pages. Lean is deferred; see §10. |
 | **Implementation** | `qecgraph/`, `tests/`, `tools/`, `validation/` |
 
@@ -39,6 +39,7 @@ This document is the single source of truth for the system's architecture, data 
 - [13. Current limits and non-goals](#13-current-limits-and-non-goals)
 - [14. Verification and change rules](#14-verification-and-change-rules)
 - [15. AI integration](#15-ai-integration)
+- [16. Searchable knowledge and implementation roadmap](#16-searchable-knowledge-and-implementation-roadmap)
 - [Appendix A — Decision record (supersedes the standalone ADRs for current behavior)](#appendix-a--decision-record-supersedes-the-standalone-adrs-for-current-behavior)
 - [Appendix B — Primary references](#appendix-b--primary-references)
 
@@ -634,6 +635,157 @@ workflow. Model output remains proposed. The implementation must cover
 successful, declined, disabled, malformed, tampered and rebuilt cases with
 offline fixtures.
 
+## 16. Searchable knowledge and implementation roadmap
+
+This section integrates the 2026-11-11 `QEC_KNOWLEDGE_MCP_SUMMARY.md` and
+[Guangqi's retained requirements](Human.md). The original summary is preserved
+in Git history. It is engineering input, not evidence that a feature exists.
+The existing workspace, IDs, schemas, review flow and CLI remain the foundation.
+
+### 16.1 Research questions and four graph views
+
+The service must preserve all registered source content while organizing QEC
+assumptions, definitions, theorems, constructions, matrices, distance claims,
+syndrome circuits, noise (including idle/loss), decoders, hardware fidelities,
+and experimental performance. The existing research kinds cover these objects;
+missing values and unextracted fields remain explicit.
+
+| View | Contents | Boundary |
+|---|---|---|
+| SourceGraph | Documents, sections, order, source spans, citations, versions | A citation is not proof or support for a specific claim |
+| LemmaGraph | Definitions, assumptions, statements, proofs and typed dependencies | Declared, candidate, reviewed and formal dependencies remain distinct |
+| DataGraph | Codes, presentations, distance, circuits, noise, decoders, experiments and software | Co-occurrence does not establish a shared experiment |
+| ThoughtsGraph | Problem, motivation, approach/outcome, intuition, assumptions, conclusion, open questions, surprises, side results | Author statements and interpretations remain distinct, with exact source evidence |
+
+ThoughtsGraph adds a revisioned `research_thought` record with a category,
+statement, attribution, paper-version reference and typed links. It must not
+read private notes or manufacture reasoning the authors did not report. An
+optional versioned AI extraction skill emits proposals with exact quotations;
+publication as research records still requires the explicit review path.
+These are four views of shared identities, not four independent databases.
+
+### 16.2 Storage, retrieval and reading units
+
+Store immutable papers/records/assets; retrieve small evidence units; read the
+unit together with its definitions, assumptions, caption and methods. A paper
+entry exposes a document outline and source files; a section exposes continuous
+text with its children. Retain parent IDs, ordering, source-version/snapshot
+identity and codepoint ranges. Do not rebuild full text by concatenating
+potentially overlapping fragments. Raw TeX remains available alongside derived
+reading text, including for sources without semantic records.
+
+Exact version requests never silently fall back. Missing versions report the
+available bindings. Internal `qec://` resource IDs and public citation URLs are
+separate; only registered public URLs may be returned as canonical citations.
+A local paper without a public URL remains available through research tools.
+
+### 16.3 Retrieval, enumeration and coverage
+
+Keyword retrieval, optional vector candidates and typed field/relationship
+queries share one pinned release. Hybrid ranking merges candidates and avoids
+duplicate IDs; hard kind/source filters run before ranking. Similarity cannot
+satisfy a parameter or distance bound. Structured queries enumerate all matches
+through explicit pagination; top-k discovery is never called exhaustive.
+Empty structured results retain a source-search route and report missing field
+coverage, failed parsing, unavailable versions and unknown evidence.
+
+Use exact/lower/interval evidence for distance lower thresholds; an upper bound
+alone does not qualify. Keep code and circuit distance separate. Performance
+comparisons bind code, presentation, circuit, noise instance, decoder, metric,
+source, selection method and uncertainty. Missing target points stay missing;
+reported, digitized, interpolated and simulated values are separate records.
+Unknown, unreported, unextracted, excluded, failed and inapplicable stay distinct.
+Software version means the reported version, never today's latest version.
+
+Vector projections are rebuildable, optional and bound to source text hashes,
+release, model identity/revision, dimension and normalization configuration.
+Equal dimensions do not make models interchangeable. Index construction is an
+offline writer operation; reads never rebuild or extract papers. A local lexical
+vector baseline can run offline; external embeddings require explicit provider
+configuration and must disclose their identity and coverage. No semantic quality
+claim follows merely from computing vectors.
+
+### 16.4 Small stable interfaces and task context
+
+Keep the existing 13 workspace tools and store/corpus tools compatible. Add a
+compact research profile and a generic compatibility profile on the same core:
+
+| Research tool | Responsibility |
+|---|---|
+| `qec_search` | Keyword/vector/hybrid discovery with kind and exact source filters |
+| `qec_fetch` | Read a paper outline, source file, section, occurrence or record |
+| `qec_get_context` | Assemble bounded context for theorem, performance, construction, thought or Lean preparation |
+| `qec_query_codes` | Enumerate exact code/parameter/distance conditions |
+| `qec_query_performance` | Enumerate experiment-bound reported points |
+| `qec_trace` | Bounded typed relationships with evidence/state filters |
+| `qec_status` | Registered sources, processing states, record/field/search coverage |
+
+The generic profile provides `search(query)` → `{results:[{id,title,url}]}` and
+`fetch(id)` → `{id,title,text,url,metadata}` in MCP text JSON. It exposes complete
+registered evidence units with real public citation URLs. A result exceeding the
+budget fails explicitly; it is never labeled full text after truncation.
+Research tools additionally expose source/revision/snapshot identity, evidence,
+unknowns, conflicts, scope, pagination and truncation. Declare output schemas
+and validate successful tool results. Keep the deployed stdio protocol pinned to
+`2025-06-18`; a newer reference link is not permission to change the protocol.
+
+Context purposes identify missing components: theorem → definitions, assumptions,
+proof and dependencies; performance → metric and experiment bindings;
+construction → parameters, conventions, matrices/assets; thought → author
+statements and linked evidence; Lean → original statement, quantifiers,
+hypotheses and existing mappings. Context selection is structural and explicit,
+not a claim that all mathematical prerequisites have been inferred.
+
+### 16.5 Maintenance, isolation and scale
+
+Register all materials without publication/quality admission gates. Parse failures
+retain their archive identity and searchable metadata; coverage must say that
+full text is unavailable. `init` remains configuration-only; `sync` imports and
+`rebuild` reconciles the archive. Publish before consuming claimed inputs.
+Hash-bound caches include parser/schema/skill/model/index configuration; changes
+invalidate the affected projections without overwriting older releases.
+
+All indexing and context paths consume registered machine content only.
+`human/generated/` is a one-way view and `human/notes/` stays private. A strict
+service mounts only machine data; shell access to the whole workspace defeats
+that operating-system boundary.
+
+Keep Python/files/SQLite/FTS5 as the local starting point. PostgreSQL/pgvector,
+shared HTTP transport and separate workers are future deployment choices, not
+current requirements. At 10,000 papers and an assumed 25–100 units per paper,
+768–1536-dimensional float32 vectors alone occupy about 0.77–6.14 GB (decimal),
+excluding text, indexes, assets, versions and backups. This is a planning
+calculation, not a capacity/latency result. Measure unit/asset distributions,
+filtered recall, p50/p95 latency, concurrency, incremental/rebuild cost and peak
+disk before choosing another backend. Do not emit a Markdown file per search unit.
+
+### 16.6 Incremental delivery and acceptance
+
+| Stage | Initial audit | Required delivery |
+|---|---|---|
+| 1. Design integration | Existing source archive, research, review and fixed-scope MCP | Preserve Human.md, reconcile summary and commit the implementation contract |
+| 2. Source reading | Block reads exist; document navigation is incomplete | Outline/full-file/section reads, strict versions, coverage and generic search/fetch |
+| 3. ThoughtsGraph | Not implemented | Nine categories, typed evidence, validated AI proposals, retrieval and human rendering |
+| 4. Retrieval | Lexical/structured only | Offline versioned vector projection, hybrid ranking and source fallback |
+| 5. Task contexts | Generic graph traversal exists | Purpose-aware context, typed trace, exact query aliases and missing-component reports |
+| 6. Evaluation | Existing regression and replay tools | Reproducible retrieval/context baselines, real-source checks where available, documentation and final push |
+
+Each stage is tested and committed separately; update its actual status with the
+implementation. Do not treat a roadmap or generated fixture as a finished
+scientific result. PDF/OCR, chart digitization, automatic theorem proving and
+thousand/ten-thousand-paper production validation remain outside this iteration.
+
+### 16.7 Evidence of benefit
+
+Compare A (direct reading where it fits), B (source search plus reading) and C
+(B plus domain fields, relationships and task context) with the same corpus,
+model and cost budget. Record the actual tool inputs/outputs, evidence locations,
+correctness, filtered recall, context completeness, unknown/conflict handling,
+returned characters/tokens, latency, failures and maintenance cost. Synthetic
+offline regressions establish mechanics only; they cannot establish model answer
+quality. A future curated set of 50–100 real QEC questions is a useful starting
+point, not an industry standard or an already completed benchmark.
+
 ## Appendix A — Decision record (supersedes the standalone ADRs for current behavior)
 
 | Decision | Current resolution |
@@ -659,3 +811,12 @@ offline fixtures.
 8. [Error Correction Zoo data](https://github.com/errorcorrectionzoo/eczoo_data)
 
 Historical rationale and superseded pages are available in Git history only; they are not part of the current documentation tree.
+
+9. [OpenAI MCP search/fetch](https://developers.openai.com/api/docs/mcp)
+10. [MCP tools (deployed protocol)](https://modelcontextprotocol.io/specification/2025-06-18/server/tools)
+11. [Microsoft Learn MCP](https://learn.microsoft.com/en-us/training/support/mcp-developer-reference)
+12. [Context7 clients](https://context7.com/docs/resources/all-clients)
+13. [DeepWiki MCP](https://docs.devin.ai/work-with-devin/deepwiki-mcp)
+14. [Anthropic tool design](https://www.anthropic.com/research/writing-tools-for-agents)
+15. [PostgreSQL text search](https://www.postgresql.org/docs/current/textsearch-controls.html)
+16. [pgvector](https://github.com/pgvector/pgvector)

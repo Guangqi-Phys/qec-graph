@@ -7,7 +7,7 @@
 | | |
 |---|---|
 | **状态** | 当前权威设计（0.6.x） |
-| **评审日期** | 2026-11-10 |
+| **评审日期** | 2026-11-11 |
 | **替代** | 此前的 architecture、graph-contract、data-formats、incremental、MCP 和 CodeGraph 设计页。Lean 延期；见 §10。 |
 | **实现** | `qecgraph/`、`tests/`、`tools/`、`validation/` |
 
@@ -42,6 +42,7 @@ Lean 边界的唯一权威来源。如果代码、测试和本文不一致，以
 - [13. 当前限制和非目标](#13-当前限制和非目标)
 - [14. 验证和变更规则](#14-验证和变更规则)
 - [15. AI 接入](#15-ai-接入)
+- [16. 可搜索知识体系与实施路线](#16-可搜索知识体系与实施路线)
 - [附录 A — 决策记录（替代当前行为的独立 ADR）](#附录-a--决策记录替代当前行为的独立-adr)
 - [附录 B — 主要参考](#附录-b--主要参考)
 
@@ -673,6 +674,123 @@ Provider 在 `qecgraph.toml` 中选择（OpenAI、Anthropic、OpenRouter 或本�
 来延续自动提案流程。模型结果仍为 proposed。实现用离线夹具覆盖成功、拒绝、禁用、格式错误、
 篡改和重建。
 
+## 16. 可搜索知识体系与实施路线
+
+本节整合 2026-11-11 的 `QEC_KNOWLEDGE_MCP_SUMMARY.md` 和
+[Guangqi 保留的需求](Human.md)。原始总结保存在 Git 历史中，它是工程输入，
+不是功能已经实现的证据。沿用现有工作区、ID、Schema、审核流程和 CLI。
+
+### 16.1 研究问题与四种图视图
+
+服务保留全部登记来源，同时组织 QEC 假设、定义、定理、构造、矩阵、距离声明、
+syndrome 电路、噪声（包括 idle/loss）、decoder、硬件保真度与实验表现。
+已有研究类型覆盖这些对象；缺失值与尚未提取的字段必须明确标注。
+
+| 视图 | 内容 | 边界 |
+|---|---|---|
+| SourceGraph | 文档、章节、顺序、来源区间、引用、版本 | 引用不等于证明或支持某个具体结论 |
+| LemmaGraph | 定义、假设、陈述、证明与类型化依赖 | 作者声明、候选、审核与形式化依赖分开 |
+| DataGraph | 码、呈现、距离、电路、噪声、decoder、实验与软件 | 同文出现不代表属于同一实验 |
+| ThoughtsGraph | 问题、动机、方法/结果、直觉、假设、结论、开放问题、反直觉发现、支线结论 | 作者陈述与解读分开，绑定确切来源证据 |
+
+ThoughtsGraph 增加版本化 `research_thought` 记录，包含类别、陈述、归属、
+论文版本引用及类型化关系。不读私人笔记，不捏造作者未报告的思考过程。
+可选的版本化 AI skill 产生带精确引用的提议；成为 research record 仍须经过显式审核。
+四种图共享身份与来源，不是四个独立数据库。
+
+### 16.2 存储、检索与阅读单位
+
+存储不可变论文/记录/资产，用小证据单元定位，阅读时补齐定义、假设、图注与方法。
+论文入口提供目录和源文件；章节提供连续文本及子节点。保留父 ID、顺序、来源版本、
+快照和 codepoint 区间。不拼接可能重叠的片段来重建全文。原始 TeX 与派生阅读文本
+同时可用，尚无语义记录的来源也能检索与阅读。
+
+指定版本不得静默回退；缺失时报告可用绑定。内部 `qec://` 资源 ID 与公开引用 URL
+分开，canonical citation 只能使用登记的真实公开 URL。
+没有公开 URL 的本地论文仍能通过研究工具访问。
+
+### 16.3 检索、枚举与覆盖
+
+关键词、可选向量候选、类型化字段/关系查询共用固定 release。
+混合排序合并候选并去重，类型和来源硬过滤先于排序。相似度不能满足参数或距离条件。
+结构化查询通过明确分页枚举所有匹配，top-k 发现不能称为穷尽。
+结构化结果为空时仍提供原文检索路径，报告字段缺失、解析失败、版本缺失与未知证据。
+
+距离下限查询只使用 exact/lower/interval 证据，单独上界不满足要求。
+码距与电路距离分开。性能比较绑定码、呈现、电路、噪声实例、decoder、指标、来源、
+选择方法和不确定性。缺失目标点不能补造；报告值、读图、插值和模拟值分别记录。
+未知、未报告、未提取、排除、失败和不适用不混淆。软件版本只记录论文实际报告的版本。
+
+向量投影可重建、可选，并绑定文本哈希、release、模型身份/版本、维度和归一化配置。
+同维度不代表模型可互换。索引构建属于离线写事务；查询不重建索引或抽取论文。
+本地词法向量基线可离线运行，外部 embedding 要显式配置 provider，披露身份和覆盖。
+计算出向量不意味着已证明语义检索质量。
+
+### 16.4 少量稳定接口与任务上下文
+
+兼容已有 13 个工作区工具以及 store/corpus 工具。同一核心增加精简研究 profile
+与通用兼容 profile：
+
+| 研究工具 | 职责 |
+|---|---|
+| `qec_search` | 关键词/向量/混合发现，支持类型和精确来源过滤 |
+| `qec_fetch` | 读取论文目录、源文件、章节、occurrence 或记录 |
+| `qec_get_context` | 为定理、性能、构造、思路或 Lean 准备组装有界上下文 |
+| `qec_query_codes` | 枚举精确码/参数/距离条件 |
+| `qec_query_performance` | 枚举绑定实验的报告点 |
+| `qec_trace` | 按证据/状态过滤的有界类型化关系 |
+| `qec_status` | 来源登记、处理状态、记录/字段/检索覆盖 |
+
+通用 profile 提供 `search(query)` → `{results:[{id,title,url}]}` 和
+`fetch(id)` → `{id,title,text,url,metadata}`，用 MCP text JSON 返回。
+它暴露带真实公开引用 URL 的完整登记证据单元。超出预算明确失败，不能截断后宣称全文。
+研究工具额外返回来源/修订/快照、证据、未知项、冲突、范围、分页和截断。
+声明输出 Schema 并校验成功结果。stdio 协议继续固定为 `2025-06-18`，
+参考链接里更新的版本不自动改变实际协议。
+
+上下文用途标明缺失组成：定理 → 定义、假设、证明、依赖；性能 → 指标和实验绑定；
+构造 → 参数、约定、矩阵/资产；思路 → 作者陈述和关联证据；
+Lean → 原始陈述、量词、假设和已有映射。上下文选择是结构化与显式的，
+不宣称推断出了全部数学前提。
+
+### 16.5 维护、隔离与规模
+
+全部材料默认登记，不设发表/质量门槛。解析失败保留归档身份和可检索元数据，
+覆盖信息注明全文不可用。`init` 仍只初始化配置，`sync` 导入，`rebuild` 核对归档。
+发布后才消费认领输入。哈希缓存包含 parser/schema/skill/model/index 配置，
+变化只使受影响的投影失效，不覆盖旧 release。
+
+索引和上下文只消费登记的机器数据。`human/generated/` 是单向视图，
+`human/notes/` 保持私有。严格服务只挂载机器数据；整个工作区的 shell 访问会破坏该隔离。
+
+本地仍以 Python/文件/SQLite/FTS5 起步。PostgreSQL/pgvector、共享 HTTP 与独立 worker
+是未来部署选择，不是当前要求。假设一万篇、每篇 25–100 单元、768–1536 维 float32，
+仅向量数值约为 0.77–6.14 GB（十进制），不含正文、索引、资产、多版本和备份。
+这是规划计算，不是容量或延迟实测。先测单元/资产分布、带过滤召回、p50/p95 延迟、
+并发、增量/重建成本和磁盘峰值，再决定后端。不为每个检索单元生成 Markdown 文件。
+
+### 16.6 分阶段交付与验收
+
+| 阶段 | 初始审计 | 交付要求 |
+|---|---|---|
+| 1. 设计整合 | 已有来源归档、研究记录、审核和固定范围 MCP | 保留 Human.md，消解总结冲突，提交实现契约 |
+| 2. 原文阅读 | 已有块读取，文档导航不完整 | 目录/完整源文件/章节、严格版本、覆盖、通用 search/fetch |
+| 3. ThoughtsGraph | 未实现 | 九类思路、类型化证据、校验 AI 提议、检索、人类视图 |
+| 4. 检索 | 仅词法与结构化 | 离线版本化向量投影、混合排序、原文回退 |
+| 5. 任务上下文 | 已有通用图遍历 | 按用途组装、类型化 trace、精确查询别名、缺失组成报告 |
+| 6. 评测 | 已有回归和复现工具 | 可复现检索/上下文基线、可得真实来源验证、文档、最终 push |
+
+每阶段单独测试并提交，随实现更新真实状态。不把路线图或生成 fixture 当成科学结果。
+PDF/OCR、读图提取、自动证明和千篇/万篇生产验证不属于本轮实现。
+
+### 16.7 收益证据
+
+在同语料、同模型、同预算下比较 A（能放进上下文的直接阅读）、B（原文搜索加阅读）、
+C（B 加领域字段、关系和任务上下文）。记录实际工具输入输出、证据位置、正确性、
+带过滤召回、上下文完整性、未知/冲突处理、返回字符/token、延迟、失败和维护成本。
+合成离线回归只验证机制，不能证明模型回答质量。未来整理 50–100 个真实 QEC 问题
+可作起点，不是行业标准，也不是已完成的 benchmark。
+
 ## 附录 A — 决策记录（替代当前行为的独立 ADR）
 
 | 决策 | 当前解决 |
@@ -698,3 +816,12 @@ Provider 在 `qecgraph.toml` 中选择（OpenAI、Anthropic、OpenRouter 或本�
 8. [Error Correction Zoo data](https://github.com/errorcorrectionzoo/eczoo_data)
 
 历史理由和替代页面只在 Git history 中保留；不属于当前文档树。
+
+9. [OpenAI MCP search/fetch](https://developers.openai.com/api/docs/mcp)
+10. [MCP tools (deployed protocol)](https://modelcontextprotocol.io/specification/2025-06-18/server/tools)
+11. [Microsoft Learn MCP](https://learn.microsoft.com/en-us/training/support/mcp-developer-reference)
+12. [Context7 clients](https://context7.com/docs/resources/all-clients)
+13. [DeepWiki MCP](https://docs.devin.ai/work-with-devin/deepwiki-mcp)
+14. [Anthropic tool design](https://www.anthropic.com/research/writing-tools-for-agents)
+15. [PostgreSQL text search](https://www.postgresql.org/docs/current/textsearch-controls.html)
+16. [pgvector](https://github.com/pgvector/pgvector)

@@ -147,7 +147,7 @@ class DocumentationTests(unittest.TestCase):
         root_docs = {p.name for p in (ROOT / 'docs').iterdir() if p.is_file() and p.suffix == '.md'}
         self.assertEqual(root_docs, {'README.md', 'README.zh-CN.md'})
         design = {p.name for p in (ROOT / 'docs/design').iterdir() if p.is_file() and p.suffix == '.md'}
-        self.assertEqual(design, {'DESIGN.md', 'DESIGN.zh-CN.md'})
+        self.assertEqual(design, {'DESIGN.md', 'DESIGN.zh-CN.md', 'Human.md'})
         self.assertFalse((ROOT / 'docs/rfc-002').exists())
         self.assertFalse((ROOT / 'docs/archive').exists())
 
