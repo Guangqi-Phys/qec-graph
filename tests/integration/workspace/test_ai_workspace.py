@@ -153,6 +153,49 @@ class AIWorkspaceTests(unittest.TestCase):
         self.assertEqual(rebuilt['normalization_manifest_sha256'], first['normalization_manifest_sha256'])
         self.assertEqual(rebuilt['ai_extraction'], first['ai_extraction'])
 
+    def test_tool_upgrade_rebinds_english_proposals_with_identical_source_evidence(self):
+        from qecgraph.llm.review import read_bound_proposal
+        from qecgraph.workspace import extraction_tool_identity
+
+        (self.root / 'inputs/paper.tex').write_bytes(TEX)
+        with patch('qecgraph.llm.client.LLMClient.complete_json', return_value=answer({'items': [], 'unresolved': []})):
+            first = self.workspace.sync()['inputs'][0]
+        old = {b['skill']: b for b in first['ai_extraction']['written']}
+        old_bytes = {b['path']: (self.workspace.registry.root / b['path']).read_bytes() for b in old.values()}
+        changed = {**extraction_tool_identity(), 'tool_version': 'english-upgrade-fixture'}
+        with patch('qecgraph.workspace.extraction_tool_identity', return_value=changed), patch(
+                'qecgraph.llm.client.LLMClient.complete_json', side_effect=AssertionError('No AI call needed')) as client:
+            latest = self.workspace.rebuild()['inputs'][0]
+            client.assert_not_called()
+        self.assertNotEqual(latest['source_snapshot_id'], first['source_snapshot_id'])
+        self.assertEqual(len(latest['ai_extraction']['written']), 4)
+        for binding in latest['ai_extraction']['written']:
+            proposal = read_bound_proposal(self.workspace.registry, binding, latest)
+            self.assertEqual(proposal['review_status'], 'proposed')
+            self.assertEqual(proposal['provenance']['skill_version'], 5)
+            self.assertEqual(proposal['provenance']['source_rebindings'], [{
+                'snapshot_id': first['source_snapshot_id'], 'proposal_path': old[binding['skill']]['path'],
+                'proposal_sha256': old[binding['skill']]['proposal_sha256'],
+                'reason': 'Identical source files; citations revalidated for the new snapshot'}])
+        self.assertEqual({p: (self.workspace.registry.root / p).read_bytes() for p in old_bytes}, old_bytes)
+        self.assertTrue(self.workspace.validate()['passed'])
+
+    def test_changed_entrypoint_does_not_reuse_previous_proposals(self):
+        from qecgraph.source.package import unpack
+
+        raw = tar_bytes({'a.tex': TEX, 'b.tex': TEX.replace(b'Hello', b'Other manuscript')})
+        (self.root / 'inputs/paper.tar').write_bytes(raw)
+        original_config = self.config.read_text()
+        setting = f'\n[entrypoints]\n"{unpack(raw).digest}" = '
+        self.config.write_text(original_config + setting + '"a.tex"\n')
+        with patch('qecgraph.llm.client.LLMClient.complete_json', return_value=answer({'items': [], 'unresolved': []})):
+            self.workspace.sync()
+        self.config.write_text(original_config + setting + '"b.tex"\n')
+        with patch('qecgraph.llm.client.LLMClient.complete_json', return_value=answer({'items': [], 'unresolved': []})) as client:
+            result = self.workspace.rebuild()
+        self.assertEqual(client.call_count, 4)
+        self.assertEqual(result['inputs'][0]['entrypoint'], 'b.tex')
+
     def test_parallel_extraction_uses_only_the_selected_entry_point(self):
         from qecgraph.source.package import unpack
 

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Preserve completed English AI proposals across tool-only source snapshot
+  upgrades after checking the full evidence-file hash set and revalidating
+  citations. Rebinding records the prior proposal hash/path, retains original
+  AI provenance and never transfers review status. Changed entry points or
+  evidence files require fresh extraction.
+
 - All generated AI knowledge, software catalog text and human notes now use
   English. Semantic skills v5, normalization v3 and structure recovery v2 request
   English throughout. Responses and cache hits reject Chinese text; original

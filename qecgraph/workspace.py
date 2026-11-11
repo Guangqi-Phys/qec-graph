@@ -358,11 +358,15 @@ class Workspace:
             written.append(binding)
         return {**previous, 'written': written}
 
-    def _extract_ai(self, client, material, previous, limits, version):
+    def _extract_ai(self, client, material, previous, limits, version, reusable=()):
+        import copy
+        from .core.language import require_english
         from .llm.artifacts import load_normalization
-        from .llm.extract import extract
+        from .llm.client import LLMResult
+        from .llm.extract import ExtractionResult, extract, validate_extraction, validate_source_refs
         from .llm.normalize import original_document
         from .llm.redact import redact
+        from .llm.review import read_bound_proposal
 
         try:
             digest = material['archive_sha256']
@@ -394,6 +398,39 @@ class Workspace:
 
         completed = {item['skill'] for item in previous.get('written', []) if item.get('proposal_sha256')}
         results, errors = [], []
+        evidence = {path: source.sha256 for path, source in
+                    {material['entrypoint']: normalized, **additional}.items()}
+        for binding, old_snapshot in reusable:
+            if binding['skill'] in completed:
+                continue
+            try:
+                proposal = copy.deepcopy(read_bound_proposal(
+                    self.registry, binding, {**material, 'source_snapshot_id': old_snapshot}))
+                # A tool-only snapshot change may keep every evidence byte the
+                # same. Rebind proposals only, never reviews, after checking the
+                # full file closure and validating citations against this source.
+                prior_sources = proposal.get('evidence_sources', [])
+                if (len(prior_sources) != len(evidence)
+                        or {row['path']: row['sha256'] for row in prior_sources} != evidence):
+                    continue
+                require_english(proposal)
+                data = {k: proposal[k] for k in ('items', 'unresolved', 'paper') if k in proposal}
+                validate_extraction(binding['skill'], data)
+                validate_source_refs(normalized, material['entrypoint'], binding['skill'], data,
+                                     additional_sources=additional)
+            except (OSError, ValueError, KeyError, TypeError):
+                continue
+            provenance = proposal['provenance']
+            provenance.setdefault('source_rebindings', []).append({
+                'snapshot_id': old_snapshot, 'proposal_path': binding['path'],
+                'proposal_sha256': binding['proposal_sha256'],
+                'reason': 'Identical source files; citations revalidated for the new snapshot'})
+            ai_result = LLMResult(data=data, text=canonical(data), model=provenance['model'],
+                                  usage=provenance['usage'], request_id=provenance.get('request_id'),
+                                  attempts=0, cached=provenance['cached'], run_id=provenance['run_id'],
+                                  prompt_sha256=provenance['prompt_sha256'])
+            results.append(ExtractionResult(binding['skill'], data, proposal, ai_result))
+            completed.add(binding['skill'])
         for skill in AI_EXTRACTION_SKILLS:
             if skill not in completed:
                 try:
@@ -434,9 +471,16 @@ class Workspace:
                     and not _ai_complete(previous.get(identity, {}))):
                 jobs.setdefault(identity, material)
 
+        reusable = {
+            identity: [(binding, old_snapshot) for (source_id, old_snapshot), outcome in previous.items()
+                       if source_id == identity[0] and old_snapshot != identity[1]
+                       for binding in outcome.get('written', []) if binding.get('proposal_sha256')]
+            for identity in jobs
+        }
+
         def extract_one(identity):
             return self._extract_ai(client, jobs[identity], previous.get(identity, {}), limits,
-                                    versions[identity[0]])
+                                    versions[identity[0]], reusable[identity])
 
         workers = min(client.config.max_parallel_packages, len(jobs))
         if workers > 1:

@@ -778,7 +778,11 @@ AI responses pass a CJK-content guard before caching or publication; mathematica
 notation and accented Latin names remain supported. All nine human questions,
 labels and fallback messages, and the bundled software catalog, are English.
 Sync detects legacy proposals containing Chinese and re-extracts those skills;
-completed English proposals are reused. Replacements get new immutable paths and
+completed English proposals are reused. After a tool-only snapshot upgrade,
+reuse requires an identical entry, source tree and complete evidence-file hash
+set, plus citation validation against the new snapshot. The copied proposal
+retains its original model, prompt, skill version and proposed status, and records
+its prior proposal hash/path in `provenance.source_rebindings`. Reviews are not rebound. Replacements get new immutable paths and
 hashes, and historical releases remain intact unless explicitly retired. Failed
 replacement skills remain pending, without publishing their rejected content.
 Original source evidence is preserved verbatim; it is never silently translated
