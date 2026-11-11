@@ -685,12 +685,22 @@ remain separate records so their evidence and revisions can evolve independently
 | `addresses_refs`, `motivated_by_refs`, `extends_refs`, `contradicts_refs` | Exact revisions of other `research_thought` records, with field-level evidence |
 | `related_refs` | Exact revisions of allowed research kinds, such as a construction, experiment or decoder; parser occurrences remain accessible through source evidence |
 
-`extract_thoughts` v1 produces `qecgraph.ai.proposal` packages, exposed for opt-in
+`extract_thoughts` v2 produces `qecgraph.ai.proposal` packages, exposed for opt-in
 search as `research_thought_proposal` items. These are distinct from published
 research records. Explicit review and record import remain separate steps; no
 AI result or approval automatically creates a canonical record. Both records
 and proposals retain their actual review status. Candidate interpretation links
 require opt-in traversal; citations and thought links do not become proof edges.
+
+The [skill](../../qecgraph/llm/skills/extract_thoughts/SKILL.md) defines category
+boundaries, source-reading steps, attribution and exact line references with a
+worked example. Conditions remain attached to outcomes and missing categories
+are explicit in `unresolved`. Its output schema contains thought items only;
+cross-record relations require separate curation. Validation checks format and
+quotations, not the scientific correctness of classifications or interpretations.
+v0.6.2 shipped v1; v2 preserves its output fields. Upgrading a skill affects new
+or missing extraction jobs, not completed batches, whose versioned proposals
+remain unchanged during sync/rebuild.
 
 Registered records render under `human/generated/thoughts/`, showing the
 statement, author quotation, attribution and provenance. The generator and all
@@ -811,7 +821,7 @@ thousand/ten-thousand-paper production validation remain outside this iteration.
 
 Stage 2 is implemented: document/file/section reads, strict version selection, field/source coverage and selectable MCP profiles. Full source files are read from registered snapshots with hash verification, including text outside parsed blocks.
 
-Stage 3 is implemented: nine thought categories, quotation-bound records and relations, `extract_thoughts` v1 proposals and generated thought pages. With `[ai].extract_proposals = true`, sync runs four extraction skills (including thoughts); older completed batches obtain the missing skill on the next sync. `qec_search(include_proposals=true, kind="research_thought_proposal")` discovers proposed thoughts without promoting them to records; exact `qec_fetch` retains their proposed state.
+Stage 3 is implemented: nine thought categories, quotation-bound records and relations, `extract_thoughts` proposals and generated thought pages. With `[ai].extract_proposals = true`, sync runs four extraction skills (including thoughts); batches missing a skill obtain it on the next sync. Completed skills are not automatically rerun on version changes. `qec_search(include_proposals=true, kind="research_thought_proposal")` discovers proposed thoughts without promoting them to records; exact `qec_fetch` retains their proposed state.
 
 Stage 4 is implemented: `[retrieval].enabled = true` builds a hash-bound projection during sync/rebuild before publication. The local model is an offline lexical baseline; `openai_compatible` supports explicit remote embeddings with environment credentials and upload permission. Model revision, dimension, tokenizer and chunk configuration bind caches. New source text reuses unchanged chunk vectors; failed validation leaves the previous release. Research search supports keyword/vector/hybrid modes, pre-ranking filters, pagination, visible fallback and integrity-checked rebuild. Vector offsets refer to derived search text; authoritative citation coordinates come from fetch.
 

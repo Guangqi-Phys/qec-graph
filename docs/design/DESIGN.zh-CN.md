@@ -717,10 +717,16 @@ ThoughtsGraph 保存有来源依据的研究意图与解读。九个类别和阅
 | `addresses_refs`、`motivated_by_refs`、`extends_refs`、`contradicts_refs` | 其他 `research_thought` 记录的精确修订，附字段证据 |
 | `related_refs` | 允许的研究类型的精确修订，如构造、实验或 decoder；解析块仍通过来源证据访问 |
 
-`extract_thoughts` v1 产生 `qecgraph.ai.proposal` 包，显式开启搜索后以
+`extract_thoughts` v2 产生 `qecgraph.ai.proposal` 包，显式开启搜索后以
 `research_thought_proposal` 条目暴露，与已发布研究记录分开。明确审核与记录导入是
 两个步骤，AI 结果或批准都不会自动创建规范记录。记录和提案保留实际审核状态；
 候选解读关系需显式开启遍历，引用和思路关联不会转为证明依赖。
+
+[Skill](../../qecgraph/llm/skills/extract_thoughts/SKILL.md) 给出类别边界、原文阅读步骤、
+归属与精确行号规则以及完整示例。条件随结果保留，缺失类别明确写入 `unresolved`。
+输出 schema 仅包含思路条目，跨记录关系需要另行整理。程序验证格式与原文引用，
+不据此保证分类和解读的科学正确性。v0.6.2 发布包使用 v1，v2 保持其输出字段。
+升级 skill 影响新任务和缺失的抽取任务；已完成批次的原版本提案在 sync/rebuild 时保持不变。
 
 已登记记录渲染到 `human/generated/thoughts/`，展示陈述、作者原文、归属和来源。
 生成器与查询从不读取私人笔记。某个类别没有记录表示覆盖缺失，不代表论文不存在该类
@@ -813,7 +819,7 @@ PDF/OCR、读图提取、自动证明和千篇/万篇生产验证不属于本轮
 
 阶段 2 已实现：论文/文件/章节读取、严格版本选择、字段/来源覆盖和可选 MCP profiles。完整源文件从登记快照读取并核验哈希，包含解析块之外的文本。
 
-阶段 3 已实现：九类思路、精确引用记录及关系、`extract_thoughts` v1 提议和人类思路页面。启用 `[ai].extract_proposals = true` 时 sync 运行四个抽取 skill（含思路）；已有完整批次在下次 sync 补提取缺失 skill。`qec_search(include_proposals=true, kind="research_thought_proposal")` 发现候选思路而不提升为记录；精确 `qec_fetch` 保留 proposed 状态。
+阶段 3 已实现：九类思路、精确引用记录及关系、`extract_thoughts` 提议和人类思路页面。启用 `[ai].extract_proposals = true` 时 sync 运行四个抽取 skill（含思路）；缺失某个 skill 的批次在下次 sync 补提取。已经完成的 skill 不会因版本变化自动重跑。`qec_search(include_proposals=true, kind="research_thought_proposal")` 发现候选思路而不提升为记录；精确 `qec_fetch` 保留 proposed 状态。
 
 阶段 4 已实现：`[retrieval].enabled = true` 在 sync/rebuild 发布前生成哈希绑定投影。本地模型为离线词法基线；`openai_compatible` 支持明确配置的外部 embedding，使用环境变量凭据和上传授权。模型版本、维度、分词与分块配置绑定缓存；新增来源复用未变化分块向量，校验失败保留旧 release。研究搜索支持 keyword/vector/hybrid、排序前过滤、分页、显式回退与校验重建。向量区间属于派生检索文本，权威引用坐标来自 fetch。
 

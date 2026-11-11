@@ -28,7 +28,7 @@ class ThoughtTests(unittest.TestCase):
 
         result = extract(normalized, Client(), 'extract_thoughts')
         self.assertEqual(result.proposal['review_status'], 'proposed')
-        self.assertEqual(result.proposal['provenance']['skill_version'], 1)
+        self.assertEqual(result.proposal['provenance']['skill_version'], 2)
         for change in ({'source_quote': 'invented', 'statement': 'invented'},
                        {'attribution': 'verified'}, {'source_refs': ['private.md:1']},
                        {'statement': 'A paraphrase'}, {'category': 'hidden_reasoning'}):

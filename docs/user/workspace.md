@@ -77,9 +77,11 @@ recovery records `recovered_proposed` on the snapshot. Upgrade machine
 readers before pointing them at a release that uses this status. The updated
 CLI and MCP continue to read previously published snapshots.
 
-`extract_proposals` defaults to `false`. Set it to `true` to keep the earlier
-automatic theorem, assumption and data proposal workflow on existing
-workspaces. `max_parallel_packages` bounds this optional extraction.
+`extract_proposals` defaults to `false`. Set it to `true` to generate theorem,
+assumption, data and research-thought proposals. See the
+[thought extraction workflow](data-and-search.md#extract-and-read-research-thoughts)
+for the skill, review boundaries and upgrade behavior.
+`max_parallel_packages` bounds this optional extraction.
 Publication and input consumption remain serial.
 
 The Claude Code provider uses bare mode with tools, MCP and session persistence

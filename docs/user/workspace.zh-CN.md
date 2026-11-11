@@ -68,8 +68,9 @@ api_key = ""
 回退成功的快照标为 `recovered_proposed`。读取含有此状态的发布前，先升级机器读取端。
 升级后的 CLI 和 MCP 继续读取历史快照。
 
-`extract_proposals` 默认关闭。已有工作区可将它设为 `true`，延续自动生成定理、假设
-和数据提案的流程。`max_parallel_packages` 限制该可选抽取的并发包数，发布和输入
+`extract_proposals` 默认关闭。将它设为 `true` 后，自动生成定理、假设、数据和研究思路提案。
+skill、审核边界与升级行为见[研究思路抽取流程](data-and-search.zh-CN.md#提取与阅读研究思路)。
+`max_parallel_packages` 限制该可选抽取的并发包数，发布和输入
 消费仍串行。
 
 Claude Code provider 使用 bare 模式，禁用工具、MCP 和会话持久化。

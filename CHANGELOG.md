@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Refined `extract_thoughts` as skill v2 with concrete category boundaries,
+  evidence-reading steps, condition/attribution rules and a validated JSON
+  example. Output fields remain compatible; completed extraction batches keep
+  their existing versioned proposals. Documented the AI opt-in, manual relation
+  curation and lack of automatic re-extraction on skill upgrades.
+- Added offline fake-provider regressions for the worked example, prompt cache
+  separation and rejection of generated or stitched quotations before caching.
+
 ## 0.6.2 — 2026-11-11
 
 - Integrated the searchable-knowledge design and retained `Human.md` as the

@@ -270,10 +270,34 @@ Run `sync` with AI configured to generate bound proposals from the archive.
 ### Extract and read research thoughts
 
 With a provider configured and `[ai].extract_proposals = true`, `sync` runs
-`extract_thoughts` v1 alongside the other extraction skills. The output keeps
+`extract_thoughts` alongside the other extraction skills. AI must be enabled,
+credentials available and source upload allowed. With `extract_proposals = false`,
+this semantic extraction does not run; AI normalization/structure fallback has
+separate controls. The output keeps
 exact quotations and source references and remains a proposal, including when
 `attribution` is `author_explicit`. A review decision does not automatically
 convert it to a `research_thought` record.
+
+The current [skill v2](../../qecgraph/llm/skills/extract_thoughts/SKILL.md) specifies
+the extraction procedure, all nine category boundaries and a complete JSON
+example. It directs the model to distinguish the initial problem, its motivation,
+the method and the outcome, then check intuition, assumptions, open questions,
+surprising and side results. Conditions such as noise, idle/loss treatment,
+decoder and simulated range stay with the claim. Missing categories and context
+go in `unresolved`; the model must not invent them. Exact author quotations use
+`author_explicit`; paraphrases and interpretations use `editorial_inference`.
+
+The skill produces thought items, not relationships between them. Links such as
+`addresses_refs`, `extends_refs` and `contradicts_refs` belong to separately
+curated, evidence-bound research records. Program checks enforce the schema,
+valid source ranges and verbatim quotations; they do not establish that a
+category or interpretation is scientifically correct.
+
+v0.6.2 shipped skill v1. Skill v2 keeps the same output fields and is used for
+new or missing extraction jobs after updating the source installation. Completed
+jobs retain their proposals and `provenance.skill_version`: neither `sync` nor
+`rebuild` reruns them just because a skill version changed. There is currently no
+CLI command for explicitly re-extracting a completed batch with a new skill.
 
 Search bound thought proposals through the research profile:
 

@@ -239,9 +239,26 @@ AI 抽取会把 `qecgraph.ai.proposal` 写入 `machine/ai/proposals/`。它们�
 ### 提取与阅读研究思路
 
 配置 provider 并启用 `[ai].extract_proposals = true` 后，`sync` 与其他抽取 skill
-一起运行 `extract_thoughts` v1。输出保留精确引用和来源位置，始终是提案；
+一起运行 `extract_thoughts`，同时要求 AI 已启用、凭据可用且允许上传来源。
+`extract_proposals = false` 时不运行这一步语义抽取；AI 规范化与结构回退另有控制开关。
+输出保留精确引用和来源位置，始终是提案；
 即使 `attribution` 为 `author_explicit` 也不例外。审核决定不会自动将其转换为
 `research_thought` 记录。
+
+当前 [skill v2](../../qecgraph/llm/skills/extract_thoughts/SKILL.md) 给出具体抽取步骤、
+九类内容的区分规则和完整 JSON 示例：先区分“要解决什么问题”“为什么值得解决”
+“采用什么方法”“实际得到什么结果”，再检查直觉、假设、开放问题、意外结果和旁支结果。
+噪声模型、idle/loss、解码器、模拟范围等条件必须与结论一起保留。
+缺失类别或上下文写入 `unresolved`，不能凭空补齐；作者逐字原文标为
+`author_explicit`，改写、概括和解读标为 `editorial_inference`。
+
+该 skill 生成思路条目，不生成条目之间的关系。`addresses_refs`、`extends_refs`、
+`contradicts_refs` 等关系需要另行整理成附证据的研究记录。程序检查输出格式、
+来源区间和逐字引用，不能据此保证分类与解读在科学上正确。
+
+v0.6.2 发布包内是 skill v1。v2 保持输出字段不变，更新源码安装后用于新任务或缺失的
+抽取任务。已完成任务保留原提案和 `provenance.skill_version`；`sync`、`rebuild`
+都不会仅因为 skill 升级而重跑。当前还没有用新版 skill 显式重提取已完成批次的 CLI 命令。
 
 通过研究 profile 搜索已绑定来源的思路提案：
 
