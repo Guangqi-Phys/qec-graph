@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 import tempfile
@@ -52,7 +53,7 @@ class HumanTests(unittest.TestCase):
                                        'link: null\ntitle: "Surface codes under erasure"\nauthor:\n'
                                        '  - "Ada Lovelace"\n  - "Grace Hopper"\n---\n'))
         self.assertEqual(re.findall(r'^## [0-9]+\. (.*)$', text, re.MULTILINE), [q for q, _ in QUESTIONS])
-        self.assertEqual(text.count('尚无可用回答'), 9)
+        self.assertEqual(text.count('No answer available'), 9)
         with patch('qecgraph.render.human.atomic_bytes', wraps=atomic_bytes) as writes:
             self.assertEqual(build_human(self.root, release)['status'], 'current')
             writes.assert_not_called()
@@ -70,6 +71,18 @@ class HumanTests(unittest.TestCase):
         self.assertEqual(list(self.generated()), ['unknown/unknown/UnknownAuthor_Untitled_Paper_thoughts.md'])
         text = next(iter(self.generated().values())).decode()
         self.assertIn('tags: []\nlink: null\ntitle: null\nauthor: []\n', text)
+
+    def test_non_english_metadata_is_not_published_as_an_english_note(self):
+        source = PAPER.replace(b'Surface codes under erasure', '量子纠错'.encode())
+        (self.root / 'inputs/first').write_bytes(source)
+        release = self.ws.sync()['release_id']
+        result = build_human(self.root, release)
+        self.assertEqual(result['status'], 'human_stale', result)
+        self.assertIn('must use English', result['error'])
+        self.assertEqual(self.generated(), {})
+        # The guard never rewrites source evidence to satisfy a language policy.
+        blob = self.root / 'archive/blobs/sha256' / hashlib.sha256(source).hexdigest()
+        self.assertEqual(blob.read_bytes(), source)
 
     def test_arxiv_package_month_overrides_source_date_and_preserves_full_authors(self):
         name = 'arXiv-2611.12971v2.tar.gz'
@@ -123,7 +136,7 @@ class HumanTests(unittest.TestCase):
         result = build_human(self.root, release)
         self.assertEqual(result['status'], 'current', result)
         self.assertEqual(list(self.generated()), ['unknown/unknown/Lovelace_Surface_codes_thoughts.md'])
-        self.assertIn('年月存在冲突', next(iter(self.generated().values())).decode())
+        self.assertIn('submission dates conflict', next(iter(self.generated().values())).decode())
 
     def test_revtex_title_block_after_document_and_author_decorations(self):
         source = br'''\documentclass{revtex4-2}
@@ -173,7 +186,7 @@ class HumanTests(unittest.TestCase):
         result = build_human(self.root, self.ws.sync()['release_id'])
         self.assertEqual(result['status'], 'current', result)
         self.assertEqual(len(self.generated()), 1)
-        self.assertIn('多个登记版本', next(iter(self.generated().values())).decode())
+        self.assertIn('multiple registered versions', next(iter(self.generated().values())).decode())
 
     def test_metadata_rename_removes_old_note_and_retry_removes_retired_paths(self):
         archive = tar_bytes({'first.tex': PAPER, 'renamed.tex': PAPER.replace(

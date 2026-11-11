@@ -49,7 +49,7 @@
           "statement": {
             "type": "string",
             "minLength": 1,
-            "description": "A concise Chinese editorial answer retaining all important conditions; use editorial_inference for translation or paraphrase."
+            "description": "A concise English editorial answer retaining all important conditions; use editorial_inference for translation or paraphrase."
           },
           "attribution": {
             "enum": [

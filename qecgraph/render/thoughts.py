@@ -9,21 +9,22 @@ import unicodedata
 from pylatexenc.latex2text import LatexNodes2Text
 
 from ..core.graph import hash_text
+from ..core.language import require_english
 from ..knowledge import public_url
 from ..llm.extract import validate_extraction
 from ..llm.review import proposal_bindings, read_bound_proposal
 from ..source.reading import _group
 
 QUESTIONS = (
-    ('他们想解决什么问题？', ('problem',)),
-    ('为什么这个要解决的问题重要？', ('motivation',)),
-    ('他们解决了吗？是怎么解决的？', ('approach', 'conclusion')),
-    ('这个解决方案中用了什么直觉、想法？', ('intuition',)),
-    ('文章里面有什么重要的假设？', ('assumption',)),
-    ('整篇文章的结论是什么？是对之前结论的补充、加强还是推翻？', ('conclusion',)),
-    ('遗留下的问题是什么？有什么引发的后续提问？', ('open_question',)),
-    ('文章中有什么不同寻常、反直觉的发现？', ('surprising_result',)),
-    ('有什么不在主线上，但是有意思的结论？', ('side_result',)),
+    ('What problem does the paper aim to solve?', ('problem',)),
+    ('Why is this problem important?', ('motivation',)),
+    ('Was the problem solved, and how?', ('approach', 'conclusion')),
+    ('What intuitions or ideas underlie the approach?', ('intuition',)),
+    ('What are the key assumptions?', ('assumption',)),
+    ('What are the conclusions, and do they extend, strengthen or overturn prior results?', ('conclusion',)),
+    ('What remains unresolved, and what follow-up questions arise?', ('open_question',)),
+    ('What unusual or counterintuitive findings are reported?', ('surprising_result',)),
+    ('What interesting secondary results are reported?', ('side_result',)),
 )
 
 
@@ -211,11 +212,11 @@ def render_pages(session):
         front += ['link: ' + yaml_value(metadata['link']), 'title: ' + yaml_value(metadata['title']),
                   'author:' + ('' if metadata['authors'] else ' []')]
         front += ['  - ' + yaml_value(name) for name in metadata['authors']]
-        front += ['---', '', '# ' + inline(title), '', '> AI 回答属于待审核提案；请结合原文依据阅读。']
+        front += ['---', '', '# ' + inline(title), '', '> AI answers are proposals awaiting review. Read them alongside the cited source evidence.']
         if not metadata['title'] or not metadata['authors'] or not date or len(date) < 7:
-            front += ['', '> 部分书目信息尚未提供或年月存在冲突；未知字段使用占位名称，不使用导入日期代替论文年月。']
+            front += ['', '> Some bibliographic metadata is missing or submission dates conflict. Unknown fields use placeholders; ingestion dates are not paper dates.']
         if len(versions) > 1:
-            front += ['', '> 本文包含多个登记版本；回答逐条标明来源版本，未合并成单一结论。']
+            front += ['', '> This paper has multiple registered versions. Each answer identifies its source version; conclusions are not merged.']
         sections = ['\n'.join(front)]
         for number, (question, categories) in enumerate(QUESTIONS, 1):
             sections.append(f'## {number}. {question}')
@@ -229,9 +230,9 @@ def render_pages(session):
                     missing += [s for s in proposal['unresolved'] if any(s.startswith(c + ':') for c in categories)]
                     for item in proposal['items']:
                         if item['category'] in categories:
-                            label = 'AI 回答' if item['attribution'] == 'editorial_inference' else 'AI 摘录（作者原文）'
+                            label = 'AI answer' if item['attribution'] == 'editorial_inference' else 'AI excerpt (author wording)'
                             answers.append(f'**{label} · proposed**\n\n{inline(item["statement"])}\n\n'
-                                           f'原文依据（{inline(", ".join(item["source_refs"]))}；版本 {inline(version_label)}）：\n\n'
+                                           f'Source evidence ({inline(", ".join(item["source_refs"]))}; version {inline(version_label)}):\n\n'
                                            + quote_block(item['source_quote']))
                 for record in records:
                     data = record['data']
@@ -239,12 +240,15 @@ def render_pages(session):
                     if source.get('id') != version['id'] or source.get('revision') != version['snapshot_id'] or data['category'] not in categories:
                         continue
                     status = record.get('effective_review', {}).get('status') or record.get('review_status', 'proposed')
-                    answers.append(f'**研究记录 · {inline(status)}**\n\n{inline(data["statement"])}\n\n'
-                                   f'原文依据（版本 {inline(version_label)}；{inline(data["attribution"])}）：\n\n'
+                    answers.append(f'**Research record · {inline(status)}**\n\n{inline(data["statement"])}\n\n'
+                                   f'Source evidence (version {inline(version_label)}; {inline(data["attribution"])}):\n\n'
                                    + quote_block(data['source_quote']))
-            sections.extend(answers or ['尚无可用回答：未抽取或来源证据不足。'])
+            sections.extend(answers or ['No answer available: not extracted or insufficient source evidence.'])
             if missing:
-                sections.append('待补充：\n\n' + '\n'.join('- ' + inline(s) for s in sorted(set(missing))))
+                sections.append('Unresolved:\n\n' + '\n'.join('- ' + inline(s) for s in sorted(set(missing))))
         sections.append(f'<!-- qecgraph work_sha256={hash_text(work_id)} release={session.release} -->')
-        pages[path] = ('\n\n'.join(sections) + '\n').encode('utf-8')
+        rendered = '\n\n'.join(sections) + '\n'
+        require_english(path, 'note path')
+        require_english(rendered, 'human note; run sync to refresh legacy AI proposals')
+        pages[path] = rendered.encode('utf-8')
     return pages, targets

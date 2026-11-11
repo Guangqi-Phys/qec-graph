@@ -29,7 +29,7 @@ def invalid_provider(data):
 class ThoughtSkillTests(unittest.TestCase):
     def test_one_correction_request_preserves_evidence_validation_and_provenance(self):
         text = 'Short source sentence.\n'
-        item = {'category': 'problem', 'statement': '问题的中文说明。', 'attribution': 'editorial_inference',
+        item = {'category': 'problem', 'statement': 'A short explanation of the problem.', 'attribution': 'editorial_inference',
                 'source_quote': 'Invented quote.', 'source_refs': ['paper.tex:1']}
         invalid = {'items': [item], 'unresolved': []}
         valid = copy.deepcopy(invalid)
@@ -50,7 +50,7 @@ class ThoughtSkillTests(unittest.TestCase):
 
     def test_correction_does_not_bypass_full_request_budget(self):
         quote = 'Q' * 10000
-        data = {'items': [{'category': 'problem', 'statement': '短回答', 'source_quote': quote,
+        data = {'items': [{'category': 'problem', 'statement': 'A short answer.', 'source_quote': quote,
                            'attribution': 'editorial_inference', 'source_refs': ['paper.tex:1']}], 'unresolved': []}
         provider = FakeProvider(Completion(json.dumps(data), 'offline-model'))
         client = LLMClient(config(max_input_chars=30000), provider=provider)
@@ -62,7 +62,7 @@ class ThoughtSkillTests(unittest.TestCase):
         main = original_source('Title\r\n\\input{body}\r\n', 'paper.tex')
         body = original_source('条件 é😀\r\nOnly simulated noise was studied.\r\n', 'body.tex')
         quote = 'Only simulated noise was studied.'
-        response = {'items': [{'category': 'assumption', 'statement': '只研究模拟噪声。',
+        response = {'items': [{'category': 'assumption', 'statement': 'Only simulated noise is considered.',
                                'attribution': 'editorial_inference', 'source_quote': quote,
                                'source_refs': ['body.tex:2']}], 'unresolved': []}
 
@@ -81,7 +81,7 @@ class ThoughtSkillTests(unittest.TestCase):
         self.assertEqual(result.data, response)
         for refs, quoted, error in ((['paper.tex:2'], quote, 'not verbatim'),
                                      (['missing.tex:2'], quote, 'supplied projection'),
-                                     (['body.tex:1-2'], '条件 é😀 Only simulated noise was studied.', 'not verbatim')):
+                                     (['body.tex:1-2'], '条件 é😀 Only simulated noise was studied.', 'must use English')):
             with self.subTest(refs=refs, quote=quoted):
                 invalid = copy.deepcopy(response)
                 invalid['items'][0].update(source_refs=refs, source_quote=quoted)
@@ -128,7 +128,7 @@ class ThoughtSkillTests(unittest.TestCase):
                          projection_path=evidence['projection_path'])
         self.assertEqual(result.data, expected)
         self.assertEqual(result.proposal['review_status'], 'proposed')
-        self.assertEqual(result.proposal['provenance']['skill_version'], 4)
+        self.assertEqual(result.proposal['provenance']['skill_version'], 5)
         self.assertEqual(result.proposal['normalization_id'], normalized.sha256)
         self.assertEqual(provider.messages[0].content, skill.system_prompt)
         self.assertEqual(json.loads(provider.messages[1].content)['sources'][0]['lines'],
@@ -165,7 +165,7 @@ class ThoughtSkillTests(unittest.TestCase):
         self.assertNotEqual(old.ai_result.prompt_sha256, new.ai_result.prompt_sha256)
         self.assertEqual(old.proposal, preserved)
         self.assertEqual(old.proposal['provenance']['skill_version'], 1)
-        self.assertEqual(new.proposal['provenance']['skill_version'], 4)
+        self.assertEqual(new.proposal['provenance']['skill_version'], 5)
 
     def test_generated_and_stitched_quotes_are_rejected_before_caching(self):
         # Non-ASCII source bytes and an injected wrapper exercise the distinction
@@ -183,7 +183,7 @@ class ThoughtSkillTests(unittest.TestCase):
         for quote, refs, error in (
             ('\\begin{document}', ['paper.tex:1'], 'no original text'),
             ('研究目标：降低开销。\nNo distance lower bound is claimed.',
-             ['paper.tex:2', 'paper.tex:4'], 'not verbatim'),
+             ['paper.tex:2', 'paper.tex:4'], 'must use English'),
             ('Only simulated noise was studied.', ['paper.tex:2'], 'not verbatim'),
         ):
             with self.subTest(quote=quote), tempfile.TemporaryDirectory() as directory:

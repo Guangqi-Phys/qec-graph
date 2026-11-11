@@ -2,6 +2,7 @@ import copy
 from pathlib import Path
 import tempfile
 import unittest
+import uuid
 from unittest.mock import patch
 
 from qecgraph.core.graph import read_json
@@ -29,7 +30,7 @@ class ThoughtTests(unittest.TestCase):
 
         result = extract(normalized, Client(), 'extract_thoughts')
         self.assertEqual(result.proposal['review_status'], 'proposed')
-        self.assertEqual(result.proposal['provenance']['skill_version'], 4)
+        self.assertEqual(result.proposal['provenance']['skill_version'], 5)
         for change in ({'source_quote': 'invented', 'statement': 'invented'},
                        {'attribution': 'verified'}, {'source_refs': ['private.md:1']},
                        {'statement': 'A paraphrase'}, {'category': 'hidden_reasoning'}):
@@ -81,8 +82,62 @@ class ThoughtTests(unittest.TestCase):
             build_human(root)
             pages = list((root / 'human').rglob('*_thoughts.md'))
             self.assertEqual(len(pages), 1)
-            self.assertIn('原文依据', pages[0].read_text())
+            self.assertIn('Source evidence', pages[0].read_text())
             self.assertIn('author\\_explicit', pages[0].read_text())
+
+    def test_empty_sync_replaces_only_legacy_chinese_proposals(self):
+        from dataclasses import replace
+        from qecgraph.core.language import require_english
+        from qecgraph.llm.review import proposal_bindings, read_bound_proposal
+        from qecgraph.render.human import build_human
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            ws = Workspace(root)
+            ws.prepare()
+            (root / 'inputs/paper.tex').write_text(
+                '\\documentclass{article}\n\\begin{document}\nA question remains.\n\\end{document}\n')
+            item = {'category': 'open_question', 'statement': '问题仍未解决。',
+                    'source_quote': 'A question remains.', 'attribution': 'editorial_inference',
+                    'source_refs': ['main.tex:3']}
+
+            def answer(messages, schema, **kwargs):
+                return replace(result_with({'items': [copy.deepcopy(item)]
+                                            if 'research thought extractor' in messages[0].content else [], 'unresolved': []}),
+                               run_id=uuid.uuid4().hex)
+
+            def legacy_skill(name, extra_dir=None):
+                skill = load_skill(name, extra_dir)
+                return replace(skill, version=4) if name == 'extract_thoughts' else skill
+
+            with patch.dict('os.environ', {'OPENROUTER_API_KEY': 'offline-fixture'}), patch(
+                    'qecgraph.llm.client.LLMClient.complete_json', side_effect=answer) as calls:
+                with patch('qecgraph.llm.skills.load_skill', side_effect=legacy_skill):
+                    old_release = ws.sync()['release_id']
+                self.assertEqual(calls.call_count, 4)
+                before, _ = ws.registry.read()
+                old = proposal_bindings(before)
+                old_files = {p: (ws.registry.root / p).read_bytes() for p in old}
+                item['statement'] = 'The question remains unresolved.'
+                calls.reset_mock()
+                result = ws.sync()
+                self.assertNotEqual(result['release_id'], old_release)
+                self.assertEqual(calls.call_count, 1)
+                self.assertIn('research thought extractor', calls.call_args.args[0][0].content)
+                after, _ = ws.registry.read()
+                new = proposal_bindings(after)
+                self.assertEqual(len(new), 4)
+                self.assertEqual(len(old.keys() & new.keys()), 3)
+                for binding, material in new.values():
+                    require_english(read_bound_proposal(ws.registry, binding, material))
+                self.assertEqual({p: (ws.registry.root / p).read_bytes() for p in old}, old_files)
+                self.assertEqual(ws.registry.read(old_release)[0], before)
+                with patch('qecgraph.llm.client.LLMClient.complete_json', side_effect=AssertionError('No extra AI calls')):
+                    self.assertEqual(build_human(root)['status'], 'current')
+                    self.assertEqual(ws.sync()['status'], 'unchanged')
+                page, = (root / 'human').rglob('*_thoughts.md')
+                require_english(page.read_text())
+                self.assertIn('The question remains unresolved', page.read_text())
 
     def test_workspace_defaults_write_thought_proposals_without_promotion(self):
         from qecgraph.render.human import build_human
@@ -123,10 +178,10 @@ class ThoughtTests(unittest.TestCase):
             self.assertEqual(rendered['status'], 'current', rendered)
             page, = (root / 'human').rglob('*_thoughts.md')
             text = page.read_text()
-            self.assertIn('AI 摘录（作者原文） · proposed', text)
+            self.assertIn('AI excerpt (author wording) · proposed', text)
             self.assertIn('```latex\nA question remains.\n```', text)
             self.assertIn('main\\.tex:3', text)
-            self.assertEqual(text.count('尚无可用回答'), 8)
+            self.assertEqual(text.count('No answer available'), 8)
             self.assertFalse(any(r['kind'] == 'research_thought' for r in WorkspaceSession(root / 'machine').records.values()))
 
     def test_ai_paper_metadata_drives_obsidian_note_and_tampering_keeps_old_note(self):
@@ -137,17 +192,17 @@ class ThoughtTests(unittest.TestCase):
             ws = Workspace(root)
             ws.prepare()
             source = ('\\documentclass{article}\n\\begin{document}\n'
-                      'Surface codes: erasure study\n张三\nJune 2025\nhttps://example.org/paper\n'
+                      'Surface codes: erasure study\nSan Zhang\nJune 2025\nhttps://example.org/paper\n'
                       'We study erasure decoding for surface codes.\n\\end{document}\n')
             (root / 'inputs/paper.tex').write_text(source, encoding='utf-8')
             def evidence(value, line, quote=None):
                 return {'value': value, 'source_quote': quote or value, 'source_refs': [f'main.tex:{line}']}
-            paper = {'title': evidence('Surface codes: erasure study', 3), 'authors': [evidence('张三', 4)],
+            paper = {'title': evidence('Surface codes: erasure study', 3), 'authors': [evidence('San Zhang', 4)],
                      'published_date': evidence('2025-06', 5, 'June 2025'),
                      'link': evidence('https://example.org/paper', 6),
                      'topics': [evidence('surface codes', 7, 'We study erasure decoding for surface codes.'),
-                                evidence('擦除译码', 7, 'We study erasure decoding for surface codes.')]}
-            item = {'category': 'problem', 'statement': '研究 surface code 中的擦除译码。',
+                                evidence('erasure-decoding', 7, 'We study erasure decoding for surface codes.')]}
+            item = {'category': 'problem', 'statement': 'Study erasure decoding in surface codes.',
                     'source_quote': 'We study erasure decoding for surface codes.',
                     'attribution': 'editorial_inference', 'source_refs': ['main.tex:7']}
             def answer(messages, schema, **kwargs):
@@ -162,13 +217,13 @@ class ThoughtTests(unittest.TestCase):
             rendered = build_human(root)
             self.assertEqual(rendered['status'], 'current', rendered)
             page, = (root / 'human').rglob('*_thoughts.md')
-            self.assertEqual(page.relative_to(root / 'human').as_posix(), '2025/06/张三_Surface_codes_thoughts.md')
+            self.assertEqual(page.relative_to(root / 'human').as_posix(), '2025/06/Zhang_Surface_codes_thoughts.md')
             before = page.read_bytes()
-            self.assertTrue(before.decode().startswith('---\ntags:\n  - "surface-codes"\n  - "擦除译码"\n'
+            self.assertTrue(before.decode().startswith('---\ntags:\n  - "surface-codes"\n  - "erasure-decoding"\n'
                             'link: "https://example.org/paper"\ntitle: "Surface codes: erasure study"\n'
-                            'author:\n  - "张三"\n---\n'))
-            self.assertIn('AI 回答 · proposed', before.decode())
-            self.assertIn('研究 surface code 中的擦除译码', before.decode())
+                            'author:\n  - "San Zhang"\n---\n'))
+            self.assertIn('AI answer · proposed', before.decode())
+            self.assertIn('Study erasure decoding in surface codes', before.decode())
             proposal = next((root / 'machine/ai/proposals').rglob('extract_thoughts-*.json'))
             data = read_json(proposal)
             data['paper']['authors'][0]['value'] = 'Forged Author'

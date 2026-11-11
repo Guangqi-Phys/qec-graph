@@ -119,7 +119,9 @@ QEC Graph organizes the same sources and records through four connected views:
 
 ThoughtsGraph uses source-quoted `research_thought` records and typed links.
 Author statements and editorial interpretations stay distinct; AI output remains
-proposed. All four views share identities and provenance. See
+proposed. Generated data, catalog descriptions and human notes use English.
+`sync` replaces legacy Chinese AI proposals with newly extracted English results.
+All four views share identities and provenance. See
 [graph roles and thought queries](docs/user/data-and-search.md#how-the-four-graphs-work-together).
 
 ### Publication pipeline

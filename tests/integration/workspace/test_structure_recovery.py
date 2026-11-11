@@ -186,7 +186,7 @@ class WorkspaceStructureRecoveryTests(unittest.TestCase):
         self.assertEqual(build_human(self.root)['status'], 'current')
         page, = (self.root / 'human').rglob('*_thoughts.md')
         content = page.read_text()
-        self.assertIn('尚无可用回答', content)
+        self.assertIn('No answer available', content)
         self.assertNotIn('Reading preview', content)
         self.assertNotIn('Example', content)
 

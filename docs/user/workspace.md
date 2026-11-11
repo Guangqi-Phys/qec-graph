@@ -101,7 +101,12 @@ actual file. Unrelated manuscripts in the same archive are excluded. Missing
 files and budget failures remain explicit; a request is never silently truncated.
 Thought answers use short, searchable key sentences as quotations (preferably
 under 240 characters, at most 480); explanations and conditions stay in the AI
-answer. New extraction uses skill v4; existing proposals remain readable.
+answer. New extraction uses skill v5; existing proposals remain readable.
+Generated knowledge and human notes use English throughout: questions, answers,
+topic tags, bibliography, unresolved explanations and catalog descriptions. AI
+output containing Chinese is rejected before caching or publication. Run `sync`
+to re-extract legacy Chinese proposals; completed English proposals are reused.
+Human notes render offline from the same new release. Original evidence is not translated.
 An invalid response gets at most one correction request with the same evidence
 and checks. A second rejection remains pending for a later sync.
 

@@ -10,7 +10,7 @@ from .reading import reading_projection
 
 STRUCTURE_SCHEMA = 'qecgraph.structure_recovery'
 STRUCTURE_SKILL = 'recover_structure'
-STRUCTURE_VERSION = 1
+STRUCTURE_VERSION = 2
 _KINDS = frozenset({'section', 'paragraph', 'definition', 'lemma', 'theorem', 'proposition',
                     'corollary', 'conjecture', 'proof', 'equation', 'table', 'figure',
                     'remark', 'example', 'bibliography', 'unknown'})
@@ -157,7 +157,7 @@ def parsed_structure(evidence, binding):
                                 'model', 'prompt_sha256', 'plan'}
             or binding['schema'] != STRUCTURE_SCHEMA or binding['entry'] != evidence.entry
             or binding['source_sha256'] != evidence.sha256 or binding['skill'] != STRUCTURE_SKILL
-            or binding['skill_version'] != STRUCTURE_VERSION
+            or binding['skill_version'] not in {1, STRUCTURE_VERSION}
             or not isinstance(binding['model'], str) or not binding['model']
             or not isinstance(binding['prompt_sha256'], str) or not _HEX.fullmatch(binding['prompt_sha256'])):
         raise StructureError('Structure plan is not bound to this source and skill')

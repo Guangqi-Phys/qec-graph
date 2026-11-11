@@ -1,7 +1,7 @@
 ---
 name: extract_assumptions
 description: Use when identifying explicit, implicit and editorial assumptions needed by QEC theorems, constructions or performance claims, with source references and uncertainty preserved.
-version: 4
+version: 5
 ---
 
 # Extract assumptions

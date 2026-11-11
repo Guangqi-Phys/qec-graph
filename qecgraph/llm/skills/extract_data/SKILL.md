@@ -1,7 +1,7 @@
 ---
 name: extract_data
 description: Use when extracting reported QEC performance data, table rows, metrics, units, decoders, noise models and experimental conditions into source-linked proposals without interpolation.
-version: 4
+version: 5
 ---
 
 # Extract reported data

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- All generated AI knowledge, software catalog text and human notes now use
+  English. Semantic skills v5, normalization v3 and structure recovery v2 request
+  English throughout. Responses and cache hits reject Chinese text; original
+  source bytes and mathematical notation remain unchanged. Sync re-extracts
+  legacy Chinese proposals while reusing completed English results. The human
+  renderer rejects mixed-language output and consumes the same published results.
+
 - Documented and regression-tested shared ThoughtsGraph/human extraction:
   graph queries and offline Markdown rendering reuse the same published proposal.
   Parallel-paper tests verify concurrent extraction and serial writer staging;
@@ -19,7 +26,7 @@
   remain mandatory. Explicit hypotheses must preserve original whitespace.
 - Thought quotations now request short, searchable key sentences, preferably
   under 240 characters, with a 480-character limit on new extraction. Explanations
-  stay in the Chinese AI answer; each new response has at most 18 central thoughts.
+  stay in the English AI answer; each new response has at most 18 central thoughts.
   Existing proposal packages remain readable.
 - Already registered original papers with duplicate TeX labels can enter AI
   extraction using exact file/line citations; their labels are preserved, and
@@ -43,7 +50,7 @@
   pages, manifests and tombstones are no longer generated there. Renderer state
   stays in `.qecgraph/`; interrupted publication and obsolete-note cleanup retry
   safely. Keep personal notes outside `human/`.
-- Advanced `extract_thoughts` to skill v3 with Chinese editorial answers and
+- Advanced `extract_thoughts` to skill v3 with editorial answers and
   optional quoted paper metadata. Offline regressions cover metadata validation,
   proposal-only rendering, filename collisions, migration and recovery.
 - Default AI configuration now enables semantic proposal extraction and selects

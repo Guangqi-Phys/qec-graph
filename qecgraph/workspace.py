@@ -340,6 +340,24 @@ class Workspace:
         return (SourceTree(tree.format, {**tree.files, 'main.tex': normalized.source.data}),
                 normalization_binding(artifact, manifest))
 
+    def _english_ai_outcome(self, material):
+        """Reuse English proposals and schedule legacy CJK output for extraction."""
+        from .core.language import require_english
+        from .llm.review import read_bound_proposal
+
+        previous = material.get('ai_extraction', {})
+        written = []
+        for binding in previous.get('written', []):
+            if not binding.get('proposal_sha256'):
+                continue
+            proposal = read_bound_proposal(self.registry, binding, material)
+            try:
+                require_english(proposal)
+            except ValueError:
+                continue
+            written.append(binding)
+        return {**previous, 'written': written}
+
     def _extract_ai(self, client, material, previous, limits, version):
         from .llm.artifacts import load_normalization
         from .llm.extract import extract
@@ -865,7 +883,9 @@ class Workspace:
                 return proposals(graph, version)
 
             reused = {}
-            ai_results = {(material.get('source_version_id'), material.get('source_snapshot_id')): material['ai_extraction']
+            ai_results = {(material.get('source_version_id'), material.get('source_snapshot_id')):
+                          (self._english_ai_outcome(material)
+                           if ai_client is not None and ai_client.config.extract_proposals else material['ai_extraction'])
                           for material in materials.values() if material.get('ai_extraction')}
             if digests:
                 for prior in materials.values():
@@ -967,7 +987,7 @@ class Workspace:
         elif ai_client is not None and ai_client.config.extract_proposals and self.path('machine/CURRENT.json').is_file():
             state, _ = self.registry.read()
             digests.update(digest for digest, material in state.get('materials', {}).items()
-                           if material.get('processing_completed') and not _ai_complete(material.get('ai_extraction', {})))
+                           if material.get('processing_completed') and not _ai_complete(self._english_ai_outcome(material)))
 
         # Archiving, one check per distinct package, publication and final CLI work.
         steps = len(digests) + 3

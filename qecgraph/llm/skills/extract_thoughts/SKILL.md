@@ -1,7 +1,7 @@
 ---
 name: extract_thoughts
 description: Extract source-grounded research questions, ideas and outcomes as proposals.
-version: 4
+version: 5
 ---
 # Research thought extraction
 
@@ -43,8 +43,8 @@ missing figures/supplements supply no contents beyond files actually provided.
 5. Select attribution, quotation and exact references below. Omit unsupported
    items and explain missing context in `unresolved`.
 6. Prefer 1–2 central items per category; do not repeat the same answer with
-   several near-identical quotes. Write the answers in Chinese using
-   `editorial_inference`; do not fill the reading note with English quotations. Return at most 18 items. Prioritize central
+   several near-identical quotes. Write concise English answers using
+   `editorial_inference`. Return at most 18 items. Prioritize central
    problems, approaches, conclusions and open questions; report omissions in
    `unresolved`.
 
@@ -68,7 +68,7 @@ missing figures/supplements supply no contents beyond files actually provided.
   This attributes wording without verifying truth. Include adjacent text as needed
   to retain scope and resolve pronouns.
 - `editorial_inference`: `statement` may be a concise paraphrase or interpretation
-  supported by `source_quote`. Write clear Chinese answers for the human reading
+  supported by `source_quote`. Write clear English answers for the human reading
   notes, retaining scientific names and notation. Translations and
   paraphrases are never `author_explicit`. Retain qualifiers without adding
   mechanisms, stronger results or new hypotheses.
@@ -167,7 +167,7 @@ fields of the example evidence:
 ```
 
 The conclusion needs the condition on line 3 and outcome on line 4. The approach
-is paraphrased in Chinese, so uses `editorial_inference`. The topic has an
+is paraphrased in English, so uses `editorial_inference`. The topic has an
 exact source quote; unknown bibliography fields stay empty. Valid output:
 
 ```json
@@ -184,7 +184,7 @@ exact source quote; unknown bibliography fields stay empty. Valid output:
     },
     {
       "category": "approach",
-      "statement": "通过复用 syndrome 子图，减少对 code C 译码时的重复工作。",
+      "statement": "Reusing syndrome subgraphs reduces repeated work when decoding code C.",
       "attribution": "editorial_inference",
       "source_quote": "To decode code C, we reuse syndrome subgraphs to reduce repeated work.",
       "source_refs": [

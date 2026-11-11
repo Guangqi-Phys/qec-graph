@@ -1,7 +1,7 @@
 ---
 name: normalize_package
 description: Use when an arXiv or LaTeX source package has multiple complete TeX roots, supplements or appendices and QEC Graph must produce one source-mapped entry document.
-version: 2
+version: 3
 ---
 
 # Normalize a LaTeX source package

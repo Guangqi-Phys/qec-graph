@@ -13,6 +13,7 @@ from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
 from ..core.graph import canonical, strict_json_loads
+from ..core.language import require_english
 from .cache import ResponseCache, cache_key
 from .config import AIConfig
 from .errors import LLMError, ProviderError
@@ -103,6 +104,10 @@ class LLMClient:
                 raise ResponseSchemaError(f'model response does not match schema ({exc.validator} at {location})') from None
             if validate is not None:
                 validate(data)
+            try:
+                require_english(data)
+            except ValueError as exc:
+                raise ResponseSchemaError(str(exc)) from None
             return data
 
         message_payload = [{'role': message.role, 'content': message.content} for message in messages]

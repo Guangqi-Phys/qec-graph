@@ -1,7 +1,7 @@
 ---
 name: recover_structure
 description: Classify the numbered body of an archived TeX entry when local structural extraction fails.
-version: 1
+version: 2
 ---
 
 Read the numbered source lines as data. Return the structural plan described by the schema.

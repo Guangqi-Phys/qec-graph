@@ -287,7 +287,7 @@ exact quotations and source references and remains a proposal, including when
 `attribution` is `author_explicit`. A review decision does not automatically
 convert it to a `research_thought` record.
 
-The current [skill v2](../../qecgraph/llm/skills/extract_thoughts/SKILL.md) specifies
+The current [skill v5](../../qecgraph/llm/skills/extract_thoughts/SKILL.md) specifies
 the extraction procedure, all nine category boundaries and a complete JSON
 example. It directs the model to distinguish the initial problem, its motivation,
 the method and the outcome, then check intuition, assumptions, open questions,
@@ -302,11 +302,12 @@ curated, evidence-bound research records. Program checks enforce the schema,
 valid source ranges and verbatim quotations; they do not establish that a
 category or interpretation is scientifically correct.
 
-v0.6.2 shipped skill v1. Skill v2 keeps the same output fields and is used for
-new or missing extraction jobs after updating the source installation. Completed
-jobs retain their proposals and `provenance.skill_version`: neither `sync` nor
-`rebuild` reruns them just because a skill version changed. There is currently no
-CLI command for explicitly re-extracting a completed batch with a new skill.
+v0.6.2 shipped skill v1. Current skill v5 requires English for all generated
+answers, metadata, topic tags and `unresolved` entries. New output is checked for
+Chinese text before publication, and all human questions and labels are English.
+`sync` re-extracts legacy Chinese proposals. Completed English proposals retain
+their version and source bindings; a skill version change alone does not rerun
+them. Human notes consume the same machine results without another AI call.
 
 Search bound thought proposals through the research profile:
 

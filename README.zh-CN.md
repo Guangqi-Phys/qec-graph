@@ -94,6 +94,9 @@ qec-graph sync
 如果 `inputs/` 中有多个 TeX 根文档，normalizer 会提议一个带来源映射的
 `main.tex`，然后由 parser 提取。AI 不可用时，多根包会保持归档并提示需要入口。
 
+生成的数据、软件目录说明和 human 笔记统一使用英文。`sync` 会重新抽取旧中文 AI
+提案，再由同一份英文机器结果生成 human。
+
 ## 工作流程
 
 ### 四种图视图

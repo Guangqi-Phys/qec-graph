@@ -2,7 +2,7 @@
   "schema": "qecgraph.software_catalog.seed",
   "catalogue_id": "software-catalog:qec-core:2026-11-09",
   "catalogue_scope": {
-    "subject": "公开 QEC 研究软件的起始索引：电路模拟、译码、采样、码构造、可视化与平台框架",
+    "subject": "A starter index of public QEC research software: circuit simulation, decoding, sampling, code construction, visualization and platform frameworks",
     "included_roles": [
       "binary_linear_algebra",
       "circuit_generation",
@@ -18,31 +18,31 @@
       "simulation_framework",
       "visualization"
     ],
-    "discovery_basis": "用户明确点名的软件及从其官方仓库、项目文档和维护者发行页核对的相关项目",
+    "discovery_basis": "Software explicitly named by the user and related projects checked against official repositories, project documentation and maintainer release pages",
     "excluded_from_current_seed": [
-      "未发现的项目",
-      "尚未核对身份的论文专用代码",
-      "通用科学计算库的完整依赖树",
-      "闭源软件",
-      "未检查的硬件 SDK"
+      "Undiscovered projects",
+      "Paper-specific code whose identity has not been checked",
+      "Complete dependency trees of general scientific computing libraries",
+      "Closed-source software",
+      "Hardware SDKs that have not been checked"
     ]
   },
   "completeness": "non_exhaustive",
   "checked_at": "2026-11-09",
   "verification_policy": {
-    "checked": "上游项目身份、公开描述与列出的来源页面",
+    "checked": "Upstream project identities, public descriptions and the listed source pages",
     "not_checked": [
-      "本地安装",
-      "功能复现",
-      "速度或 LER 宣传数字",
-      "全部依赖的许可证",
-      "每个发布版本",
-      "某篇论文是否实际使用"
+      "Local installation",
+      "Functional reproduction",
+      "Advertised speed or LER figures",
+      "Licenses of all dependencies",
+      "Every release version",
+      "Actual use in a particular paper"
     ],
-    "version_policy": "本目录不填写最新版本；论文中的实际版本、commit 和配置必须从论文或复现证据另行绑定。",
-    "license_policy": "upstream_declared 仅表示官方页面声明；not_verified 的 SPDX 为 null。复用源码或分发前按准确提交重新核对许可证。",
-    "alias_policy": "算法名和码族名不是发行包唯一标识；BP-OSD 不自动等同于 bposd 包，LDPC/qLDPC/MWPF 等词需要上下文消歧。aliases 不是已核实的 Python 导入入口表。",
-    "network_policy": "此目录不是安装清单；导入论文不自动安装或执行目录中的项目。"
+    "version_policy": "This catalog does not record latest versions. Actual versions, commits and configurations used in a paper require separate bindings to the paper or reproduction evidence.",
+    "license_policy": "upstream_declared means only that an official page states the license; SPDX is null for not_verified entries. Recheck licenses at the exact commit before reusing or distributing source.",
+    "alias_policy": "Algorithm and code-family names do not uniquely identify distributions. BP-OSD does not automatically mean the bposd package; LDPC/qLDPC/MWPF require contextual disambiguation. aliases is not a verified list of Python import paths.",
+    "network_policy": "This catalog is not an installation manifest. Importing papers does not automatically install or execute listed projects."
   },
   "entries": [
     {
@@ -75,7 +75,7 @@
       },
       "capabilities": [
         {
-          "claim": "用于量子稳定子电路的模拟与分析；支持 Python、命令行和 C++ 接口。",
+          "claim": "Simulation and analysis of quantum stabilizer circuits, with Python, command-line and C++ interfaces.",
           "verification_status": "upstream_documented_not_tested",
           "evidence_urls": [
             "https://github.com/quantumlib/Stim"
@@ -87,7 +87,7 @@
         "evidence_urls": []
       },
       "notes": [
-        "稳定子电路适用范围与具体噪声操作按所用版本检查；包名不证明论文包含 idling、loss 或任意量子通道。"
+        "Check stabilizer-circuit scope and supported noise operations for the version used. The package name does not establish that a paper includes idling, loss or arbitrary quantum channels."
       ],
       "evidence_urls": [
         "https://github.com/quantumlib/Stim"
@@ -127,7 +127,7 @@
       },
       "capabilities": [
         {
-          "claim": "为 Stim 和译码器组织并行采样、停止条件与统计结果，提供 CSV 输出及绘图辅助。",
+          "claim": "Coordinates parallel sampling, stopping conditions and statistics for Stim and decoders, with CSV output and plotting helpers.",
           "verification_status": "upstream_documented_not_tested",
           "evidence_urls": [
             "https://github.com/quantumlib/Stim/blob/main/glue/sample/README.md"
@@ -139,7 +139,7 @@
         "evidence_urls": []
       },
       "notes": [
-        "与 Stim 共享仓库，但为独立发行包和软件角色；不能据使用 Stim 自动推断使用 Sinter。"
+        "Shares a repository with Stim but is a separate distribution and software role. Use of Stim does not imply use of Sinter."
       ],
       "evidence_urls": [
         "https://github.com/quantumlib/Stim/blob/main/glue/sample/README.md"
@@ -183,7 +183,7 @@
       },
       "capabilities": [
         {
-          "claim": "基于匹配图的译码实现，可接入 Stim detector error model；相关匹配支持依赖版本及配置。",
+          "claim": "Matching-graph decoding with support for Stim detector error models; correlated matching support depends on version and configuration.",
           "verification_status": "upstream_documented_not_tested",
           "evidence_urls": [
             "https://pypi.org/project/PyMatching/",
@@ -196,7 +196,7 @@
         "evidence_urls": []
       },
       "notes": [
-        "MWPM、普通匹配和相关匹配不能作为同一 decoder setup；保存图构建、DEM 分解与 correlation 开关。"
+        "MWPM, ordinary matching and correlated matching are distinct decoder setups. Preserve graph construction, DEM decomposition and correlation settings."
       ],
       "evidence_urls": [
         "https://pypi.org/project/PyMatching/",
@@ -244,7 +244,7 @@
       },
       "capabilities": [
         {
-          "claim": "提供经典及量子 LDPC 译码工具，官方说明列出 BP+OSD、BP+LSD 和 union-find matching 实现。",
+          "claim": "Classical and quantum LDPC decoding tools; official documentation lists BP+OSD, BP+LSD and union-find matching implementations.",
           "verification_status": "upstream_documented_not_tested",
           "evidence_urls": [
             "https://github.com/quantumgizmos/ldpc"
@@ -256,7 +256,7 @@
         "evidence_urls": []
       },
       "notes": [
-        "保存 BP 规则、迭代/停止条件、OSD/LSD 配置与版本；不能将算法名直接当包身份。"
+        "Preserve BP rules, iteration/stopping conditions, OSD/LSD configuration and versions. An algorithm name is not a package identity."
       ],
       "evidence_urls": [
         "https://github.com/quantumgizmos/ldpc"
@@ -299,7 +299,7 @@
       },
       "capabilities": [
         {
-          "claim": "BP+OSD 研究软件发行包；维护者发行页说明其主要实现代码位于 ldpc 仓库。",
+          "claim": "A BP+OSD research software distribution; maintainer release pages state that its main implementation is in the ldpc repository.",
           "verification_status": "upstream_documented_not_tested",
           "evidence_urls": [
             "https://pypi.org/project/bposd/"
@@ -308,14 +308,14 @@
       ],
       "maintenance": {
         "status": "not_assessed",
-        "upstream_note": "主要实现代码位于 ldpc；原 C++ 实现在 cpp_version 分支。",
+        "upstream_note": "The main implementation is in ldpc; the original C++ implementation is on the cpp_version branch.",
         "evidence_urls": [
           "https://pypi.org/project/bposd/"
         ]
       },
       "notes": [
-        "此条保留发行包身份和历史论文引用；BP-OSD 算法别名不得无条件归到本条。",
-        "本次未完成该项目许可证核对；不能从依赖 ldpc 推断采用同一许可证。"
+        "This entry preserves the distribution identity and historical paper references. Do not unconditionally map the BP-OSD algorithm alias to this entry.",
+        "The project license was not checked in this catalog pass. Depending on ldpc does not imply the same license."
       ],
       "evidence_urls": [
         "https://pypi.org/project/bposd/"
@@ -358,7 +358,7 @@
       },
       "capabilities": [
         {
-          "claim": "Relay-BP 的 Rust 实现和 Python 绑定，提供可选的 Stim/Sinter 集成。",
+          "claim": "A Rust implementation of Relay-BP with Python bindings and optional Stim/Sinter integration.",
           "verification_status": "upstream_documented_not_tested",
           "evidence_urls": [
             "https://github.com/trmue/relay",
@@ -371,8 +371,8 @@
         "evidence_urls": []
       },
       "notes": [
-        "Relay-BP 论文、trmue 实现和其他平台中的 Relay-BP 实现分开登记。",
-        "记录 memory/gamma 分布、ensemble/relay 次数、收敛规则、精度和 XZ/XYZ 处理，不从默认参数推断论文设置。"
+        "Register the Relay-BP paper, the trmue implementation and Relay-BP implementations on other platforms separately.",
+        "Record memory/gamma distributions, ensemble/relay counts, convergence rules, precision and XZ/XYZ handling. Do not infer paper settings from defaults."
       ],
       "evidence_urls": [
         "https://github.com/trmue/relay",
@@ -416,7 +416,7 @@
       },
       "capabilities": [
         {
-          "claim": "构造和分析有限 qLDPC、稳定子与子系统码，并提供电路相关工具；电路工具的适用范围需按版本核对。",
+          "claim": "Construction and analysis of finite qLDPC, stabilizer and subsystem codes, with circuit-related tools whose scope must be checked by version.",
           "verification_status": "upstream_documented_not_tested",
           "evidence_urls": [
             "https://github.com/qLDPCOrg/qLDPC"
@@ -428,7 +428,7 @@
         "evidence_urls": []
       },
       "notes": [
-        "不要将包内某个估计或 bound 返回值当成精确码距；记录实际函数、版本、输入与保证类型。"
+        "Do not treat an estimate or bound returned by the package as the exact code distance. Record the actual function, version, inputs and guarantee type."
       ],
       "evidence_urls": [
         "https://github.com/qLDPCOrg/qLDPC"
@@ -468,7 +468,7 @@
       },
       "capabilities": [
         {
-          "claim": "基于稳定子码的 Python QEC 模拟框架，提供 code、error model、decoder 的接口与示例。",
+          "claim": "A Python QEC simulation framework based on stabilizer codes, providing code, error-model and decoder interfaces and examples.",
           "verification_status": "upstream_documented_not_tested",
           "evidence_urls": [
             "https://qecsim.github.io/",
@@ -481,7 +481,7 @@
         "evidence_urls": []
       },
       "notes": [
-        "记录具体模型和测量噪声设置；不凭 framework 名称自动判为 circuit-level 模拟。"
+        "Record the specific model and measurement-noise settings. A framework name alone does not establish circuit-level simulation."
       ],
       "evidence_urls": [
         "https://qecsim.github.io/",
@@ -530,7 +530,7 @@
       },
       "capabilities": [
         {
-          "claim": "提供拓扑码构造、噪声/译码性能评估及二维/三维可视化，并接入若干外部译码器。",
+          "claim": "Topological code construction, noise/decoding performance evaluation and 2D/3D visualization, with integrations for several external decoders.",
           "verification_status": "upstream_documented_not_tested",
           "evidence_urls": [
             "https://github.com/panqec/panqec",
@@ -543,7 +543,7 @@
         "evidence_urls": []
       },
       "notes": [
-        "框架与其实际调用的 ldpc/PyMatching 等后端分别记 SoftwareUsage；使用框架不表示使用全部后端。"
+        "Record separate SoftwareUsage entries for the framework and the ldpc/PyMatching or other backends it actually calls. Using the framework does not imply using all backends."
       ],
       "evidence_urls": [
         "https://github.com/panqec/panqec",
@@ -587,7 +587,7 @@
       },
       "capabilities": [
         {
-          "claim": "面向 QEC 的 MWPM 求解器，Rust 实现并提供 Python 绑定，支持并行分区及合并。",
+          "claim": "A QEC MWPM solver implemented in Rust with Python bindings, supporting parallel partitioning and merging.",
           "verification_status": "upstream_documented_not_tested",
           "evidence_urls": [
             "https://github.com/yuewuo/fusion-blossom"
@@ -599,8 +599,8 @@
         "evidence_urls": []
       },
       "notes": [
-        "保存求解器模式、线程/分区配置与图构建方式；本目录未复测上游速度或正确性宣传。",
-        "仓库包含的第三方组件可能有单独许可证，不能将仓库主许可证当成全部依赖许可证。"
+        "Preserve solver mode, thread/partition settings and graph construction. Upstream speed and correctness claims were not reproduced for this catalog.",
+        "Third-party components in the repository may have separate licenses. The main repository license does not cover all dependencies by implication."
       ],
       "evidence_urls": [
         "https://github.com/yuewuo/fusion-blossom"
@@ -645,7 +645,7 @@
       },
       "capabilities": [
         {
-          "claim": "围绕 surface code、噪声模型和译码器组织模拟与可视化，文档列出 MWPM 和 union-find 系列模块。",
+          "claim": "Simulation and visualization organized around surface codes, noise models and decoders; documentation lists MWPM and union-find modules.",
           "verification_status": "upstream_documented_not_tested",
           "evidence_urls": [
             "https://qsurface.readthedocs.io/en/latest/index.html",
@@ -658,7 +658,7 @@
         "evidence_urls": []
       },
       "notes": [
-        "具体模型能否表示某篇论文的门级噪声，需要单独核对；本条不声明通用电路噪声能力。"
+        "Check separately whether a specific model represents a paper's gate-level noise. This entry does not claim general circuit-noise support."
       ],
       "evidence_urls": [
         "https://qsurface.readthedocs.io/en/latest/index.html",
@@ -693,7 +693,7 @@
       },
       "capabilities": [
         {
-          "claim": "Qiskit 生态的 QEC 研究框架，官方文档提供代码构造、电路和译码接口。",
+          "claim": "A QEC research framework in the Qiskit ecosystem; official documentation provides code-construction, circuit and decoding interfaces.",
           "verification_status": "upstream_documented_not_tested",
           "evidence_urls": [
             "https://qiskit-community.github.io/qiskit-qec/"
@@ -709,9 +709,9 @@
         ]
       },
       "notes": [
-        "未在本次目录中确认发行注册表名称；qiskit_qec 出现在官方 API 文档中，但不能据此假定存在同名 PyPI 发行。",
-        "仓库页面声明 Apache-2.0；具体提交和第三方组件许可证仍需单独核对。",
-        "GitHub 官方 Discussions 页明确显示仓库于 2026-09-15 归档；保留历史可复现依赖，不标成当前维护推荐。"
+        "The distribution registry name was not confirmed in this catalog pass. qiskit_qec appears in official API documentation, but this does not establish a PyPI distribution with the same name.",
+        "The repository page declares Apache-2.0. Licenses for specific commits and third-party components still require separate checks.",
+        "The official GitHub Discussions page states that the repository was archived on 2026-09-15. Preserve it as a historical reproducible dependency, not a current maintenance recommendation."
       ],
       "evidence_urls": [
         "https://qiskit-community.github.io/qiskit-qec/",
@@ -754,7 +754,7 @@
       },
       "capabilities": [
         {
-          "claim": "基于 CUDA-Q 的 QEC C++/Python 库，面向 CPU、GPU、QPU 工作流；具体译码器与设备支持按版本和组件核对。",
+          "claim": "A CUDA-Q-based QEC C++/Python library for CPU, GPU and QPU workflows; decoder and device support must be checked by version and component.",
           "verification_status": "upstream_documented_not_tested",
           "evidence_urls": [
             "https://nvidia.github.io/cudaq-qec/index.html",
@@ -769,8 +769,8 @@
         ]
       },
       "notes": [
-        "CPU/GPU 运行条件与可选组件不相同；不从库名推断某篇论文真的在 GPU 上运行。",
-        "本次未完成主许可证与组件许可证核对；旧文献的 cudaqx 地址不应自动替换其 commit。"
+        "CPU/GPU runtime requirements and optional components differ. The library name does not establish that a paper actually ran on a GPU.",
+        "The main and component licenses were not checked in this catalog pass. Do not automatically replace the commit associated with a cudaqx URL in older literature."
       ],
       "evidence_urls": [
         "https://nvidia.github.io/cudaq-qec/index.html",
@@ -813,7 +813,7 @@
       },
       "capabilities": [
         {
-          "claim": "超图 MWPF 译码实现，提供 Python 接口及 Stim/Sinter 适配路径。",
+          "claim": "A hypergraph MWPF decoder implementation with Python interfaces and Stim/Sinter adapters.",
           "verification_status": "upstream_documented_not_tested",
           "evidence_urls": [
             "https://github.com/yuewuo/mwpf"
@@ -825,8 +825,8 @@
         "evidence_urls": []
       },
       "notes": [
-        "保存 cluster limit、timeout、fallback 和 adapter 版本；不能据算法名称宣称每次运行达到全局最优。",
-        "某些 heralded error 工作流还需要实际 circuit 信息；仅有 DEM 或 package 名称不足以重现。"
+        "Preserve cluster limits, timeouts, fallbacks and adapter versions. The algorithm name does not establish global optimality for every run.",
+        "Some heralded-error workflows also require the actual circuit. A DEM or package name alone is insufficient for reproduction."
       ],
       "evidence_urls": [
         "https://github.com/yuewuo/mwpf"
@@ -841,6 +841,6 @@
     "seed_entries": 14,
     "global_software_count": null,
     "recall_estimate": null,
-    "statement": "14 条经指定官方来源核对的起始记录；不表示全网或某一领域已穷尽。"
+    "statement": "14 starter records checked against the specified official sources; this is not an exhaustive index of the web or a research field."
   }
 }

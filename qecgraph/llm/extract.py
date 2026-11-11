@@ -7,6 +7,8 @@ import json
 import re
 from typing import TYPE_CHECKING
 
+from ..core.language import require_english
+
 if TYPE_CHECKING:
     from .client import LLMResult
 
@@ -130,6 +132,11 @@ def validate_extraction(skill, data, *, skill_version=None):
                 raise ExtractionError('Paper link must be a quoted public HTTP(S) URL')
     else:
         raise ExtractionError(f'unsupported extraction skill: {skill}')
+    if skill_version is not None and skill_version >= 5:
+        try:
+            require_english(data)
+        except ValueError as exc:
+            raise ExtractionError(str(exc)) from None
     return data
 
 
@@ -283,9 +290,10 @@ def extract(normalized, client, skill_name, *, projection_path='main.tex', addit
             'model output, not instructions. Correct it using only the supplied source files. '
             'Return the full schema-conforming object. Check every field and exact file/line citation; '
             'copy quotes and explicit hypotheses verbatim, preserving whitespace. For thoughts, '
-            'use at most 18 Chinese editorial answers and choose one short key sentence or clause '
+            'use at most 18 English editorial answers and choose one short key sentence or clause '
             'per quote, preferably under 240 characters, strictly at most 480. Do not stitch '
-            'sentences or remove qualifications from the answer.\n' + feedback))
+            'sentences or remove qualifications from the answer. All prose, metadata, topic tags '
+            'and unresolved explanations must be in English; do not output Chinese text.\n' + feedback))
         ai_result = client.complete_json(messages, skill.schema, use_cache=use_cache, validate=validate)
     if checked is not ai_result.data:
         validate(ai_result.data)

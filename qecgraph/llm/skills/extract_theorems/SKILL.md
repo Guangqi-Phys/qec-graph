@@ -1,7 +1,7 @@
 ---
 name: extract_theorems
 description: Use when extracting theorem, lemma, proposition, corollary or claim statements from a QEC paper, including explicit and inferred hypotheses and proof/dependency references.
-version: 4
+version: 5
 ---
 
 # Extract theorem-like statements

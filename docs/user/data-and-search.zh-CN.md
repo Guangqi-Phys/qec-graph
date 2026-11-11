@@ -251,7 +251,7 @@ API key 留给用户填写。
 即使 `attribution` 为 `author_explicit` 也不例外。审核决定不会自动将其转换为
 `research_thought` 记录。
 
-当前 [skill v2](../../qecgraph/llm/skills/extract_thoughts/SKILL.md) 给出具体抽取步骤、
+当前 [skill v5](../../qecgraph/llm/skills/extract_thoughts/SKILL.md) 给出具体抽取步骤、
 九类内容的区分规则和完整 JSON 示例：先区分“要解决什么问题”“为什么值得解决”
 “采用什么方法”“实际得到什么结果”，再检查直觉、假设、开放问题、意外结果和旁支结果。
 噪声模型、idle/loss、解码器、模拟范围等条件必须与结论一起保留。
@@ -262,9 +262,10 @@ API key 留给用户填写。
 `contradicts_refs` 等关系需要另行整理成附证据的研究记录。程序检查输出格式、
 来源区间和逐字引用，不能据此保证分类与解读在科学上正确。
 
-v0.6.2 发布包内是 skill v1。v2 保持输出字段不变，更新源码安装后用于新任务或缺失的
-抽取任务。已完成任务保留原提案和 `provenance.skill_version`；`sync`、`rebuild`
-都不会仅因为 skill 升级而重跑。当前还没有用新版 skill 显式重提取已完成批次的 CLI 命令。
+v0.6.2 发布包内是 skill v1，当前 v5 要求所有生成内容使用英文，包括回答、元数据、
+主题词和 `unresolved`。新输出在发布前检查中文字符，human 九问与提示也统一为英文。
+`sync` 会重新抽取旧中文提案；已经完成的英文提案保留原版本与来源绑定，不会仅因
+skill 版本变化重跑。human 继续读取同一份机器结果，不另行调用 AI。
 
 通过研究 profile 搜索已绑定来源的思路提案：
 
