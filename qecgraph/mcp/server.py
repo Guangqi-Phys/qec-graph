@@ -9,6 +9,8 @@ import sys
 import time
 from collections import deque
 
+from jsonschema import Draft202012Validator
+
 from .. import __version__
 from ..core.graph import strict_json_loads
 
@@ -29,6 +31,8 @@ class MCPServer:
             raise ValueError('calls_per_second must be 1..1000')
         self.session = session
         self._tool_names = frozenset(tool['name'] for tool in session.tools())
+        self._output_validators = {t['name']: Draft202012Validator(t['outputSchema']) for t in session.tools()
+                                   if 'outputSchema' in t}
         self.initialized = self.ready = False
         self.calls_per_second, self.clock = calls_per_second, clock
         self.calls = deque()
@@ -125,9 +129,13 @@ class MCPServer:
             envelope = self.session.invoke(name, params.get('arguments', {}))
             if not envelope['ok'] and envelope['error']['code'] == 'INVALID_ARGUMENT':
                 return rpc_error(identifier, -32602, envelope['error']['message'], envelope['error'])
+            output = envelope['data'] if name in {'search', 'fetch'} and envelope['ok'] else envelope
+            validator = self._output_validators.get(name)
+            if envelope['ok'] and validator is not None and not validator.is_valid(output):
+                return rpc_error(identifier, -32603, 'Read tool output failed its declared schema')
             return {'jsonrpc': '2.0', 'id': identifier, 'result': {
-                'content': [{'type': 'text', 'text': json.dumps(envelope, ensure_ascii=False, separators=(',', ':'), allow_nan=False)}],
-                'structuredContent': envelope, 'isError': not envelope['ok']}}
+                'content': [{'type': 'text', 'text': json.dumps(output, ensure_ascii=False, separators=(',', ':'), allow_nan=False)}],
+                'structuredContent': output, 'isError': not envelope['ok']}}
         return rpc_error(identifier, -32601, 'Method not found')
 
 

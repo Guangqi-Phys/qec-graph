@@ -51,7 +51,10 @@ def _integer(minimum=0, maximum=1000000000):
 
 
 class WorkspaceSession:
-    def __init__(self, machine, release_id=None, **budgets):
+    def __init__(self, machine, release_id=None, *, profile='legacy', **budgets):
+        if profile not in {'legacy', 'research', 'compatible'}:
+            raise ValueError('Unknown workspace tool profile')
+        self.profile = profile
         machine = Path(machine).absolute()
         if machine.is_symlink():
             raise ValueError('The machine directory cannot be a symlink')
@@ -205,14 +208,24 @@ class WorkspaceSession:
                 props['view'] = {'enum': ['raw', 'reading']}
             if descriptor['name'] in ('qecgraph_search', 'qec_find_codes', 'qec_find_performance', 'qec_find_software'):
                 props.update(limit=_integer(1, self.graph.max_results), offset=_integer(0))
-        return descriptors
+        from .knowledge import descriptors as knowledge_descriptors
+        return knowledge_descriptors(self, descriptors)
 
     @cached_property
     def _tool_validators(self):
-        return tool_validators(self._tool_descriptors)
+        return tool_validators(self.tools())
 
     def tools(self):
-        return copy.deepcopy(self._tool_descriptors)
+        from .knowledge import RESEARCH_TOOLS
+        selected = {'research': set(RESEARCH_TOOLS), 'compatible': {'search', 'fetch'}}.get(self.profile)
+        if selected is None:
+            selected = {t['name'] for t in self._tool_descriptors[:13]}
+        return copy.deepcopy([t for t in self._tool_descriptors if t['name'] in selected])
+
+    @cached_property
+    def knowledge(self):
+        from .knowledge import KnowledgeView
+        return KnowledgeView(self)
 
     @cached_property
     def _materials(self):
@@ -545,14 +558,28 @@ class WorkspaceSession:
                 raise ToolError('SNAPSHOT_UNAVAILABLE', 'This session is pinned to a different release')
             maximum = args.pop('max_chars', self.graph.max_chars)
             check_machine_tree(self.machine)
+            if name in {'search', 'fetch'}:
+                data = self.knowledge.compatible(name, args)
+                if len(canonical(data)) > maximum:
+                    raise ToolError('BUDGET_TOO_SMALL', 'Complete evidence exceeds session budget; use research profile ranges')
+                return {'ok': True, 'data': copy.deepcopy(data)}
+            requested_name = name
+            from .knowledge import ALIASES
+            name = ALIASES.get(name, name)
             metadata = {'scope': self.scope, 'knowledge_snapshot': self.release, 'coverage': self._coverage}
             graph_metadata = {**metadata, 'continuation': None}
-            if name == 'qecgraph_search':
+            if name == 'qec_fetch':
+                data = self.knowledge.fetch(args)
+            elif name == 'qec_search':
+                data = self.knowledge.search(args)
+            elif name == 'qecgraph_search':
                 if not args['query'].strip():
                     raise ToolError('INVALID_ARGUMENT', 'Search query must not be blank')
                 data = self._search(args)
             elif name == 'qec_workspace_status':
                 data = {'operational_status': self._operational()}
+                if requested_name == 'qec_status':
+                    data['knowledge_coverage'] = self.knowledge.coverage()
             elif name == 'qec_get_asset':
                 uri = args['identifier']
                 if uri not in self.assets:

@@ -110,7 +110,7 @@ class Registry:
         return {'registry_revision': revision, 'source_version': version}
 
     def stage_source(self, state, work_id, source_version_id, store, *, title=None, upstream_version=None,
-                     replace_projection=False, captured=None, manifest_hashes=None):
+                     replace_projection=False, captured=None, manifest_hashes=None, canonical_url=None):
         """Prepare a verified source projection under the caller's registry writer lock."""
         if not all(isinstance(x, str) and x.strip() for x in (work_id, source_version_id)):
             raise ValueError('work_id and source_version_id must be explicit nonempty IDs')
@@ -126,6 +126,12 @@ class Registry:
             version = {'id': source_version_id, 'work_id': work_id, 'project_id': graph['project_id'],
                        'snapshot_id': snapshot_id, 'project_source_hash': graph['project_source_hash'],
                        'snapshot_path': snapshot_path, 'upstream_version': upstream_version}
+            if canonical_url is not None:
+                from urllib.parse import urlsplit
+                url = urlsplit(canonical_url)
+                if url.scheme not in {'http', 'https'} or not url.hostname or url.username or any(c.isspace() for c in canonical_url):
+                    raise ValueError('canonical_url must be a public HTTP(S) citation URL')
+                version['canonical_url'] = canonical_url
             if 'structure_recovery' in graph:
                 version['structure_recovery'] = {'status': 'proposed',
                                                  'plan_sha256': hash_text(canonical(graph['structure_recovery']))}

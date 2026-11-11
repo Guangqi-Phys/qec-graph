@@ -775,6 +775,8 @@ implementation. Do not treat a roadmap or generated fixture as a finished
 scientific result. PDF/OCR, chart digitization, automatic theorem proving and
 thousand/ten-thousand-paper production validation remain outside this iteration.
 
+Stage 2 is implemented: document/file/section reads, strict version selection, field/source coverage and selectable MCP profiles. Full source files are read from registered snapshots with hash verification, including text outside parsed blocks.
+
 ### 16.7 Evidence of benefit
 
 Compare A (direct reading where it fits), B (source search plus reading) and C

@@ -221,3 +221,21 @@ An MCP connection fixes the knowledge release at startup. Reconnect after
 from `mcp-config`, regenerate it to update its explicit release ID. The CLI
 also accepts `--release` to repeat a query against a particular release.
 [MCP setup](../../README.md#mcp)
+
+### Document reading profiles
+
+The default MCP profile retains the original 13 tools. Use `--profile research`
+with `mcp serve`, `mcp config` or `query-tool` for seven task tools, including
+`qec_fetch` and `qec_search`. `qec_fetch` accepts an exact `identifier` and
+`view: "outline"`, `"raw"` or `"reading"`. Outlines use `limit`/`offset`;
+source ranges use original Unicode `char_start`/`char_end`. A document returns
+its registered source files separately, preserving include boundaries. A section
+returns continuous text through the next section boundary, including subsections.
+Exact `source_version_id` requests never fall back to a different version.
+
+`--profile compatible` exposes just `search(query)` and `fetch(id)`, returning
+citable evidence units. Register a version-specific public `canonical_url` in
+`[sources."<source-tree-hash>"]` alongside `work_id`, then rebuild. No URL is
+invented for local sources; they remain available in the research profile.
+Large generic fetches fail with `BUDGET_TOO_SMALL`; use research ranges or a
+larger session budget. `qec_status` reports full-text and metadata-only coverage.

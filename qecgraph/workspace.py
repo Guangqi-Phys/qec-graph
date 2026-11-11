@@ -241,10 +241,14 @@ class Workspace:
                 raise WorkspaceConfigError(path, 'Entry overrides use source tree hashes and exact relative member names')
         for key, source in cfg.get('sources', {}).items():
             if (not HEX.fullmatch(key) or not isinstance(source, dict)
-                    or set(source) - {'work_id', 'upstream_version', 'title'}
+                    or set(source) - {'work_id', 'upstream_version', 'title', 'canonical_url'}
                     or not isinstance(source.get('work_id'), str) or not source['work_id'].strip()
                     or not all(isinstance(x, str) and x.strip() for x in source.values())):
                 raise WorkspaceConfigError(path, 'Invalid explicit source metadata')
+            if 'canonical_url' in source:
+                from .knowledge import public_url
+                if not public_url(source['canonical_url']):
+                    raise WorkspaceConfigError(path, 'canonical_url must be a public HTTP(S) citation URL')
         return cfg
 
     def init(self, *, no_ingest=False, keep_inputs=False, progress=None):
@@ -665,7 +669,7 @@ class Workspace:
                             return self._keep_prior(result, prior)
                         version = self.registry.stage_source(
                             state, work_id, source_id, temporary / 'store', title=metadata.get('title'),
-                            upstream_version=upstream, replace_projection=True,
+                            upstream_version=upstream, canonical_url=metadata.get('canonical_url'), replace_projection=True,
                             captured=captured, manifest_hashes=manifest_hashes)
             reused[build_key] = version
             if normalization is not None:

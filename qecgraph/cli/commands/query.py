@@ -36,10 +36,12 @@ def research_query(args):
 
 def _ai_session(args):
     if args.workspace or args.machine:
-        return _workspace_session(args, max_nodes=args.session_max_nodes, max_depth=args.session_max_depth,
+        return _workspace_session(args, profile=args.profile, max_nodes=args.session_max_nodes, max_depth=args.session_max_depth,
                                   max_chars=args.session_max_chars, max_results=args.session_max_results)
     if args.release:
         raise UsageError('--release requires --workspace or --machine')
+    if args.profile != 'legacy':
+        raise UsageError('--profile requires --workspace or --machine')
     from ...mcp.ai_tools import ReadOnlySession
     return ReadOnlySession(store=args.store, corpus=args.corpus, snapshot_id=args.snapshot,
                            registry_revision=args.registry_revision, source_version_id=args.source_version_id,
@@ -125,6 +127,8 @@ def mcp_config(args):
     executable, *arguments = cli_command('mcp', 'serve')
     if args.workspace or args.machine:
         arguments += ['--machine', str(session.machine), '--release', session.release]
+        if args.profile != 'legacy':
+            arguments += ['--profile', args.profile]
     elif args.corpus:
         arguments += ['--corpus', str(Path(args.corpus).resolve()), '--registry-revision', session.scope['registry_revision']]
         if args.source_version_id:
