@@ -38,7 +38,7 @@ _KINDS = {
     "definition", "lemma", "theorem", "proposition", "corollary", "conjecture",
     "proof", "equation", "table", "figure", "remark", "example",
     "abstract", "algorithm", "assumption", "claim", "notation", "acknowledgments", "statement_other",
-    "title", "author_block",
+    "title", "author_block", "bib_entry",
 }
 _ENVIRONMENTS = {
     "definition": "definition", "defn": "definition", "dfn": "definition",
@@ -595,6 +595,7 @@ class _ProjectParser:
             specs[name] = MacroSpec(name, args_parser="*[[{")
         for name in ("title", "author", "date", "keywords"):
             specs[name] = MacroSpec(name, args_parser="[{")
+        specs['bibitem'] = MacroSpec('bibitem', args_parser='[{')
         for name in ("label", "lean"):
             specs[name] = MacroSpec(name, args_parser="{")
         for name in ("leanok", "mathlibok", "notready"):
@@ -940,6 +941,21 @@ class _ProjectParser:
             self.metadata(child, path, block["key"], sections)
         return block["key"]
 
+    def emit_bibliography_entries(self, node, path, parent, sections):
+        children = node.nodelist or []
+        entries = [(i, child) for i, child in enumerate(children)
+                   if isinstance(child, LatexMacroNode) and child.macroname == 'bibitem']
+        text = self.files[path]['text']
+        for index, (offset, item) in enumerate(entries):
+            stop = entries[index + 1][1].pos if index + 1 < len(entries) else (
+                children[-1].pos + children[-1].len)
+            key = _last_arg(item, text).strip()
+            block = self.make_block('bib_entry', path, item.pos, stop, parent, title_tex=key)
+            block.update(source_role='bibliography', bibliography_key=key)
+            last = entries[index + 1][0] if index + 1 < len(entries) else len(children)
+            for child in children[offset:last]:
+                self.metadata(child, path, block['key'], sections)
+
     def emit_section(self, node, path, owner, sections, text):
         level = _SECTIONS[node.macroname]
         while sections and sections[-1][0] >= level:
@@ -1046,6 +1062,7 @@ class _ProjectParser:
                     last_anchor = block["key"]
                     self.metadata(node, path, last_anchor, sections)
                 block["source_role"] = "bibliography"
+                self.emit_bibliography_entries(node, path, block['key'], sections)
                 continue
             if isinstance(node, LatexEnvironmentNode) and self.kind_of_environment(node.environmentname):
                 flush()

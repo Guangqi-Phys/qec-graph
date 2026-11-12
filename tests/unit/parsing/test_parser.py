@@ -6,6 +6,31 @@ from qecgraph.source.parser import parse_project
 
 
 class ParserTests(unittest.TestCase):
+    def test_bibitems_preserve_source_and_duplicate_keys_stay_ambiguous(self):
+        from qecgraph.core.graph import build_graph
+        text = r'''\documentclass{article}
+\begin{document}
+Citations \cite{one,duplicate}.
+\begin{thebibliography}{9}
+\bibitem[Author 2020]{one} Author. A {nested} title. 2020.
+\bibitem{duplicate} First conflicting citation.
+\bibitem{duplicate} Second conflicting citation.
+\end{thebibliography}
+\end{document}'''
+        parsed = self.parse(text)
+        entries = [b for b in parsed['blocks'] if b['kind'] == 'bib_entry']
+        self.assertEqual(len(entries), 3)
+        for entry in entries:
+            span = entry['source']
+            self.assertEqual(entry['latex'], text[span['char_start']:span['char_end']])
+        graph = build_graph(parsed, 'bib-test', 'fixture')
+        nodes = {n['id']: n for n in graph['nodes']}
+        cited = [nodes[e['target']] for e in graph['edges'] if e['relation'] == 'cites']
+        self.assertTrue(any(n['kind'] == 'bib_entry' and n['title'] == 'one' for n in cited))
+        ambiguous = next(n for n in cited if n['kind'] == 'citation_key')
+        self.assertEqual(ambiguous['data']['metadata_status'], 'ambiguous')
+        self.assertEqual(len(ambiguous['data']['candidate_ids']), 2)
+
     def test_non_utf8_source_reports_encoding_without_changing_bytes(self):
         from qecgraph.source.package import PackageError, SourceTree
         raw = b'\\documentclass{article}\\begin{document}caf\xe9\\end{document}'
