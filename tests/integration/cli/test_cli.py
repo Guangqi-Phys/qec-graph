@@ -275,7 +275,7 @@ class CLIContractTests(unittest.TestCase):
             workspace = Workspace(root)
             current = workspace.init(no_ingest=True)['release_id']
             state, _ = workspace.registry.read()
-            candidate = workspace.registry.prepare_publication({**state, 'candidate_fixture': True})
+            candidate = workspace.registry.prepare_publication({**state, 'works': {**state['works'], 'work:candidate': {'id': 'work:candidate', 'title': 'Prepared fixture'}}})
             pointer = root / 'machine/CURRENT.json'
             original = pointer.read_bytes()
 
