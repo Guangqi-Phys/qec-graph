@@ -1,7 +1,6 @@
 """Local workspace, immutable archive receipts and one batch publication pointer."""
 from __future__ import annotations
 
-from contextlib import contextmanager
 from contextvars import copy_context
 from datetime import datetime, timezone
 import errno
@@ -20,7 +19,10 @@ from . import PARSER_VERSION, __version__
 from .source.extraction import RULE_VERSION, proposals
 from .domain.research_store import stage_records
 from .core.progress import ProgressStep, outcome, phase, task, track
-from .core.graph import canonical, hash_text, read_json, strict_json_loads
+from .core.graph import canonical, hash_text, read_json
+from .core.fs import (managed_path as _managed, read_regular as _read_regular,
+                      hash_regular as _hash_regular, matches_regular as _matches_regular,
+                      read_operational_status as read_operational_status)
 from .registry import Registry
 from .source.package import Limits, PackageError, SourceTree, unpack
 from .store import extraction_tool_identity, ingest, source_span_index
@@ -33,7 +35,6 @@ PROCESSOR = f'qecgraph-{__version__}:archive-structure-v1:parser-{PARSER_VERSION
 HEX = re.compile(r'[0-9a-f]{64}')
 JOB = re.compile(r'[0-9a-f]{32}')
 AI_EXTRACTION_SKILLS = ('extract_theorems', 'extract_assumptions', 'extract_data', 'extract_thoughts')
-_CHUNK_BYTES = 256 << 10
 
 
 def _ai_complete(outcome):
@@ -44,87 +45,6 @@ def _ai_complete(outcome):
 def now():
     return datetime.now(timezone.utc).isoformat()
 
-
-def _managed(root, relative):
-    path = Path(relative)
-    if path.is_absolute() or '..' in path.parts:
-        raise ValueError('Invalid managed path')
-    current = root
-    for part in path.parts:
-        current = current / part
-        if current.is_symlink():
-            raise ValueError(f'Symlink is not allowed in managed path: {relative}')
-    return current
-
-
-@contextmanager
-def _regular_input(path, limit):
-    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-    with os.fdopen(fd, 'rb') as stream:
-        before = os.fstat(stream.fileno())
-        if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
-            raise ValueError('Expected a regular unlinked source file')
-        if before.st_size > limit:
-            raise PackageError('limit_exceeded', 'Source byte limit exceeded')
-        yield stream, before
-
-
-def _check_input_read(stream, before, size):
-    after = os.fstat(stream.fileno())
-    if (before.st_size != size or after.st_size != size or after.st_nlink != 1
-            or (before.st_mtime_ns, before.st_ctime_ns) != (after.st_mtime_ns, after.st_ctime_ns)):
-        raise ValueError('Input changed while reading; retry after writing finishes')
-
-
-def _read_regular(path, limit):
-    with _regular_input(path, limit) as (stream, before):
-        raw = stream.read(before.st_size + 1)
-        _check_input_read(stream, before, len(raw))
-    return raw
-
-
-def read_operational_status(path):
-    """Load a previous progress report when its bytes can be trusted and parsed."""
-    try:
-        raw = _read_regular(path, 1 << 20)
-    except FileNotFoundError:
-        return {}
-    try:
-        data = strict_json_loads(raw.decode('utf-8'), source=str(path))
-    except ValueError:
-        return {}
-    return data if isinstance(data, dict) else {}
-
-
-def _hash_regular(path, limit, *, copy_to=None):
-    digest = hashlib.sha256()
-    size = 0
-    with _regular_input(path, limit) as (stream, before):
-        with task("Hashing source bytes", total=before.st_size, unit="bytes") as hashed:
-            while chunk := stream.read(min(_CHUNK_BYTES, limit - size + 1)):
-                size += len(chunk)
-                if size > limit:
-                    raise PackageError('limit_exceeded', 'Source byte limit exceeded')
-                digest.update(chunk)
-                if copy_to is not None:
-                    copy_to.write(chunk)
-                hashed.advance(len(chunk))
-            _check_input_read(stream, before, size)
-    return digest.hexdigest()
-
-
-def _matches_regular(path, limit, expected):
-    with _regular_input(path, limit) as (stream, before):
-        if before.st_size != len(expected):
-            return False
-        size = 0
-        while chunk := stream.read(min(_CHUNK_BYTES, before.st_size - size + 1)):
-            end = size + len(chunk)
-            if chunk != expected[size:end]:
-                return False
-            size = end
-        _check_input_read(stream, before, size)
-    return True
 
 
 def _inbox_name(name):

@@ -21,6 +21,11 @@ def module_imports(path):
 
 
 class ArchitectureBoundaryTests(unittest.TestCase):
+    def test_shared_services_do_not_depend_on_mcp_or_workspace_helpers(self):
+        for name in ('core/fs.py', 'core/errors.py', 'knowledge.py', 'knowledge_context.py', 'retrieval.py'):
+            for module, _, line in module_imports(PACKAGE / name):
+                self.assertNotIn(module, {'mcp.ai_tools', 'workspace'}, f'{name}:{line}')
+
     def test_runtime_package_does_not_import_development_layers(self):
         for path in PACKAGE.rglob('*.py'):
             for module, _, lineno in module_imports(path):

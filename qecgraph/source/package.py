@@ -15,13 +15,8 @@ import unicodedata
 import zipfile
 import zlib
 
+from ..core.errors import PackageError as PackageError
 from ..core.graph import canonical, hash_text
-
-
-class PackageError(ValueError):
-    def __init__(self, status, message):
-        super().__init__(message)
-        self.status = status
 
 
 @dataclass(frozen=True)

@@ -11,7 +11,8 @@ import os
 from pathlib import Path
 import stat
 
-from .mcp.ai_tools import ReadOnlySession, ToolError, tool_validators
+from .mcp.ai_tools import ReadOnlySession, tool_validators
+from .core.errors import ToolError
 from .domain.domain_query import codes
 from .core.graph import canonical, hash_text, read_json
 from .query import GraphTextIndex, search_node_summary
@@ -19,7 +20,8 @@ from .source.reading import source_reading_text
 from .registry import Registry
 from .domain.research import RELATIONS, key, validate_bundle
 from .domain.research_store import load_records
-from .workspace import HEX, _managed
+from .workspace import HEX
+from .core.fs import managed_path as _managed
 from .workspace_assets import asset_bytes, references
 from .llm.artifacts import load_normalization, mapped_ranges
 

@@ -9,7 +9,8 @@ import tempfile
 
 from ..core.progress import phase, track
 from ..core.transactions import atomic_bytes, atomic_json, writer_lock
-from ..workspace import HEX, Workspace, _read_regular, now, read_operational_status
+from ..workspace import HEX, Workspace, now
+from ..core.fs import read_regular as _read_regular, read_operational_status
 from ..workspace_query import WorkspaceSession
 from .thoughts import render_pages
 

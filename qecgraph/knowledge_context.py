@@ -7,7 +7,7 @@ from .core.graph import canonical, hash_text
 from .corpus import occurrence_id
 from .domain.research import RELATIONS, key
 from .domain.status import eligible
-from .mcp.ai_tools import ToolError
+from .core.errors import ToolError
 from .query import answer_node
 
 PURPOSES = ('theorem', 'performance', 'construction', 'thought', 'lean')

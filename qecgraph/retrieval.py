@@ -13,8 +13,8 @@ from urllib.parse import urlsplit
 
 from .core.graph import canonical, hash_text, read_json, strict_json_loads
 from .core.transactions import atomic_json, immutable_json
-from .mcp.ai_tools import ToolError
-from .workspace import _managed
+from .core.errors import ToolError
+from .core.fs import managed_path as _managed
 
 FORMAT = 'qecgraph.retrieval.v1'
 DEFAULTS = {'enabled': False, 'provider': 'local', 'model': 'qecgraph-word-char-hash', 'model_revision': '1',

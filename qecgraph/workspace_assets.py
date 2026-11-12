@@ -7,7 +7,8 @@ import re
 
 from .domain.research import ASSET_FIELDS as FIELDS, ASSET_URI_PATTERN
 from .core.transactions import writer_lock
-from .workspace import Workspace, _hash_regular, _managed, _read_regular
+from .workspace import Workspace
+from .core.fs import hash_regular as _hash_regular, managed_path as _managed, read_regular as _read_regular
 
 ASSET_URI = re.compile(ASSET_URI_PATTERN)
 MAX_ASSET_BYTES = 16 << 20

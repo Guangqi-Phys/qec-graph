@@ -9,9 +9,9 @@ from urllib.parse import urlsplit
 from .core.coordinates import SourceLines
 from .core.graph import canonical, hash_text
 from .llm.artifacts import load_normalization, mapped_ranges
-from .mcp.ai_tools import ToolError
+from .core.errors import ToolError
 from .source.reading import reading_projection
-from .workspace import _managed
+from .core.fs import managed_path as _managed
 
 
 def public_url(value):

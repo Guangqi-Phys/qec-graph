@@ -9,17 +9,12 @@ from functools import cached_property
 from jsonschema import Draft202012Validator
 
 from .. import query
+from ..core.errors import ToolError as ToolError
 from ..corpus import _project_state
 from ..registry import Registry
 from ..store import GraphInput, SnapshotChanged, load_validated_snapshot, snapshot_reference
 
 TOOL_NAMES = ('qecgraph_search', 'qecgraph_show', 'qecgraph_context', 'qecgraph_deps', 'qecgraph_impact')
-
-
-class ToolError(ValueError):
-    def __init__(self, code, message, details=None):
-        super().__init__(message)
-        self.code, self.details = code, details or {}
 
 
 def _length(value):
