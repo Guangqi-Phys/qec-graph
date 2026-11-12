@@ -72,12 +72,12 @@ class KnowledgeTests(unittest.TestCase):
         whole = self.invoke('qec_fetch', {'identifier': self.version})
         self.assertEqual(whole['files'][0]['text'], TEXT)
         # Text outside parser blocks remains discoverable.
-        hits = self.invoke('qec_search', {'query': 'preamble-only-marker', 'kind': 'source_file'})
+        hits = self.invoke('qec_search', {'detail': 'full', 'query': 'preamble-only-marker', 'kind': 'source_file'})
         self.assertTrue(any(r['kind'] == 'source_file' for r in hits['results']))
         self.assertEqual(self.invoke('qec_fetch', {'identifier': intro['id'], 'view': 'reading'})['view'], 'reading')
 
     def test_default_search_returns_passages_with_exact_snippet_coordinates(self):
-        rows = self.invoke('qec_search', {'query': 'memory survives'})['results']
+        rows = self.invoke('qec_search', {'detail': 'full', 'query': 'memory survives'})['results']
         self.assertTrue(rows)
         self.assertFalse(any(r['kind'] in {'source_file', 'document', 'section'} for r in rows))
         for row in rows:
@@ -97,6 +97,17 @@ class KnowledgeTests(unittest.TestCase):
         blocks = self.invoke('qec_fetch', {'identifier': self.version, 'view': 'outline', 'depth': 'blocks'})['results']
         self.assertIn('lemma', [r['kind'] for r in blocks])
 
+    def test_concise_search_handles_round_trip_and_full_detail_retains_identity(self):
+        data = self.invoke('qec_search', {'query': 'memory', 'limit': 5})
+        row = data['results'][0]
+        self.assertTrue(row['id'].startswith('@'))
+        fetched = self.invoke('qec_fetch', {'identifier': row['id']})
+        self.assertTrue(fetched['id'] in self.session.knowledge.nodes)
+        self.assertNotIn('coverage', data)
+        full = self.invoke('qec_search', {'query': 'memory', 'limit': 5, 'detail': 'full'})
+        self.assertEqual(full['results'][0]['handle'], row['id'])
+        self.assertLessEqual(len(canonical(data)), 2500)
+
     def test_versions_ranges_budgets_and_private_notes(self):
         outline = self.invoke('qec_fetch', {'identifier': self.version, 'view': 'outline', 'limit': 2})
         rest = self.invoke('qec_fetch', {'identifier': self.version, 'view': 'outline', 'offset': 2})
@@ -112,11 +123,11 @@ class KnowledgeTests(unittest.TestCase):
         notes = self.root / 'human/notes'
         notes.mkdir(parents=True, exist_ok=True)
         (notes / 'private.md').write_text('PRIVATE-SECRET')
-        self.assertEqual(self.invoke('qec_search', {'query': 'PRIVATE-SECRET'})['results'], [])
+        self.assertEqual(self.invoke('qec_search', {'detail': 'full', 'query': 'PRIVATE-SECRET'})['results'], [])
         previous = self.session.release
         (self.root / 'inputs/new.tex').write_text(TEXT.replace('memory survives', 'novel observation'))
         self.ws.sync()
-        self.assertEqual(self.invoke('qec_search', {'query': 'novel observation'})['results'], [])
+        self.assertEqual(self.invoke('qec_search', {'detail': 'full', 'query': 'novel observation'})['results'], [])
         self.assertEqual(self.session.release, previous)
 
     def test_generic_profile_returns_exact_mcp_shape_and_complete_evidence(self):

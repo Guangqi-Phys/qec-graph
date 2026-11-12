@@ -50,6 +50,52 @@ class KnowledgeView:
         self.documents = {n['provenance']['source_version_id']: n for n in self.nodes.values()
                           if n['kind'] == 'document'}
 
+    @cached_property
+    def handles(self):
+        identifiers = set(self.nodes) | set(self.proposal_items) | {r['id'] for r in self.session.visible.values()}
+        result = {}
+        def assign(identifier, handle):
+            while handle in identifiers:
+                handle = '@' + handle
+            result[identifier] = handle
+        for number, (version, document) in enumerate(sorted(self.documents.items()), 1):
+            prefix = f'@p{number}'
+            assign(document['id'], prefix)
+            ordered = sorted((n for n in self.nodes.values() if n['provenance']['source_version_id'] == version
+                              and n['id'] != document['id']), key=lambda n: (n['data'].get('order', -1), n['id']))
+            counts = Counter()
+            for node in ordered:
+                counts[node['kind']] += 1
+                assign(node['id'], prefix + '/' + node['kind'] + str(counts[node['kind']]))
+        for number, identifier in enumerate(sorted(identifiers - result.keys()), 1):
+            assign(identifier, f'@r{number}')
+        return result
+
+    @cached_property
+    def handle_ids(self):
+        return {value: key for key, value in self.handles.items()}
+
+    def expand_handle(self, value):
+        return self.handle_ids.get(value, value)
+
+    def compact_rows(self, rows):
+        compact = []
+        for row in rows:
+            version = row.get('source_version_id')
+            paper = self.documents.get(version, {})
+            item = {'id': self.handles.get(row['id'], row['id']), 'kind': row.get('kind', 'paper'),
+                    'title': row['title'][:80], 'paper': self.handles.get(paper.get('id'))}
+            if 'excerpt' in row:
+                item.update(excerpt=row['excerpt'][:120], section_path=' > '.join(row.get('section_path', []))[:100])
+                if source := row.get('excerpt_source'):
+                    item.update(path=source['path'], lines=[source['line_start'], source['line_start'] + SourceLines(row['excerpt'][:120]).line_at(max(0, len(row['excerpt'][:120]) - 1)) - 1],
+                                char_range=[source['char_start'], source['char_start'] + min(120, len(row['excerpt']))])
+            for field in ('review_status', 'match', 'authors', 'year', 'topics', 'arxiv_candidates'):
+                if field in row:
+                    item[field] = row[field]
+            compact.append(item)
+        return compact
+
     def version(self, identifier):
         if identifier not in self.session.state['versions']:
             raise ToolError('SOURCE_VERSION_UNAVAILABLE', 'Exact source version is not in this release',
@@ -579,5 +625,9 @@ def descriptors(session, legacy):
                               'properties': {'scope': {'type': 'object'}, 'knowledge_snapshot': {'type': 'string'},
                                              'coverage': {'type': 'object'}, 'truncated': {'type': 'boolean'}}}}},
                           {'required': ['error'], 'properties': {'ok': {'const': False}, 'error': {'type': 'object'}}}]}
+        if name in RESEARCH_TOOLS:
+            tool['inputSchema']['properties']['detail'] = {'enum': ['concise', 'full'], 'default': 'concise'}
+        if name not in {'qec_status', 'qec_workspace_status', 'search', 'fetch'}:
+            output['oneOf'][0]['properties']['data']['required'].remove('coverage')
         tool['outputSchema'] = output
     return result

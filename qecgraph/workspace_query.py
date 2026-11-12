@@ -581,9 +581,15 @@ class WorkspaceSession:
                     raise ToolError('BUDGET_TOO_SMALL', 'Complete evidence exceeds session budget; use research profile ranges')
                 return {'ok': True, 'data': copy.deepcopy(data)}
             requested_name = name
+            detail = args.pop('detail', 'concise')
+            for field in ('identifier', 'code_id', 'decoder_id', 'noise_model_id', 'metric_id', 'circuit_id'):
+                if field in args:
+                    args[field] = self.knowledge.expand_handle(args[field])
             from .knowledge import ALIASES
             name = ALIASES.get(name, name)
-            metadata = {'scope': self.scope, 'knowledge_snapshot': self.release, 'coverage': self._coverage}
+            metadata = {'scope': self.scope, 'knowledge_snapshot': self.release}
+            if requested_name in {'qec_status', 'qec_workspace_status'} or detail == 'full':
+                metadata['coverage'] = self._coverage
             graph_metadata = {**metadata, 'continuation': None}
             source_query = args.pop('source_query', None)
             if name == 'qec_trace':
@@ -710,6 +716,16 @@ class WorkspaceSession:
                 if source_query:
                     data['source_candidates'] = self.knowledge.search({'query': source_query, 'limit': min(5, self.graph.max_results)})
                 data['field_coverage'] = self.knowledge.coverage()['field_states']
+            if requested_name in {'qec_search', 'qec_list_papers'}:
+                if detail == 'concise':
+                    data['results'] = self.knowledge.compact_rows(data['results'])
+                    if requested_name == 'qec_search':
+                        for field in ('retrieval', 'fallback', 'absence'):
+                            data.pop(field, None)
+                    data['handle_scope'] = 'Handles are valid only in this pinned release; detail=full returns full provenance.'
+                else:
+                    for row in data['results']:
+                        row['handle'] = self.knowledge.handles.get(row['id'])
             data.update(metadata)
             data.setdefault('truncated', False)
             data.setdefault('continuation', None)

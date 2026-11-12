@@ -30,7 +30,7 @@ class RetrievalTests(unittest.TestCase):
         self.ws.sync()
         first = self.session()
         for mode in ('keyword', 'vector', 'hybrid'):
-            result = first.invoke('qec_search', {'query': 'quantum protecting', 'mode': mode,
+            result = first.invoke('qec_search', {'detail': 'full', 'query': 'quantum protecting', 'mode': mode,
                                                'kind': 'paragraph', 'limit': 1})
             self.assertTrue(result['ok'], result)
             self.assertEqual(result['data']['results'][0]['kind'], 'paragraph')
@@ -41,19 +41,19 @@ class RetrievalTests(unittest.TestCase):
         notes.mkdir(parents=True)
         (notes / 'private.md').write_text('privatecanaryzrq')
         self.assertEqual(self.ws.sync()['status'], 'unchanged')
-        self.assertEqual(self.session().invoke('qec_search', {'query': 'privatecanaryzrq', 'mode': 'keyword'})['data']['results'], [])
+        self.assertEqual(self.session().invoke('qec_search', {'detail': 'full', 'query': 'privatecanaryzrq', 'mode': 'keyword'})['data']['results'], [])
         (self.root / 'inputs/b.tex').write_text('\\documentclass{article}\n\\begin{document}\nUnique decoder decoding.\n\\end{document}')
         self.ws.sync()
         new = self.session()
         self.assertNotEqual(old_binding, new.state['retrieval_index'])
-        self.assertEqual(first.invoke('qec_search', {'query': 'Unique decoder', 'mode': 'keyword'})['data']['results'], [])
+        self.assertEqual(first.invoke('qec_search', {'detail': 'full', 'query': 'Unique decoder', 'mode': 'keyword'})['data']['results'], [])
         version = next(iter(first.state['versions']))
-        self.assertEqual(new.invoke('qec_search', {'query': 'decoder', 'mode': 'keyword', 'source_version_id': version})['data']['results'], [])
-        all_rows = new.invoke('qec_search', {'query': 'quantum', 'limit': 100})
+        self.assertEqual(new.invoke('qec_search', {'detail': 'full', 'query': 'decoder', 'mode': 'keyword', 'source_version_id': version})['data']['results'], [])
+        all_rows = new.invoke('qec_search', {'detail': 'full', 'query': 'quantum', 'limit': 100})
         self.assertFalse(all_rows['ok'])  # Session maximum is enforced.
-        rows = new.invoke('qec_search', {'query': 'quantum', 'limit': 1})['data']
+        rows = new.invoke('qec_search', {'detail': 'full', 'query': 'quantum', 'limit': 1})['data']
         self.assertTrue(rows['truncated'])
-        next_page = new.invoke('qec_search', {'query': 'quantum', 'limit': 1, 'offset': rows['continuation']})['data']
+        next_page = new.invoke('qec_search', {'detail': 'full', 'query': 'quantum', 'limit': 1, 'offset': rows['continuation']})['data']
         self.assertNotEqual(rows['results'][0]['id'], next_page['results'][0]['id'])
 
     def external_config(self):
@@ -80,7 +80,7 @@ class RetrievalTests(unittest.TestCase):
             self.ws.sync()
             self.assertGreater(transport.call_count, 0)
             session = self.session()
-            results = session.invoke('qec_search', {'query': 'storage', 'kind': 'paragraph', 'mode': 'vector'})
+            results = session.invoke('qec_search', {'detail': 'full', 'query': 'storage', 'kind': 'paragraph', 'mode': 'vector'})
             self.assertTrue(results['ok'], results)
             self.assertTrue(results['data']['results'])
             self.assertNotIn('TEST-SECRET', canonical(session.state))
@@ -108,10 +108,10 @@ class RetrievalTests(unittest.TestCase):
                 'qecgraph.llm.providers.http.UrllibTransport.request', side_effect=self.fake_transport):
             self.ws.sync()
         with patch.dict('os.environ', {}, clear=True):
-            answer = self.session().invoke('qec_search', {'query': 'memory', 'mode': 'hybrid'})
+            answer = self.session().invoke('qec_search', {'detail': 'full', 'query': 'memory', 'mode': 'hybrid'})
             self.assertTrue(answer['ok'], answer)
             self.assertIn('unavailable', answer['data']['fallback'])
-            failed = self.session().invoke('qec_search', {'query': 'memory', 'mode': 'vector'})
+            failed = self.session().invoke('qec_search', {'detail': 'full', 'query': 'memory', 'mode': 'vector'})
             self.assertEqual(failed['error']['code'], 'EMBEDDING_UNAVAILABLE')
 
     def test_explicit_upload_and_budgets_no_human_indexing(self):
@@ -129,7 +129,7 @@ class RetrievalTests(unittest.TestCase):
         original = path.read_bytes()
         path.write_text('{}')
         self.assertFalse(self.ws.validate()['passed'])
-        self.assertFalse(self.session().invoke('qec_search', {'query': 'memory'})['ok'])
+        self.assertFalse(self.session().invoke('qec_search', {'detail': 'full', 'query': 'memory'})['ok'])
         self.ws.rebuild()
         self.assertEqual(path.read_bytes(), original)
         self.assertTrue(self.ws.validate()['passed'])

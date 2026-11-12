@@ -75,7 +75,7 @@ class ThoughtTests(unittest.TestCase):
             self.assertEqual(ws.registry.read()[1], before)
             publish_records(ws.registry, [record])
             session = WorkspaceSession(ws.registry.root, profile='research')
-            result = session.invoke('qec_search', {'query': 'open question', 'kind': 'research_thought'})
+            result = session.invoke('qec_search', {'query': 'open question', 'kind': 'research_thought', 'detail': 'full'})
             self.assertEqual(result['data']['results'][0]['id'], 'thought:question')
             fetched = session.invoke('qec_fetch', {'identifier': 'thought:question'})['data']['entity']
             self.assertEqual(fetched['field_evidence']['/data/related_refs']['status'], 'not_extracted')
