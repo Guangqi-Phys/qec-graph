@@ -100,13 +100,29 @@ class WorkspaceSession:
                               if n['origin'] == 'parser' and n.get('source')}
         self.resources = {self._resource_uri(identifier): identifier for identifier in self._source_nodes}
         self._resource_bindings = sorted(self.resources.items())
+        # Keep old pinned-release URIs readable without advertising every block.
+        self.resources.update({f'qec://source/{self.release}/{hash_text(identifier)}': identifier
+                               for identifier in self._source_nodes})
+        self._paper_resources = {f'qec://paper/{hash_text(version)}': node['id']
+                                 for version, node in self.knowledge.documents.items()}
+        if self.profile != 'legacy':
+            self._resource_bindings = sorted(self._paper_resources.items())
         self._normalizations = {
             (material['source_version_id'], material['source_snapshot_id']): material
             for material in self.state.get('materials', {}).values() if material.get('normalization_id')
         }
 
     def _resource_uri(self, occurrence):
-        return f'qec://source/{self.release}/{hash_text(occurrence)}'
+        node = self._source_nodes[occurrence]
+        source = node['source']
+        binding = [source.get(field) for field in
+                   ('source_version_id', 'path', 'file_sha256', 'char_start', 'char_end')]
+        return 'qec://source/' + hash_text(canonical([*binding, node['kind']]))
+
+    def resource_templates(self):
+        return {'resourceTemplates': [{'uriTemplate': 'qec://source/{content_binding}',
+                'name': 'Registered source occurrence', 'mimeType': 'text/plain',
+                'description': 'Use the content binding from a source resource_uri; only exact registered bindings resolve.'}]}
 
     def material_records(self):
         """Copy the registered material inventory for the fixed release."""
@@ -149,6 +165,9 @@ class WorkspaceSession:
         size = len(canonical({'resources': [], 'nextCursor': ''}))
         for uri, identifier in bindings[offset:offset + self.graph.max_results]:
             row = {'uri': uri, 'name': identifier, 'mimeType': 'text/plain'}
+            if uri in self._paper_resources:
+                version = self.knowledge.nodes[identifier]['provenance']['source_version_id']
+                row.update(name=self.knowledge.papers[version]['title'], mimeType='application/json')
             size += len(canonical(row)) + (1 if rows else 0)
             cursor_size = len(str(offset + len(rows) + 1))
             if size + cursor_size > self.graph.max_chars:
@@ -163,6 +182,13 @@ class WorkspaceSession:
 
     def read_resource(self, uri):
         check_machine_tree(self.machine)
+        if uri in self._paper_resources:
+            data = self.knowledge.card(self.knowledge.nodes[self._paper_resources[uri]])
+            result = {'contents': [{'uri': uri, 'mimeType': 'application/json', 'text': canonical(data),
+                                   '_meta': {'release_id': self.release}}]}
+            if len(canonical(result)) > self.graph.max_chars:
+                raise ToolError('BUDGET_TOO_SMALL', 'Use qec_list_papers or a larger response budget')
+            return result
         identifier = self.resources.get(uri)
         if identifier is None:
             raise ToolError('NOT_FOUND', 'Resource is not registered in this release')

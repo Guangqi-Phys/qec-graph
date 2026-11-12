@@ -112,7 +112,8 @@ class MCPServer:
                 elif method == 'resources/templates/list':
                     if params.get('cursor') is not None:
                         return rpc_error(identifier, -32602, 'Resource templates are not paginated')
-                    result = {'resourceTemplates': []}
+                    result = (self.session.resource_templates() if hasattr(self.session, 'resource_templates')
+                              else {'resourceTemplates': []})
                 else:
                     result = self.session.read_resource(params['uri'])
             except ToolError as exc:

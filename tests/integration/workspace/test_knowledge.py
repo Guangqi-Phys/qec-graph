@@ -97,6 +97,21 @@ class KnowledgeTests(unittest.TestCase):
         blocks = self.invoke('qec_fetch', {'identifier': self.version, 'view': 'outline', 'depth': 'blocks'})['results']
         self.assertIn('lemma', [r['kind'] for r in blocks])
 
+    def test_resources_list_papers_and_source_bindings_survive_other_releases(self):
+        listing = self.session.list_resources()['resources']
+        self.assertEqual(len(listing), 1)
+        self.assertTrue(listing[0]['uri'].startswith('qec://paper/'))
+        self.assertTrue(self.session.resource_templates()['resourceTemplates'])
+        root = next(n for n in self.session._source_nodes.values() if n['kind'] == 'lemma')
+        uri = self.session._resource_uri(root['id'])
+        before = self.session.read_resource(uri)['contents'][0]['text']
+        (self.root / 'inputs/second.tex').write_text(TEXT.replace('memory survives', 'another result'))
+        self.ws.sync()
+        next_session = WorkspaceSession(self.ws.registry.root, profile='research')
+        self.assertNotEqual(self.session.release, next_session.release)
+        self.assertEqual(before, next_session.read_resource(uri)['contents'][0]['text'])
+        self.assertEqual(len(next_session.list_resources()['resources']), 2)
+
     def test_concise_search_handles_round_trip_and_full_detail_retains_identity(self):
         data = self.invoke('qec_search', {'query': 'memory', 'limit': 5})
         row = data['results'][0]

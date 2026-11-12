@@ -172,14 +172,15 @@ class WorkspaceQueryTests(unittest.TestCase):
         original = result['data']['entity']['data']['source_snapshot_id']
         result['data']['entity']['data']['source_snapshot_id'] = 'caller mutation'
         result['data']['scope']['release_id'] = 'caller mutation'
-        result['data']['coverage']['registered'] = -1
+        status = self.session.invoke('qec_workspace_status', {})
+        status['data']['coverage']['registered'] = -1
         failure = self.session.invoke('unknown', {})
         failure['error']['scope']['release_id'] = 'caller mutation'
 
         fresh = self.session.invoke('qec_get_entity', args)['data']
         self.assertEqual(fresh['entity']['data']['source_snapshot_id'], original)
         self.assertEqual(fresh['scope']['release_id'], self.release)
-        self.assertEqual(fresh['coverage']['registered'], 2)
+        self.assertEqual(self.session.invoke('qec_workspace_status', {})['data']['coverage']['registered'], 2)
 
     def test_research_lookup_requires_revision_when_multiple_are_visible(self):
         from qecgraph.domain.research import make_record
@@ -257,7 +258,8 @@ class WorkspaceQueryTests(unittest.TestCase):
                  request(3, 'tools/call', {'name': 'qecgraph_search', 'arguments': {'query': 'PRIVATE-ONLY-468f'}}),
                  request(4, 'tools/call', {'name': 'qec_get_source', 'arguments': {'identifier': '%2e%2e/human/notes/private-only-name.md'}}),
                  request(5, 'tools/call', {'name': 'qec_find_performance', 'arguments': {}})]
-        process = subprocess.run([sys.executable, '-m', 'qecgraph', 'mcp', 'serve', '--machine', str(self.ws.registry.root)],
+        process = subprocess.run([sys.executable, '-m', 'qecgraph', 'mcp', 'serve', '--machine', str(self.ws.registry.root),
+                                  '--profile', 'legacy'],
                                  input=''.join(json.dumps(line) + '\n' for line in lines), text=True,
                                  capture_output=True, timeout=15, check=True)
         self.assertNotIn('PRIVATE-ONLY-468f', process.stdout + process.stderr)
@@ -267,7 +269,7 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.assertEqual(responses[3]['structuredContent']['data']['results'], [])
         self.assertEqual(responses[4]['structuredContent']['error']['code'], 'NOT_FOUND')
         self.assertEqual(responses[5]['structuredContent']['data']['results'], [])
-        self.assertEqual(responses[5]['structuredContent']['data']['coverage']['excluded_synthetic'], 11)
+        self.assertEqual(WorkspaceSession(self.ws.registry.root).invoke('qec_workspace_status', {})['data']['coverage']['excluded_synthetic'], 11)
 
     def test_symlink_in_machine_is_rejected_before_reading(self):
         (self.ws.registry.root / 'operational/status.json').unlink()

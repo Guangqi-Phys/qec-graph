@@ -160,7 +160,9 @@ class KnowledgeView:
         return {'id': node['id'], 'kind': node['kind'], 'title': node['title'],
                 'source_version_id': version, 'snapshot_id': node['provenance']['snapshot_id'],
                 'parent_id': self.parents.get(node['id']), 'order': node['data'].get('order'),
-                'source': node.get('source'), 'url': self.url(node)}
+                'source': node.get('source'), 'url': self.url(node),
+                **({'resource_uri': self.session._resource_uri(node['id'])}
+                   if node['id'] in self.session._source_nodes else {})}
 
     @cached_property
     def papers(self):
