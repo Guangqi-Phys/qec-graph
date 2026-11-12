@@ -149,6 +149,12 @@ class KnowledgeTests(unittest.TestCase):
         self.assertEqual(self.session.release, previous)
 
     def test_generic_profile_returns_exact_mcp_shape_and_complete_evidence(self):
+        from qecgraph.cli.parser import _build_parser
+        from qecgraph.cli.commands.query import _ai_session
+        args = _build_parser()[0].parse_args(['mcp', 'config', '--machine', str(self.ws.registry.root)])
+        self.assertEqual(len(_ai_session(args).tools()), 8)
+        args.profile = 'legacy'
+        self.assertEqual(len(_ai_session(args).tools()), 13)
         compatible = WorkspaceSession(self.ws.registry.root, profile='compatible')
         self.assertEqual({t['name'] for t in compatible.tools()}, {'search', 'fetch'})
         self.assertEqual(len(WorkspaceSession(self.ws.registry.root).tools()), 13)

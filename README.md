@@ -208,9 +208,9 @@ strict deployment.
 
 ### Read tools
 
-The default `legacy` profile retains the tools below. Use
-`qec-graph mcp config --workspace . --profile research` for the seven research
-tools, or `--profile compatible` for generic `search`/`fetch` with registered
+Workspace MCP defaults to eight `research` tools, including `qec_list_papers`.
+Use `--profile legacy` for the compatibility tools below, or
+`--profile compatible` for generic `search`/`fetch` with registered
 public citation URLs. See [knowledge queries](docs/user/data-and-search.md#document-reading-profiles)
 for full-source reading, vector configuration and task context examples.
 

@@ -308,8 +308,8 @@ MCP 连接在启动时固定知识 release。`sync` 后重新连接以读取新�
 
 ### 文档阅读 profiles
 
-默认 MCP profile 保留原有 13 个工具。为 `mcp serve`、`mcp config` 或
-`query-tool` 指定 `--profile research`，使用七个任务工具，包括 `qec_fetch`
+Workspace MCP 默认使用八个 `research` 工具。指定 `--profile legacy` 保留原有
+13 个工具。`mcp serve`、`mcp config` 和 `query-tool` 的默认工具包括 `qec_fetch`
 与 `qec_search`。`qec_fetch` 接受精确 `identifier`，以及 `view: "outline"`、
 `"raw"` 或 `"reading"`。目录用 `limit`/`offset` 分页，来源范围用原始 Unicode
 `char_start`/`char_end`。论文分别返回登记源文件，保留 include 边界；章节返回

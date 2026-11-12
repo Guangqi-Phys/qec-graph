@@ -79,8 +79,8 @@ def _coordinate(value):
 
 def _add_ai_arguments(parser):
     _add_query_scope(parser, workspace=True)
-    parser.add_argument('--profile', choices=('legacy', 'research', 'compatible'), default='legacy',
-                        help='Workspace MCP tool profile; existing tools remain the default')
+    parser.add_argument('--profile', choices=('legacy', 'research', 'compatible'),
+                        help='Workspace MCP tools (default: research); legacy preserves older clients')
     parser.add_argument('--session-max-nodes', type=int, default=100,
         help='Maximum nodes per session result (default: %(default)s)')
     parser.add_argument('--session-max-depth', type=int, default=4,

@@ -194,8 +194,8 @@ qec-graph mcp serve --machine "$PWD/machine"
 
 ### 读取工具
 
-默认 `legacy` profile 保留下列工具。使用
-`qec-graph mcp config --workspace . --profile research` 选择七个研究工具；
+Workspace MCP 默认提供八个 `research` 工具，包括 `qec_list_papers`。
+使用 `--profile legacy` 选择下列兼容工具；
 `--profile compatible` 提供通用 `search`/`fetch`，使用已登记的公开引用 URL。
 完整原文读取、向量配置和任务上下文示例见[知识查询](docs/user/data-and-search.zh-CN.md#文档阅读-profiles)。
 
