@@ -16,6 +16,7 @@ For the install command, daily workflow, and MCP setup, start with the [README](
 - [Query a workspace from the CLI](#query-a-workspace-from-the-cli)
 - [Work with individual papers and older corpora](#work-with-individual-papers-and-older-corpora)
 - [Reproduce the checks](#reproduce-the-checks)
+- [Progress presentation](#progress-presentation)
 
 > [!TIP]
 > Run commands from the workspace root unless a section says otherwise.
@@ -337,3 +338,43 @@ From the repository root, with the Python environment installed, run
 and bundled end-to-end examples. The release report covers installed-package,
 migration, real-source, MCP, and macOS isolation checks.
 [Release verification](../../validation/README.md)
+
+## Progress presentation
+
+Activity events live in `core/progress.py`, independent of terminal output. A
+context-local subscriber in `cli/progress.py` renders an amber activity panel on
+stderr; each AI worker receives its own copied context and nested task identity.
+Known phase totals use compact Braille micro-dot cells (four dot rows in one
+text row, at most 12 characters wide), completed units and one decimal
+of percentage, capped below 100% until every unit finishes. Unknown totals use animation and elapsed
+time, never a synthetic percentage or ETA. Separate stages have separate counters;
+publication, network waits and the isolated human renderer stay indeterminate.
+Only explicitly retained major-stage outcomes are appended above the live region,
+with counts and elapsed time. Helpers update transient detail without renaming or
+resetting a major stage. Finished/queued subtasks and final matrices are hidden;
+failures and interruption remain in the stage summary. Typed step events identify
+the currently running AI task. The AI batch denominator covers four tasks per
+scheduled paper, including queued packages; successful or reused tasks advance it
+once, failures never do. Locked updates keep concurrent counts monotonic, and
+completed package contributions survive removal from the live panel.
+Each provider request has a separate breathing light next to `AI`, independent
+of the dot matrix; a fixed middle bullet keeps its vertical position while
+luminance breathes. The light signals local liveness, not model-internal progress.
+Provider/model, timeout, attempts, backoff, reported token counts and response
+validation remain inspectable. Overflow activity cycles within the viewport;
+history retains only major results. Detailed diagnostics are opt-in via `--verbose`.
+The CLI starts activity before dispatch for every business command. Reports
+clear only the live region before output; completion, errors and interruption
+retain final records and stop the refresh worker. Help/version are immediate, and MCP uses plain service
+activity. Non-TTY stderr is quiet by default; `--progress plain` provides an
+append-only major-stage log. `--progress off` and `--quiet` suppress activity,
+including with `--json`. Terminal width, Unicode support and color settings
+change presentation only; stdout payloads and exit codes retain their contracts.
+
+Visual reference: [CodeGraph v1.6.2, `shimmer-worker.ts`](https://github.com/colbymchenry/codegraph/blob/6560052a6f856855d3f71eee838fd66ccfa4285d/src/ui/shimmer-worker.ts),
+commit `6560052a6f856855d3f71eee838fd66ccfa4285d`,
+[MIT, copyright 2026 Colby Mchenry](https://github.com/colbymchenry/codegraph/blob/6560052a6f856855d3f71eee838fd66ccfa4285d/LICENSE).
+The installed v1.6.2 glyph and shimmer modules informed the compact density,
+amber range (`#a06409`–`#fbbf24`), muted rails and green completion marks. QEC
+Graph implements its own Braille fill, brightness animation and persistent
+history in Python; the referenced implementation is not vendored.

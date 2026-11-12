@@ -7,7 +7,7 @@
 | | |
 |---|---|
 | **状态** | 当前权威设计（0.6.x） |
-| **评审日期** | 2026-11-11 |
+| **评审日期** | 2026-11-12 |
 | **替代** | 此前的 architecture、graph-contract、data-formats、incremental、MCP 和 CodeGraph 设计页。Lean 延期；见 §10。 |
 | **实现** | `qecgraph/`、`tests/`、`tools/`、`validation/` |
 
@@ -76,9 +76,12 @@ QEC Graph 把 LaTeX 论文和显式 QEC 研究记录变成保留来源的本地�
 ```mermaid
 flowchart LR
     Inputs["inputs/ source packages"] --> Archive["archive/ bytes + receipts"]
-    Archive --> Extract["LaTeX extraction + source registry"]
-    Extract --> Records["research records + evidence"]
-    Records --> Validate["candidate release validation"]
+    Archive --> Extract["LaTeX 抽取与来源注册"]
+    Extract --> Records["paper_version 与参数提及"]
+    Extract --> Proposals["可选 AI 提议"]
+    Manual["显式 research 导入"] --> Validate["候选发布校验"]
+    Records --> Validate
+    Proposals --> Validate
     Validate --> Machine["machine/ immutable release"]
     Machine --> CLI["CLI query"]
     Machine --> MCP["read-only MCP"]
@@ -90,7 +93,17 @@ flowchart LR
 成功事务发布不可变机器 release，然后渲染独立的人类视图。查询和 MCP 会话固定
 release，绝不在会话中途读取移动的 `CURRENT`。
 
-### 2.2 兼容接口
+### 2.2 从一篇论文到一次回答
+
+1. 将 `paper.tar.gz` 放入 `inputs/`，运行 `qec-graph workspace sync --workspace /path/to/workspace`。writer 认领副本，原样归档到 `archive/blobs/sha256/` 并写入回执。
+2. 验证后的解包产生 `sources/<tree-hash>/`，受管理的 store 位于 `machine/source_snapshots/`。自动登记论文版本和字面参数提及；**不自动**归并码、译码器、噪声及实验身份。
+3. 显式配置 `[ai].allow_source_upload = true`、启用 skill 并提供凭据后，可选抽取将四类 proposed 产物写入 `machine/ai/proposals/`。权威领域记录仍需显式整理和导入。
+4. 校验将来源、记录和已登记审核哈希绑定在 `machine/states/<release>.json`，原子替换 `CURRENT.json` 后发布，之后才可消费认领输入。必需步骤失败保留旧 release；可选检索投影不可用时可发布 `stale` 并回退关键词检索。
+5. 人类生成器只读这个固定 release。research MCP 客户端调用 `qec_list_papers`、`qec_search`，再用返回的短标识调用 `qec_fetch` 或 `qec_get_context`，获取来源坐标、proposed/reviewed 状态和明确缺项。回答引用这些坐标；搜索命中不等于数学验证。
+
+当前 writer 仍在 AI 工作期间持锁，两阶段发布尚未实现。改变之前必须统一解析回退和输入消费的恢复协议。
+
+### 2.3 兼容接口
 
 有意保留三代存储/查询：
 
@@ -104,7 +117,7 @@ release，绝不在会话中途读取移动的 `CURRENT`。
 和测试。当功能存在于多个接口时，workspace 实现定义当前语义；旧接口不得在证据
 或状态过滤上悄悄分叉。
 
-### 2.3 运行时与部署
+### 2.4 运行时与部署
 
 - Python 3.11+，POSIX 文件系统；SQLite 带 FTS5。
 - 运行时依赖 `pylatexenc==2.10` 和 `jsonschema==4.26.0`。
@@ -116,7 +129,7 @@ release，绝不在会话中途读取移动的 `CURRENT`。
 - 包版本与 graph/record schema、Lean toolchain 独立。`qec-graph --version` 是
   已安装包版本的权威来源。
 
-### 2.4 模块边界
+### 2.5 模块边界
 
 ```mermaid
 flowchart TB
@@ -174,6 +187,16 @@ workspace/
 │   ├── CURRENT.json              # published release pointer
 │   ├── states/<release>.json     # immutable registry state
 │   ├── operational/status.json   # sanitized operational projection
+│   ├── source_snapshots/         # 受管理 store：来源、graph、views、SQLite
+│   ├── research/                 # 带修订的 research JSON
+│   ├── records/                  # 兼容的 corpus 记录修订
+│   ├── proposals/                # corpus 交接提案
+│   ├── reviews/                  # corpus 审核证据
+│   ├── ai/proposals/             # 四类 skill 输出，仅 proposed
+│   ├── ai/reviews/               # state 登记的哈希绑定决定
+│   ├── derived/normalizations/   # 原字节投影及来源映射
+│   ├── retrieval/indexes/        # 可选 JSON 向量/块投影
+│   ├── assets/                   # 登记的数据和证据资产
 │   └── .writer.lock              # single-writer lock
 ├── human/
 │   └── YYYY/MM/
@@ -311,6 +334,22 @@ parser diagnostic，不是数学环。
 
 ---
 
+### 4.6 文件格式与校验器
+
+下列路径相对 `machine/`。链接的打包 schema 是权威；此表是阅读入口，不是第二套 schema。
+
+| 产物 | 必需身份和主要字段 | 校验器 / 边界 |
+|---|---|---|
+| `states/<release>.json` | `schema`、`format_version=1`、`works`、`versions`、`records`、`links`；可选 `materials`、`research_records`、`ai_reviews`、`retrieval_index` | [Registry schema](../../qecgraph/validators/schemas/registry.schema.json)；先按原始字节核对哈希，再解释无版本标记的旧格式 |
+| `materials[archive_sha256]` | `archive_sha256`、`status`、`processing_completed`；完成项还绑定 source version、snapshot、tree、entrypoint、work；`original_names`、配置指纹及诊断保留来源 | Registry schema 与 workspace 校验；AI/诊断深层信封仍用各自校验器 |
+| `research/`、`records/` | `id`、`revision`、`kind`、`data`、证据；state 保存登记的修订哈希 | [Research schema](../../qecgraph/validators/schemas/research.schema.json)、[record schema](../../qecgraph/validators/schemas/record.schema.json) 与来源/引用校验 |
+| `proposals/`、`reviews/` | 修改提案及预期修订/哈希；决定、actor 与精确 proposal 绑定 | [Proposal schema](../../qecgraph/validators/schemas/proposal.schema.json)、[review schema](../../qecgraph/validators/schemas/review.schema.json) |
+| `ai/proposals/`、`ai/reviews/` | Skill/版本、来源快照、输出及请求来源；决定将内容哈希登记到 state | `qecgraph/llm/skills/` 各 skill 的 `output.schema.json`、引文校验及 `llm/review.py`；本地审核身份是自声明，未认证 |
+| `retrieval/indexes/<hash>.json` | `format`、`identity`、`configuration`、`corpus_sha256`、`unit_count`、`chunks`、`coverage`；chunk 含 unit key、派生文本范围/哈希、terms、vector | `retrieval.read_index`；JSON 加语义/哈希校验，无独立索引 schema；不可用投影用 `stale` state 绑定 |
+| `source_snapshots/` | Store manifest、原始字节、graph 及派生 views | [Graph schema](../../qecgraph/validators/schemas/graph.schema.json) 与 store 完整性检查；完整 store 和单体 JSON 仍限制规模 |
+
+新快照身份使用来源/配置和显式 `PARSER_VERSION` / `RULE_VERSION`；包字节身份仅作来源记录。可能改变解析的依赖升级必须提升语义版本并回放来源。不得只为消除 stale 而刷新审核绑定。单材料指纹排除无关论文及 AI 凭据/模型配置。
+
 ## 5. 来源抽取
 
 ### 5.1 Parser
@@ -332,6 +371,8 @@ parser diagnostic，不是数学环。
 带花括号的 `\href`、`\url` 和 `\nolinkurl` 目标保留 URL 中的百分号编码。
 链接的可见文本仍按常规 TeX 解析。
 
+解析类型还包含 abstract、algorithm、assumption、claim、notation、acknowledgments、statement_other、title、author_block 及字面 bib_entry。唯一的本地参考文献键解析到精确条目，重复键保持歧义。BibTeX/.bbl 和跨论文身份解析仍未完成。片段读取附带有界字面宏定义和引用预览，不展开宏、不推断证明依赖。非 UTF-8 输入明确报告不支持编码，归档保留原字节。
+
 ### 5.2 来源块与规范化 claim
 
 parser 的 theorem/lemma 是 **source block**：文档在固定区间说了什么。规范化
@@ -345,9 +386,7 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 规则版本的 `code_parameters_mention` 提案；不把表格参数提升为已验证码实例、不推断距离界、
 不根据括号形状猜码类。
 
-可选的本地 provider 交接导出有界来源摘录，验证 provider/model/prompt hash 和
-引用区间，并排队草稿。它绝不自动调用外部模型，也绝不批准自己的草稿。人工决定
-绑定精确草稿和来源投影；输入变化使决定 stale。
+兼容的 corpus 交接只导出有界摘录供显式外部流程使用，本身不调用模型。独立的工作区 AI 管线（§15）可在显式启用来源上传后于 sync 调用已配置 provider。两条路径都不批准自己的草稿，也不自动转换为 research 记录。决定通过发布 state 绑定精确 proposal/source 哈希；输入变化使其 stale。
 
 ---
 
@@ -457,40 +496,14 @@ CLI 按名词分组（`workspace`、`query`、`review`、`mcp`、`human`、`soft
 计数、human-view 状态和下一步动作。`--json` 是唯一机器输出开关；TTY 检测影响
 样式，不影响数据模型。错误可操作，除非请求 `--debug`，绝不输出原始 Python/OS/TOML traceback。
 
-活动事件位于 `core/progress.py`，独立于终端输出。`cli/progress.py` 中的上下文
-局部订阅者在 stderr 渲染琥珀色活动面板；每个 AI worker 获得独立复制的上下文和
-嵌套任务身份。已知阶段总量使用紧凑 Braille 微点阵（一个字符高度内四排点，最多
-12 字符宽）、已完成单位及一位小数百分比，全部完成前不显示
-100%。未知总量使用动画和耗时，不伪造百分比或 ETA。各主要阶段独立计数；发布、
-网络等待及隔离的人类视图渲染保持不定量状态。只有显式标记保留的主要阶段结果
-追加到动态区域上方，包含真实计数和耗时。辅助步骤更新临时详情，不改写主阶段
-身份或重置计数。完成和排队的子任务及最终点阵不保留，失败和中断汇总到主阶段。
-类型化步骤事件标明当前运行的 AI 任务。批次总量按每篇待处理论文四项计算，包含
-尚在排队的包；成功或复用只计一次，失败不计入完成数。加锁更新保证并发计数
-单调递增；完成的论文离开实时面板后，其计数仍保留在总进度中。
-每次 provider 请求在 `AI` 旁独立显示呼吸灯，与点阵分离；固定居中的圆点只改变
-亮度，不切换字形或纵向位置。灯表示本地请求仍在运行，
-不表示模型内部进度。provider/model、超时、尝试次数、退避、返回的 token 数和
-响应校验均可查看。超出视口的活动循环显示；历史只保留主要结果。
-详细诊断日志可通过 `--verbose` 显式开启。
-CLI 在分派每个业务命令前启动活动。报告输出前只清理动态区域；完成、错误和中断
-保留最终记录并停止刷新线程。帮助/版本立即返回，MCP
-使用普通服务日志。非 TTY stderr 默认静默；`--progress plain` 提供主要阶段的
-追加日志。`--progress off` 和 `--quiet` 抑制活动，包括 `--json` 模式。
-终端宽度、Unicode 和颜色设置只影响展示；stdout 数据和退出码保持原契约。
-
-视觉参考：[CodeGraph v1.6.2 的 `shimmer-worker.ts`](https://github.com/colbymchenry/codegraph/blob/6560052a6f856855d3f71eee838fd66ccfa4285d/src/ui/shimmer-worker.ts)，
-实际 commit `6560052a6f856855d3f71eee838fd66ccfa4285d`，
-[MIT 许可证，版权 2026 Colby Mchenry](https://github.com/colbymchenry/codegraph/blob/6560052a6f856855d3f71eee838fd66ccfa4285d/LICENSE)。
-已检查本机 v1.6.2 的字形与流光模块，参考其紧凑密度、琥珀色范围
-（`#a06409`–`#fbbf24`）、弱化边线和绿色完成标记。QEC Graph 的 Braille 填充、
-亮度动画和持久历史均自行用 Python 实现，未引入参考项目的实现代码。
+进度事件独立于 stdout 数据和退出码，由 CLI 在 stderr 展示；未知总量不伪造百分比。它们表示本地活动，不表示模型内部进度或科学证据。视觉规范见[进度展示](../user/advanced-usage.zh-CN.md#进度展示)。
 
 ### 8.3 MCP
 
 - 本地 stdio，protocol `2025-06-18`；stdout 只承载 JSON-RPC，日志到 stderr。
 - Store/corpus 会话暴露五个旧 `qecgraph_*` read tools。
-- Workspace 会话增加 research/source tools 和 `qec://source/...` resources，以及 status/coverage projections。
+- Workspace CLI 默认使用八工具 research profile（§16.4），显式 legacy/compatible 保留。Python `WorkspaceSession` 为兼容保留 legacy 默认值。
+- Research resources 枚举紧凑论文卡片；稳定 source URI 绑定版本、文件哈希、范围及类型。短标识限于固定 release。Search/list 默认精简输出，`detail="full"` 获取完整信封。
 - 会话固定一个 release；工具参数不能传任意 paths/SQL/shell 或改变 scope。
 - 预算：depth/nodes/results/characters；截断结果说明省略内容；预算过小返回显式错误，而不是部分根陈述。
 - Read tools 绝不写、运行 TeX/paper code 或触发 Lean builds。
@@ -514,10 +527,7 @@ Python、CLI 和 MCP 共享。MCP protocol errors 和 business-query errors 保�
   主题词，空格转连字符；`author` 按论文顺序列出作者；`link` 为公开 HTTP(S) URL 或 null，
   缺失列表用 `[]`。格式遵循 [Obsidian properties](https://obsidian.md/help/properties)
   和 [tags](https://obsidian.md/help/tags)，不再添加图类型、release、审核状态标签。
-- 登记标题和 canonical URL 优先；有来源引用的 AI `paper` 元数据提供标题、作者顺序、
-  日期、链接和主题词；字面 TeX 标题区命令作为回退，
-  包括 RevTeX 中位于 `\begin{document}` 后的元数据，不执行宏。缺少主题元数据时，仅从标题
-  匹配已知 QEC 主题词。缺失信息保留未知，不用导入日期或 `\today` 代替论文日期。
+- 显式登记的标题和 canonical URL 优先。字面 TeX 标题命令（包括 `\begin{document}` 后的 RevTeX 元数据）优先于来源绑定的 AI `paper` 元数据；不执行宏。共享元数据解析同时供论文卡片和 human 使用。没有主题时从标题中的已知 QEC 短语生成 tags；未知日期不取导入时间或 `\today`。
 - 目录年月优先取原始包名中的现代 arXiv 编号：`arXiv-2611.12971v2.tar.gz` 对应
   `2026/11/`。`YYMM` 表示首次提交年月，后续 v2 等版本仍用同一年月；规则见
   [arXiv 编号格式](https://info.arxiv.org/help/arxiv_identifier.html)。解析在本地完成，
@@ -681,6 +691,8 @@ build evidence 或 semantic equivalence。
 
 ## 15. AI 接入
 
+即使已有凭据，来源上传也默认 **false**；只有显式设置 `[ai].allow_source_upload = true` 才启用 provider 请求，已有明确选择保持原值。共享 client 限制包含重试的实际请求数（`max_batch_requests`，默认 128）和累计已报告费用（`max_batch_cost_usd`，默认 20）。缺价及在途请求使美元上限无法成为硬保证。Dry-run 不联网，报告限额和未知费用。AI 审核在 writer 锁内登记，仅新固定的 release 可见；审核身份仍是自声明。
+
 AI 是 `qecgraph/llm/` 下的可选本地编排层。`init` 只写 provider 模板，不调用模型、
 不抽取文献包。`sync` 由本地解析器处理普通包。配置 provider 后可协助解决多入口歧义，
 或恢复符合条件的结构解析失败。日常语义提案默认开启，接入点默认为 OpenRouter，
@@ -706,15 +718,14 @@ Provider 在 `qecgraph.toml` 中选择（OpenAI、Anthropic、OpenRouter 或本�
 | 版本化 skill packs | 已实现 |
 | 来源映射规范化 | 已实现于歧义文献包 |
 | 软件优先的结构回退 | 已实现于符合条件的原始 TeX 入口，块分类保留为 proposed |
-| 定理/假设/数据/思路 proposal | 默认开启，配置凭据后写入 `machine/ai/proposals`；审核决定会记录，但不会自动转换为权威研究记录 |
+| 定理/假设/数据/思路 proposal | 显式允许上传并配置凭据后写入 `machine/ai/proposals`；审核决定会记录，但不会自动转换为权威研究记录 |
 
-四个语义抽取 skill 使用 v4 证据说明。请求包含主投影及已选入口登记的 TeX 文件集合，
+四个语义抽取 skill 使用 v6：共用安全 system、带文件映射的编号纯文本证据，以及证据之后的 skill 任务。provider 前缀缓存收益尚未测量。请求包含主投影及已选入口登记的 TeX 文件集合，
 包括嵌套正文与附录。每个文件都核对归档和来源快照，以明确行号、独立路径、哈希和
 原始字节映射提供；不混入压缩包中的无关文件。模型直接使用提供的行号，引用解析到
 对应文件，逐字引文仍须是一个原文区间内的连续子串，生成包装和拼接引文会被拒绝。
-启用默认的 `extract_proposals = true` 后，多文件论文自动走此流程，无需另开 AI
-开关或手动合并文件。预算约束完整请求，超过预算明确失败，不截断正文。
-v4 响应未通过 schema 或原文校验时，抽取最多追加一次纠错请求，携带相同证据，并将
+显式允许来源上传且 `extract_proposals = true` 后，多文件论文自动走此流程，无需手动合并文件。预算约束完整请求，超过预算明确失败，不截断正文。
+响应未通过 schema 或原文校验时，抽取最多追加一次纠错请求，携带相同证据，并将
 被拒绝的输出明确标为不可信数据。完整请求预算和全部校验再次生效；成功提议的来源信息
 保留两次请求 ID、prompt 哈希与用量。再次失败则保持待处理；无效响应不会作为成功结果
 缓存或发布。传输错误仍使用原有的独立重试次数上限。
@@ -790,7 +801,7 @@ ThoughtsGraph 保存有来源依据的研究意图与解读。九个类别和阅
 | `addresses_refs`、`motivated_by_refs`、`extends_refs`、`contradicts_refs` | 其他 `research_thought` 记录的精确修订，附字段证据 |
 | `related_refs` | 允许的研究类型的精确修订，如构造、实验或 decoder；解析块仍通过来源证据访问 |
 
-`extract_thoughts` v5 产生 `qecgraph.ai.proposal` 包，显式开启搜索后以
+`extract_thoughts` v6 产生 `qecgraph.ai.proposal` 包，默认可搜索（`include_proposals=false` 可排除），以
 `research_thought_proposal` 条目暴露，与已发布研究记录分开。明确审核与记录导入是
 两个步骤，AI 结果或批准都不会自动创建规范记录。记录和提案保留实际审核状态；
 候选解读关系需显式开启遍历，引用和思路关联不会转为证明依赖。
@@ -839,6 +850,8 @@ machine release 中同一个哈希绑定的 `extract_thoughts` 包。Sync 先发
 
 ### 16.3 检索、枚举与覆盖
 
+默认关键词检索使用缓存 BM25、QEC 词规范化、来源绑定摘要和重叠排除。仅正文无命中时回退标题上下文；除非指定 kind，默认排除整文件/章节/元数据/书目。论文轮换改善多样性。这是词法相关性，不是语义验证。
+
 关键词、可选向量候选、类型化字段/关系查询共用固定 release。
 混合排序合并候选并去重，类型和来源硬过滤先于排序。相似度不能满足参数或距离条件。
 结构化查询通过明确分页枚举所有匹配，top-k 发现不能称为穷尽。
@@ -856,11 +869,11 @@ machine release 中同一个哈希绑定的 `extract_thoughts` 包。Sync 先发
 
 ### 16.4 少量稳定接口与任务上下文
 
-兼容已有 13 个工作区工具以及 store/corpus 工具。同一核心增加精简研究 profile
-与通用兼容 profile：
+CLI 默认八个 research 工具；显式 legacy workspace 与 store/corpus 接口继续兼容，通用 profile 共用核心：
 
 | 研究工具 | 职责 |
 |---|---|
+| `qec_list_papers` | 紧凑论文卡片，包含元数据来源与来源版本 |
 | `qec_search` | 关键词/向量/混合发现，支持类型和精确来源过滤 |
 | `qec_fetch` | 读取论文目录、源文件、章节、occurrence 或记录 |
 | `qec_get_context` | 为定理、性能、构造、思路或 Lean 准备组装有界上下文 |
@@ -913,15 +926,13 @@ PDF/OCR、读图提取、自动证明和千篇/万篇生产验证不属于本轮
 
 阶段 2 已实现：论文/文件/章节读取、严格版本选择、字段/来源覆盖和可选 MCP profiles。完整源文件从登记快照读取并核验哈希，包含解析块之外的文本。
 
-阶段 3 已实现：九类思路、精确引用记录及关系、`extract_thoughts` 提议和人类思路页面。启用 `[ai].extract_proposals = true` 时 sync 运行四个抽取 skill（含思路）；缺失某个 skill 的批次在下次 sync 补提取。已经完成的英文 skill 不会因版本变化自动重跑；旧中文提案会按英文输出要求重新抽取。`qec_search(include_proposals=true, kind="research_thought_proposal")` 发现候选思路而不提升为记录；精确 `qec_fetch` 保留 proposed 状态。
+阶段 3 已实现：九类思路、精确引用记录及关系、`extract_thoughts` 提议和人类思路页面。显式允许来源上传并启用 `[ai].extract_proposals = true` 时 sync 运行四个抽取 skill（含思路）；缺失某个 skill 的批次在下次 sync 补提取。已经完成的英文 skill 不会因版本变化自动重跑；旧中文提案会按英文输出要求重新抽取。`qec_search(include_proposals=true, kind="research_thought_proposal")` 发现候选思路而不提升为记录；精确 `qec_fetch` 保留 proposed 状态。
 
-阶段 4 已实现：`[retrieval].enabled = true` 在 sync/rebuild 发布前生成哈希绑定投影。本地模型为离线词法基线；`openai_compatible` 支持明确配置的外部 embedding，使用环境变量凭据和上传授权。模型版本、维度、分词与分块配置绑定缓存；新增来源复用未变化分块向量，校验失败保留旧 release。研究搜索支持 keyword/vector/hybrid、排序前过滤、分页、显式回退与校验重建。向量区间属于派生检索文本，权威引用坐标来自 fetch。
+阶段 4 已实现：`[retrieval].enabled = true` 在 sync/rebuild 发布前生成哈希绑定投影。本地模型为离线词法基线；`openai_compatible` 支持明确配置的外部 embedding，使用环境变量凭据和上传授权。模型版本、维度、分词与分块配置绑定缓存；新增来源复用未变化分块向量；可选索引构建失败发布 stale 状态，关键词检索继续可用，来源或记录完整性失败仍保留旧 release。研究搜索支持 keyword/vector/hybrid、排序前过滤、分页、显式回退与校验重建。向量区间属于派生检索文本，权威引用坐标来自 fetch。
 
 阶段 5 已实现：按用途组装上下文、类型化双向追踪、当前证据绑定的分类/校验权重/噪声过滤、比较条件分组、缺失/未知/冲突报告和分开的原文候选。记录枚举保留分页；原文候选不能满足硬条件。
 
-阶段 6 已实现：`tools/reproduce_knowledge.py` 记录固定 release 的 A/B/C 工具调用、证据段落覆盖、返回大小、缺失组件、错误和耗时。2026-11-11 运行通过 339 项测试和核心复现；合成对照中全文与任务上下文找回 2/2 所需段落，单块阅读为 1/2。对本地三份已登记真实来源的六个只读探针均找回所请求的原文。该真实库尚无向量索引，也没有论文版本以外的领域记录，因此混合请求显式采用词法回退。这些结果验证来源与证据机制，不是经过整理的科学问答或语义检索基准。报告保留在本地 `build/`；[验证索引](../../validation/README.zh-CN.md) 给出可重复运行的命令。
-
-分发验证也已通过：wheel/sdist 元数据和随包 schema/skill、16 条已安装 CLI 命令、工作区验收，以及在独立 Python 3.12.2 wheel 安装中运行的三个合成知识用例。Ruff、mypy、文档契约和 Markdown 检查通过。本轮未运行 Docker、Lean、真实 AI/embedding provider 或六份固定 golden 归档。
+阶段 6 有 `tools/reproduce_knowledge.py` 的机制检查和 `tools/eval_retrieval.py` 的真实论文来源绑定检索 smoke。执行命令和限制见[验证索引](../../validation/README.zh-CN.md)。它们不是独立标注的科学 QA。单次运行结果应放入带日期的验证证据，不作为永久能力声明。
 
 ### 16.7 收益证据
 
@@ -933,16 +944,16 @@ C（B 加领域字段、关系和任务上下文）。记录实际工具输入�
 
 ## 附录 A — 决策记录（替代当前行为的独立 ADR）
 
-| 决策 | 当前解决 |
-|---|---|
-| **D1 — 一个 workspace，一个 writer** | Immutable release + POSIX lock + atomic pointer；没有 distributed writer。 |
-| **D2 — 证据分层，不是评分** | Source/claim/review/computation/build 状态保持分离；默认过滤排除非活动状态。 |
-| **D3 — 只读 agents** | 固定 scope、有预算的 CLI/Python/MCP reads；没有 path/SQL/shell 访问；只有 stdout protocol。 |
-| **D4 — 人类视图隔离** | 从固定 machine release 为每篇论文生成一份 thoughts；human 不作为输入；逐文件原子发布、旧布局清理与 `human_stale` 恢复。 |
-| **D5 — Lean 延期** | 0.6.x 没有受支持验证声明。实验 fixtures 保留用于回归；实现前需要新设计，read paths 绝不执行 Lean。 |
-| **D6 — CodeGraph 仅供参考** | 架构比较，不复制代码，不导入性能声称；保留归属。 |
-| **D7 — 兼容优先于重写** | Store/corpus 继续受支持；machine 迁移保留数据；human 布局重置在 §9 明确说明。 |
-| **D8 — Schema 所有权单一** | Packaged schemas 是规范；根副本是兼容性产物并检查相等；未知版本不重新解释。 |
+| 决策 | 当前解决 | 背景 | 本次评估的替代方案 | 原因 / 取舍 |
+|---|---|---|---|---|
+| **D1 — 一个 workspace，一个 writer** | Immutable release + POSIX lock + atomic pointer；没有 distributed writer。 | 本地恢复必须可审计。 | 分布式写者或原地可变 state。 | 保留锁与不可变发布；并发需先验证 CAS/恢复协议。 |
+| **D2 — 证据分层，不是评分** | Source/claim/review/computation/build 状态保持分离；默认过滤排除非活动状态。 | 主张和证据含义不同。 | 单一 confidence/verified 分数。 | 单值会掩盖未支持假设和失效证据。 |
+| **D3 — 只读 agents** | 固定 scope、有预算的 CLI/Python/MCP reads；没有 path/SQL/shell 访问；只有 stdout protocol。 | Agent 需要有界可重放读取。 | 任意文件系统/SQL 工具。 | 固定资源减少范围错误，machine-only 挂载实现访问边界。 |
+| **D4 — 人类视图隔离** | 从固定 machine release 为每篇论文生成一份 thoughts；human 不作为输入；逐文件原子发布、旧布局清理与 `human_stale` 恢复。 | 私人笔记不能成为机器证据。 | 双向 vault 导入。 | 单向渲染防止混入；保留明确批准的旧 human 删除例外。 |
+| **D5 — Lean 延期** | 0.6.x 没有受支持验证声明。实验 fixtures 保留用于回归；实现前需要新设计，read paths 绝不执行 Lean。 | 构建成功不等于语义对应。 | 将 Lean 当作受支持验证。 | 保留历史读取，待映射和公理审计成立再支持。 |
+| **D6 — CodeGraph 仅供参考** | 架构比较，不复制代码，不导入性能声称；保留归属。 | 代码智能可提供架构参考。 | 引入引擎或继承性能承诺。 | 工作负载不同；保留归属并独立测量本项目。 |
+| **D7 — 兼容优先于重写** | Store/corpus 继续受支持；machine 迁移保留数据；human 布局重置在 §9 明确说明。 | 旧记录和审核哈希必须可读。 | 立即替换所有 API/格式。 | 兼容会保留重复；批准迁移后再退役。 |
+| **D8 — Schema 所有权单一** | Packaged schemas 是规范；未知版本不重新解释。 | 可编辑的重复 schema 会漂移。 | 同时维护根目录和打包副本。 | 打包资源负责校验；拒绝未知版本。 |
 
 ## 附录 B — 主要参考
 

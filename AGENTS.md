@@ -5,9 +5,9 @@
 - 先读 `README.md`、`docs/README.md` 和 `docs/design/DESIGN.md`。历史任务书和 P0–P5 验收只在 Git 历史中保留，不再作为当前文档。执行用户当前指定范围；范围内持续实现，不停在计划。
 - 先复现现有工具。测试命令是 `python -m unittest discover -s tests -v`，端到端命令是 `python tools/reproduce.py --out build/reproduce`。
 - 项目名 qec-graph，Python 包名 qecgraph。文件切割与图谱共用解析结果和来源模型。保持现有 CLI 的兼容性；破坏性变化必须提供迁移。
-- 当前代码支持单论文 store、版本注册表和 RFC-QEC-002 工作区。不要将目录中路线图、模板或 Schema 设计误报为已实现功能。
+- 当前代码支持单论文 store、版本注册表和工作区（当前协议见 `docs/design/DESIGN.md` §7）。不要将目录中路线图、模板或 Schema 设计误报为已实现功能。
 
-## RFC-QEC-002 工作区
+## 工作区（DESIGN §7）
 
 - 投递材料默认登记；`rebuild` 核对整个归档库存。不以发表状态、质量、审核分数筛论文。
 - 登记与输入消费是不同事务状态。仅消费已归档、校验且承诺阶段已发布的认领副本。
@@ -24,7 +24,7 @@
 - 原始论文/TeX/数据、人工整理的 JSON 记录与 sidecar、Lean 源码分别承担自己的权威字段。由它们生成的快照、SQLite、向量索引不可手改。
 - 同一个字段只有一个可编辑的权威来源。YAML 模板不能与 JSON 记录长期双向维护同一内容。
 - 保留原始资产、来源版本、哈希和稳定 ID。对象身份不等于内容哈希，不以 `[n,k,d]` 作为码的身份。
-- `legacy/knowledge_starter/` 是独立的历史 Schema 样例；通过显式导入器和迁移连接，不能将其全部 JSON 当成新版 Schema。
+- 历史 Schema 样例仅存于 Git 历史；必须通过显式导入器和迁移连接，不能将旧 JSON 当成新版 Schema。当前规范位于 `qecgraph/validators/schemas/`。
 
 ## 语义边界
 
@@ -74,3 +74,5 @@
 - 所有 provider 输出先过 JSON Schema 和程序语义校验；失败时保留原始包和旧 release。
 - API key 不进入日志、测试 fixture、提交或 `human/`；优先使用环境变量。
 - 修改 skill 的步骤、prompt 或 schema 时提升版本，并用 fake provider 添加离线回归测试。
+- 来源上传默认关闭；有 API key 不等于授权上传。现有显式设置保持不变。
+- 改变解析语义（包括依赖升级）时提升 PARSER_VERSION/RULE_VERSION 并回放来源；不因无关代码修改重建快照，不为消除 stale 刷新审核哈希。

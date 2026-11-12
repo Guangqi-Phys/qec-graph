@@ -7,7 +7,7 @@
 | | |
 |---|---|
 | **Status** | Current authoritative design (0.6.x) |
-| **Reviewed** | 2026-11-11 |
+| **Reviewed** | 2026-11-12 |
 | **Supersedes** | The earlier architecture, graph-contract, data-formats, incremental, MCP and CodeGraph design pages. Lean is deferred; see §10. |
 | **Implementation** | `qecgraph/`, `tests/`, `tools/`, `validation/` |
 
@@ -73,8 +73,11 @@ The executable scope is the Python package, CLI, local MCP server, Obsidian rend
 flowchart LR
     Inputs["inputs/ source packages"] --> Archive["archive/ bytes + receipts"]
     Archive --> Extract["LaTeX extraction + source registry"]
-    Extract --> Records["research records + evidence"]
-    Records --> Validate["candidate release validation"]
+    Extract --> Records["paper_version + parameter mentions"]
+    Extract --> Proposals["optional AI proposals"]
+    Manual["explicit research import"] --> Validate["candidate release validation"]
+    Records --> Validate
+    Proposals --> Validate
     Validate --> Machine["machine/ immutable release"]
     Machine --> CLI["CLI query"]
     Machine --> MCP["read-only MCP"]
@@ -83,7 +86,17 @@ flowchart LR
 
 A workspace is a local directory with a single writer. `init` creates the layout; `sync` archives and processes inbox packages; `rebuild` rechecks the complete archive; `status`, `validate`, and `doctor` are read-mostly inspection commands. A successful transaction publishes an immutable machine release and then renders a separate human view. Query and MCP sessions pin a release and never read a moving `CURRENT` mid-session.
 
-### 2.2 Compatibility surfaces
+### 2.2 From one paper to one answer
+
+1. Put `paper.tar.gz` in `inputs/`; run `qec-graph workspace sync --workspace /path/to/workspace`. The writer claims a copy, archives the exact package under `archive/blobs/sha256/`, and records its receipt.
+2. Verified extraction creates `sources/<tree-hash>/` and a managed store under `machine/source_snapshots/`. It registers the paper version and literal parameter mentions. It does **not** resolve code/decoder/noise/experiment identities automatically.
+3. With explicit `[ai].allow_source_upload = true`, enabled skills and credentials, optional extraction writes four kinds of proposed artifacts under `machine/ai/proposals/`. Canonical domain records require explicit curation and import.
+4. Validation binds sources, records and registered review hashes in `machine/states/<release>.json`; atomic replacement of `CURRENT.json` publishes it. Only then may the claimed input be consumed. A failed required step retains the prior release; an unavailable optional retrieval projection may publish as `stale` with keyword fallback.
+5. Human rendering reads that fixed release. A research MCP client calls `qec_list_papers`, `qec_search`, then `qec_fetch` or `qec_get_context` with returned handles. It receives source locations, proposed/reviewed status and explicit missing components. An answer cites those locations; a search hit is not mathematical verification.
+
+The writer still holds its lock through AI work; the two-stage publication proposal is not implemented. Parser fallback and input consumption must share a defined recovery protocol before that changes.
+
+### 2.3 Compatibility surfaces
 
 Three storage/query generations exist, deliberately:
 
@@ -95,7 +108,7 @@ Three storage/query generations exist, deliberately:
 
 New work should target the workspace surface. Store and corpus remain available for existing commands, migrations, Lean imports, and tests. When a feature exists in more than one surface, the workspace implementation defines current semantics; the older surfaces must not silently diverge on evidence or state filtering.
 
-### 2.3 Runtime and deployment
+### 2.4 Runtime and deployment
 
 - Python 3.11+ on a POSIX filesystem; SQLite with FTS5.
 - `pylatexenc==2.10` and `jsonschema==4.26.0` are runtime dependencies.
@@ -103,7 +116,7 @@ New work should target the workspace surface. Store and corpus remain available 
 - The research Compose profile and the macOS read-only MCP isolation profile are release checks; re-run them with the commands in `validation/README.md`. The Linux profile uses an alternate local Ubuntu base because the default Docker Hub lookup timed out. Do not claim a generic Docker Hub build or Windows support without a new verification.
 - The package is versioned independently from graph/record schemas and the Lean toolchain. `qec-graph --version` is authoritative for the installed package version.
 
-### 2.4 Module boundaries
+### 2.5 Module boundaries
 
 ```mermaid
 flowchart TB
@@ -160,6 +173,16 @@ workspace/
 │   ├── CURRENT.json              # published release pointer
 │   ├── states/<release>.json     # immutable registry state
 │   ├── operational/status.json   # sanitized operational projection
+│   ├── source_snapshots/         # managed stores: sources, graph, views, SQLite
+│   ├── research/                 # revisioned research JSON
+│   ├── records/                  # compatible corpus record revisions
+│   ├── proposals/                # corpus handoff proposals
+│   ├── reviews/                  # corpus review evidence
+│   ├── ai/proposals/             # four skill outputs, proposed only
+│   ├── ai/reviews/               # hash-bound decisions registered in state
+│   ├── derived/normalizations/   # original-byte projections and source maps
+│   ├── retrieval/indexes/        # optional JSON vector/chunk projections
+│   ├── assets/                   # registered data and evidence assets
 │   └── .writer.lock              # single-writer lock
 ├── human/
 │   └── YYYY/MM/
@@ -287,6 +310,22 @@ Each edge keeps `source`, `target`, `relation`, `status`, and `evidence`.
 
 ---
 
+### 4.6 File formats and validators
+
+Paths below are relative to `machine/`. The linked packaged schemas are authoritative; this table is an entry point, not a second schema.
+
+| Artifact | Required identity and principal fields | Validator / boundary |
+|---|---|---|
+| `states/<release>.json` | `schema`, `format_version=1`, `works`, `versions`, `records`, `links`; optional `materials`, `research_records`, `ai_reviews`, `retrieval_index` | [Registry schema](../../qecgraph/validators/schemas/registry.schema.json); hash checked on original bytes before interpreting the legacy version without a marker |
+| `materials[archive_sha256]` | `archive_sha256`, `status`, `processing_completed`; completed entries additionally bind source version, snapshot, tree, entrypoint and work; `original_names`, config fingerprint and diagnostics retain provenance | Registry schema plus workspace validation; nested AI/diagnostic envelopes still use their own validators |
+| `research/`, `records/` | `id`, `revision`, `kind`, `data`, evidence; state holds registered revision hashes | [Research schema](../../qecgraph/validators/schemas/research.schema.json), [record schema](../../qecgraph/validators/schemas/record.schema.json) and source/reference validation |
+| `proposals/`, `reviews/` | Proposed changes and expected revisions/hashes; decision, actor and exact proposal binding | [Proposal schema](../../qecgraph/validators/schemas/proposal.schema.json), [review schema](../../qecgraph/validators/schemas/review.schema.json) |
+| `ai/proposals/`, `ai/reviews/` | Skill/version, source snapshot, output and request provenance; decisions register their content hash in state | Each skill's `output.schema.json` under `qecgraph/llm/skills/`, quotation validation and `llm/review.py`; local reviewer identity is self-asserted, not authenticated |
+| `retrieval/indexes/<hash>.json` | `format`, `identity`, `configuration`, `corpus_sha256`, `unit_count`, `chunks`, `coverage`; chunks hold unit key, derived-text range/hash, terms and vector | `retrieval.read_index`; JSON plus semantic/hash checks, no standalone index schema; unavailable projection is a `stale` state binding |
+| `source_snapshots/` | Store manifest, original source bytes, graph and derived views | [Graph schema](../../qecgraph/validators/schemas/graph.schema.json) plus store integrity checks; full stores and monolithic JSON remain a scale limitation |
+
+New snapshot identity uses source/configuration and explicit `PARSER_VERSION` / `RULE_VERSION`; package-byte identity remains provenance. Dependency upgrades that can change parsing require a semantic version bump and source replay. Review bindings are never refreshed merely to remove staleness. Per-material fingerprints exclude unrelated paper and AI credential/model settings.
+
 ## 5. Source extraction
 
 ### 5.1 Parser
@@ -304,6 +343,8 @@ It does not expand arbitrary macros, evaluate conditionals, execute TeX, or infe
 
 `\lean` and `\uses` outside a mathematical block are preserved as `describes` / `references` associations with a diagnostic; they do not become typed proof dependencies. `\def` and `\let` mark a name as defined for a later statically decidable `\ifdefined`, while their replacement text stays opaque.
 
+Parsed kinds also include abstract, algorithm, assumption, claim, notation, acknowledgments, statement_other, title, author_block and literal bib_entry. Unique local bibliography keys resolve to exact entries; duplicates remain ambiguous. BibTeX/.bbl and cross-paper identity resolution remain incomplete. Fragment reads attach bounded literal macro definitions and reference previews, without macro expansion or inferred proof dependencies. Non-UTF-8 input produces an explicit unsupported-encoding diagnostic; original bytes remain archived.
+
 ### 5.2 Source block vs normalized claim
 
 A parser theorem/lemma is a **source block**: what the document says at a fixed span. A normalized `claim` is a separate revisioned domain object with explicit statement, quantifiers, hypotheses, definitions, subject, and evidence. The two may be many-to-many; similar text or parameters never merge identities. `proof_of` points at the intended target and does not assert that the proof is valid.
@@ -312,7 +353,7 @@ A parser theorem/lemma is a **source block**: what the document says at a fixed 
 
 The offline extractor performs two passes: locate notation/structures, then apply local wording/column rules. It produces `code_parameters_mention` proposals with exact locators and a rule version; it does not promote a table parameter into a verified quantum code, infer a distance bound, or guess code class from bracket shape.
 
-An optional local provider handoff exports bounded source excerpts, validates the provider/model/prompt hash and cited spans, and queues a draft. It never calls an external model automatically and never approves its own draft. A human decision binds the exact draft and source projection; changed inputs make the decision stale.
+The compatible corpus handoff exports bounded excerpts for an explicit external workflow and never calls a model itself. The separate workspace AI pipeline (§15) can call a configured provider during sync only when source upload is explicitly enabled. Neither path approves its own draft or converts it automatically to research records. Decisions bind exact proposal/source hashes in the published state; changed inputs make them stale.
 
 ---
 
@@ -400,49 +441,14 @@ The CLI is grouped by noun (`workspace`, `query`, `review`, `mcp`, `human`, `sof
 
 Human output is concise and stateful: workspace/release, indexed/pending/failed/quarantined counts, human-view state, and a next action. `--json` is the only machine-output switch; TTY detection affects styling, not the data model. Errors are actionable and never raw Python/OS/TOML tracebacks unless `--debug` is requested.
 
-Activity events live in `core/progress.py`, independent of terminal output. A
-context-local subscriber in `cli/progress.py` renders an amber activity panel on
-stderr; each AI worker receives its own copied context and nested task identity.
-Known phase totals use compact Braille micro-dot cells (four dot rows in one
-text row, at most 12 characters wide), completed units and one decimal
-of percentage, capped below 100% until every unit finishes. Unknown totals use animation and elapsed
-time, never a synthetic percentage or ETA. Separate stages have separate counters;
-publication, network waits and the isolated human renderer stay indeterminate.
-Only explicitly retained major-stage outcomes are appended above the live region,
-with counts and elapsed time. Helpers update transient detail without renaming or
-resetting a major stage. Finished/queued subtasks and final matrices are hidden;
-failures and interruption remain in the stage summary. Typed step events identify
-the currently running AI task. The AI batch denominator covers four tasks per
-scheduled paper, including queued packages; successful or reused tasks advance it
-once, failures never do. Locked updates keep concurrent counts monotonic, and
-completed package contributions survive removal from the live panel.
-Each provider request has a separate breathing light next to `AI`, independent
-of the dot matrix; a fixed middle bullet keeps its vertical position while
-luminance breathes. The light signals local liveness, not model-internal progress.
-Provider/model, timeout, attempts, backoff, reported token counts and response
-validation remain inspectable. Overflow activity cycles within the viewport;
-history retains only major results. Detailed diagnostics are opt-in via `--verbose`.
-The CLI starts activity before dispatch for every business command. Reports
-clear only the live region before output; completion, errors and interruption
-retain final records and stop the refresh worker. Help/version are immediate, and MCP uses plain service
-activity. Non-TTY stderr is quiet by default; `--progress plain` provides an
-append-only major-stage log. `--progress off` and `--quiet` suppress activity,
-including with `--json`. Terminal width, Unicode support and color settings
-change presentation only; stdout payloads and exit codes retain their contracts.
-
-Visual reference: [CodeGraph v1.6.2, `shimmer-worker.ts`](https://github.com/colbymchenry/codegraph/blob/6560052a6f856855d3f71eee838fd66ccfa4285d/src/ui/shimmer-worker.ts),
-commit `6560052a6f856855d3f71eee838fd66ccfa4285d`,
-[MIT, copyright 2026 Colby Mchenry](https://github.com/colbymchenry/codegraph/blob/6560052a6f856855d3f71eee838fd66ccfa4285d/LICENSE).
-The installed v1.6.2 glyph and shimmer modules informed the compact density,
-amber range (`#a06409`–`#fbbf24`), muted rails and green completion marks. QEC
-Graph implements its own Braille fill, brightness animation and persistent
-history in Python; the referenced implementation is not vendored.
+Progress events are independent of stdout data and exit status. The CLI renders them on stderr; unknown totals never become invented percentages. They describe local activity, not model progress or scientific evidence. See [progress presentation](../user/advanced-usage.md#progress-presentation) for the visual contract.
 
 ### 8.3 MCP
 
 - Local stdio, protocol `2025-06-18`; stdout carries only JSON-RPC, logs go to stderr.
 - Store/corpus sessions expose the five `qecgraph_*` read tools.
-- Workspace sessions add research/source tools and `qec://source/...` resources, plus status/coverage projections.
+- Workspace CLI defaults to the eight-tool research profile (§16.4); explicit legacy/compatible profiles remain available. Python `WorkspaceSession` keeps its legacy default for compatibility.
+- Research resources enumerate compact paper cards; stable source URIs bind version, file hash, range and kind. Short handles are scoped to the pinned release. Search/list default to concise output; `detail="full"` requests the complete envelope.
 - A session is pinned to one fixed release; tool arguments cannot pass arbitrary paths/SQL/shell or change scope.
 - Budgets: depth/nodes/results/characters; truncated results state omitted content; a too-small budget returns an explicit error rather than a partial root statement.
 - Read tools never write, run TeX/paper code, or trigger Lean builds.
@@ -467,10 +473,7 @@ This layout ships in **v0.6.3**; v0.6.2 used the earlier vault.
   `author` is an ordered list, `link` is a public HTTP(S) URL or null, and missing
   lists are empty. These follow [Obsidian properties](https://obsidian.md/help/properties)
   and [tags](https://obsidian.md/help/tags). No graph/release/status tags are added.
-- Registered title and canonical URL take precedence. Source-bound AI `paper`
-  metadata supplies title, ordered authors, date, link and topics; literal TeX
-  title-block commands (including RevTeX metadata after `\begin{document}`)
-  provide a fallback without evaluating macros. Without topic
+- Registered title and canonical URL take precedence. Literal TeX title-block commands (including RevTeX metadata after `\begin{document}`) take precedence over source-bound AI `paper` metadata; neither evaluates macros. Shared metadata extraction supplies both paper cards and human rendering. Without topic
   metadata, recognized QEC phrases in the title supply tags. Missing information
   stays unknown; dates are never taken from the import time or `\today`.
 - Folder year/month comes first from the modern arXiv identifier in the original
@@ -645,6 +648,8 @@ These are limits of the current release, not permission to fill gaps with plausi
 
 ## 15. AI integration
 
+Source upload defaults to **false**, even with credentials. Set `[ai].allow_source_upload = true` explicitly to enable provider requests; existing explicit choices are preserved. The shared client limits actual requests including retries (`max_batch_requests`, default 128) and accumulated reported cost (`max_batch_cost_usd`, default 20). Unknown prices and in-flight requests prevent a guaranteed dollar ceiling. Dry-run reports these limits and unknown cost without network calls. AI reviews are registered under the writer lock and visible only in a newly pinned release; reviewer identity remains self-asserted.
+
 AI is an optional, local orchestration layer under `qecgraph/llm/`. `init` writes
 provider templates, and the local parser handles ordinary packages during
 `sync`. A configured provider can help resolve a multi-root package or recover
@@ -678,9 +683,9 @@ API keys are redacted and the configuration file is created mode `0600`.
 | Versioned skill packs | Implemented |
 | Source-mapped normalization | Implemented for ambiguous packages |
 | Parser-first structure recovery | Implemented for eligible original TeX entries, with proposed block kinds |
-| Theorem/assumption/data/thought proposals | Enabled by default when credentials are configured; written as `machine/ai/proposals`; explicit review decisions are recorded, conversion to canonical research records is not automatic |
+| Theorem/assumption/data/thought proposals | Runs when explicitly allowed to upload and credentials are configured; written as `machine/ai/proposals`; explicit review decisions are recorded, conversion to canonical research records is not automatic |
 
-The four semantic extraction skills use v4 evidence instructions. Requests
+The four semantic extraction skills use v6: a shared safety system message, numbered plain-text evidence with file mappings, and the skill task after that evidence. Provider prefix-cache savings have not been measured. Requests
 contain the main projection plus the selected entry's registered TeX file
 closure, including nested body and appendix inputs. Each file is checked against
 both the archive and source snapshot, then supplied as numbered exact lines
@@ -688,10 +693,9 @@ with its own path, hash and original-byte segment map. Unrelated files in an
 archive are excluded. The model uses supplied line numbers; citations resolve
 against the matching file and quotations still require an exact contiguous
 original substring. Generated wrappers and stitched quotations are rejected.
-Multi-file papers use this path by default with `extract_proposals = true`;
-no separate AI switch or manual concatenation is required. Input budgets apply
+With explicit source-upload permission and `extract_proposals = true`, multi-file papers use this path without manual concatenation. Input budgets apply
 to the complete request; exceeding them fails explicitly without truncation.
-After schema or source validation rejects a v4 response, extraction may make
+After schema or source validation rejects a response, extraction may make
 one corrective request with the same evidence and the rejected output marked
 as untrusted data. The full request budget and all validators apply again.
 Both request IDs, prompt hashes and usages are retained in successful proposal
@@ -789,8 +793,8 @@ remain separate records so their evidence and revisions can evolve independently
 | `addresses_refs`, `motivated_by_refs`, `extends_refs`, `contradicts_refs` | Exact revisions of other `research_thought` records, with field-level evidence |
 | `related_refs` | Exact revisions of allowed research kinds, such as a construction, experiment or decoder; parser occurrences remain accessible through source evidence |
 
-`extract_thoughts` v5 produces `qecgraph.ai.proposal` packages, exposed for opt-in
-search as `research_thought_proposal` items. These are distinct from published
+`extract_thoughts` v6 produces `qecgraph.ai.proposal` packages, exposed by default
+in search as `research_thought_proposal` items (`include_proposals=false` opts out). These are distinct from published
 research records. Explicit review and record import remain separate steps; no
 AI result or approval automatically creates a canonical record. Both records
 and proposals retain their actual review status. Candidate interpretation links
@@ -858,6 +862,8 @@ A local paper without a public URL remains available through research tools.
 
 ### 16.3 Retrieval, enumeration and coverage
 
+Default keyword discovery uses a cached BM25 index of passage text, QEC term normalization, source-bound snippets and overlap suppression. Headers are a fallback only when no passage matches. Whole-file/section/metadata/bibliography hits are excluded unless their kind is requested; paper rounds improve diversity. This is lexical relevance, not semantic verification.
+
 Keyword retrieval, optional vector candidates and typed field/relationship
 queries share one pinned release. Hybrid ranking merges candidates and avoids
 duplicate IDs; hard kind/source filters run before ranking. Similarity cannot
@@ -884,12 +890,12 @@ claim follows merely from computing vectors.
 
 ### 16.4 Small stable interfaces and task context
 
-Keep the existing 13 workspace tools and store/corpus tools compatible. Add a
-compact research profile and a generic compatibility profile on the same core:
+The CLI defaults to eight research tools. Explicit legacy workspace and store/corpus tools remain compatible; the generic profile shares the same core:
 
 | Research tool | Responsibility |
 |---|---|
-| `qec_search` | Keyword/vector/hybrid discovery with kind and exact source filters |
+| `qec_list_papers` | Compact paper cards with metadata provenance and source versions |
+| `qec_search` | BM25 keyword/vector/hybrid discovery with kind and exact source filters |
 | `qec_fetch` | Read a paper outline, source file, section, occurrence or record |
 | `qec_get_context` | Assemble bounded context for theorem, performance, construction, thought or Lean preparation |
 | `qec_query_codes` | Enumerate exact code/parameter/distance conditions |
@@ -954,15 +960,13 @@ thousand/ten-thousand-paper production validation remain outside this iteration.
 
 Stage 2 is implemented: document/file/section reads, strict version selection, field/source coverage and selectable MCP profiles. Full source files are read from registered snapshots with hash verification, including text outside parsed blocks.
 
-Stage 3 is implemented: nine thought categories, quotation-bound records and relations, `extract_thoughts` proposals and generated thought pages. With `[ai].extract_proposals = true`, sync runs four extraction skills (including thoughts); batches missing a skill obtain it on the next sync. Completed English skills are not automatically rerun on version changes; legacy Chinese proposals are re-extracted to satisfy the English output policy. `qec_search(include_proposals=true, kind="research_thought_proposal")` discovers proposed thoughts without promoting them to records; exact `qec_fetch` retains their proposed state.
+Stage 3 is implemented: nine thought categories, quotation-bound records and relations, `extract_thoughts` proposals and generated thought pages. With explicit source-upload permission and `[ai].extract_proposals = true`, sync runs four extraction skills (including thoughts); batches missing a skill obtain it on the next sync. Completed English skills are not automatically rerun on version changes; legacy Chinese proposals are re-extracted to satisfy the English output policy. `qec_search(include_proposals=true, kind="research_thought_proposal")` discovers proposed thoughts without promoting them to records; exact `qec_fetch` retains their proposed state.
 
-Stage 4 is implemented: `[retrieval].enabled = true` builds a hash-bound projection during sync/rebuild before publication. The local model is an offline lexical baseline; `openai_compatible` supports explicit remote embeddings with environment credentials and upload permission. Model revision, dimension, tokenizer and chunk configuration bind caches. New source text reuses unchanged chunk vectors; failed validation leaves the previous release. Research search supports keyword/vector/hybrid modes, pre-ranking filters, pagination, visible fallback and integrity-checked rebuild. Vector offsets refer to derived search text; authoritative citation coordinates come from fetch.
+Stage 4 is implemented: `[retrieval].enabled = true` builds a hash-bound projection during sync/rebuild before publication. The local model is an offline lexical baseline; `openai_compatible` supports explicit remote embeddings with environment credentials and upload permission. Model revision, dimension, tokenizer and chunk configuration bind caches. New source text reuses unchanged chunk vectors; optional index construction failure publishes a stale binding with keyword fallback, while invalid source/record integrity still preserves the previous release. Research search supports keyword/vector/hybrid modes, pre-ranking filters, pagination, visible fallback and integrity-checked rebuild. Vector offsets refer to derived search text; authoritative citation coordinates come from fetch.
 
 Stage 5 is implemented: purpose-aware context and typed directional tracing, current-evidence classification/check-weight/noise filters, comparison-condition grouping, missing/unknown/conflict reporting and separate source candidates. Record enumeration retains pagination; source candidates cannot satisfy hard conditions.
 
-Stage 6 is implemented: `tools/reproduce_knowledge.py` records A/B/C tool calls, evidence passage coverage, returned size, missing components, errors and timings against a pinned release. The 2026-11-11 run passed 339 tests and core reproduction; the synthetic comparison recovered 2/2 required passages with full reading and task context, versus 1/2 with block reading. Six read-only probes over the three locally registered real sources passed with all requested source passages present. Those sources had no vector index or domain records beyond paper versions, so their hybrid requests explicitly used lexical fallback. These are source/evidence mechanics, not a curated scientific QA or semantic retrieval benchmark. Reports remain local under `build/`; the [validation index](../../validation/README.md) records repeatable commands.
-
-Distribution checks also passed for wheel/sdist metadata and bundled schemas/skills, 16 installed CLI commands, workspace acceptance and the three synthetic knowledge cases from an independent Python 3.12.2 wheel installation. Ruff, mypy, documentation contracts and Markdown lint passed. Docker, Lean, live AI/embedding providers and the six pinned golden archives were not run in this iteration.
+Stage 6 has executable mechanics checks in `tools/reproduce_knowledge.py` and a source-bound real-paper retrieval smoke runner in `tools/eval_retrieval.py`. Run commands and limitations are recorded in the [validation index](../../validation/README.md). These are not independently labeled scientific QA. Current-run results belong in dated validation evidence, not permanent capability claims.
 
 ### 16.7 Evidence of benefit
 
@@ -977,16 +981,16 @@ point, not an industry standard or an already completed benchmark.
 
 ## Appendix A — Decision record (supersedes the standalone ADRs for current behavior)
 
-| Decision | Current resolution |
-|---|---|
-| **D1 — One workspace, one writer** | Immutable release + POSIX lock + atomic pointer; no distributed writer. |
-| **D2 — Evidence is layered, not a score** | Source/claim/review/computation/build states remain separate; default filtering excludes inactive states. |
-| **D3 — Read-only agents** | Fixed-scope, budgeted CLI/Python/MCP reads; no path/SQL/shell access; stdout protocol only. |
-| **D4 — Human view isolation** | One thoughts note per paper from a pinned release; no human content used as input; per-file atomic publication and legacy cleanup; `human_stale` recovery. |
-| **D5 — Lean is deferred** | No supported verification claim in 0.6.x. Experimental fixtures remain for regression; a new design is required before implementation, and read paths never execute Lean. |
-| **D6 — CodeGraph is reference only** | Architecture comparison, no copied code, no imported performance claims; attribution retained. |
-| **D7 — Compatibility over a rewrite** | Store/corpus remain supported; machine migrations preserve data. The human layout reset is explicitly documented in §9. |
-| **D8 — Schema ownership is singular** | Packaged schemas are canonical; unknown schemas are rejected, not reinterpreted. |
+| Decision | Current resolution | Context | Alternative considered now | Reason / tradeoff |
+|---|---|---|---|---|
+| **D1 — One workspace, one writer** | Immutable release + POSIX lock + atomic pointer; no distributed writer. | Local recovery must remain auditable. | Distributed writers or in-place mutable state. | Retain lock + immutable publish; concurrency waits for a tested CAS/recovery protocol. |
+| **D2 — Evidence is layered, not a score** | Source/claim/review/computation/build states remain separate; default filtering excludes inactive states. | Claims and evidence have different meanings. | One confidence/verified score. | A scalar hides unsupported assumptions and stale evidence. |
+| **D3 — Read-only agents** | Fixed-scope, budgeted CLI/Python/MCP reads; no path/SQL/shell access; stdout protocol only. | Agents need bounded, repeatable reads. | Arbitrary filesystem/SQL tools. | Fixed resources reduce scope errors; machine-only mounts enforce access. |
+| **D4 — Human view isolation** | One thoughts note per paper from a pinned release; no human content used as input; per-file atomic publication and legacy cleanup; `human_stale` recovery. | Private notes must never become machine evidence. | Bidirectional vault ingestion. | One-way rendering prevents contamination; the explicit legacy deletion exception remains. |
+| **D5 — Lean is deferred** | No supported verification claim in 0.6.x. Experimental fixtures remain for regression; a new design is required before implementation, and read paths never execute Lean. | Build success alone does not establish semantic equivalence. | Ship Lean as supported verification. | Retain historical readers; defer support until mapping and axiom audits exist. |
+| **D6 — CodeGraph is reference only** | Architecture comparison, no copied code, no imported performance claims; attribution retained. | Code intelligence offers architectural ideas. | Vendor the engine or adopt performance claims. | Its workload differs; preserve attribution and measure this project separately. |
+| **D7 — Compatibility over a rewrite** | Store/corpus remain supported; machine migrations preserve data. The human layout reset is explicitly documented in §9. | Existing records and review hashes must remain readable. | Immediate replacement of all APIs/formats. | Compatibility costs duplication; retire only with an approved migration. |
+| **D8 — Schema ownership is singular** | Packaged schemas are canonical; unknown schemas are rejected, not reinterpreted. | Editable duplicate schemas can diverge. | Maintain root and packaged copies. | Packaged resources own validation; reject unknown versions. |
 
 ## Appendix B — Primary references
 
