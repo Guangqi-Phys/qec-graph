@@ -294,6 +294,12 @@ class KnowledgeView:
                           'title': proposal_title(proposal['data']), 'url': None, 'search_text': canonical(proposal['data'])})
         return sorted(units, key=lambda u: (u['kind'] == 'source_file', u['id'], u.get('revision', '')))
 
+    @cached_property
+    def lexical(self):
+        from .core.search import LexicalIndex
+        from .retrieval import unit_key
+        return LexicalIndex({unit_key(u): u['search_text'] for u in self.search_units})
+
     def search(self, args):
         from .retrieval import unit_key
         if not args['query'].strip():
@@ -311,7 +317,14 @@ class KnowledgeView:
             allowed[unit_key(unit)] = unit
         mode = args.get('mode', 'hybrid')
         fallback = None
-        if self.retrieval.current:
+        from .core.search import normalized
+        lexical, matches = self.lexical.rank(args['query'], set(allowed))
+        if mode == 'literal':
+            ranked = [k for k, u in allowed.items() if normalized(args['query']) in normalized(u['search_text'])]
+            status, method = self.retrieval.status(), 'literal normalized whitespace search'
+        elif mode == 'keyword':
+            ranked, status, method = lexical, self.retrieval.status(), 'BM25; all terms before partial matches'
+        elif self.retrieval.current:
             try:
                 ranked, status = self.retrieval.rank(args['query'], allowed, mode)
             except ToolError as exc:
@@ -319,19 +332,26 @@ class KnowledgeView:
                     raise
                 ranked, status = self.retrieval.rank(args['query'], allowed, 'keyword')
                 fallback = 'Embedding unavailable; returned keyword candidates'
+            if mode == 'hybrid':
+                fused = Counter()
+                for ranking in (lexical, ranked):
+                    for position, key in enumerate(ranking, 1):
+                        fused[key] += 1 / (60 + position)
+                ranked = sorted(fused, key=lambda k: (matches.get(k) != 'all_terms', -fused[k], k))
             method = 'BM25 / cosine vectors with reciprocal-rank fusion'
         else:
             if mode == 'vector':
                 raise ToolError('INDEX_UNAVAILABLE', 'Build a current index with sync/rebuild; keyword source search remains available')
-            ranked = [k for k, u in allowed.items() if args['query'].casefold() in u['search_text'].casefold()]
+            ranked = lexical
             status = self.retrieval.status()
-            method = 'literal source and record search'
+            method = 'BM25; all terms before partial matches'
             fallback = 'No current vector index; searched complete registered source text'
         rows = []
         for key in ranked:
             unit = allowed[key]
             row = {k: v for k, v in unit.items() if k != 'search_text'}
             pos = max(0, unit['search_text'].casefold().find(args['query'].casefold()))
+            row['match'] = 'literal' if mode == 'literal' else matches.get(key, 'vector')
             row.update(excerpt=unit['search_text'][max(0, pos-80):pos+240], evidence_status='source_or_record_candidate')
             rows.append(row)
         return {**self.session._paginate(rows, args, min(20, self.session.graph.max_results)),
@@ -420,7 +440,7 @@ def descriptors(session, legacy):
         ('qec_fetch', properties, ['identifier'], 'Read a registered document, file, section or record. Outline is paginated; raw text preserves source bytes.'),
         ('qec_search', {'query': _string(4096), 'kind': _string(), 'source_version_id': _string(4096),
                         'include_proposals': {'type': 'boolean', 'default': True},
-                        'mode': {'enum': ['keyword', 'vector', 'hybrid']},
+                        'mode': {'enum': ['keyword', 'vector', 'hybrid', 'literal']},
                         'offset': _integer(), 'limit': _integer(1, session.graph.max_results)}, ['query'],
          'Discover source and record candidates, including unextracted text. Empty results do not establish nonexistence.'),
         ('search', {'query': _string(4096)}, ['query'], 'Find citable evidence units with registered public URLs. Local-only papers require the research profile.'),
