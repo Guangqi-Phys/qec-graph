@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ast
+import argparse
 import json
 from pathlib import Path
 import re
@@ -37,13 +38,14 @@ def inventory() -> dict[str, int]:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--update', action='store_true', help='Explicitly replace the reviewed complexity baseline')
+    args = parser.parse_args()
     observed = inventory()
-    if sys.argv[1:] == ['--update']:
+    if args.update:
         BASELINE.write_text(json.dumps(observed, sort_keys=True, indent=2) + '\n')
         print(f'Recorded {len(observed)} existing complex functions; review baseline changes explicitly')
         return 0
-    if sys.argv[1:]:
-        raise SystemExit('Usage: python tools/check_complexity.py [--update]')
     baseline = json.loads(BASELINE.read_text())
     regressions = {key: value for key, value in observed.items() if value > baseline.get(key, 10)}
     print(json.dumps({'legacy_functions_over_10': len(observed), 'regressions': regressions}, sort_keys=True))
