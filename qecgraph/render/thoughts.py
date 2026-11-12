@@ -3,19 +3,15 @@ from __future__ import annotations
 
 from ..core.progress import track
 
-from datetime import datetime
 import json
 import re
 import unicodedata
 
-from pylatexenc.latex2text import LatexNodes2Text
 
 from ..core.graph import hash_text
 from ..core.language import require_english
-from ..knowledge import public_url
 from ..llm.extract import validate_extraction
 from ..llm.review import proposal_bindings, read_bound_proposal
-from ..source.reading import _group
 
 QUESTIONS = (
     ('What problem does the paper aim to solve?', ('problem',)),
@@ -43,57 +39,6 @@ def quote_block(text):
 def yaml_value(value):
     return json.dumps(value, ensure_ascii=False).replace('\u0085', '\\u0085').replace(
         '\u2028', '\\u2028').replace('\u2029', '\\u2029')
-
-
-def _plain(value):
-    return ' '.join(LatexNodes2Text().latex_to_text(value).split())
-
-
-def _date(value):
-    if not value or '\\' in value:
-        return None
-    for pattern, output in (('%Y-%m-%d', '%Y-%m-%d'), ('%Y/%m/%d', '%Y-%m-%d'),
-                            ('%B %d, %Y', '%Y-%m-%d'), ('%d %B %Y', '%Y-%m-%d'),
-                            ('%B %Y', '%Y-%m'), ('%Y-%m', '%Y-%m'), ('%Y', '%Y')):
-        try:
-            return datetime.strptime(value.strip(), pattern).strftime(output)
-        except ValueError:
-            continue
-    return None
-
-
-def _literal_metadata(text):
-    """Read literal title-block commands; do not evaluate arbitrary TeX macros."""
-    result = {'title': None, 'authors': [], 'published_date': None, 'topics': [], 'link': None}
-    # RevTeX places title/author/date after begin{document}. Read the front
-    # matter up to the first abstract, section or maketitle, not the whole paper.
-    stop = re.search(r'(?m)^[ \t]*\\(?:maketitle\b|section\b|begin\s*\{abstract\})', text)
-    preamble = text if stop is None else text[:stop.start()]
-    for match in re.finditer(r'(?m)^[ \t]*\\(title|author|date|keywords)(?:\[[^\]\n]*\])?\s*(?=\{)', preamble):
-        span = _group(preamble, match.end(), len(preamble))
-        if span is None:
-            continue
-        raw = preamble[span[0]:span[1]]
-        name = match[1]
-        if name == 'title':
-            result['title'] = _plain(raw) or None
-        elif name == 'date':
-            result['published_date'] = _date(raw)
-        elif name == 'keywords':
-            result['topics'] = [v.strip() for v in re.split(r'[,;]', _plain(raw)) if v.strip()]
-        elif name == 'author':
-            # Affiliation/correspondence commands are not names. Ambiguous comma
-            # or line-break author lists require the quoted AI metadata instead.
-            for drop in reversed(list(re.finditer(
-                    r'\\(?:thanks|email|affiliation|altaffiliation|institute|orcidlink|footnote|textsuperscript)\s*(?=\{)', raw))):
-                arg = _group(raw, drop.end(), len(raw))
-                if arg is not None:
-                    raw = raw[:drop.start()] + raw[arg[2]:]
-            for part in re.split(r'\\and\b', raw):
-                value = _plain(part)
-                if value and ',' not in value and r'\\' not in part:
-                    result['authors'].append(value)
-    return result
 
 
 def _component(value, fallback, limit=60):
@@ -138,26 +83,10 @@ def _tag(value):
 
 
 def _metadata(session, version, proposals):
-    material = next((m for m in session.state.get('materials', {}).values()
-                     if m.get('source_version_id') == version['id']), {})
-    files = [(path, node) for (source, path), node in session.knowledge.files.items() if source == version['id']]
-    files.sort(key=lambda item: (item[0] != material.get('entrypoint'), item[0]))
-    result = {'title': None, 'authors': [], 'published_date': None, 'topics': [], 'link': None}
-    for _, node in files:
-        found = _literal_metadata(session.knowledge.file_text(node))
-        for field in result:
-            if not result[field] and found[field]:
-                result[field] = found[field]
-    for proposal in proposals:
-        if proposal['source_version_id'] != version['id'] or 'paper' not in proposal:
-            continue
-        for field, value in proposal['paper'].items():
-            if value:
-                result[field] = [row['value'] for row in value] if isinstance(value, list) else value['value']
-    work = session.state['works'][version['work_id']]
-    if work['title'] != work['id']:
-        result['title'] = work['title']
-    result['link'] = public_url(version.get('canonical_url')) or public_url(result['link'])
+    paper = session.knowledge.papers[version['id']]
+    result = {field: paper[field] for field in ('title', 'authors', 'published_date', 'topics', 'link')}
+    if 'title' not in paper['field_evidence']:
+        result['title'] = None
     names = [name for m in session.state.get('materials', {}).values()
              if m.get('source_version_id') == version['id'] for name in m.get('original_names', [])]
     months = _arxiv_months(names)

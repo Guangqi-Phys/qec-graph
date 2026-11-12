@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import re
 from collections import Counter, defaultdict
 from functools import cached_property
 from urllib.parse import urlsplit
@@ -115,6 +116,59 @@ class KnowledgeView:
                 'parent_id': self.parents.get(node['id']), 'order': node['data'].get('order'),
                 'source': node.get('source'), 'url': self.url(node)}
 
+    @cached_property
+    def papers(self):
+        from .source.metadata import literal_metadata
+        from .llm.review import proposal_bindings, read_bound_proposal
+        proposals = defaultdict(list)
+        for binding, material in proposal_bindings(self.session.state).values():
+            if binding['skill'] == 'extract_thoughts':
+                proposal = read_bound_proposal(self.session.registry, binding, material)
+                if proposal.get('paper'):
+                    proposals[proposal['source_version_id']].append(proposal)
+        papers = {}
+        for version_id, document in self.documents.items():
+            version = self.version(version_id)
+            work = self.session.state['works'][version['work_id']]
+            result = {'title': None, 'authors': [], 'published_date': None, 'topics': [], 'link': None,
+                      'abstract': None, 'field_evidence': {}, 'source_version_id': version_id,
+                      'work_id': version['work_id'], 'id': document['id']}
+            for proposal in proposals[version_id]:
+                for field, value in proposal['paper'].items():
+                    if value:
+                        result[field] = [r['value'] for r in value] if isinstance(value, list) else value['value']
+                        result['field_evidence'][field] = {'status': 'ai_proposed', 'evidence': value}
+            files = sorted((n for (v, _), n in self.files.items() if v == version_id),
+                           key=lambda n: (n['data']['path'] != document['data']['entry'], n['data']['path']))
+            extracted = set()
+            for file in files:
+                text = self.file_text(file)
+                fields = literal_metadata(text)
+                abstract = re.search(r'\\begin\s*\{abstract\}(.*?)\\end\s*\{abstract\}', text, re.S)
+                if abstract:
+                    fields['abstract'] = reading_projection(abstract[1])[0]
+                for field, value in fields.items():
+                    if value and field not in extracted:
+                        result[field] = value
+                        result['field_evidence'][field] = {'status': 'source_extracted',
+                            'file_id': file['id'], 'path': file['data']['path'], 'file_sha256': file['data']['sha256']}
+                        extracted.add(field)
+            for field, value in (('title', work['title'] if work['title'] != work['id'] else None),
+                                 ('link', public_url(version.get('canonical_url')))):
+                if value:
+                    result[field] = value
+                    result['field_evidence'][field] = {'status': 'user_confirmed'}
+            names = sorted({name for m in self.session.state.get('materials', {}).values()
+                            if m.get('source_version_id') == version_id for name in m.get('original_names', [])})
+            candidates = sorted({m[0] for name in names for m in re.finditer(
+                r'(?<![0-9])[0-9]{2}(?:0[1-9]|1[0-2])\.[0-9]{4,5}(?:v[1-9][0-9]*)?', name)})
+            result['arxiv_candidates'] = [{'id': item, 'url': 'https://arxiv.org/abs/' + item,
+                                           'status': 'filename_candidate'} for item in candidates]
+            result['title'] = result['title'] or (names[0] if names else document['title'])
+            result['year'] = int(result['published_date'][:4]) if result['published_date'] else None
+            papers[version_id] = result
+        return papers
+
     def outline(self, node, args):
         version = node['provenance']['source_version_id']
         rows = [self.summary(n) for n in self.nodes.values() if n['provenance']['source_version_id'] == version]
@@ -224,7 +278,8 @@ class KnowledgeView:
             text = self.file_text(node) if node['kind'] == 'source_file' else node['latex']
             if node['kind'] == 'document':
                 text = self.session.state['works'][node['provenance']['work_id']]['title']
-            units.append({**self.summary(node), 'search_text': node['title'] + '\n' + text})
+            units.append({**self.summary(node), 'search_text': ' '.join([self.papers[node['provenance']['source_version_id']]['title'],
+                                           *self.papers[node['provenance']['source_version_id']]['authors']]) + '\n' + node['title'] + '\n' + text})
         for record in self.session.visible.values():
             source = record['data'].get('source_ref') or {}
             units.append({'id': record['id'], 'revision': record['revision'], 'kind': record['kind'],

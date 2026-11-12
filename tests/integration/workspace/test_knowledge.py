@@ -48,6 +48,18 @@ class KnowledgeTests(unittest.TestCase):
         self.assertTrue(response['ok'], response)
         return response['data']
 
+    def test_source_metadata_is_shared_with_machine_queries(self):
+        from qecgraph.source.metadata import literal_metadata
+        text = r"""\title{Quantum Memories}
+\author{Ada Smith}
+\begin{abstract}A protected memory.\end{abstract}"""
+        metadata = literal_metadata(text)
+        self.assertEqual(metadata['title'], 'Quantum Memories')
+        self.assertEqual(metadata['authors'], ['Ada Smith'])
+        papers = self.session.knowledge.papers
+        self.assertEqual(papers[self.version]['link'], 'https://example.org/paper/v1')
+        self.assertEqual(papers[self.version]['field_evidence']['link']['status'], 'user_confirmed')
+
     def test_whole_file_section_outline_and_raw_fallback(self):
         page = self.invoke('qec_fetch', {'identifier': self.version, 'view': 'outline'})
         intro = next(r for r in page['results'] if r['title'] == 'Introduction')

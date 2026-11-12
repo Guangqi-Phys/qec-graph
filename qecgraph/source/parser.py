@@ -38,6 +38,7 @@ _KINDS = {
     "definition", "lemma", "theorem", "proposition", "corollary", "conjecture",
     "proof", "equation", "table", "figure", "remark", "example",
     "abstract", "algorithm", "assumption", "claim", "notation", "acknowledgments", "statement_other",
+    "title", "author_block",
 }
 _ENVIRONMENTS = {
     "definition": "definition", "defn": "definition", "dfn": "definition",
@@ -592,6 +593,8 @@ class _ProjectParser:
             specs[name] = MacroSpec(name, args_parser="*{")
         for name in _CITATIONS:
             specs[name] = MacroSpec(name, args_parser="*[[{")
+        for name in ("title", "author", "date", "keywords"):
+            specs[name] = MacroSpec(name, args_parser="[{")
         for name in ("label", "lean"):
             specs[name] = MacroSpec(name, args_parser="{")
         for name in ("leanok", "mathlibok", "notready"):
@@ -1008,6 +1011,12 @@ class _ProjectParser:
                 if target in self.files:
                     self.emit_file(target, owner, sections, body=body)
                 last_anchor = self.parent(owner, sections)
+                continue
+            if isinstance(node, LatexMacroNode) and node.macroname in {'title', 'author'}:
+                flush()
+                self.make_block('title' if node.macroname == 'title' else 'author_block',
+                                path, node.pos, node.pos + node.len, self.parent(owner, sections),
+                                title_tex=_last_arg(node, text))
                 continue
             if not body:
                 # Preserve preamble in files, but do not turn declarations or
