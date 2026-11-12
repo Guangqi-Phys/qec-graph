@@ -335,7 +335,9 @@ class WorkspaceSession:
             else:
                 high = count - 1
         if not low:
-            raise ToolError('BUDGET_TOO_SMALL', 'Increase max_chars to fit a complete result row')
+            raise ToolError('BUDGET_TOO_SMALL', 'Increase max_chars to fit a complete result row',
+                            {'required_chars': len(canonical({**page, 'results': rows[:1]})),
+                             'suggestions': [{'detail': 'concise', 'limit': 1}]})
         return {**page, 'results': rows[:low], 'continuation': offset + low}
 
     def _research(self, identifier, revision):
@@ -593,8 +595,8 @@ class WorkspaceSession:
             graph_metadata = {**metadata, 'continuation': None}
             source_query = args.pop('source_query', None)
             if name == 'qec_trace':
-                from .knowledge_context import trace
-                data = trace(self, args)
+                from .knowledge_context import bounded_trace
+                data = bounded_trace(self, args, maximum, metadata)
             elif name == 'qec_get_context' and args.get('purpose'):
                 from .knowledge_context import context
                 data = context(self, args, maximum, metadata)
@@ -733,7 +735,9 @@ class WorkspaceSession:
                 if 'total_matches' in data and data.get('results'):
                     data = self._fit_page(data, arguments.get('offset', 0), maximum)
                 else:
-                    raise ToolError('BUDGET_TOO_SMALL', 'Increase max_chars or request an exact source codepoint range')
+                    raise ToolError('BUDGET_TOO_SMALL', 'Request a smaller source range or a navigation view',
+                                    {'required_chars': len(canonical(data)), 'session_max_chars': self.graph.max_chars,
+                                     'suggestions': [{'view': 'outline'}, {'depth': 0, 'max_nodes': 1}]})
             return {'ok': True, 'data': copy.deepcopy(data)}
         except ToolError as exc:
             return {'ok': False, 'error': {'code': exc.code, 'message': str(exc), 'details': exc.details,

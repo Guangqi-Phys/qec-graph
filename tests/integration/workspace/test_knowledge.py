@@ -116,6 +116,16 @@ class KnowledgeTests(unittest.TestCase):
             for name, schema in tool['inputSchema']['properties'].items():
                 self.assertTrue(schema.get('description'), (tool['name'], name))
 
+    def test_trace_budget_degrades_and_root_errors_are_actionable(self):
+        root = next(n for n in self.session.knowledge.nodes.values() if n['kind'] == 'section')
+        data = self.invoke('qec_trace', {'identifier': root['id'], 'max_chars': 3000})
+        self.assertTrue(data['truncated'])
+        self.assertEqual(data['nodes'][0]['latex'], root['latex'])
+        self.assertLessEqual(len(canonical(data)), 3000)
+        error = self.session.invoke('qec_trace', {'identifier': root['id'], 'max_chars': 256})['error']
+        self.assertGreater(error['details']['required_chars'], 256)
+        self.assertTrue(error['details']['suggestions'])
+
     def test_versions_ranges_budgets_and_private_notes(self):
         outline = self.invoke('qec_fetch', {'identifier': self.version, 'view': 'outline', 'limit': 2})
         rest = self.invoke('qec_fetch', {'identifier': self.version, 'view': 'outline', 'offset': 2})

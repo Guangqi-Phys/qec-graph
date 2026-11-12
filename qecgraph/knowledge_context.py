@@ -119,6 +119,33 @@ def trace(session, args):
             'interpretation': 'Typed source/record associations; references and proximity are not proof dependencies'}
 
 
+def bounded_trace(session, args, maximum, metadata):
+    """Reduce traversal breadth/depth while preserving the complete root."""
+    options = dict(args)
+    options.setdefault('depth', min(2, session.graph.max_depth))
+    options.setdefault('max_nodes', session.graph.max_nodes)
+    reduced = False
+    while True:
+        data = trace(session, options)
+        data['effective_parameters'] = {k: options[k] for k in ('depth', 'max_nodes')}
+        data['truncated'] = data['truncated'] or reduced
+        required = len(canonical({**data, **metadata, 'continuation': None}))
+        if required <= maximum:
+            return data
+        if options['depth'] > 1:
+            options['depth'] -= 1
+        elif options['max_nodes'] > 1 and len(data['nodes']) > 1:
+            options['max_nodes'] = max(1, len(data['nodes']) // 2)
+        elif options['depth'] > 0:
+            options['depth'] = 0
+        else:
+            raise ToolError('BUDGET_TOO_SMALL', 'Complete root exceeds the response budget',
+                            {'required_chars': required, 'session_max_chars': session.graph.max_chars,
+                             'suggestions': [{'tool': 'qec_fetch', 'identifier': args['identifier'],
+                                              'char_start': (data['nodes'][0].get('source') or {}).get('char_start')} ]})
+        reduced = True
+
+
 def context(session, args, maximum, metadata):
     purpose = args['purpose']
     data = trace(session, {k: v for k, v in args.items() if k != 'purpose'})
@@ -194,7 +221,9 @@ def context(session, args, maximum, metadata):
         kinds = {n['kind'] for n in data['nodes']}
         data['missing_components'] = [name for name, types in requirements.items() if not kinds & types]
     if len(canonical({**data, **metadata})) > maximum:
-        raise ToolError('BUDGET_TOO_SMALL', 'Root context/evidence cannot fit without truncation; increase max_chars')
+        raise ToolError('BUDGET_TOO_SMALL', 'Root context/evidence cannot fit without truncation',
+                        {'required_chars': len(canonical({**data, **metadata})),
+                         'suggestions': [{'tool': 'qec_fetch', 'identifier': args['identifier'], 'view': 'outline'}]})
     return data
 
 
