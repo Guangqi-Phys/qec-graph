@@ -22,6 +22,8 @@ class PrefetchTests(unittest.TestCase):
         self.root = Path(temp.name)
         self.ws = Workspace(self.root)
         self.ws.prepare()
+        from tests.support import enable_fixture_ai
+        enable_fixture_ai(self.root)
         config = self.root / 'qecgraph.toml'
         text = config.read_text(encoding='utf-8')
         text = text.replace('provider = "openrouter"', 'provider = "claude_code"')
