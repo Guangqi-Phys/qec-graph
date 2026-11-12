@@ -21,7 +21,7 @@ class RetrievalTests(unittest.TestCase):
         self.cfg = self.root / 'qecgraph.toml'
         self.cfg.write_text(self.cfg.read_text().replace('enabled = false', 'enabled = true', 1))
         (self.root / 'inputs/a.tex').write_text('\\documentclass{article}\n\\begin{document}\n'
-                                              '\\section{Memory}\nProtecting qubits using a quantum memory.\n\\end{document}\n')
+                                              '\\section{Memory}\nProtecting qubits using a quantum memory.\n\nA second quantum memory passage.\n\\end{document}\n')
 
     def session(self):
         return WorkspaceSession(self.root / 'machine', profile='research')

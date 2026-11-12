@@ -271,14 +271,48 @@ class KnowledgeView:
                                     'provenance': proposal['provenance']}
         return rows
 
+    def section_path(self, identifier):
+        sections, seen = [], set()
+        while identifier in self.nodes and identifier not in seen:
+            seen.add(identifier)
+            node = self.nodes[identifier]
+            if node['kind'] == 'section':
+                sections.append(node['title'])
+            identifier = self.parents.get(identifier)
+        return list(reversed(sections))
+
+    def snippet(self, unit, query):
+        from .core.search import terms
+        node = self.nodes.get(unit['id'])
+        raw = node['latex'] if node and node.get('source') else unit['search_text']
+        wanted = set(terms(query))
+        hits = [(m.start(), set(terms(m[0])) & wanted) for m in re.finditer(r'[^\W_]+', raw)]
+        hits = [(pos, matched) for pos, matched in hits if matched]
+        starts = {max(0, pos - 60) for pos, _ in hits} or {0}
+        start = min(starts, key=lambda a: (-len(set().union(*(t for p, t in hits if a <= p < a + 260))), a))
+        end = min(len(raw), start + 260)
+        result = {'excerpt': raw[start:end], 'excerpt_view': 'raw',
+                  'match_scope': 'passage' if hits else 'context_header'}
+        if node and node.get('source'):
+            source = node['source']
+            lines = SourceLines(raw)
+            result['excerpt_source'] = {**source, 'char_start': source['char_start'] + start,
+                                       'char_end': source['char_start'] + end,
+                                       'line_start': source['line_start'] + lines.line_at(start) - 1,
+                                       'line_end': source['line_start'] + lines.line_at(max(start, end - 1)) - 1}
+        return result
+
     @cached_property
     def search_units(self):
         units = []
         for node in self.nodes.values():
-            text = self.file_text(node) if node['kind'] == 'source_file' else node['latex']
+            text = self.file_text(node) if node['kind'] == 'source_file' else node.get('reading_text', reading_projection(node['latex'])[0])
             if node['kind'] == 'document':
                 text = self.session.state['works'][node['provenance']['work_id']]['title']
-            units.append({**self.summary(node), 'search_text': ' '.join([self.papers[node['provenance']['source_version_id']]['title'],
+            units.append({**self.summary(node), 'source_role': node.get('source_role'),
+                          'paper_title': self.papers[node['provenance']['source_version_id']]['title'],
+                          'section_path': self.section_path(node['id']),
+                          'search_text': ' > '.join(self.section_path(node['id'])) + '\n' + ' '.join([self.papers[node['provenance']['source_version_id']]['title'],
                                            *self.papers[node['provenance']['source_version_id']]['authors']]) + '\n' + node['title'] + '\n' + text})
         for record in self.session.visible.values():
             source = record['data'].get('source_ref') or {}
@@ -308,6 +342,10 @@ class KnowledgeView:
             self.version(args['source_version_id'])
         allowed = {}
         for unit in self.search_units:
+            if not args.get('kind') and (unit['kind'] in {'source_file', 'document', 'section', 'citation_key',
+                                                        'source_artifact', 'paper_version', 'title', 'author_block'}
+                                         or unit.get('source_role') == 'bibliography'):
+                continue
             if unit['kind'] in PROPOSAL_KINDS.values() and not args.get('include_proposals', True):
                 continue
             if args.get('kind') and unit['kind'] != args['kind']:
@@ -346,14 +384,26 @@ class KnowledgeView:
             status = self.retrieval.status()
             method = 'BM25; all terms before partial matches'
             fallback = 'No current vector index; searched complete registered source text'
-        rows = []
+        rows, spans = [], defaultdict(list)
         for key in ranked:
             unit = allowed[key]
+            source = unit.get('source')
+            if source and not args.get('kind'):
+                group = source['source_version_id'], source['path']
+                a, b = source['char_start'], source['char_end']
+                if any(min(b, y) > max(a, x) for x, y in spans[group]):
+                    continue
+                spans[group].append((a, b))
             row = {k: v for k, v in unit.items() if k != 'search_text'}
-            pos = max(0, unit['search_text'].casefold().find(args['query'].casefold()))
             row['match'] = 'literal' if mode == 'literal' else matches.get(key, 'vector')
-            row.update(excerpt=unit['search_text'][max(0, pos-80):pos+240], evidence_status='source_or_record_candidate')
+            row.update(self.snippet(unit, args['query']), evidence_status='source_or_record_candidate')
             rows.append(row)
+        # Stable rounds prevent one paper from occupying the whole first page; no rows are lost.
+        groups = defaultdict(list)
+        for row in rows:
+            groups[row.get('source_version_id') or row['id']].append(row)
+        rows = [row for round_ in range(max((len(g) + 1) // 2 for g in groups.values()) if groups else 0)
+                for group in groups.values() for row in group[2 * round_:2 * round_ + 2]]
         return {**self.session._paginate(rows, args, min(20, self.session.graph.max_results)),
                 'query_semantics': 'discovery', 'method': method, 'retrieval': status, 'fallback': fallback,
                 'absence': 'No match in this release does not establish nonexistence'}

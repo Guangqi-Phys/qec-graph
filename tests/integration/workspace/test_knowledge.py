@@ -72,9 +72,18 @@ class KnowledgeTests(unittest.TestCase):
         whole = self.invoke('qec_fetch', {'identifier': self.version})
         self.assertEqual(whole['files'][0]['text'], TEXT)
         # Text outside parser blocks remains discoverable.
-        hits = self.invoke('qec_search', {'query': 'preamble-only-marker'})
+        hits = self.invoke('qec_search', {'query': 'preamble-only-marker', 'kind': 'source_file'})
         self.assertTrue(any(r['kind'] == 'source_file' for r in hits['results']))
         self.assertEqual(self.invoke('qec_fetch', {'identifier': intro['id'], 'view': 'reading'})['view'], 'reading')
+
+    def test_default_search_returns_passages_with_exact_snippet_coordinates(self):
+        rows = self.invoke('qec_search', {'query': 'memory survives'})['results']
+        self.assertTrue(rows)
+        self.assertFalse(any(r['kind'] in {'source_file', 'document', 'section'} for r in rows))
+        for row in rows:
+            if source := row.get('excerpt_source'):
+                self.assertEqual(TEXT[source['char_start']:source['char_end']], row['excerpt'])
+                self.assertTrue(row['section_path'])
 
     def test_versions_ranges_budgets_and_private_notes(self):
         outline = self.invoke('qec_fetch', {'identifier': self.version, 'view': 'outline', 'limit': 2})
