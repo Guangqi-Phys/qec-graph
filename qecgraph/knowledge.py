@@ -538,6 +538,13 @@ class KnowledgeView:
             status = self.retrieval.status()
             method = 'BM25; all terms before partial matches'
             fallback = 'No current vector index; searched complete registered source text'
+        rows = self._search_rows(allowed, ranked, matches, args, mode)
+        return {**self.session._paginate(rows, args, min(20, self.session.graph.max_results)),
+                'query_semantics': 'discovery', 'method': method, 'retrieval': status, 'fallback': fallback,
+                'absence': 'No match in this release does not establish nonexistence'}
+
+    def _search_rows(self, allowed, ranked, matches, args, mode):
+        """Build source-bound excerpts, suppress overlapping spans and balance papers."""
         rows, spans = [], defaultdict(list)
         for key in ranked:
             unit = allowed[key]
@@ -556,11 +563,8 @@ class KnowledgeView:
         groups = defaultdict(list)
         for row in rows:
             groups[row.get('source_version_id') or row['id']].append(row)
-        rows = [row for round_ in range(max((len(g) + 1) // 2 for g in groups.values()) if groups else 0)
+        return [row for round_ in range(max((len(g) + 1) // 2 for g in groups.values()) if groups else 0)
                 for group in groups.values() for row in group[2 * round_:2 * round_ + 2]]
-        return {**self.session._paginate(rows, args, min(20, self.session.graph.max_results)),
-                'query_semantics': 'discovery', 'method': method, 'retrieval': status, 'fallback': fallback,
-                'absence': 'No match in this release does not establish nonexistence'}
 
     @cached_property
     def retrieval(self):
