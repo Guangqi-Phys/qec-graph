@@ -8,9 +8,7 @@ import hashlib
 import os
 from pathlib import Path
 import re
-from sqlite3 import sqlite_version
 import stat
-import sys
 import tempfile
 import tomllib
 import uuid
@@ -893,8 +891,14 @@ class Workspace:
             materials = state.setdefault('materials', {})
             state['workspace_id'] = cfg['workspace_id']
             tool_identity = extraction_tool_identity() if digests else None
-            fingerprint = hash_text(canonical([PROCESSOR, cfg, extraction_semantics(tool_identity or {}),
-                                               sys.implementation.name, sys.version, sqlite_version]))
+            def fingerprint(material):
+                tree = material.get('source_tree_hash')
+                return hash_text(canonical({
+                    'processor': PROCESSOR, 'semantics': extraction_semantics(tool_identity or {}),
+                    'limits': cfg.get('limits', {}),
+                    'entrypoint': cfg.get('entrypoints', {}).get(tree),
+                    'source': cfg.get('sources', {}).get(tree, {}),
+                }))
             proposal_map = state.setdefault('generated_research', {})
             manifest_hashes, verified_spans, staged_proposals = {}, {}, {}
 
@@ -914,20 +918,20 @@ class Workspace:
                           for material in materials.values() if material.get('ai_extraction')}
             if digests:
                 for prior in materials.values():
-                    version = self._matching_extraction(state, prior, fingerprint)
+                    version = self._matching_extraction(state, prior, fingerprint(prior))
                     if version is not None:
                         reused[(version['id'], prior['entrypoint'], prior.get('normalization_sha256'))] = version
             names = self._archived_names()
             for index, digest in enumerate(track(sorted(digests), package_stage, unit='packages',
                     detail=lambda digest: next(iter(names.get(digest, [])), digest[:12]), detail_kind='package'), start=1):
                 prior = materials.get(digest, {})
-                version = self._matching_extraction(state, prior, fingerprint)
+                version = self._matching_extraction(state, prior, fingerprint(prior))
                 if rebuild or version is None:
                     captured = []
                     materials[digest] = self._prepare(cfg, state, digest, prior, reused, limits,
                                                        captured=captured, manifest_hashes=manifest_hashes,
                                                        tool_identity=tool_identity, ai_client=ai_client, progress=update)
-                    materials[digest]['config_fingerprint'] = fingerprint
+                    materials[digest]['config_fingerprint'] = fingerprint(materials[digest])
                     if captured:
                         graph, snapshot, registered = captured.pop()
                         if needs_proposals(registered):

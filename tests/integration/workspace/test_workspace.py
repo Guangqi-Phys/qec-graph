@@ -373,6 +373,17 @@ class WorkspaceTests(unittest.TestCase):
                 self.ws.rebuild()
             extract.assert_called_once()
 
+    def test_unrelated_configuration_does_not_reextract_sources(self):
+        (self.inbox / 'paper.tex').write_bytes(TEX)
+        first = self.ws.init()
+        config = self.root / 'qecgraph.toml'
+        config.write_text(config.read_text() + '\n[ai]\nenabled = false\nmodel = "other"\n'
+                          + '\n[sources."' + 'a' * 64 + '"]\nwork_id = "unrelated"\n')
+        with patch('qecgraph.workspace.ingest', wraps=ingest) as extract:
+            second = self.ws.rebuild()
+            extract.assert_not_called()
+        self.assertEqual(first['release_id'], second['release_id'])
+
     def test_sync_reselects_a_projection_when_an_older_entrypoint_returns(self):
         files = {'a.tex': TEX, 'b.tex': TEX.replace(b'Hello', b'Alternate source')}
         first = tar_bytes(files, mtime=1)
