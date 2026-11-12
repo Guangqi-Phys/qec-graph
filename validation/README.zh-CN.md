@@ -24,6 +24,16 @@
 检查只对实际运行它的源码修订和环境构成证据。测试通过不代表论文定理为真、
 距离界已被数学验证，或 Lean 声明已语义匹配。
 
+`validation/retrieval_qa.json` 包含八道绑定评审中五篇论文固定来源的工程问题。
+锚点在查看检索片段后选择，所以这是导航 smoke，不是独立相关性金标。运行
+`python tools/eval_retrieval.py --machine /path/to/copied-machine --cases validation/retrieval_qa.json --out build/retrieval-eval.json`。
+脚本在同一当前实现上比较 literal/BM25，输出 recall@5/10、reciprocal rank@10、
+紧凑响应字符数、延迟和失败；不调用模型、不包含 AI 提议。50 道人工审核的科学问题
+和各 skill 精确率样本仍待完成。
+
+复杂度回归门禁为 `python tools/check_complexity.py`；修改
+`validation/complexity_baseline.json` 必须明确评审。基线记录旧债务，不代表现有函数简单。
+
 ## 添加证据
 
 把新日志或报告附在产生它的 release/CI 运行上；或者仅在该版本仍是当前版本时

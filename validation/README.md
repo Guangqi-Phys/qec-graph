@@ -27,6 +27,19 @@ A check is evidence only for the exact source revision and environment in which
 it ran. A passing test does not make a paper's theorem true, a distance bound
 mathematically verified, or a Lean declaration semantically matched.
 
+`validation/retrieval_qa.json` contains eight source-bound engineering questions for the
+review's five-paper release. Anchors were selected after viewing retrieved passages;
+this is a navigation smoke set, not independent relevance gold. Run
+`python tools/eval_retrieval.py --machine /path/to/copied-machine --cases validation/retrieval_qa.json --out build/retrieval-eval.json`.
+It reports recall@5/10, reciprocal rank@10, concise response characters, latency and
+failures for literal and BM25 modes on the same current implementation. It makes no
+model calls and excludes AI proposals. Fifty human-reviewed scientific questions
+and per-skill precision samples remain outstanding.
+
+The complexity regression gate is `python tools/check_complexity.py`. Changes to
+`validation/complexity_baseline.json` require explicit review; it records legacy
+debt and does not mean the existing functions are simple.
+
 ## Adding evidence
 
 Attach new logs or reports to the release/CI run that produced them, or add a

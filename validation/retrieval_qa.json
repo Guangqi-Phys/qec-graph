@@ -1,0 +1,135 @@
+{
+  "format": "qecgraph.retrieval-qa.v1",
+  "label_status": "engineering_smoke_unreviewed; source anchors selected after inspecting retrieved source excerpts; not independent gold",
+  "release_id": "aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22",
+  "cases": [
+    {
+      "id": "lcd-latency",
+      "question": "Where are LCD hardware latency measurements reported?",
+      "query": "LCD latency microsecond decoding",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:ab3ad0802922b13c0d024031b6aa4d33d7892919ff8747b5c5912b9de4430fb9",
+          "path": "main.tex",
+          "file_sha256": "cad94805c05e112bbb92d77c9978ddb9891a13d297db7a9a12a6e0402a9ee8c1",
+          "char_start": 31557,
+          "char_end": 31817,
+          "line_start": 223,
+          "line_end": 223
+        }
+      ]
+    },
+    {
+      "id": "gpu-latency",
+      "question": "Where are GPU decoder call latency comparisons reported?",
+      "query": "GPU throughput call latency BP-SF",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:d6112310a9e22e168a11ba4d67f7b8b8d13cb60848d471553950559a7e7bedb1",
+          "path": "simulation.tex",
+          "file_sha256": "6a49524f1c251da27f6d4e850efa9e1e0121744da5f9f1d999dfc2ee531f4066",
+          "char_start": 4754,
+          "char_end": 5014,
+          "line_start": 92,
+          "line_end": 96
+        }
+      ]
+    },
+    {
+      "id": "entropy-assumptions",
+      "question": "Which assumptions underlie the entropy threshold proxy?",
+      "query": "independent syndrome bits degeneracy entropy assumptions",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e4a57d4e47c38446fb00f01440898e21d04dd7879b571b781015c0703647fccb",
+          "path": "draftv1.tex",
+          "file_sha256": "e954ebcd340abc104adb7fb64c54678064fce8ebace08a93e3cc231c38a21d25",
+          "char_start": 16193,
+          "char_end": 16453,
+          "line_start": 167,
+          "line_end": 169
+        }
+      ]
+    },
+    {
+      "id": "circuit-entropy",
+      "question": "How is circuit-level threshold estimated from entropy?",
+      "query": "circuit-level threshold estimation",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e4a57d4e47c38446fb00f01440898e21d04dd7879b571b781015c0703647fccb",
+          "path": "draftv1.tex",
+          "file_sha256": "e954ebcd340abc104adb7fb64c54678064fce8ebace08a93e3cc231c38a21d25",
+          "char_start": 21310,
+          "char_end": 21570,
+          "line_start": 219,
+          "line_end": 220
+        }
+      ]
+    },
+    {
+      "id": "correlated-rankings",
+      "question": "What happens to published decoder rankings under correlated noise?",
+      "query": "correlated noise Relay BP OSD rankings",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:55fd759352ef7de30c26cab69b0fb98178a987718613857368d0f527578dd548",
+          "path": "main.tex",
+          "file_sha256": "f0db0ea2e843182f98b50ed82980012a1a54b29efa684d2d1f37a390abdf4745",
+          "char_start": 24760,
+          "char_end": 25020,
+          "line_start": 329,
+          "line_end": 333
+        }
+      ]
+    },
+    {
+      "id": "trapping",
+      "question": "Where does the paper discuss correlated-noise trapping configurations?",
+      "query": "trapping configurations correlated noise",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:55fd759352ef7de30c26cab69b0fb98178a987718613857368d0f527578dd548",
+          "path": "main.tex",
+          "file_sha256": "f0db0ea2e843182f98b50ed82980012a1a54b29efa684d2d1f37a390abdf4745",
+          "char_start": 43159,
+          "char_end": 43419,
+          "line_start": 634,
+          "line_end": 637
+        }
+      ]
+    },
+    {
+      "id": "proper-time",
+      "question": "How does superoscillation change elapsed proper time?",
+      "query": "superoscillation proper time control",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e686c8f13e3dd2e0f83947e6ebc5908d6898533b0ac7e63d50d35c29c12f7a14",
+          "path": "Aharonov-Elitzur_time-backwards.tex",
+          "file_sha256": "d387843ff78549fe659b3f41b0605ef63c6a0720936635c0f37234a2ed363fa9",
+          "char_start": 1323,
+          "char_end": 1583,
+          "line_start": 32,
+          "line_end": 32
+        }
+      ]
+    },
+    {
+      "id": "entropy-prediction",
+      "question": "What does the entropy proxy predict?",
+      "query": "entropy proxy predicts thresholds",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e4a57d4e47c38446fb00f01440898e21d04dd7879b571b781015c0703647fccb",
+          "path": "draftv1.tex",
+          "file_sha256": "e954ebcd340abc104adb7fb64c54678064fce8ebace08a93e3cc231c38a21d25",
+          "char_start": 1472,
+          "char_end": 1732,
+          "line_start": 35,
+          "line_end": 36
+        }
+      ]
+    }
+  ]
+}
