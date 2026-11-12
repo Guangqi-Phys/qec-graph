@@ -1,0 +1,386 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qecgraph.local/schema/registry",
+  "description": "Registry v1. Missing format_version is the explicitly supported legacy v0 read format.",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "qecgraph.registry"
+    },
+    "format_version": {
+      "const": 1
+    },
+    "corpus_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workspace_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "works": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "title"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "versions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "work_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "project_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "snapshot_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "snapshot_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "project_source_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "upstream_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "canonical_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "structure_recovery": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "work_id",
+          "project_id",
+          "snapshot_id",
+          "project_source_hash",
+          "snapshot_path",
+          "upstream_version"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "records": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": [
+                "path",
+                "content_sha256"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "content_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            }
+          },
+          "current_revision": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "kind",
+          "revisions",
+          "current_revision"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "materials": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "minLength": 1
+          },
+          "semantic_status": {
+            "type": "string",
+            "minLength": 1
+          },
+          "processor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "format": {
+            "type": "string",
+            "minLength": 1
+          },
+          "entrypoint": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_version_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "work_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "normalization_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "archive_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "source_tree_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "source_snapshot_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "config_fingerprint": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "normalization_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "normalization_manifest_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "processing_completed": {
+            "type": "boolean"
+          },
+          "source_version_conflict": {
+            "type": "boolean"
+          },
+          "retained_prior_extraction": {
+            "type": "boolean"
+          },
+          "upstream_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "original_names": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "entrypoint_candidates": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "ai_extraction": {
+            "type": "object"
+          },
+          "structure_recovery": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "archive_sha256",
+          "status",
+          "processing_completed"
+        ],
+        "additionalProperties": true,
+        "oneOf": [
+          {
+            "properties": {
+              "processing_completed": {
+                "const": true
+              }
+            },
+            "required": [
+              "source_version_id",
+              "source_snapshot_id",
+              "source_tree_hash",
+              "entrypoint",
+              "work_id"
+            ]
+          },
+          {
+            "properties": {
+              "processing_completed": {
+                "const": false
+              }
+            }
+          }
+        ]
+      }
+    },
+    "research_records": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "generated_research": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "semantic_decisions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "applications": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "lean_projects": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "ai_reviews": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "retrieval_index": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "stale"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "corpus_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "identity": {
+          "type": "object"
+        }
+      },
+      "required": [],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "sha256",
+            "corpus_sha256",
+            "identity"
+          ],
+          "not": {
+            "required": [
+              "status"
+            ]
+          }
+        },
+        {
+          "required": [
+            "status",
+            "reason"
+          ],
+          "not": {
+            "required": [
+              "sha256"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "required": [
+    "schema",
+    "works",
+    "versions",
+    "records",
+    "links"
+  ],
+  "additionalProperties": false
+}

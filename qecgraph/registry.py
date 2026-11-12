@@ -21,7 +21,22 @@ CURRENT_FORMAT = 'qecgraph.registry.current'
 
 
 def empty_state():
-    return {'schema': FORMAT, 'works': {}, 'versions': {}, 'records': {}, 'links': []}
+    return {'schema': FORMAT, 'format_version': 1, 'works': {}, 'versions': {}, 'records': {}, 'links': []}
+
+
+def validate_state_format(state, path):
+    """Validate legacy v0 or explicit v1 without altering the hashed read bytes."""
+    from .validators import packaged_validator
+    error = next(packaged_validator('registry', check_formats=False).iter_errors(state), None)
+    if error is not None:
+        location = '/'.join(str(part) for part in error.absolute_path) or '<root>'
+        raise ManagedDataError(path, 'Registry state schema violation at ' + location)
+
+
+def upgrade_state(state):
+    """The v0 -> v1 migration adds only a format marker on the next publication."""
+    validate_state_format(state, 'registry')
+    return {**state, 'format_version': 1}
 
 
 def _check_source_binding(graph, version):
@@ -62,6 +77,7 @@ class Registry:
             raise ManagedDataError(state_path, 'Registry state contains invalid JSON') from exc
         if not isinstance(state, dict) or state.get('schema') != FORMAT or hash_text(canonical(state)) != revision:
             raise ManagedDataError(state_path, 'Registry state schema/hash mismatch')
+        validate_state_format(state, state_path)
         return state, revision
 
     def _state_or_empty(self):
@@ -92,6 +108,7 @@ class Registry:
         return state, fixed
 
     def prepare_publication(self, state):
+        state = upgrade_state(state)
         revision = hash_text(canonical(state))
         immutable_json(self.root / 'states' / (revision + '.json'), state)
         return revision
