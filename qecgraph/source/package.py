@@ -174,18 +174,35 @@ class _BoundedTarInfo(tarfile.TarInfo):
 
 
 def _check_zip_members(stream, maximum):
-    # Use the same ZIP/ZIP64 footer reader as ZipFile so both inspect the
-    # same directory. The footer's entry count is not authoritative.
-    footer = zipfile._EndRecData(stream)
-    if footer is None:
+    # Inspect bounded public-format bytes before ZipFile allocates its directory.
+    stream.seek(0, 2)
+    size = stream.tell()
+    start = max(0, size - 65535 - 22)
+    stream.seek(start)
+    tail = stream.read(size - start)
+    offset = tail.rfind(b'PK\x05\x06')
+    if offset < 0 or len(tail) - offset < 22:
         raise zipfile.BadZipFile('Missing ZIP end of central directory')
-    end = footer[zipfile._ECD_LOCATION]
-    if footer[zipfile._ECD_SIGNATURE] == zipfile.stringEndArchive64:
-        stream.seek(end)
-        if stream.read(4) == zipfile.stringEndArchive:
-            # Older Python releases return the ordinary footer's position.
-            end -= zipfile.sizeEndCentDir64 + zipfile.sizeEndCentDir64Locator
-    directory_size = footer[zipfile._ECD_SIZE]
+    _, disk, directory_disk, disk_count, count, directory_size, _, comment = struct.unpack_from('<4s4H2LH', tail, offset)
+    if len(tail) - offset != 22 + comment or disk or directory_disk or disk_count != count:
+        raise zipfile.BadZipFile('Unsupported or inconsistent ZIP footer')
+    end = start + offset
+    if end >= 20:
+        stream.seek(end - 20)
+        locator = stream.read(20)
+        if locator[:4] == b'PK\x06\x07':
+            _, zip_disk, _, total_disks = struct.unpack('<4sLQL', locator)
+            if zip_disk or total_disks != 1 or end < 76:
+                raise zipfile.BadZipFile('Unsupported ZIP64 disk layout')
+            stream.seek(end - 76)
+            record = stream.read(56)
+            fields = struct.unpack('<4sQHHIIQQQQ', record)
+            if fields[0] != b'PK\x06\x06' or fields[1] != 44 or fields[4] or fields[5] or fields[6] != fields[7]:
+                raise zipfile.BadZipFile('Unsupported or inconsistent ZIP64 footer')
+            directory_size = fields[8]
+            end -= 76
+        elif count == 65535 or directory_size == 0xffffffff:
+            raise zipfile.BadZipFile('Missing ZIP64 footer')
     position = end - directory_size
     if position < 0:
         raise zipfile.BadZipFile('Bad offset for ZIP central directory')
@@ -197,7 +214,7 @@ def _check_zip_members(stream, maximum):
         if len(header) != _ZIP_DIRECTORY_ENTRY.size:
             raise zipfile.BadZipFile('Truncated ZIP central directory')
         signature, name, extra, comment = _ZIP_DIRECTORY_ENTRY.unpack(header)
-        if signature != zipfile.stringCentralDir:
+        if signature != b'PK\x01\x02':
             raise zipfile.BadZipFile('Invalid ZIP central directory header')
         position += _ZIP_DIRECTORY_ENTRY.size + name + extra + comment
         if position > end:

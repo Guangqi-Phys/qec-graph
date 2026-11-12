@@ -148,6 +148,14 @@ class SourcePackageTests(unittest.TestCase):
         raw = buffer.getvalue()
         self.assertIn(b'PK\x06\x06', raw)
         self.assertEqual(unpack(raw, Limits(members=1)).files, {'main.tex': TEX})
+        # Invalid ZIP64 disk/record layouts are rejected by the bounded reader.
+        for offset, value in ((raw.index(b'PK\x06\x07') + 4, 1),
+                              (raw.index(b'PK\x06\x06') + 4, 45)):
+            damaged = bytearray(raw)
+            struct.pack_into('<L', damaged, offset, value)
+            with self.assertRaises(PackageError) as error:
+                unpack(bytes(damaged), Limits(members=1))
+            self.assertEqual(error.exception.status, 'damaged_archive')
 
     def test_package_detection_rejects_a_damaged_trailer_and_non_tex_prefixes(self):
         tar = tar_bytes({'main.tex': TEX})
