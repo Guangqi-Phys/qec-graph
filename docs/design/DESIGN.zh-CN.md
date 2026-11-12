@@ -19,6 +19,7 @@ Lean 边界的唯一权威来源。如果代码、测试和本文不一致，以
 | 状态 | 含义 |
 |---|---|
 | **Implemented** | 已存在于包中，并由测试或记录的验证覆盖。 |
+| **Usable（可用）** | 满足 §16.8 真实论文与独立人工验收契约；不能仅从测试通过推断。 |
 | **Partial** | 机制存在，但记录了缺失或有局限的部分。 |
 | **Not implemented** | 设计目标没有可执行实现。绝不要把它描述为可用。 |
 | **Historical** | 被替代的材料只保留在 Git history 中，不在当前文档树。 |
@@ -340,7 +341,7 @@ parser diagnostic，不是数学环。
 
 | 产物 | 必需身份和主要字段 | 校验器 / 边界 |
 |---|---|---|
-| `states/<release>.json` | `schema`、`format_version=1`、`works`、`versions`、`records`、`links`；可选 `materials`、`research_records`、`ai_reviews`、`retrieval_index` | [Registry schema](../../qecgraph/validators/schemas/registry.schema.json)；先按原始字节核对哈希，再解释无版本标记的旧格式 |
+| `states/<release>.json` | `schema`、`format_version=1`、`works`、`versions`、`records`、`links`；可选 `materials`、`research_records`、`ai_reviews`、`retrieval_index` | [Registry schema](../../qecgraph/validators/schemas/registry.schema.json)；先按原始 state 核对哈希，再适配无版本标记的旧格式 |
 | `materials[archive_sha256]` | `archive_sha256`、`status`、`processing_completed`；完成项还绑定 source version、snapshot、tree、entrypoint、work；`original_names`、配置指纹及诊断保留来源 | Registry schema 与 workspace 校验；AI/诊断深层信封仍用各自校验器 |
 | `research/`、`records/` | `id`、`revision`、`kind`、`data`、证据；state 保存登记的修订哈希 | [Research schema](../../qecgraph/validators/schemas/research.schema.json)、[record schema](../../qecgraph/validators/schemas/record.schema.json) 与来源/引用校验 |
 | `proposals/`、`reviews/` | 修改提案及预期修订/哈希；决定、actor 与精确 proposal 绑定 | [Proposal schema](../../qecgraph/validators/schemas/proposal.schema.json)、[review schema](../../qecgraph/validators/schemas/review.schema.json) |
@@ -941,6 +942,32 @@ C（B 加领域字段、关系和任务上下文）。记录实际工具输入�
 带过滤召回、上下文完整性、未知/冲突处理、返回字符/token、延迟、失败和维护成本。
 合成离线回归只验证机制，不能证明模型回答质量。未来整理 50–100 个真实 QEC 问题
 可作起点，不是行业标准，也不是已完成的 benchmark。
+
+### 16.8 可用性验收与发布约定
+
+**Implemented** 只表示可执行机制存在。**Usable** 还要求固定版本上至少五篇真实论文、50–100 个自然问题的独立人工标注，以及下表检查。目前各阶段均**尚未达到 Usable**：八问 smoke 的锚点在查看检索结果后选择，仅为工程证据，且自动权威实体归并尚未实现。不含适用码或实验的论文必须保持明确不适用/未知，不为满足数量指标编造记录。
+
+| 阶段 | 可重复的真实数据检查 | 仍需人工验收 |
+|---|---|---|
+| 1. 设计 | 文档命令、链接、双语契约通过；每项能力指向实现和限制 | 退役兼容之前确认事务/迁移决策 |
+| 2. 原文阅读 | 在副本的固定 release 运行 `reproduce_knowledge.py --machine`；返回引文逐一对应预期文件/哈希/区间，零错误版本替代 | 对照每篇原论文检查标题/作者身份及章节/摘要/算法/假设覆盖 |
+| 3. ThoughtsGraph / 领域数据 | 四种 proposal 均可枚举和精确读取；schema/来源校验通过；无关 release 变化不改变 human 页面字节 | 每个 skill 至少盲审 30 条输出，标注缺失前提、实体/实验绑定和拒答；按 skill 评估 precision，不用总数量代替 |
+| 4. 检索 | 用冻结的独立标注 cases 运行 `eval_retrieval.py`；同 release 报告 literal/BM25 的 recall@5/10、MRR@10、响应大小和延迟 | 发布目标：≥5 篇论文、≥50 个问题上 recall@5 ≥ 0.80，并人工分析漏项；smoke 结果不满足此门槛 |
+| 5. 任务上下文 | 回放直接阅读/搜索/上下文用例，指定精确证据坐标及预期缺项；不混入 stale、错误版本或未请求 candidate 依赖 | 对适用的码/性能问题，将显式记录及条件与人工标注对照；A1 解决前不声称自动记录可用 |
+| 6. 评测 | 保留 commit、解释器/依赖、release/数据哈希、命令、指标、失败和未执行项；只比较相同输入 | 独立审核者签认科学答案及各 skill 判断；来源保真必须 100%，零私人笔记泄露、零提议自动提升 |
+
+宣称 Usable 前，应与审核者**先于评测调优**冻结每种 skill/任务的 precision 和完整性目标。阈值或判断缺失时，即使工程测试通过也仍为待验收。人工身份/批准另行记录，不能把本地 AI review 的自声明当成人类认证。
+
+真实工作区只复制登记的 machine 树用于只读评测，不复制/读取 `human/`、私人笔记或凭据，报告写在副本外。使用仓库已验证的 Python 环境：
+
+```sh
+python tools/reproduce_knowledge.py --machine /path/to/copied-machine --out build/knowledge-real.json
+python tools/eval_retrieval.py --machine /path/to/copied-machine --cases validation/retrieval_qa.json --out build/retrieval-eval.json
+```
+
+自带 cases 只检查 smoke；独立人工金标使用各自冻结的路径与 release。不得悄悄重建原库或刷新审核哈希以通过检查。前后数字只比较可比的方法；当前代码的 literal/BM25 对照不等于历史代码回放。
+
+普通变更可以独立于版本 tag 合入 main。建议维护者采用每周最多一次普通发布、紧急安全修复例外的政策，尚需维护者采纳。未来破坏性 machine 迁移必须先有可审阅 dry-run、备份/恢复方案，并在执行前获得明确批准；§9 中此前确认的旧 human 不读取、不备份删除仍是限定例外。本轮不创建版本/tag。
 
 ## 附录 A — 决策记录（替代当前行为的独立 ADR）
 

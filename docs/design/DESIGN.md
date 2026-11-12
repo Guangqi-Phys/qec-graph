@@ -16,6 +16,7 @@ This document is the single source of truth for the system's architecture, data 
 | Status | Meaning |
 |---|---|
 | **Implemented** | Present in the package and covered by tests or recorded verification. |
+| **Usable** | Meets the real-paper and independent human acceptance contract in §16.8; never inferred from tests alone. |
 | **Partial** | The mechanism exists but a documented part is missing or limited. |
 | **Not implemented** | A design goal with no executable implementation. Never describe it as available. |
 | **Historical** | Superseded material is available in Git history only, not in the current documentation tree. |
@@ -316,7 +317,7 @@ Paths below are relative to `machine/`. The linked packaged schemas are authorit
 
 | Artifact | Required identity and principal fields | Validator / boundary |
 |---|---|---|
-| `states/<release>.json` | `schema`, `format_version=1`, `works`, `versions`, `records`, `links`; optional `materials`, `research_records`, `ai_reviews`, `retrieval_index` | [Registry schema](../../qecgraph/validators/schemas/registry.schema.json); hash checked on original bytes before interpreting the legacy version without a marker |
+| `states/<release>.json` | `schema`, `format_version=1`, `works`, `versions`, `records`, `links`; optional `materials`, `research_records`, `ai_reviews`, `retrieval_index` | [Registry schema](../../qecgraph/validators/schemas/registry.schema.json); original state hash checked before adapting the legacy version without a marker |
 | `materials[archive_sha256]` | `archive_sha256`, `status`, `processing_completed`; completed entries additionally bind source version, snapshot, tree, entrypoint and work; `original_names`, config fingerprint and diagnostics retain provenance | Registry schema plus workspace validation; nested AI/diagnostic envelopes still use their own validators |
 | `research/`, `records/` | `id`, `revision`, `kind`, `data`, evidence; state holds registered revision hashes | [Research schema](../../qecgraph/validators/schemas/research.schema.json), [record schema](../../qecgraph/validators/schemas/record.schema.json) and source/reference validation |
 | `proposals/`, `reviews/` | Proposed changes and expected revisions/hashes; decision, actor and exact proposal binding | [Proposal schema](../../qecgraph/validators/schemas/proposal.schema.json), [review schema](../../qecgraph/validators/schemas/review.schema.json) |
@@ -978,6 +979,32 @@ returned characters/tokens, latency, failures and maintenance cost. Synthetic
 offline regressions establish mechanics only; they cannot establish model answer
 quality. A future curated set of 50–100 real QEC questions is a useful starting
 point, not an industry standard or an already completed benchmark.
+
+### 16.8 Usability acceptance and release discipline
+
+**Implemented** means executable mechanics exist. **Usable** additionally requires a pinned evaluation on at least five real papers, independent human labels for 50–100 natural questions, and the checks below. Current stages are **not yet Usable**: the eight-question smoke set is engineering evidence with post-retrieval anchor selection, and automatic canonical entity resolution is absent. A paper without an applicable code or experiment must remain explicitly inapplicable/unknown; do not manufacture records to meet a quota.
+
+| Stage | Repeatable real-data check | Human acceptance still needed |
+|---|---|---|
+| 1. Design | Documentation commands, links and bilingual contracts pass; each capability names its implementation and limits | Confirm transaction/migration decisions before retiring compatibility |
+| 2. Source reading | Run `reproduce_knowledge.py --machine` on a copied pinned release; every returned quotation resolves to the expected file/hash/range; zero wrong-version substitutions | Check title/author identity and section/abstract/algorithm/assumption coverage against each original paper |
+| 3. ThoughtsGraph / domain data | Enumerate all four proposal types and exact fetch; schema/source checks pass; generated human pages remain byte-stable under unrelated releases | Blind review at least 30 outputs per skill; label missing prerequisites, entity/experiment bindings and abstentions; assess precision by skill, not aggregate count |
+| 4. Retrieval | Run `eval_retrieval.py` with frozen independently labeled cases; report recall@5/10, MRR@10, response size and latency for literal/BM25 on the same release | Release target: recall@5 ≥ 0.80 on at least 50 questions over ≥5 papers, plus manual review of misses; smoke results do not satisfy this gate |
+| 5. Task context | Replay source-reading/search/context cases with exact evidence locators and expected missing components; no stale, wrong-version or unrequested candidate dependency | For applicable code/performance questions, compare explicit records and conditions with human labels; no automatic record availability claim until A1 is resolved |
+| 6. Evaluation | Retain commit, interpreter/dependency versions, release/data hashes, commands, metrics, failures and omitted checks; compare identical inputs | An independent reviewer signs scientific answer and per-skill judgments; source fidelity must be 100%, zero private-note leakage or promotion of proposals |
+
+Before claiming Usable, freeze precision/completeness targets for each skill and task category with the reviewer **before** tuning against the evaluation set. Pending targets or missing judgments mean acceptance is pending, even when engineering tests pass. Record human identity/approval separately from the local AI-review self-assertion.
+
+Copy only the registered machine tree from the real workspace for read-only evaluation. Do not copy/read `human/`, personal notes or credentials; keep reports outside the copy. Use the repository's verified Python environment:
+
+```sh
+python tools/reproduce_knowledge.py --machine /path/to/copied-machine --out build/knowledge-real.json
+python tools/eval_retrieval.py --machine /path/to/copied-machine --cases validation/retrieval_qa.json --out build/retrieval-eval.json
+```
+
+The bundled cases exercise the smoke gate only; independently labeled cases must use their own frozen path and release. Do not silently rebuild the original workspace or refresh review hashes to obtain a pass. Report pre/post metrics only for genuinely comparable methods; a literal-versus-BM25 comparison on current code is not a replay of historical code.
+
+Routine changes may merge to main independently of release tags. Proposed maintainer policy is at most one ordinary release per week, with urgent security fixes excepted; the maintainer must adopt that policy. Future destructive machine migrations require a reviewable dry-run, a backup/recovery route and explicit approval before execution. The previously confirmed legacy human deletion without reading or backup remains the narrow exception in §9. This review creates no version/tag.
 
 ## Appendix A — Decision record (supersedes the standalone ADRs for current behavior)
 
