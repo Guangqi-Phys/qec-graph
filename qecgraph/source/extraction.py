@@ -6,7 +6,7 @@ import re
 from ..core.graph import canonical, hash_text
 from ..domain.research import make_record
 
-RULE_VERSION = 'code-mention-rules-v2'
+RULE_VERSION = 'code-mention-rules-v3'
 TOKEN = r'(?:\d{1,8}|[nkdKrR](?:\s*>\s*0)?)'
 TUPLE = rf'{TOKEN}(?:\s*,\s*{TOKEN}){{2,3}}'
 NOTATION = re.compile(rf'\[\[\s*(?P<sq>{TUPLE})\s*\]\]|\(\(\s*(?P<round>{TUPLE})\s*\)\)'
@@ -17,6 +17,44 @@ NONADDITIVE = re.compile(r'\bnon[- ]?additive\b', re.I)
 CLASSICAL_CONTEXT = re.compile(r'\b(?:classical|BCH)\s+(?:seed|codes?)\b', re.I)
 FRAGMENTS = {'paragraph', 'definition', 'lemma', 'theorem', 'proposition', 'corollary', 'remark', 'table'}
 FIELDS = ('reported_notation', 'code_type', 'parameter_kind', 'n', 'k', 'K', 'r', 'R')
+
+
+class NotationMatch:
+    """A normalized match whose whole-span coordinates address original TeX."""
+
+    def __init__(self, match, text, positions):
+        self.match, self.text, self.positions = match, text, positions
+        self.lastgroup = match.lastgroup
+
+    def start(self):
+        return self.positions[self.match.start()][0]
+
+    def end(self):
+        return self.positions[self.match.end() - 1][1]
+
+    def __getitem__(self, group):
+        return self.text[self.start():self.end()] if group == 0 else self.match[group]
+
+
+def notation_matches(text):
+    """Normalize bracket/spacing syntax for matching only, preserving source offsets."""
+    replacements = {r'\llbracket': '[[', r'\rrbracket': ']]', r'[\![': '[[', r']\!]': ']]',
+                    r'\,': '', r'\;': '', '~': ' '}
+    pattern = '|'.join(re.escape(key) for key in replacements)
+    normalized, positions, pos = [], [], 0
+    for token in re.finditer(pattern, text):
+        for index in range(pos, token.start()):
+            normalized.append(text[index])
+            positions.append((index, index + 1))
+        for char in replacements[token[0]]:
+            normalized.append(char)
+            positions.append(token.span())
+        pos = token.end()
+    for index in range(pos, len(text)):
+        normalized.append(text[index])
+        positions.append((index, index + 1))
+    for match in NOTATION.finditer(''.join(normalized)):
+        yield NotationMatch(match, text, positions)
 
 
 def _tuple_kind(node, match, arity):
@@ -33,7 +71,7 @@ def _tuple_kind(node, match, arity):
             if col == 1 and match.lastgroup == 'single' and arity == 3:
                 return 'classical', 'classical_seed_parameters'
         return None, None
-    if len(list(NOTATION.finditer(context))) != 1:
+    if len(list(notation_matches(context))) != 1:
         return None, None
     classical = CLASSICAL_CONTEXT.search(context)
     subsystem = SUBSYSTEM.search(context)
@@ -72,7 +110,7 @@ def proposals(graph, version):
         span = node.get('source')
         if node['kind'] not in FRAGMENTS or not span or node['origin'] != 'parser':
             continue
-        for match in NOTATION.finditer(node['latex']):
+        for match in notation_matches(node['latex']):
             if match.lastgroup == 'single' and node['kind'] != 'table' and not CLASSICAL_CONTEXT.search(node['latex']):
                 continue  # Bracketed citations and optional TeX arguments are common.
             start = span['char_start'] + match.start()
