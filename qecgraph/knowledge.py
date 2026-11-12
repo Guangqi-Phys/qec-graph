@@ -630,4 +630,6 @@ def descriptors(session, legacy):
         if name not in {'qec_status', 'qec_workspace_status', 'search', 'fetch'}:
             output['oneOf'][0]['properties']['data']['required'].remove('coverage')
         tool['outputSchema'] = output
+        from .core.tool_help import describe
+        describe(tool)
     return result

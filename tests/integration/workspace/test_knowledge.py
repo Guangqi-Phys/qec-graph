@@ -108,6 +108,14 @@ class KnowledgeTests(unittest.TestCase):
         self.assertEqual(full['results'][0]['handle'], row['id'])
         self.assertLessEqual(len(canonical(data)), 2500)
 
+    def test_tool_descriptions_are_distinct_and_all_parameters_explained(self):
+        tools = self.session._tool_descriptors
+        descriptions = [t['description'] for t in tools]
+        self.assertEqual(len(descriptions), len(set(descriptions)))
+        for tool in tools:
+            for name, schema in tool['inputSchema']['properties'].items():
+                self.assertTrue(schema.get('description'), (tool['name'], name))
+
     def test_versions_ranges_budgets_and_private_notes(self):
         outline = self.invoke('qec_fetch', {'identifier': self.version, 'view': 'outline', 'limit': 2})
         rest = self.invoke('qec_fetch', {'identifier': self.version, 'view': 'outline', 'offset': 2})

@@ -107,7 +107,8 @@ class ReadOnlySession:
         return tool_validators(self._tool_descriptors)
 
     def tools(self):
-        return copy.deepcopy(self._tool_descriptors)
+        from ..core.tool_help import describe
+        return [describe(tool) for tool in copy.deepcopy(self._tool_descriptors)]
 
     def _budget(self, result, maximum, output_metadata):
         result = copy.deepcopy(result)
