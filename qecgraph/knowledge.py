@@ -21,6 +21,19 @@ def public_url(value):
     return value if parsed.scheme in {'http', 'https'} and parsed.hostname and not parsed.username else None
 
 
+PROPOSAL_KINDS = {'extract_theorems': 'theorem_proposal', 'extract_assumptions': 'assumption_proposal',
+                  'extract_data': 'data_point_proposal', 'extract_thoughts': 'research_thought_proposal'}
+
+
+def proposal_title(data):
+    if 'statement' in data:
+        return data['statement']
+    if 'claim' in data:
+        return data['claim'] + ': ' + data['text']
+    return ' '.join(str(data[k]) for k in ('metric', 'value', 'unit', 'code', 'decoder', 'noise_model')
+                    if data.get(k) is not None)
+
+
 class KnowledgeView:
     def __init__(self, session):
         self.session = session
@@ -189,13 +202,15 @@ class KnowledgeView:
         from .llm.extract import validate_extraction
         rows = {}
         for binding, material in proposal_bindings(self.session.state).values():
-            if binding['skill'] != 'extract_thoughts':
+            if binding['skill'] not in PROPOSAL_KINDS:
                 continue
             proposal = read_bound_proposal(self.session.registry, binding, material)
-            validate_extraction('extract_thoughts', {'items': proposal['items'], 'unresolved': proposal['unresolved']})
+            validate_extraction(binding['skill'], {'items': proposal['items'], 'unresolved': proposal['unresolved']})
             for index, item in enumerate(proposal['items']):
-                identifier = 'thought-proposal:' + hash_text(canonical([binding['proposal_sha256'], index]))
-                rows[identifier] = {'id': identifier, 'kind': 'research_thought_proposal',
+                kind = PROPOSAL_KINDS[binding['skill']]
+                prefix = 'thought-proposal:' if binding['skill'] == 'extract_thoughts' else kind.replace('_', '-') + ':'
+                identifier = prefix + hash_text(canonical([binding['proposal_sha256'], index]))
+                rows[identifier] = {'id': identifier, 'kind': kind, 'origin': 'ai_proposal',
                                     'revision': binding['proposal_sha256'], 'review_status': 'proposed',
                                     'source_version_id': proposal['source_version_id'],
                                     'snapshot_id': proposal['snapshot_id'], 'data': item,
@@ -221,7 +236,7 @@ class KnowledgeView:
             units.append({**material, 'title': material['id'], 'url': None, 'search_text': canonical(material)})
         for proposal in self.proposal_items.values():
             units.append({**{k: v for k, v in proposal.items() if k not in {'data', 'provenance'}},
-                          'title': proposal['data']['statement'], 'url': None, 'search_text': canonical(proposal)})
+                          'title': proposal_title(proposal['data']), 'url': None, 'search_text': canonical(proposal['data'])})
         return sorted(units, key=lambda u: (u['kind'] == 'source_file', u['id'], u.get('revision', '')))
 
     def search(self, args):
@@ -232,7 +247,7 @@ class KnowledgeView:
             self.version(args['source_version_id'])
         allowed = {}
         for unit in self.search_units:
-            if unit['kind'] == 'research_thought_proposal' and not args.get('include_proposals', False):
+            if unit['kind'] in PROPOSAL_KINDS.values() and not args.get('include_proposals', True):
                 continue
             if args.get('kind') and unit['kind'] != args['kind']:
                 continue
@@ -349,7 +364,7 @@ def descriptors(session, legacy):
          ['identifier'], 'Trace typed source, evidence or research relations with a bounded depth. Citations are not proof dependencies.'),
         ('qec_fetch', properties, ['identifier'], 'Read a registered document, file, section or record. Outline is paginated; raw text preserves source bytes.'),
         ('qec_search', {'query': _string(4096), 'kind': _string(), 'source_version_id': _string(4096),
-                        'include_proposals': {'type': 'boolean'},
+                        'include_proposals': {'type': 'boolean', 'default': True},
                         'mode': {'enum': ['keyword', 'vector', 'hybrid']},
                         'offset': _integer(), 'limit': _integer(1, session.graph.max_results)}, ['query'],
          'Discover source and record candidates, including unextracted text. Empty results do not establish nonexistence.'),

@@ -162,8 +162,8 @@ class ThoughtTests(unittest.TestCase):
             self.assertFalse(any(r['kind'] == 'research_thought' for r in WorkspaceSession(root / 'machine').records.values()))
             session = WorkspaceSession(root / 'machine', profile='research')
             args = {'query': 'question', 'kind': 'research_thought_proposal'}
-            self.assertEqual(session.invoke('qec_search', args)['data']['results'], [])
-            found = session.invoke('qec_search', {**args, 'include_proposals': True})['data']['results']
+            self.assertEqual(session.invoke('qec_search', {**args, 'include_proposals': False})['data']['results'], [])
+            found = session.invoke('qec_search', args)['data']['results']
             self.assertEqual(len(found), 1)
             fetched = session.invoke('qec_fetch', {'identifier': found[0]['id']})['data']
             self.assertEqual(fetched['proposal']['data'], item)
