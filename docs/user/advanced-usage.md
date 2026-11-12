@@ -120,26 +120,31 @@ and a one-decimal percentage. Each matrix measures its named
 phase (packages, bytes, files, notes, or vectors); it is not an estimate of the
 whole command's running time. A new phase starts its own count. Unknown work,
 including AI/network waits and the isolated human renderer, has no percentage
-or invented ETA. Completed phases and their final dot matrices remain in the
-terminal scrollback. Phase transitions, retries, failures and interruption are
-retained with distinct labels; they are never silently erased at completion.
+or invented ETA. Only major-stage results remain in terminal scrollback: package
+archiving, source extraction, AI source checks when needed, AI content extraction,
+publication and note rendering. Each result keeps its outcome, real counts and
+elapsed time. Small steps and their matrices disappear when done; failures and
+interruption remain summarized at the major-stage level.
 
 A separate breathing light sits directly beside **AI**. Its small bullet stays
 fixed and vertically aligned with the text; only brightness changes. It indicates an active
 local request/wait, not knowledge of the provider's internal reasoning or token
-progress. Each paper lists all four tasks: Theorems, Assumptions, Data and Research
-thoughts. Their states distinguish queued, running, done, reused and failed;
-failed tasks do not increment the task count. The tasks run sequentially within
-each paper, while different papers may run concurrently. Previously the live
-view showed only the current task, so a long assumptions request could dominate
-the display. AI details now retain provider/model, attempt, timeout, retry backoff,
-response token counts when reported, validation, and cache reuse. Completed
-extraction still produces proposed content, not scientific verification.
+progress. Each paper shows its completed task count and current task from
+Theorems, Assumptions, Data and Research thoughts. Finished and queued task rows
+are hidden. The batch counts successful or reused tasks across all scheduled
+papers, including those still queued: two completed tasks in one paper and one
+in another show **3/8, 37.5%** immediately. Failed tasks do not increment the count;
+finishing a paper does not reset the batch. These counts measure extraction, with
+publication reported separately. Tasks run sequentially within each paper;
+different papers may run concurrently. Provider/model, attempt, timeout, retry
+backoff, reported token counts, validation and cache reuse appear while active.
+Use `--verbose` to keep detailed diagnostics. Completed extraction still produces
+proposed content, not scientific verification.
 
 | Display option | Behavior |
 | --- | --- |
 | `--progress auto` | Live panel on terminal stderr; silent redirected stderr (default) |
-| `--progress plain` | Append-only activity and counts, with no animation or ANSI codes |
+| `--progress plain` | Append-only major stages and counts, with no animation or ANSI codes |
 | `--progress off` | Hide activity, retaining reports and errors |
 | `--verbose` | Diagnostic activity log without animation |
 | `--quiet` | Hide progress and successful human reports; explicit JSON and errors remain |

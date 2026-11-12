@@ -339,7 +339,8 @@ class Workspace:
             except NormalizationError:
                 if client is None:
                     raise
-        normalized = normalize_package(tree, client)
+        with task('AI checking TeX entry point', retain=True):
+            normalized = normalize_package(tree, client)
         artifact, manifest = write_normalization(self.registry.root, normalized, tree)
         return (SourceTree(tree.format, {**tree.files, 'main.tex': normalized.source.data}),
                 normalization_binding(artifact, manifest))
@@ -363,7 +364,7 @@ class Workspace:
         return {**previous, 'written': written}
 
     @task('Preparing AI source evidence')
-    def _extract_ai(self, client, material, previous, limits, version, reusable=()):
+    def _extract_ai(self, client, material, previous, limits, version, reusable=(), on_skill_done=None):
         import copy
         from .core.language import require_english
         from .llm.artifacts import load_normalization
@@ -399,6 +400,8 @@ class Workspace:
                 if path != material['entrypoint']:
                     additional[path] = source
         except (OSError, ValueError, RuntimeError, KeyError):
+            with task('Extracting AI content', total=len(AI_EXTRACTION_SKILLS), unit='tasks', retain=True) as failed:
+                failed.outcome('failed', detail='AI extraction could not read its registered source')
             outcome('failed', detail='AI extraction could not read its registered source')
             return [], [{'error': 'AI extraction could not read its registered source'}]
 
@@ -439,7 +442,7 @@ class Workspace:
             completed.add(binding['skill'])
         labels = dict(zip(AI_EXTRACTION_SKILLS, ('Theorems', 'Assumptions', 'Data', 'Research thoughts')))
         steps = tuple(ProgressStep(skill, label) for skill, label in labels.items())
-        with task('AI extraction tasks', total=len(steps), unit='tasks', kind='ai_plan', steps=steps) as plan:
+        with task('Extracting AI content', total=len(steps), unit='tasks', kind='ai_plan', steps=steps, retain=True) as plan:
             for skill, label in labels.items():
                 plan.step(skill, 'running')
                 with task(label, kind='ai_step') as activity:
@@ -448,6 +451,8 @@ class Workspace:
                         activity.outcome('reused', detail=detail)
                         plan.step(skill, 'reused', detail=detail)
                         plan.advance()
+                        if on_skill_done:
+                            on_skill_done()
                         continue
                     try:
                         result = extract(normalized, client, skill, projection_path=material['entrypoint'],
@@ -465,8 +470,10 @@ class Workspace:
                         activity.outcome(state, detail=detail)
                         plan.step(skill, state, detail=detail)
                         plan.advance()
+                        if on_skill_done:
+                            on_skill_done()
             if errors:
-                plan.outcome('partial', detail=f'{len(errors)} tasks need attention; failed tasks are not counted as done')
+                plan.outcome('partial', detail='; '.join(f'{labels[item["skill"]]}: {item["error"]}' for item in errors))
         if errors:
             outcome('partial')
         return results, errors
@@ -514,13 +521,16 @@ class Workspace:
             name = next(iter(material.get('original_names', [])), material['archive_sha256'][:12])
             with task(name, kind='package') as package:
                 result = self._extract_ai(client, material, previous.get(identity, {}), limits,
-                                          versions[identity[0]], reusable[identity])
+                                          versions[identity[0]], reusable[identity], on_skill_done=batch.advance)
                 if result[1]:
                     package.outcome('partial')
                 return result
 
         workers = min(client.config.max_parallel_packages, len(jobs))
-        with task('Processing AI packages', total=len(jobs), unit='packages') as batch:
+        if not jobs:
+            return
+        with task('Extracting AI content', total=len(jobs) * len(AI_EXTRACTION_SKILLS),
+                  unit='AI tasks', retain=True) as batch:
             if workers > 1:
                 with ThreadPoolExecutor(max_workers=workers) as pool:
                     pending = {pool.submit(copy_context().run, extract_one, identity): identity for identity in jobs}
@@ -529,13 +539,11 @@ class Workspace:
                         previous[identity] = self._stage_ai(identity, previous.get(identity, {}), *future.result())
                         if previous[identity]['status'] == 'pending':
                             batch.outcome('partial')
-                        batch.advance()
             else:
                 for identity in jobs:
                     previous[identity] = self._stage_ai(identity, previous.get(identity, {}), *extract_one(identity))
                     if previous[identity]['status'] == 'pending':
                         batch.outcome('partial')
-                    batch.advance()
 
     def sync(self, *, dry_run=False, keep_inputs=False, progress=None):
         if dry_run:
@@ -711,7 +719,8 @@ class Workspace:
                 reason = 'fallback_provider_unavailable' if client is None else 'fallback_disabled'
                 report['structure_recovery'] = {'status': 'unavailable', 'reason': reason}
                 return None
-            return recover_structure(evidence, client)
+            with task('AI checking source structure', retain=True):
+                return recover_structure(evidence, client)
         except StructureIneligible:
             reason = 'body_outside_supported_scope'
         except StructureNeedsReview:
@@ -725,7 +734,7 @@ class Workspace:
         report['structure_recovery'] = {'status': 'pending', 'reason': reason}
         return None
 
-    @task('Verifying archived source bytes')
+    @task('Extracting source structure', retain=True)
     def _prepare(self, cfg, state, digest, prior, reused, limits, *, captured, manifest_hashes, tool_identity, ai_client=None, progress=None):
         result = {'archive_sha256': digest, 'status': 'archived_only', 'processing_completed': False,
                   'semantic_status': 'not_extracted', 'processor': PROCESSOR}
@@ -819,6 +828,7 @@ class Workspace:
 
     @staticmethod
     def _keep_prior(result, prior):
+        outcome('partial', detail=result.get('reason', result['status']))
         if prior.get('source_version_id'):
             result.update(source_version_id=prior['source_version_id'], source_snapshot_id=prior['source_snapshot_id'],
                           retained_prior_extraction=True)
@@ -835,6 +845,7 @@ class Workspace:
                 return version
         return None
 
+    @task('Archiving inbox packages', retain=True)
     def _archive_inbox(self, limit, keep_inputs):
         claims, rows = [], []
         for path in track(list(self._inbox()), 'Claiming inbox files', unit='files', detail=lambda p: p.name):
@@ -851,6 +862,8 @@ class Workspace:
                              'input_consumed': False, 'restored': self._restore(job, job / 'payload', meta['name'])})
                 continue
             claims.append((job, meta, digest))
+        if rows:
+            outcome('partial', detail=f'{len(rows)} inputs need attention')
         return claims, rows
 
     def _archived_digests(self):
@@ -986,7 +999,7 @@ class Workspace:
                         reused[(version['id'], prior['entrypoint'], prior.get('normalization_sha256'))] = version
             names = self._archived_names()
             for index, digest in enumerate(track(sorted(digests), package_stage, unit='packages',
-                    detail=lambda digest: next(iter(names.get(digest, [])), digest[:12])), start=1):
+                    detail=lambda digest: next(iter(names.get(digest, [])), digest[:12]), detail_kind='package'), start=1):
                 prior = materials.get(digest, {})
                 version = self._matching_extraction(state, prior, fingerprint)
                 if rebuild or version is None:
@@ -1014,51 +1027,52 @@ class Workspace:
             # Also backfill pre-existing materials on an empty sync. Human
             # rendering reads this fixed release, never live archive receipts.
             update(package_count + 1, 'Publishing workspace')
-            # Explicit version metadata, never inferred from filenames.
-            parsed_versions = {m['source_version_id'] for m in materials.values() if m.get('source_version_id')}
-            generated = []
-            for identifier in sorted(parsed_versions):
-                version = state['versions'][identifier]
-                if not needs_proposals(version):
-                    continue
-                records = staged_proposals.pop((identifier, version['snapshot_id']), None)
-                if records is None:
-                    graph, snapshot, _ = self.registry.source_graph_from_state(
-                        state, identifier, old, verify=True, manifest_hashes=manifest_hashes)
-                    records = generate(graph, snapshot, version)
-                generated.extend(records)
-                proposal_map[identifier] = {'source_snapshot_id': version['snapshot_id'], 'processor': PROCESSOR,
-                                            'bindings': [{'id': r['id'], 'revision': r['revision']} for r in records],
-                                            'code_parameters_mentions': len(records) - 1}
-            if generated:
-                stage_records(self.registry, state, generated, verified_spans=verified_spans)
-            collisions = {}
-            for material in materials.values():
-                if material.get('upstream_version') and material.get('source_tree_hash'):
-                    pair = (material['work_id'], material['upstream_version'])
-                    collisions.setdefault(pair, set()).add(material['source_tree_hash'])
-            for material in materials.values():
-                pair = (material.get('work_id'), material.get('upstream_version'))
-                material['source_version_conflict'] = len(collisions.get(pair, ())) > 1
-            from .retrieval import stage_index
-            phase('Building retrieval index')
-            stage_index(self.registry, state, cfg.get('retrieval', {}), repair=rebuild)
-            phase('Preparing candidate release')
-            candidate = self.registry.prepare_publication(state)
-            # This verifies every registered snapshot, including reused ones,
-            # before publishing the pointer or consuming any input claims.
-            phase('Validating candidate release')
-            validation = self.registry.validate(candidate, check_live_lean=False, manifest_hashes=manifest_hashes)
-            if (not validation['passed'] or any(issue['severity'] == 'error'
-                                                for issue in self._normalization_issues(state, limits))
-                    or next(proposal_issues(self.registry, state), None) is not None):
-                raise ValueError('Candidate machine release failed validation; CURRENT was retained')
-            if cfg != self.config():
-                raise ValueError('Workspace configuration changed while preparing; retry')
-            if tool_identity is not None and tool_identity != extraction_tool_identity():
-                raise ValueError('Extraction tools changed while preparing; retry')
-            phase('Publishing workspace')
-            release = self.registry.publish_prepared(candidate)
+            with task('Publishing workspace', retain=True):
+                # Explicit version metadata, never inferred from filenames.
+                parsed_versions = {m['source_version_id'] for m in materials.values() if m.get('source_version_id')}
+                generated = []
+                for identifier in sorted(parsed_versions):
+                    version = state['versions'][identifier]
+                    if not needs_proposals(version):
+                        continue
+                    records = staged_proposals.pop((identifier, version['snapshot_id']), None)
+                    if records is None:
+                        graph, snapshot, _ = self.registry.source_graph_from_state(
+                            state, identifier, old, verify=True, manifest_hashes=manifest_hashes)
+                        records = generate(graph, snapshot, version)
+                    generated.extend(records)
+                    proposal_map[identifier] = {'source_snapshot_id': version['snapshot_id'], 'processor': PROCESSOR,
+                                                'bindings': [{'id': r['id'], 'revision': r['revision']} for r in records],
+                                                'code_parameters_mentions': len(records) - 1}
+                if generated:
+                    stage_records(self.registry, state, generated, verified_spans=verified_spans)
+                collisions = {}
+                for material in materials.values():
+                    if material.get('upstream_version') and material.get('source_tree_hash'):
+                        pair = (material['work_id'], material['upstream_version'])
+                        collisions.setdefault(pair, set()).add(material['source_tree_hash'])
+                for material in materials.values():
+                    pair = (material.get('work_id'), material.get('upstream_version'))
+                    material['source_version_conflict'] = len(collisions.get(pair, ())) > 1
+                from .retrieval import stage_index
+                phase('Building retrieval index')
+                stage_index(self.registry, state, cfg.get('retrieval', {}), repair=rebuild)
+                phase('Preparing candidate release')
+                candidate = self.registry.prepare_publication(state)
+                # This verifies every registered snapshot, including reused ones,
+                # before publishing the pointer or consuming any input claims.
+                phase('Validating candidate release')
+                validation = self.registry.validate(candidate, check_live_lean=False, manifest_hashes=manifest_hashes)
+                if (not validation['passed'] or any(issue['severity'] == 'error'
+                                                    for issue in self._normalization_issues(state, limits))
+                        or next(proposal_issues(self.registry, state), None) is not None):
+                    raise ValueError('Candidate machine release failed validation; CURRENT was retained')
+                if cfg != self.config():
+                    raise ValueError('Workspace configuration changed while preparing; retry')
+                if tool_identity is not None and tool_identity != extraction_tool_identity():
+                    raise ValueError('Extraction tools changed while preparing; retry')
+                phase('Publishing workspace')
+                release = self.registry.publish_prepared(candidate)
         return old, release, materials, proposal_map
 
     def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None, ai_client=None):

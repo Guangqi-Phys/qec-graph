@@ -406,23 +406,27 @@ stderr; each AI worker receives its own copied context and nested task identity.
 Known phase totals use compact Braille micro-dot cells (four dot rows in one
 text row, at most 12 characters wide), completed units and one decimal
 of percentage, capped below 100% until every unit finishes. Unknown totals use animation and elapsed
-time, never a synthetic percentage or ETA. Phase changes reset the counter;
+time, never a synthetic percentage or ETA. Separate stages have separate counters;
 publication, network waits and the isolated human renderer stay indeterminate.
-Phase transitions and final outcomes are appended permanently above the live
-region; final dot matrices, failed counts and all completed stages remain in
-scrollback. Typed step events keep all four AI extraction tasks visible, including
-queued, reused and failed tasks. Failed tasks do not increment completed counts.
+Only explicitly retained major-stage outcomes are appended above the live region,
+with counts and elapsed time. Helpers update transient detail without renaming or
+resetting a major stage. Finished/queued subtasks and final matrices are hidden;
+failures and interruption remain in the stage summary. Typed step events identify
+the currently running AI task. The AI batch denominator covers four tasks per
+scheduled paper, including queued packages; successful or reused tasks advance it
+once, failures never do. Locked updates keep concurrent counts monotonic, and
+completed package contributions survive removal from the live panel.
 Each provider request has a separate breathing light next to `AI`, independent
 of the dot matrix; a fixed middle bullet keeps its vertical position while
 luminance breathes. The light signals local liveness, not model-internal progress.
 Provider/model, timeout, attempts, backoff, reported token counts and response
 validation remain inspectable. Overflow activity cycles within the viewport;
-history retains every final record without an in-memory history limit.
+history retains only major results. Detailed diagnostics are opt-in via `--verbose`.
 The CLI starts activity before dispatch for every business command. Reports
 clear only the live region before output; completion, errors and interruption
 retain final records and stop the refresh worker. Help/version are immediate, and MCP uses plain service
-activity. Non-TTY stderr is quiet by default; `--progress plain` or `--verbose`
-provides an append-only log. `--progress off` and `--quiet` suppress activity,
+activity. Non-TTY stderr is quiet by default; `--progress plain` provides an
+append-only major-stage log. `--progress off` and `--quiet` suppress activity,
 including with `--json`. Terminal width, Unicode support and color settings
 change presentation only; stdout payloads and exit codes retain their contracts.
 

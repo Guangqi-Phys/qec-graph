@@ -69,15 +69,16 @@ TOPICS = {
     'progress': '''Terminal progress
   All business commands describe their current activity on stderr.
   Known work uses a compact amber micro-dot matrix, exact counts and one-decimal percentages.
-  Completed phases and their final dot matrices remain in terminal scrollback.
+  Only major-stage results remain in terminal scrollback; small steps disappear when done.
   Unknown work shows an animated indicator and elapsed time, never an invented ETA.
   AI has its own breathing light beside "AI"; it indicates a pending request, not a percentage.
-  Each paper lists Theorems, Assumptions, Data and Research thoughts with their states.
+  Each paper shows its current task and completed count; finished/queued task rows are hidden.
+  The AI batch counts completed tasks across all scheduled papers (3/8 = 37.5%).
   AI details include provider/model, attempts, timeout, retry and response validation.
-  Cached proposals show "reused"; failed tasks remain visible and are not counted as done.
+  Reused proposals count once; failed tasks are summarized and never counted as done.
 
   --progress auto   Live display when stderr is a terminal (default)
-  --progress plain  Append-only activity log, including in CI and pipes
+  --progress plain  Append-only major-stage log, including in CI and pipes
   --progress off    Suppress activity; keep reports and errors
   --verbose         Diagnostic activity log without animation
   --quiet           Suppress activity and successful human reports

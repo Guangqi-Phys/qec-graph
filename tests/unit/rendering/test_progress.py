@@ -149,7 +149,7 @@ class ProgressTests(unittest.TestCase):
 
     def test_control_sequences_and_nonprinting_characters_cannot_escape_a_row(self):
         display, stream = self.display(mode='plain')
-        display.on_event(ProgressEvent(1, None, 'paper\r\n\x1b[2Jbad\x1b]0;owned\x07\u202etex'))
+        display.on_event(ProgressEvent(1, None, 'paper\r\n\x1b[2Jbad\x1b]0;owned\x07\u202etex', retain=True))
         text = stream.getvalue()
         self.assertEqual(text.count('\n'), 1)
         self.assertNotIn('\x1b', text)
@@ -189,26 +189,74 @@ class ProgressTests(unittest.TestCase):
         display.finish(message, 1)
         self.assertIn('use --entrypoint main.tex', stream.getvalue())
 
-    def test_completed_phases_and_dot_matrices_survive_redraw_output_and_close(self):
+    def test_plain_history_is_compact_and_verbose_can_show_transient_diagnostics(self):
+        for verbose in (False, True):
+            display, stream = self.display(mode='plain', verbose=verbose)
+            with reporting(display.on_event), task('Extracting AI content', retain=True):
+                phase('Checking source hashes')
+                with task('Waiting to retry AI request', kind='ai'):
+                    pass
+            display.finish()
+            self.assertIn('Extracting AI content [done]', stream.getvalue())
+            self.assertEqual('Waiting to retry AI request' in stream.getvalue(), verbose)
+            self.assertEqual('Checking source hashes' in stream.getvalue(), verbose)
+
+    def test_shared_batch_counts_stay_monotonic_across_workers(self):
+        events = []
+        barrier = threading.Barrier(4)
+
+        def advance(batch):
+            barrier.wait(timeout=5)
+            for _ in range(25):
+                batch.advance()
+
+        with reporting(events.append), task('AI extraction', total=100) as batch:
+            with ThreadPoolExecutor(max_workers=4) as pool:
+                futures = [pool.submit(copy_context().run, advance, batch) for _ in range(4)]
+                for future in futures:
+                    future.result()
+        self.assertEqual([event.completed for event in events if event.state == 'running'], list(range(101)))
+
+    def test_last_transient_task_disappears_without_leaving_an_active_panel(self):
+        display, stream = self.display(color='never')
+        with reporting(display.on_event), task('Checking response JSON'):
+            self.assertIn('Checking response JSON', visible_terminal_text(stream.getvalue()))
+        self.assertEqual(visible_terminal_text(stream.getvalue()).strip(), '')
+
+    def test_failed_stage_keeps_count_and_reason_without_child_rows(self):
+        display, stream = self.display(color='never')
+        with reporting(display.on_event), task('Extracting AI content', total=4, unit='tasks', retain=True) as stage:
+            with task('Waiting for AI provider', kind='ai') as request:
+                request.outcome('failed')
+            stage.advance(3)
+            stage.outcome('partial', detail='Assumptions: request timed out')
+        visible = visible_terminal_text(stream.getvalue())
+        self.assertIn('needs attention', visible)
+        self.assertIn('75.0%  3/4 tasks', visible)
+        self.assertIn('Assumptions: request timed out', visible)
+        self.assertNotIn('Waiting for provider', visible)
+
+    def test_history_keeps_only_major_stages_after_redraw_output_and_close(self):
         display, stream = self.display(color='never')
         with reporting(display.on_event), task('Opening workspace'):
-            with task('Reading source files', total=2, unit='files') as activity:
+            with task('Extracting source structure', total=2, unit='files', retain=True) as activity:
+                phase('Checking file hashes')
+                self.assertIn('Checking file hashes', visible_terminal_text(stream.getvalue()))
                 activity.advance(2)
-            phase('Publishing workspace')
-            for index in range(30):
-                with task(f'Writing output {index}'):
-                    pass
+            with task('Publishing workspace', retain=True):
+                for index in range(30):
+                    with task(f'Writing output {index}'):
+                        self.assertIn(f'Writing output {index}', visible_terminal_text(stream.getvalue()))
             hide()
             stream.write('JSON report goes here\n')
             # Workspace commands finish their summary inside the root context.
             display.finish()
         display.close()
         visible = visible_terminal_text(stream.getvalue())
-        for label in ('Opening workspace', 'Reading source files', 'Publishing workspace', 'JSON report goes here'):
+        for label in ('Extracting source structure', 'Publishing workspace', 'JSON report goes here'):
             self.assertEqual(visible.count(label), 1, visible)
-        for index in range(30):
-            self.assertIn(f'Writing output {index} | done', visible)
-        self.assertEqual(sum('⣿⣿⣿' in line for line in visible.splitlines()), 1)
+        for detail in ('Opening workspace', 'Writing output', 'Checking file hashes', '⣿'):
+            self.assertNotIn(detail, visible)
         self.assertIn('2/2 files', visible)
         self.assertIn('100.0%', visible)
         self.assertIn('sync: OK', visible)
@@ -217,7 +265,7 @@ class ProgressTests(unittest.TestCase):
     def test_interrupted_history_keeps_real_partial_count(self):
         display, stream = self.display(color='never')
         with self.assertRaises(KeyboardInterrupt), reporting(display.on_event), task(
-                'Reading source files', total=3, unit='files') as activity:
+                'Reading source files', total=3, unit='files', retain=True) as activity:
             activity.advance()
             raise KeyboardInterrupt
         display.close()
@@ -227,22 +275,26 @@ class ProgressTests(unittest.TestCase):
         self.assertIn('33.3%', visible)
         self.assertNotIn('100.0%', visible)
 
-    def test_ai_lamp_is_separate_from_compact_dot_matrix_and_all_steps_remain_visible(self):
+    def test_ai_lamp_shows_only_running_steps_and_batch_reflects_partial_packages(self):
         display, _ = self.display(color='never')
-        steps = tuple(ProgressStep(str(index), name, state) for index, (name, state) in enumerate(zip(
-            ('Theorems', 'Assumptions', 'Data', 'Research thoughts'), ('finished', 'running', 'queued', 'queued'))))
-        display.tasks = {1: ProgressEvent(1, None, 'Processing AI packages', 0, 2, 'packages')}
-        for base, name in ((2, 'alpha.tar'), (5, 'beta.tar')):
+        display.tasks = {1: ProgressEvent(1, None, 'Extracting AI content', 3, 8, 'AI tasks')}
+        for base, name, done in ((2, 'alpha.tar', 2), (5, 'beta.tar', 1)):
+            steps = tuple(ProgressStep(str(index), label,
+                          'finished' if index < done else 'running' if index == done else 'queued')
+                          for index, label in enumerate(('Theorems', 'Assumptions', 'Data', 'Research thoughts')))
             display.tasks[base] = ProgressEvent(base, 1, name, kind='package')
-            display.tasks[base + 1] = ProgressEvent(base + 1, base, 'AI extraction tasks', 1, 4, 'tasks', steps=steps)
+            display.tasks[base + 1] = ProgressEvent(base + 1, base, 'Extracting AI content', done, 4, 'tasks', steps=steps)
             display.tasks[base + 2] = ProgressEvent(base + 2, base + 1, 'Waiting for AI provider',
                                                   detail='attempt 1/3 | timeout 120s | provider / model', kind='ai')
         frame = '\n'.join(display.render_lines(79, 23, 9))
-        for name in ('Theorems', 'Assumptions', 'Data', 'Research thoughts', 'AI • Waiting for provider'):
-            self.assertEqual(frame.count(name), 2)
+        for name in ('AI • Data · Waiting for provider', 'AI • Assumptions · Waiting for provider'):
+            self.assertEqual(frame.count(name), 1)
+        for name in ('Theorems', 'Research thoughts', 'done', 'queued'):
+            self.assertNotIn(name, frame)
+        self.assertIn('37.5%  3/8 AI tasks', frame)
         self.assertEqual(sum('⣿⣿⣿' in row for row in frame.splitlines()), 1)
         self.assertNotIn('more activity', frame)
-        self.assertIn('AI • Waiting for provider', '\n'.join(display.render_lines(79, 23, 0)))
+        self.assertIn('AI • Data · Waiting for provider', '\n'.join(display.render_lines(79, 23, 0)))
         for width in (12, 20, 35, 45, 60, 79, 120):
             for height in (1, 3, 12, 24):
                 for line in display.render_lines(width, height, 90):

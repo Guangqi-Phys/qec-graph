@@ -83,7 +83,7 @@ from qecgraph.cli import main, HANDLERS
 from qecgraph.cli.render import print_json
 from qecgraph.core.progress import phase, task
 def run(args):
-    with task('Checking packages', total=3, unit='packages') as progress:
+    with task('Checking packages', total=3, unit='packages', retain=True) as progress:
         progress.advance()
         with task('Waiting for AI provider', detail='attempt 1/3 | timeout 10s', kind='ai'):
             time.sleep(0.35)

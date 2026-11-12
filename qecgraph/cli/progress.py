@@ -103,6 +103,7 @@ class CommandProgress:
     def __init__(self, action, *, quiet=False, color='auto', mode='auto', verbose=False, animate=True):
         self.action = action
         self.quiet = quiet
+        self.verbose = verbose
         self.stderr = sys.stderr
         terminal = self.stderr.isatty() and os.environ.get('TERM') != 'dumb'
         self.enabled = not quiet and mode != 'off' and (terminal or mode == 'plain' or verbose)
@@ -164,15 +165,11 @@ class CommandProgress:
                             steps=tuple(replace(step, label=self._text(step.label), detail=self._text(step.detail))
                                         for step in event.steps))
             changed = old is not None and (old.label, old.detail) != (event.label, event.detail)
-            if self.live:
-                if event.state != 'running':
-                    self._commit(event)
-                elif changed:
-                    # A phase transition is not proof of success (e.g. a retry).
-                    self._commit(replace(old, state='advanced'))
+            if self.live and event.retain and event.state != 'running':
+                self._commit(event)
             if event.state == 'running':
                 self.tasks[event.task_id] = event
-                if old is None or changed:
+                if old is None or changed and not event.retain:
                     self.phase_started[event.task_id] = monotonic()
                 self.hidden = False
                 self.last = event
@@ -183,10 +180,17 @@ class CommandProgress:
                 self._log(event)
             elif not self.hidden and self.tasks:
                 self._draw(self.frame)
+            elif not self.tasks and self.lines:
+                self._clear()
+                self._write('\n')
 
     def _log(self, event):
+        if not event.retain and not self.verbose:
+            return
         stamp = monotonic()
-        signature = event.label + event.detail + repr(event.steps)
+        detail = event.detail if self.verbose or event.state != 'running' else ''
+        steps = '; '.join(f'{step.label}: {self._state(step.state)}' for step in event.steps) if self.verbose else ''
+        signature = event.label + detail + steps
         previous = self.logged.get(event.task_id)
         if event.state != 'running':
             self.logged.pop(event.task_id, None)
@@ -196,8 +200,7 @@ class CommandProgress:
                 return
         if event.state == 'running':
             self.logged[event.task_id] = signature, stamp, event.completed
-        steps = '; '.join(f'{step.label}: {self._state(step.state)}' for step in event.steps)
-        extra = ' | '.join(filter(None, (metrics(event), event.detail, steps)))
+        extra = ' | '.join(filter(None, (metrics(event), detail, steps)))
         label = ('AI: ' if event.kind == 'ai' else '') + event.label
         scope = self._scope(event)
         label = f'{scope} / {label}' if scope else label
@@ -279,13 +282,8 @@ class CommandProgress:
             parent = self.tasks.get(parent.parent_id)
         return ''
 
-    def _step_row(self, step, width):
-        state = fit(self._state(step.state), max(0, width - 4), '…' if self.unicode else '...')
-        label = fit(step.label, max(0, width - len(state) - 4), '…' if self.unicode else '...')
-        return f'{self._marker(step.state)} {label}' + ' ' * max(2, width - cell_width(label) - len(state) - 2) + state
-
     def _commit(self, event):
-        """Move a phase into scrollback before redrawing the remaining live tasks."""
+        """Retain one compact major-stage result, without its transient children."""
         self._clear()
         width, _ = self._size()
         elapsed = duration(monotonic() - self.phase_started.get(event.task_id, monotonic()))
@@ -293,17 +291,10 @@ class CommandProgress:
         label = ('AI / ' if event.kind == 'ai' else '') + event.label
         if scope:
             label = scope + ' / ' + label
-        text = f'{label} | {self._state(event.state)} | {elapsed}'
+        text = ' | '.join(filter(None, (label, self._state(event.state), metrics(event), elapsed)))
         rows = wrap(text, max(1, width - 4))
         lines = [f'  {self._marker(event.state)} {rows[0]}', *('    ' + row for row in rows[1:])]
-        lines.extend('    ' + row for row in self._meter(event, max(1, width - 4), elapsed=elapsed))
         lines.extend('    ' + row for row in wrap(event.detail, max(1, width - 4)))
-        for step in event.steps:
-            state = step.state
-            if state == 'running' and event.state in ('failed', 'interrupted'):
-                state = event.state
-            lines.append('    ' + self._step_row(replace(step, state=state), max(1, width - 4)))
-            lines.extend('      ' + row for row in wrap(step.detail, max(1, width - 6)))
         self._write('\n'.join(lines) + '\n')
 
     def render_lines(self, width, height=23, frame=0):
@@ -329,10 +320,12 @@ class CommandProgress:
             heading += ' ' * (width - cell_width(heading) - 7) + 'RUNNING'
         lines = [self._paint(fit(heading, width, ellipsis), '1')]
 
-        def action_rows(event):
+        def action_rows(event, step_label=''):
             ai = event.kind == 'ai'
             prefix = f'AI {self._lamp(frame)} ' if ai else ''
             label = event.label.replace('AI ', '') if ai else event.label
+            if step_label and step_label != label:
+                label = f'{step_label} · {label}' if self.unicode else f'{step_label} / {label}'
             space = available - (5 if ai else 0)
             elapsed = duration(now - self.phase_started.get(event.task_id, now))
             if space >= 40:
@@ -361,10 +354,12 @@ class CommandProgress:
             else:
                 context = fit(context, available - len(count) - 2, ellipsis)
                 lines.append(f'{edge}  {self._paint(context, "1")}  {count}')
-            lines.extend(f'{edge}  {self._step_row(step, available)}' for step in plan.steps)
-            for leaf in leaves:
-                if self._ancestor(leaf, plan.task_id):
-                    action_rows(leaf)
+            running = next((step.label for step in plan.steps if step.state == 'running'), '')
+            active = [leaf for leaf in leaves if self._ancestor(leaf, plan.task_id)]
+            for leaf in active:
+                action_rows(leaf, running)
+            if running and not active:
+                lines.append(f'{edge}  {fit(running, available, ellipsis)}')
         for leaf in leaves:
             if leaf.task_id == primary.task_id or leaf.steps or any(self._ancestor(leaf, plan.task_id) for plan in plans):
                 continue
@@ -393,12 +388,12 @@ class CommandProgress:
         max_body = max(1, height - 1)
         if len(lines) > max_body:
             omitted = len(lines) - max_body + 1
-            # Cycle overflow at a readable pace; completed records are always retained in full.
+            # Cycle overflow at a readable pace; only major results enter history.
             room = max(1, max_body - 2)
             start = ((frame // 40) * room) % (len(lines) - 1)
             body = lines[1:]
             selected = (body + body)[start:start + room]
-            lines = [lines[0], *selected, fit(f'{edge}  +{omitted} rows | cycling view; history retained', width, ellipsis)]
+            lines = [lines[0], *selected, fit(f'{edge}  +{omitted} rows | cycling active work', width, ellipsis)]
         if height > 1:
             lines.append(self._paint(footer, '2'))
         return lines[:height]
@@ -439,11 +434,12 @@ class CommandProgress:
                 return
             if self.live:
                 for event in reversed(list(self.tasks.values())):
-                    self._commit(replace(event, state=state))
+                    if event.retain:
+                        self._commit(replace(event, state=state, detail=''))
                 self._clear()
             else:
                 for event in reversed(list(self.tasks.values())):
-                    self._log(replace(event, state=state))
+                    self._log(replace(event, state=state, detail='' if event.retain else event.detail))
             self.tasks.clear()
             self.phase_started.clear()
             self.closed = True

@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 
 from ...core.graph import read_json, strict_json_loads
-from ...core.progress import phase
+from ...core.progress import task
 from ..errors import UsageError
 from ..process import cli_command
 from ..render import emit_report, print_doctor, workspace_summary
@@ -97,8 +97,11 @@ def workspace_action(args, progress):
     else:
         result = getattr(ws, args.command)(**options)
     if args.command in _WORKSPACE_WRITE_COMMANDS and result.get('release_id') and not args.no_human:
-        phase('Rendering Obsidian views', detail='Waiting for the isolated renderer; timeout 120s')
-        result['human'] = _render_release(ws.root, result['release_id'])
+        with task('Rendering Obsidian views', retain=True) as stage:
+            stage.phase('Waiting for the isolated renderer', detail='timeout 120s')
+            result['human'] = _render_release(ws.root, result['release_id'])
+            if result['human'].get('status') in ('human_stale', 'superseded'):
+                stage.outcome('partial', detail=result['human'].get('error', result['human']['status']))
     renderer_failed = (args.command in _WORKSPACE_WRITE_COMMANDS
                        and result.get('human', {}).get('status') in ('human_stale', 'superseded'))
     code = 2 if result['status'] in {'partial_batch', 'invalid'} or renderer_failed else 0

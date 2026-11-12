@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from itertools import count
+from threading import RLock
 
 @dataclass(frozen=True)
 class ProgressStep:
@@ -31,6 +32,7 @@ class ProgressEvent:
     state: str = 'running'
     kind: str = 'task'
     steps: tuple[ProgressStep, ...] = ()
+    retain: bool = False
 
 
 _sink: ContextVar[Callable[[ProgressEvent], None] | None] = ContextVar('progress_sink', default=None)
@@ -46,30 +48,49 @@ def _emit(event: ProgressEvent) -> None:
 class Activity:
     event: ProgressEvent
 
-    def __init__(self, label: str, *, total: int | None = None, unit='items', detail='', kind='task', steps=()):
+    def __init__(self, label: str, *, total: int | None = None, unit='items', detail='', kind='task', steps=(), retain=False):
         parent = _current.get()
         self.event = ProgressEvent(next(_ids), parent.event.task_id if parent else None,
-                                   label, total=total, unit=unit, detail=detail, kind=kind, steps=tuple(steps))
+                                   label, total=total, unit=unit, detail=detail, kind=kind, steps=tuple(steps), retain=retain)
         self.final_state = 'finished'
+        self.final_detail = detail
+        self.lock = RLock()
 
     def advance(self, amount: int = 1) -> None:
-        self.event = replace(self.event, completed=self.event.completed + amount)
-        _emit(self.event)
+        # Package workers share a batch counter. Update and emit under one lock
+        # so observers never see lost increments or counts arriving out of order.
+        with self.lock:
+            self.event = replace(self.event, completed=self.event.completed + amount)
+            _emit(self.event)
 
     def phase(self, label: str, *, detail: str = '') -> None:
-        self.event = replace(self.event, label=label, detail=detail, completed=0, total=None)
-        _emit(self.event)
+        with self.lock:
+            if self.event.retain:
+                # A major stage keeps its identity/counts while helpers report
+                # transient work. The last helper is not the stage's outcome.
+                self.event = replace(self.event, detail=' | '.join(filter(None, (label, detail))))
+            else:
+                self.event = replace(self.event, label=label, detail=detail, completed=0, total=None)
+            _emit(self.event)
 
     def step(self, key: str, state: str, *, detail: str = '') -> None:
-        self.event = replace(self.event, steps=tuple(
-            replace(step, state=state, detail=detail) if step.key == key else step for step in self.event.steps))
-        _emit(self.event)
+        with self.lock:
+            self.event = replace(self.event, steps=tuple(
+                replace(step, state=state, detail=detail) if step.key == key else step for step in self.event.steps))
+            _emit(self.event)
 
     def outcome(self, state: str, *, detail: str | None = None) -> None:
         """Record a caught failure or a reused result without inventing completed units."""
-        self.final_state = state
-        if detail is not None:
-            self.event = replace(self.event, detail=detail)
+        with self.lock:
+            self.final_state = state
+            if detail is not None:
+                self.final_detail = detail
+                self.event = replace(self.event, detail=detail)
+
+    def finish(self, state: str) -> None:
+        with self.lock:
+            detail = self.final_detail if self.event.retain else self.event.detail
+            _emit(replace(self.event, state=state, detail=detail))
 
 
 @contextmanager
@@ -82,18 +103,18 @@ def reporting(sink: Callable[[ProgressEvent], None] | None) -> Iterator[None]:
 
 
 @contextmanager
-def task(label: str, *, total: int | None = None, unit='items', detail='', kind='task', steps=()) -> Iterator[Activity]:
-    activity = Activity(label, total=total, unit=unit, detail=detail, kind=kind, steps=steps)
+def task(label: str, *, total: int | None = None, unit='items', detail='', kind='task', steps=(), retain=False) -> Iterator[Activity]:
+    activity = Activity(label, total=total, unit=unit, detail=detail, kind=kind, steps=steps, retain=retain)
     token = _current.set(activity)
     _emit(activity.event)
     try:
         yield activity
     except BaseException as exc:
-        _emit(replace(activity.event, state='interrupted' if isinstance(exc, KeyboardInterrupt) else 'failed'))
+        activity.finish('interrupted' if isinstance(exc, KeyboardInterrupt) else 'failed')
         raise
     else:
         # Finishing a task does not invent completed units.
-        _emit(replace(activity.event, state=activity.final_state))
+        activity.finish(activity.final_state)
     finally:
         _current.reset(token)
 
@@ -108,7 +129,7 @@ def outcome(state: str, *, detail: str | None = None) -> None:
         current.outcome(state, detail=detail)
 
 
-def track(items, label: str, *, unit='items', detail: Callable | None = None) -> Iterator:
+def track(items, label: str, *, unit='items', detail: Callable | None = None, detail_kind='task') -> Iterator:
     """Count only items whose loop body returned successfully; do not pre-consume iterators."""
     if _sink.get() is None:
         yield from items
@@ -117,7 +138,7 @@ def track(items, label: str, *, unit='items', detail: Callable | None = None) ->
     with task(label, total=total, unit=unit) as batch:
         for item in items:
             if detail:
-                with task(detail(item)):
+                with task(detail(item), kind=detail_kind):
                     yield item
             else:
                 yield item

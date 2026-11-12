@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Keep only major-stage results in terminal history; hide finished and queued AI
+  subtasks from the live panel. Request/retry/validation details remain visible
+  while running and in the opt-in verbose log.
+- Advance the AI batch percentage after each completed or reused task across all
+  scheduled papers, including queued packages. Preserve completed counts across
+  concurrent workers; failed tasks never count as done.
+
 ## 0.6.4 — 2026-11-11
 
 - Unify terminal activity across all CLI business commands: a responsive amber
