@@ -85,6 +85,18 @@ class KnowledgeTests(unittest.TestCase):
                 self.assertEqual(TEXT[source['char_start']:source['char_end']], row['excerpt'])
                 self.assertTrue(row['section_path'])
 
+    def test_paper_list_card_and_outline_are_navigation_views(self):
+        papers = self.invoke('qec_list_papers', {})['results']
+        self.assertEqual(len(papers), 1)
+        card = self.invoke('qec_fetch', {'identifier': papers[0]['id'], 'view': 'card'})
+        self.assertEqual(card['view'], 'card')
+        self.assertLess(len(canonical(card)), 4000)
+        outline = self.invoke('qec_fetch', {'identifier': self.version, 'view': 'outline'})['results']
+        self.assertEqual([r['title'] for r in outline], ['Introduction', 'Method', 'Discussion'])
+        self.assertTrue(all(r['kind'] == 'section' for r in outline))
+        blocks = self.invoke('qec_fetch', {'identifier': self.version, 'view': 'outline', 'depth': 'blocks'})['results']
+        self.assertIn('lemma', [r['kind'] for r in blocks])
+
     def test_versions_ranges_budgets_and_private_notes(self):
         outline = self.invoke('qec_fetch', {'identifier': self.version, 'view': 'outline', 'limit': 2})
         rest = self.invoke('qec_fetch', {'identifier': self.version, 'view': 'outline', 'offset': 2})
@@ -111,7 +123,7 @@ class KnowledgeTests(unittest.TestCase):
         compatible = WorkspaceSession(self.ws.registry.root, profile='compatible')
         self.assertEqual({t['name'] for t in compatible.tools()}, {'search', 'fetch'})
         self.assertEqual(len(WorkspaceSession(self.ws.registry.root).tools()), 13)
-        self.assertEqual(len(self.session.tools()), 7)
+        self.assertEqual(len(self.session.tools()), 8)
         server = MCPServer(compatible)
         server.handle(initialization())
         server.handle({'jsonrpc': '2.0', 'method': 'notifications/initialized'})

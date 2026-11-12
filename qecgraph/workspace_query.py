@@ -592,6 +592,8 @@ class WorkspaceSession:
             elif name == 'qec_get_context' and args.get('purpose'):
                 from .knowledge_context import context
                 data = context(self, args, maximum, metadata)
+            elif name == 'qec_list_papers':
+                data = self.knowledge.list_papers(args)
             elif name == 'qec_fetch':
                 data = self.knowledge.fetch(args)
             elif name == 'qec_search':

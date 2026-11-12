@@ -171,11 +171,64 @@ class KnowledgeView:
 
     def outline(self, node, args):
         version = node['provenance']['source_version_id']
-        rows = [self.summary(n) for n in self.nodes.values() if n['provenance']['source_version_id'] == version]
-        rows.sort(key=lambda r: ((r['source'] or {}).get('path', ''), r['order'] if r['order'] is not None else -1, r['id']))
+        blocks = [n for n in self.nodes.values() if n['provenance']['source_version_id'] == version
+                  and n.get('source')]
+        blocks.sort(key=lambda n: (n['data'].get('order', 0), n['id']))
+        rows, counters = [], [0] * 16
+        for block in blocks:
+            if args.get('depth', 'sections') != 'blocks' and block['kind'] != 'section':
+                continue
+            row = self.summary(block)
+            if block['kind'] == 'section':
+                level = min(len(self.section_path(block['id'])) - 1, 15)
+                counters[level] += 1
+                counters[level + 1:] = [0] * (15 - level)
+                row['number'] = '.'.join(str(n) for n in counters[:level + 1])
+                descendants = self._descendants(block['id'])
+                row['block_counts'] = dict(Counter(self.nodes[i]['kind'] for i in descendants if i != block['id']))
+                row['source_chars'] = sum(len(self.nodes[i]['latex']) for i in descendants
+                                          if not self.children[i])
+            rows.append(row)
         return {'document_id': self.documents[version]['id'], 'source_version_id': version,
                 'snapshot_id': self.version(version)['snapshot_id'], 'view': 'outline',
                 **self.session._paginate(rows, args, self.session.graph.max_results)}
+
+    def list_papers(self, args):
+        from .core.search import terms
+        wanted = set(terms(args.get('query', '')))
+        rows = []
+        for paper in self.papers.values():
+            text = ' '.join([paper['title'], *paper['authors'], *paper['topics']])
+            if wanted and not wanted <= set(terms(text)):
+                continue
+            if args.get('year') is not None and paper['year'] != args['year']:
+                continue
+            if args.get('topic') and args['topic'].casefold() not in ' '.join(paper['topics']).casefold():
+                continue
+            rows.append({k: paper[k] for k in ('id', 'source_version_id', 'title', 'authors', 'year',
+                                              'topics', 'arxiv_candidates')})
+        return self.session._paginate(rows, args, min(20, self.session.graph.max_results))
+
+    def card(self, node):
+        version = node['provenance']['source_version_id']
+        paper = self.papers[version]
+        outline = self.outline(node, {'limit': 12})
+        thoughts = [p for p in self.proposal_items.values() if p['source_version_id'] == version
+                    and p['kind'] == 'research_thought_proposal']
+        result = {k: paper[k] for k in ('id', 'title', 'authors', 'year', 'topics', 'link', 'arxiv_candidates')}
+        result.update(view='card', source_version_id=version, abstract=(paper['abstract'] or '')[:1000],
+                      sections=[{'id': r['id'], 'title': r['title']} for r in outline['results']],
+                      thoughts=[{'id': p['id'], 'category': p['data']['category'],
+                                 'statement': p['data']['statement'][:140], 'review_status': 'proposed'}
+                                for p in thoughts[:9]],
+                      record_counts=dict(Counter(r['kind'] for r in self.session.visible.values()
+                                                 if (r['data'].get('source_ref') or {}).get('id') == version)),
+                      truncated=bool(outline['truncated'] or len(thoughts) > 9 or len(paper['abstract'] or '') > 1000))
+        # Cards are previews. Exact fetch retains complete evidence and metadata.
+        while len(canonical(result)) > 3200 and (result['thoughts'] or result['sections']):
+            (result['thoughts'] or result['sections']).pop()
+            result['truncated'] = True
+        return result
 
     def _descendants(self, identifier):
         seen, pending = {identifier}, [identifier]
@@ -208,6 +261,8 @@ class KnowledgeView:
             raise ToolError('NOT_FOUND', 'No eligible research revision in this release')
         node = self.resolve(identifier, args.get('source_version_id'))
         view = args.get('view', 'raw')
+        if view == 'card':
+            return self.card(node)
         if view == 'outline':
             if 'char_start' in args or 'char_end' in args:
                 raise ToolError('INVALID_ARGUMENT', 'Outline uses row pagination, not character ranges')
@@ -451,7 +506,7 @@ class KnowledgeView:
                              'reading_scope': data['reading_scope']}}
 
 
-RESEARCH_TOOLS = ('qec_search', 'qec_fetch', 'qec_get_context', 'qec_query_codes',
+RESEARCH_TOOLS = ('qec_list_papers', 'qec_search', 'qec_fetch', 'qec_get_context', 'qec_query_codes',
                   'qec_query_performance', 'qec_trace', 'qec_status')
 ALIASES = {'qec_query_codes': 'qec_find_codes', 'qec_query_performance': 'qec_find_performance',
            'qec_status': 'qec_workspace_status'}
@@ -479,9 +534,12 @@ def descriptors(session, legacy):
                          idle={'enum': ['included', 'excluded']}, loss={'enum': ['included', 'excluded']},
                          source_query=_string(4096))
     properties = {'identifier': _string(4096), 'source_version_id': _string(4096), 'revision': _string(),
-                  'view': {'enum': ['raw', 'reading', 'outline']}, 'char_start': _integer(), 'char_end': _integer(),
+                  'view': {'enum': ['raw', 'reading', 'outline', 'card']}, 'depth': {'enum': ['sections', 'blocks']}, 'char_start': _integer(), 'char_end': _integer(),
                   'offset': _integer(), 'limit': _integer(1, session.graph.max_results)}
     for name, props, required, description in (
+        ('qec_list_papers', {'query': _string(4096), 'topic': _string(), 'year': _integer(1, 9999),
+                             'offset': _integer(), 'limit': _integer(1, session.graph.max_results)}, [],
+         'List papers by title, author, topic or year before reading a card or source passage.'),
         ('qec_trace', {'identifier': _string(4096), 'revision': _string(),
                        'depth': _integer(0, session.graph.max_depth), 'max_nodes': _integer(1, session.graph.max_nodes),
                        'relations': {'type': 'array', 'minItems': 1, 'maxItems': 50, 'uniqueItems': True, 'items': _string()},
