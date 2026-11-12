@@ -715,7 +715,11 @@ class _ProjectParser:
         try:
             raw = path.read_bytes()
             text = raw.decode("utf-8")
-        except (OSError, UnicodeDecodeError) as exc:
+        except UnicodeDecodeError:
+            self.diagnostic("error", "unsupported_source_encoding",
+                            f"Non-UTF-8 source {rel}; preserve the archive and provide an explicit encoding migration.", source)
+            return
+        except OSError as exc:
             self.diagnostic("error", "source_read_error", f"Cannot read UTF-8 source {rel}: {exc}", source)
             return
         self.files[rel] = {"path": rel, "sha256": sha256(raw).hexdigest(), "text": text, "encoding": "utf-8"}

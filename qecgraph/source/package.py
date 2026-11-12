@@ -60,15 +60,21 @@ class SourceTree:
 
     def entrypoints(self):
         candidates = []
+        encoding_errors = []
         for name, raw in self.files.items():
             if PurePosixPath(name).suffix.lower() != '.tex':
                 continue
             try:
                 body = _tex_body(raw)
             except UnicodeDecodeError:
+                encoding_errors.append(name)
                 continue
             if _DOCUMENT_CLASS.search(body) and _BEGIN_DOCUMENT.search(body):
                 candidates.append(name)
+        if not candidates and encoding_errors:
+            raise PackageError('unsupported_encoding',
+                               'Non-UTF-8 TeX source requires an explicit encoding migration: '
+                               + ', '.join(sorted(encoding_errors)))
         return sorted(candidates)
 
 
@@ -244,7 +250,7 @@ def _unpack(stream, size, compressed, limits):
     try:
         text = _tex_body(raw)
     except UnicodeDecodeError as exc:
-        raise PackageError('unsupported_format', 'Standalone source is not UTF-8 TeX') from exc
+        raise PackageError('unsupported_encoding', 'Standalone source is not UTF-8; an explicit encoding migration is required') from exc
     if not _TEX.search(text):
         raise PackageError('unsupported_format', 'No recognizable standalone TeX syntax')
     return SourceTree('gzip_tex' if compressed else 'tex', {'main.tex': raw})

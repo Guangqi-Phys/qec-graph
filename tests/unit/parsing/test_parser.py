@@ -6,6 +6,18 @@ from qecgraph.source.parser import parse_project
 
 
 class ParserTests(unittest.TestCase):
+    def test_non_utf8_source_reports_encoding_without_changing_bytes(self):
+        from qecgraph.source.package import PackageError, SourceTree
+        raw = b'\\documentclass{article}\\begin{document}caf\xe9\\end{document}'
+        tree = SourceTree('zip', {'main.tex': raw})
+        with self.assertRaises(PackageError) as error:
+            tree.entrypoints()
+        self.assertEqual(error.exception.status, 'unsupported_encoding')
+        self.entry.write_bytes(raw)
+        parsed = parse_project(self.entry)
+        self.assertIn('unsupported_source_encoding', [d['code'] for d in parsed['diagnostics']])
+        self.assertEqual(self.entry.read_bytes(), raw)
+
     def setUp(self):
         directory = TemporaryDirectory()
         self.addCleanup(directory.cleanup)

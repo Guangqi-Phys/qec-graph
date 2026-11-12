@@ -60,10 +60,10 @@ class SourcePackageTests(unittest.TestCase):
                 self.assertEqual(error.exception.status, expected)
                 open_member.assert_not_called()
 
-    def test_non_utf8_standalone_tex_has_a_format_error(self):
-        with self.assertRaisesRegex(PackageError, 'not UTF-8 TeX') as invalid:
+    def test_non_utf8_standalone_tex_has_an_encoding_error(self):
+        with self.assertRaisesRegex(PackageError, 'not UTF-8') as invalid:
             unpack(TEX.replace(b'Hello', b'\xff'))
-        self.assertEqual(invalid.exception.status, 'unsupported_format')
+        self.assertEqual(invalid.exception.status, 'unsupported_encoding')
 
     def test_content_identity_ignores_headers_but_preserves_every_asset_byte(self):
         a = tar_bytes({'paper.tex': TEX, 'figure.dat': b'\x00'}, mtime=1)
