@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- Default workspace MCP to eight research tools; add paper cards, ordered outlines,
+  compact handles, stable source resources and bounded traversal fallback. Keep
+  explicit legacy/compatible profiles and existing store/corpus entry points.
+- Expose all four AI proposal kinds while preserving proposed status. Use offline
+  BM25 passage ranking, exact snippet coordinates, overlap suppression and paper
+  diversity; optional vector-index failure no longer blocks valid source releases.
+- Preserve additional physics environments, literal bibliography entries and macro
+  context. Recognize TeX code notations with original offsets and report unsupported
+  encodings explicitly. Shared literal metadata drives query and human views.
+- Separate parsing identity from package build bytes, scope material fingerprints,
+  validate versioned registry state and publish hash-bound AI review decisions.
+  Historical reviews are not automatically rebound or authenticated as human.
+- Disable source upload by default, add shared AI request/reported-cost budgets,
+  and introduce semantic skills v6 with common numbered evidence prefixes.
+- Add sanitized failure logs, public shared filesystem/error helpers, bounded ZIP
+  footer parsing, stable human output, type/complexity checks and complete CI coverage.
+- Record real-source smoke evaluation and distinguish engineering implementation
+  from scientific usability. Entity resolution, storage/transaction migrations,
+  long-paper chunking and independent scientific QA remain explicit follow-up work.
+
 - Keep only major-stage results in terminal history; hide finished and queued AI
   subtasks from the live panel. Request/retry/validation details remain visible
   while running and in the opt-in verbose log.
