@@ -19,7 +19,8 @@ from itertools import groupby
 from pathlib import Path
 from dataclasses import dataclass
 
-from . import __version__
+from . import PARSER_VERSION, __version__
+from .source.extraction import RULE_VERSION
 from .core.graph import build_graph, canonical, hash_text, node_filename, read_json, strict_json_loads, views
 from .core.coordinates import SourceLines
 from .core.transactions import ManagedDataError, atomic_json, publish_pointer, read_pointer, writer_lock
@@ -55,7 +56,14 @@ def extraction_tool_identity():
     tool_sources = {str(path.relative_to(package_root)): hashlib.sha256(path.read_bytes()).hexdigest()
                     for path in sorted(package_root.rglob('*')) if path.suffix in {'.py', '.json'}}
     return {"tool_version": __version__, "tool_sources": tool_sources,
+            "parser_version": PARSER_VERSION, "rule_version": RULE_VERSION,
             "pylatexenc": parser_version, "jsonschema": version("jsonschema")}
+
+
+def extraction_semantics(tool_identity):
+    """Only declared extraction semantics affect identity; build bytes are provenance."""
+    return {'snapshot_format': 2, 'parser_version': tool_identity.get('parser_version', PARSER_VERSION),
+            'rule_version': tool_identity.get('rule_version', RULE_VERSION)}
 
 
 def safe_relative(root, relative):
@@ -293,7 +301,8 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
     resource_manifest = [{"path": path, "sha256": digest} for path, digest in sorted(resource_digests.items())]
     project_source_hash = _project_source_hash(parsed["entry"], source_manifest, resource_manifest, config)
     fingerprint = {"project_id": project_id, "project_source_hash": project_source_hash,
-                   "annotations": annotations, "catalog_inputs": catalog_inputs, **tool_identity}
+                   "annotations": annotations, "catalog_inputs": catalog_inputs,
+                   **extraction_semantics(tool_identity)}
     if 'structure_recovery' in parsed:
         fingerprint['structure_recovery_sha256'] = hash_text(canonical(parsed['structure_recovery']))
     snapshot_id = hash_text(canonical(fingerprint))
@@ -383,7 +392,7 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
             outputs = [{"path": relative, "sha256": output_hashes[relative]}
                        for relative in sorted(output_hashes, key=lambda relative: Path(relative).parts)]
             write_json(temporary / "manifest.json", {"format": "qecgraph.manifest", "snapshot_id": snapshot_id,
-                        "fingerprint_inputs": fingerprint, "source_files": source_manifest,
+                        "fingerprint_inputs": fingerprint, "build_info": tool_identity, "source_files": source_manifest,
                         "resources": resource_manifest, "outputs": outputs,
                         "coordinate_system": "Unicode codepoints, [start,end); line numbers 1-based inclusive"})
             phase("Validating extracted snapshot")

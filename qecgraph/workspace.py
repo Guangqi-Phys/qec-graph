@@ -15,7 +15,7 @@ import tempfile
 import tomllib
 import uuid
 
-from . import PARSER_VERSION, __version__
+from . import PARSER_VERSION
 from .source.extraction import RULE_VERSION, proposals
 from .domain.research_store import stage_records
 from .core.progress import ProgressStep, outcome, phase, task, track
@@ -25,13 +25,13 @@ from .core.fs import (managed_path as _managed, read_regular as _read_regular,
                       read_operational_status as read_operational_status)
 from .registry import Registry
 from .source.package import Limits, PackageError, SourceTree, unpack
-from .store import extraction_tool_identity, ingest, source_span_index
+from .store import extraction_semantics, extraction_tool_identity, ingest, source_span_index
 from .core.transactions import ManagedDataError, atomic_bytes, atomic_json, immutable_json, writer_lock
 from .llm.config import render_config_template
 
 CONFIG = 'qecgraph.toml'
 FORMAT = 'qecgraph.workspace'
-PROCESSOR = f'qecgraph-{__version__}:archive-structure-v1:parser-{PARSER_VERSION}:{RULE_VERSION}'
+PROCESSOR = f'archive-structure-v2:parser-{PARSER_VERSION}:{RULE_VERSION}'
 HEX = re.compile(r'[0-9a-f]{64}')
 JOB = re.compile(r'[0-9a-f]{32}')
 AI_EXTRACTION_SKILLS = ('extract_theorems', 'extract_assumptions', 'extract_data', 'extract_thoughts')
@@ -893,7 +893,7 @@ class Workspace:
             materials = state.setdefault('materials', {})
             state['workspace_id'] = cfg['workspace_id']
             tool_identity = extraction_tool_identity() if digests else None
-            fingerprint = hash_text(canonical([PROCESSOR, cfg, tool_identity,
+            fingerprint = hash_text(canonical([PROCESSOR, cfg, extraction_semantics(tool_identity or {}),
                                                sys.implementation.name, sys.version, sqlite_version]))
             proposal_map = state.setdefault('generated_research', {})
             manifest_hashes, verified_spans, staged_proposals = {}, {}, {}

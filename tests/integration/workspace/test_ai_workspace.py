@@ -153,7 +153,7 @@ class AIWorkspaceTests(unittest.TestCase):
         self.assertEqual(rebuilt['normalization_manifest_sha256'], first['normalization_manifest_sha256'])
         self.assertEqual(rebuilt['ai_extraction'], first['ai_extraction'])
 
-    def test_tool_upgrade_rebinds_english_proposals_with_identical_source_evidence(self):
+    def test_semantic_upgrade_rebinds_english_proposals_with_identical_source_evidence(self):
         from qecgraph.llm.review import read_bound_proposal
         from qecgraph.workspace import extraction_tool_identity
 
@@ -162,7 +162,7 @@ class AIWorkspaceTests(unittest.TestCase):
             first = self.workspace.sync()['inputs'][0]
         old = {b['skill']: b for b in first['ai_extraction']['written']}
         old_bytes = {b['path']: (self.workspace.registry.root / b['path']).read_bytes() for b in old.values()}
-        changed = {**extraction_tool_identity(), 'tool_version': 'english-upgrade-fixture'}
+        changed = {**extraction_tool_identity(), 'parser_version': 'english-upgrade-fixture'}
         with patch('qecgraph.workspace.extraction_tool_identity', return_value=changed), patch(
                 'qecgraph.llm.client.LLMClient.complete_json', side_effect=AssertionError('No AI call needed')) as client:
             latest = self.workspace.rebuild()['inputs'][0]

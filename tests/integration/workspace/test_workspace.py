@@ -366,6 +366,11 @@ class WorkspaceTests(unittest.TestCase):
             with patch('qecgraph.workspace.extraction_tool_identity', return_value=changed_tool):
                 rebuilt = self.ws.rebuild()
             self.assertEqual(rebuilt['counts']['processed'], 1)
+            extract.assert_not_called()
+            self.assertEqual(rebuilt['release_id'], first['release_id'])
+            with patch('qecgraph.workspace.extraction_tool_identity',
+                       return_value={**previous_tool, 'parser_version': 'semantic-change'}):
+                self.ws.rebuild()
             extract.assert_called_once()
 
     def test_sync_reselects_a_projection_when_an_older_entrypoint_returns(self):
