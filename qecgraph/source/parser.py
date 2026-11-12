@@ -547,6 +547,7 @@ class _ProjectParser:
         self.explicit_environments = explicit
         self.environment_map.update(explicit)
         self.macro_specs: dict[str, str] = {}
+        self.macro_definitions = []
         self.files: dict[str, dict] = {}
         self.structures: dict[str, tuple] = {}
         self.source_lines: dict[str, SourceLines] = {}
@@ -750,6 +751,12 @@ class _ProjectParser:
             for node in values:
                 if isinstance(node, LatexMacroNode):
                     name = node.macroname
+                    if name in _COMMAND_DECLARATIONS | _PRIMITIVE_DEFINITIONS | {'DeclareMathOperator'}:
+                        literal = text[node.pos:node.pos + node.len]
+                        defined = re.match(r'\\[A-Za-z]+\*?\s*\{?\s*\\([A-Za-z@]+)', literal)
+                        if defined:
+                            self.macro_definitions.append({'name': defined[1], 'latex': literal,
+                                                           'source': self.node_span(rel, node)})
                     if name == "newtheorem":
                         self.learn_environment(node, rel)
                         continue
@@ -1108,6 +1115,7 @@ class _ProjectParser:
                             "Literal environment aliases and macro argument shapes are recognized; arbitrary macro bodies are not expanded.")
         return {"entry": entry, "files": [self.files[name] for name in sorted(self.files)],
                 "blocks": self.blocks, "includes": self.includes, "resources": self.resources,
+                "macro_definitions": self.macro_definitions,
                 "diagnostics": self.diagnostics, "parser": "pylatexenc",
                 "parser_version": PYLATEXENC_VERSION, "extractor_version": PARSER_VERSION,
                 "offset_convention": "UTF-8 decoded Unicode codepoints; half-open [start,end); line numbers 1-based",

@@ -148,7 +148,8 @@ class _GraphBuilder:
         label_counts = Counter(label for block in self.blocks for label in set(block.get("labels", [])))
         self.add_node({"id": self.document_id, "kind": "document", "title": next((b["title_tex"] for b in self.blocks
                                                         if b["kind"] == "title" and b.get("title_tex")), self.project_id),
-                  "origin": "parser", "data": {"entry": self.parsed["entry"], "project_source_hash": self.project_source_hash}})
+                  "origin": "parser", "data": {"entry": self.parsed["entry"], "project_source_hash": self.project_source_hash,
+                                                "macro_definitions": self.parsed.get('macro_definitions', [])}})
         for path, file in self.files.items():
             self.add_node({"id": self.file_id(path), "kind": "source_file", "title": path, "origin": "parser",
                       "data": {"path": path, "sha256": file["sha256"], "encoding": file["encoding"]}})

@@ -233,9 +233,15 @@ def context(session, args, maximum, metadata):
                 context_complete=False, completeness='Structural selection only; semantic prerequisites require reading',
                 missing_components_meaning='Not extracted or selected in this context; not evidence of absence in the paper',
                 omitted_node_count_at_least=omitted, truncated=bool(omitted), continuation=None)
+    if root['id'] in session.knowledge.nodes:
+        data['fragment_context'] = session.knowledge.fragment_context(session.knowledge.nodes[root['id']], root.get('latex', ''))
     if purpose == 'lean':
         data['formalization_status'] = 'Preparation only; no Lean build or semantic equivalence claim'
     # Preserve the root whole, trimming only complete supporting records/blocks.
+    if len(canonical({**data, **metadata})) > maximum and 'fragment_context' in data:
+        data.pop('fragment_context')
+        data['fragment_context_omitted'] = True
+        data['truncated'] = True
     while len(canonical({**data, **metadata})) > maximum and len(data['nodes']) > 1:
         removed = data['nodes'].pop()
         selected.discard(_identity(removed))

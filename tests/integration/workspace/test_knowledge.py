@@ -60,6 +60,21 @@ class KnowledgeTests(unittest.TestCase):
         self.assertEqual(papers[self.version]['link'], 'https://example.org/paper/v1')
         self.assertEqual(papers[self.version]['field_evidence']['link']['status'], 'user_confirmed')
 
+    def test_fragment_context_carries_literal_macros_without_expansion(self):
+        text = TEXT.replace('The memory survives.', r'The memory uses \rare.')
+        text = text.replace(r'\begin{document}', r'% \newcommand{\fake}{do not collect}' + '\n' + r'\begin{document}')
+        (self.root / 'inputs/macros.tex').write_text(text)
+        self.ws.sync()
+        session = WorkspaceSession(self.ws.registry.root, profile='research')
+        node = next(n for n in session._source_nodes.values() if n['kind'] == 'lemma' and r'\rare' in n['latex'])
+        data = session.invoke('qec_fetch', {'identifier': node['id']})['data']
+        macro, = data['fragment_context']['macro_definitions']
+        self.assertEqual(macro['name'], 'rare')
+        source = macro['source']
+        self.assertEqual(text[source['char_start']:source['char_end']], macro['latex'])
+        self.assertIn(r'\rare', data['text'])
+        self.assertNotIn('preamble-only-marker', data['text'])
+
     def test_whole_file_section_outline_and_raw_fallback(self):
         page = self.invoke('qec_fetch', {'identifier': self.version, 'view': 'outline'})
         intro = next(r for r in page['results'] if r['title'] == 'Introduction')

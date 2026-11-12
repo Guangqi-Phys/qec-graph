@@ -287,6 +287,44 @@ class KnowledgeView:
                     pending.append(child)
         return seen
 
+    def fragment_context(self, node, raw):
+        """Literal aids only: definitions are never executed or scope-resolved."""
+        version = node['provenance']['source_version_id']
+        document = self.documents[version]
+        used = set(re.findall(r'\\([A-Za-z@]+)', raw))
+        macros, omitted, size = [], 0, 0
+        for definition in document['data'].get('macro_definitions', []):
+            if definition['name'] not in used:
+                continue
+            span = definition['source']
+            file = self.files.get((version, span['path']))
+            if file is None:
+                continue
+            text = self.file_text(file)
+            start, end = span['char_start'], span['char_end']
+            if text[start:end] != definition['latex']:
+                raise ValueError('Macro declaration differs from registered source')
+            row = {**definition, **self.span(file, text, start, end)}
+            cost = len(canonical(row))
+            if size + cost > 4000 or len(macros) >= 20:
+                omitted += 1
+                continue
+            macros.append(row)
+            size += cost
+        references = []
+        for edge in self.session.graph.source.graph['edges']:
+            if edge['source'] != node['id'] or edge['relation'] not in {'references', 'cites'}:
+                continue
+            target = self.nodes.get(edge['target'])
+            if target:
+                references.append({'id': target['id'], 'kind': target['kind'], 'title': target['title'],
+                                   'source': target.get('source'), 'relation': edge['relation'],
+                                   'status': edge.get('status'), 'preview': target.get('latex', '')[:240]})
+        return {'macro_definitions': macros, 'referenced_targets': references[:10],
+                'omitted_count': omitted + max(0, len(references) - 10),
+                'interpretation': 'Literal declarations and reference previews; no expansion, scope resolution or proof inference. '
+                                  'Rebuild older snapshots to collect macro declarations.'}
+
     def fetch(self, args):
         identifier = args['identifier']
         if identifier in self.proposal_items:
@@ -347,6 +385,7 @@ class KnowledgeView:
         raw = text[start:end]
         displayed = reading_projection(raw)[0] if view == 'reading' else raw
         return {**self.summary(node), **self.span(file, text, start, end), 'view': view, 'text': displayed,
+                **({'fragment_context': self.fragment_context(node, raw)} if node['kind'] != 'source_file' else {}),
                 'content_sha256': hash_text(raw), 'complete_unit': (start, end) == (unit_start, unit_end),
                 'unit_range': [unit_start, unit_end], 'included_source_paths': external,
                 'reading_scope': 'Continuous source range; included files remain separate',
