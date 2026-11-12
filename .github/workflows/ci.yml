@@ -14,16 +14,21 @@ concurrency:
 
 jobs:
   checks:
-    name: Lint and test
-    runs-on: ubuntu-22.04
-    timeout-minutes: 10
+    name: Python ${{ matrix.python }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+        os: [ubuntu-22.04, macos-15]
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python }}
           cache: pip
           cache-dependency-path: pyproject.toml
       - name: Install the project and development tools
@@ -36,5 +41,12 @@ jobs:
         run: python -m mypy
       - name: Type-check with pyright (advisory warnings)
         run: python -m pyright
-      - name: Run unit tests
-        run: python -m unittest discover -s tests/unit -v
+      - name: Run all tests with branch coverage
+        run: |
+          python -m coverage run -m unittest discover -s tests -v
+          python -m coverage report
+      - name: Reproduce the end-to-end workflow
+        run: python tools/reproduce.py --out build/reproduce
+      - name: Lint Markdown
+        if: matrix.os == 'ubuntu-22.04' && matrix.python == '3.13'
+        run: npx --yes markdownlint-cli2@0.20.0

@@ -57,7 +57,7 @@ class NormalizationTests(unittest.TestCase):
         self.assertIn('Main', result.text)
         self.assertIn('Appendix', result.text)
         self.assertIn('Supplement', result.text)
-        self.assertTrue(result.text.rstrip().endswith('\end{document}'))
+        self.assertTrue(result.text.rstrip().endswith(r'\end{document}'))
         origins = {segment['origin']['path'] for segment in result.segments
                    if segment['origin'] is not None}
         self.assertEqual(origins, {'paper.tex', 'supplement.tex'})
