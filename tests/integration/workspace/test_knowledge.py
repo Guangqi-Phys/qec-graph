@@ -68,6 +68,23 @@ class KnowledgeTests(unittest.TestCase):
         self.assertEqual(QUESTIONS[2][1], ('approach',))
         self.assertEqual(QUESTIONS[5][1], ('conclusion',))
 
+    def test_internal_errors_are_diagnosable_without_exception_or_source_content(self):
+        from unittest.mock import patch
+        with patch.object(self.session.knowledge, 'search', side_effect=KeyError('secret-key-canary')):
+            with self.assertLogs('qecgraph.workspace_query', level='ERROR') as logs:
+                response = self.session.invoke('qec_search', {'query': 'secret-source-canary'})
+        self.assertEqual(response['error']['code'], 'INTERNAL_ERROR')
+        self.assertIn('KeyError', str(logs.output))
+        self.assertNotIn('canary', str(logs.output) + canonical(response))
+        with patch.object(self.ws, '_run_impl', side_effect=TypeError('secret-error-canary')):
+            with self.assertRaises(TypeError):
+                self.ws.sync()
+        events = [json.loads(line) for path in (self.root / '.qecgraph/logs').glob('*.jsonl')
+                  for line in path.read_text().splitlines()]
+        failed = [event for event in events if event['status'] == 'failed']
+        self.assertEqual(failed[-1]['error']['type'], 'TypeError')
+        self.assertNotIn('canary', canonical(events))
+
     def test_fragment_context_carries_literal_macros_without_expansion(self):
         text = TEXT.replace('The memory survives.', r'The memory uses \rare.')
         text = text.replace(r'\begin{document}', r'% \newcommand{\fake}{do not collect}' + '\n' + r'\begin{document}')

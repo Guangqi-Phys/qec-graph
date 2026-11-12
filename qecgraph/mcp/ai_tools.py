@@ -226,7 +226,13 @@ class ReadOnlySession:
         except SnapshotChanged as exc:
             return copy.deepcopy({'ok': False, 'error': {'code': 'QUERY_ERROR', 'message': str(exc),
                                                          'scope': self.scope}})
-        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error):
+        except (KeyError, TypeError) as exc:
+            import logging
+            from ..core.errors import log_internal_failure
+            reference = log_internal_failure(logging.getLogger(__name__), 'graph query', exc)
+            return copy.deepcopy({'ok': False, 'error': {'code': 'INTERNAL_ERROR',
+                'message': 'Internal query failure; inspect the diagnostic reference', 'reference': reference, 'scope': self.scope}})
+        except (OSError, ValueError, sqlite3.Error):
             return copy.deepcopy({'ok': False, 'error': {'code': 'QUERY_ERROR',
                                                          'message': 'The fixed graph could not be queried',
                                                          'scope': self.scope}})

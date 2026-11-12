@@ -773,6 +773,12 @@ class WorkspaceSession:
         except ToolError as exc:
             return {'ok': False, 'error': {'code': exc.code, 'message': str(exc), 'details': exc.details,
                                           'scope': self.scope.copy()}}
-        except (OSError, ValueError, TypeError, KeyError):
+        except (TypeError, KeyError) as exc:
+            import logging
+            from .core.errors import log_internal_failure
+            reference = log_internal_failure(logging.getLogger(__name__), 'workspace query', exc)
+            return copy.deepcopy({'ok': False, 'error': {'code': 'INTERNAL_ERROR',
+                'message': 'Internal query failure; inspect the diagnostic reference', 'reference': reference, 'scope': self.scope}})
+        except (OSError, ValueError):
             return {'ok': False, 'error': {'code': 'QUERY_ERROR', 'message': 'Machine release could not be read',
                                           'scope': self.scope.copy()}}

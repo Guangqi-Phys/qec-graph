@@ -1008,6 +1008,32 @@ class Workspace:
         return old, release, materials, proposal_map
 
     def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None, ai_client=None):
+        from .core.errors import failure_details
+        from .core.transactions import atomic_bytes
+        events = []
+        log_id = uuid.uuid4().hex
+
+        def record(status, **fields):
+            events.append({'time': datetime.now(timezone.utc).isoformat(), 'stage': 'rebuild' if rebuild else 'sync',
+                           'status': status, **fields})
+            try:
+                path = self.path('.qecgraph/logs/' + log_id + '.jsonl')
+                atomic_bytes(path, ''.join(canonical(row) + '\n' for row in events).encode())
+            except (OSError, ValueError):
+                # Diagnostics cannot invalidate a successfully committed release.
+                pass
+
+        record('started')
+        try:
+            result = self._run_impl(cfg, scan_inputs=scan_inputs, rebuild=rebuild, keep_inputs=keep_inputs,
+                                    progress=progress, ai_client=ai_client)
+        except Exception as exc:
+            record('failed', error=failure_details(exc))
+            raise
+        record(result['status'], run_id=result['run_id'], release_id=result['release_id'])
+        return result
+
+    def _run_impl(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None, ai_client=None):
         if not self.path('machine/CURRENT.json').is_file() and (
                 self.path('machine/operational/status.json').exists()
                 or self.path('.qecgraph/migration.json').exists()):

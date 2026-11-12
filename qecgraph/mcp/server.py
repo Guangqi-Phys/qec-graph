@@ -185,14 +185,15 @@ def serve_stdio(session, *, input_stream=None, output_stream=None, verbose=False
                 send(server.handle(message))
             except BrokenPipeError:
                 return 0
-            except Exception:
+            except Exception as exc:
                 identifier = message.get('id') if isinstance(message, dict) else None
                 reference = 'unavailable'
                 if isinstance(identifier, str):
                     reference = 'sha256:' + sha256(identifier.encode('utf-8', errors='backslashreplace')).hexdigest()[:12]
                 elif type(identifier) is int and abs(identifier) < 2**53:
                     reference = str(identifier)
-                logger.error('internal request failure (id %s)', reference)
+                from ..core.errors import log_internal_failure
+                log_internal_failure(logger, 'MCP request ' + reference, exc)
                 if isinstance(message, dict) and 'id' in message:
                     send(rpc_error(identifier, -32603, 'Internal read-only server error'))
     except (BrokenPipeError, KeyboardInterrupt):

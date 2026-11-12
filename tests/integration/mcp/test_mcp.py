@@ -118,7 +118,9 @@ class MCPTests(unittest.TestCase):
         self.assertEqual(ping['id'], 3)
         self.assertIn('DEBUG: received request frame', diagnostics.getvalue())
         digest = hashlib.sha256(identifier.encode()).hexdigest()[:12]
-        self.assertIn(f'ERROR: internal request failure (id sha256:{digest})', diagnostics.getvalue())
+        self.assertIn(f'ERROR: MCP request sha256:{digest} failed', diagnostics.getvalue())
+        self.assertIn("'type': 'RuntimeError'", diagnostics.getvalue())
+        self.assertIn("'function':", diagnostics.getvalue())
         self.assertNotIn('private-', diagnostics.getvalue())
 
     def test_actual_stdio_process_is_read_only_and_never_executes_source(self):
