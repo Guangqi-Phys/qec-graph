@@ -1,3 +1,4 @@
+from tests.support import enable_fixture_ai
 import hashlib
 import json
 import tempfile
@@ -22,6 +23,7 @@ class WorkspaceStructureRecoveryTests(unittest.TestCase):
         self.root = Path(directory.name)
         self.ws = Workspace(self.root)
         self.ws.prepare()
+        enable_fixture_ai(self.root)
         self.cfg = self.root / 'qecgraph.toml'
         self.configure(f'model = "{DEFAULT_MODEL}"', 'model = "fake"')
         self.configure('extract_proposals = true', 'extract_proposals = false')
@@ -178,7 +180,7 @@ class WorkspaceStructureRecoveryTests(unittest.TestCase):
         messages = [initialization(), {'jsonrpc': '2.0', 'method': 'notifications/initialized'},
                     request(2, 'tools/call', {'name': 'qecgraph_search', 'arguments': args})]
         stdio = subprocess.run([sys.executable, '-m', 'qecgraph', 'mcp', 'serve', '--machine', str(machine),
-                                '--release', release], text=True, capture_output=True, check=True, timeout=15,
+                                '--release', release, '--profile', 'legacy'], text=True, capture_output=True, check=True, timeout=15,
                                input=''.join(json.dumps(message) + '\n' for message in messages))
         replies = [json.loads(line) for line in stdio.stdout.splitlines()]
         self.assertEqual(replies[-1]['result']['structuredContent'], response)

@@ -233,12 +233,16 @@ class Workspace:
         try:
             config = load_ai_config(self.root)
             if not config.allow_source_upload:
+                self._ai_skip_reason = 'Source upload disabled; set [ai].allow_source_upload = true to enable AI'
                 return None
             provider = config.require_ready()
             if provider.kind == 'cli' and is_claude(provider.name, provider.command) and not provider.resolved_key():
+                self._ai_skip_reason = 'CLI provider credentials are unavailable'
                 return None
+            self._ai_skip_reason = None
             return LLMClient(config, cache_dir=self.path('.qecgraph/ai-cache'))
         except AIConfigError:
+            self._ai_skip_reason = 'AI disabled, unconfigured or missing credentials; inspect qec-graph ai status'
             return None
 
     def _resolve_normalization(self, client, tree, prior):
@@ -465,9 +469,13 @@ class Workspace:
 
     def sync(self, *, dry_run=False, keep_inputs=False, progress=None):
         if dry_run:
-            self.config()
+            cfg = self.config()
             return {'status': 'planned', 'inputs': [p.name for p in self._inbox()],
-                    'pending_claims': sum(1 for _ in self._pending_jobs())}
+                    'pending_claims': sum(1 for _ in self._pending_jobs()),
+                    'ai_estimate': {'source_upload_enabled': cfg.get('ai', {}).get('allow_source_upload', False),
+                        'max_batch_requests': cfg.get('ai', {}).get('max_batch_requests', 128), 'cost_usd': None,
+                        'scope': 'Four extraction tasks per eligible source; cache, recovery, corrections and retries vary. '
+                                 'No provider request or dollar estimate is made during dry-run.'}}
         with writer_lock(self.path('.qecgraph')):
             return self._run(self.config(), scan_inputs=True, rebuild=False, keep_inputs=keep_inputs,
                              progress=progress, ai_client=self._ai_client())
@@ -1057,6 +1065,8 @@ class Workspace:
         result = {'status': 'partial_batch' if partial else 'unchanged' if old == release else 'published',
                   'run_id': run_id, 'workspace_id': cfg['workspace_id'], 'previous_release_id': old,
                   'release_id': release, 'counts': counts, 'inputs': rows, 'retrieval': retrieval}
+        result['ai'] = ({'status': 'enabled', 'batch_usage': ai_client.batch_usage()} if ai_client is not None else
+                        {'status': 'skipped', 'reason': getattr(self, '_ai_skip_reason', None) or 'No AI client requested'})
         if warning is not None:
             result['warning'] = warning
         return result

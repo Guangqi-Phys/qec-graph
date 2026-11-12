@@ -4,8 +4,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+import math
 from pathlib import Path
 import time
+from threading import Lock
 from typing import Any, Callable, Mapping, Sequence
 import uuid
 
@@ -59,7 +61,7 @@ def _parse_json(text):
 def _usage_cost(usage):
     for key in ('cost', 'cost_usd', 'total_cost'):
         value = usage.get(key)
-        if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and value >= 0:
             return float(value)
     return 0.0
 
@@ -81,6 +83,10 @@ class LLMClient:
         self.provider = provider or build_provider(config)
         self.cache = ResponseCache(cache_dir) if cache_dir else None
         self.sleeper = sleeper or time.sleep
+        self._batch_lock = Lock()
+        self._batch_requests = 0
+        self._batch_cost = 0.0
+        self._unpriced_responses = 0
         self.secrets = tuple(key for item in config.providers.values() if (key := item.resolved_key()))
         provider_key = getattr(self.provider, 'api_key', None)
         if isinstance(provider_key, str) and provider_key and provider_key not in self.secrets:
@@ -91,6 +97,12 @@ class LLMClient:
         return {'name': self.config.provider, 'kind': getattr(self.provider, 'kind', configured and configured.kind),
                 'endpoint': getattr(self.provider, 'endpoint', None) or (configured and configured.base_url),
                 'command': configured and configured.command, 'args': configured and configured.args}
+
+    def batch_usage(self):
+        with self._batch_lock:
+            return {'attempted_requests': self._batch_requests, 'reported_cost_usd': self._batch_cost,
+                    'unpriced_responses': self._unpriced_responses,
+                    'cost_scope': 'Provider-reported only; in-flight requests and missing prices prevent a hard dollar cap'}
 
     @task('Preparing AI request', kind='ai')
     def complete_json(self, messages: Sequence[Message], schema: Mapping[str, Any], *,
@@ -151,6 +163,12 @@ class LLMClient:
         last_error = None
         spent = 0.0
         for attempt in range(1, self.config.max_retries + 2):
+            with self._batch_lock:
+                if self._batch_requests >= self.config.max_batch_requests:
+                    raise BudgetExceeded('AI batch request limit reached; remaining work can be retried in a later sync')
+                if self._batch_cost >= self.config.max_batch_cost_usd:
+                    raise BudgetExceeded('AI batch reported-cost limit reached')
+                self._batch_requests += 1
             try:
                 phase('Waiting for AI provider', detail=redact(
                     f'attempt {attempt}/{self.config.max_retries + 1} | timeout {self.config.timeout_seconds:g}s'
@@ -175,6 +193,12 @@ class LLMClient:
                 raise LLMError(redact(str(exc), self.secrets)) from None
             phase('AI response received', detail=_usage_summary(completion.usage))
             spent += _usage_cost(completion.usage)
+            with self._batch_lock:
+                self._batch_cost += _usage_cost(completion.usage)
+                if not any(key in completion.usage for key in ('cost', 'cost_usd', 'total_cost')):
+                    self._unpriced_responses += 1
+                if self._batch_cost > self.config.max_batch_cost_usd:
+                    raise BudgetExceeded('AI batch reported-cost limit exceeded')
             if spent > self.config.max_cost_usd:
                 raise BudgetExceeded(f'AI cost limit exceeded: {spent:.4f} USD')
             phase('Validating AI response and source evidence')

@@ -1,3 +1,4 @@
+from tests.support import enable_fixture_ai
 import json
 import tempfile
 import unittest
@@ -21,6 +22,7 @@ class AIWorkspaceTests(unittest.TestCase):
         self.root = Path(temp.name)
         self.workspace = Workspace(self.root)
         self.workspace.prepare()
+        enable_fixture_ai(self.root)
         self.enterContext(patch.dict('os.environ', {'ANTHROPIC_API_KEY': 'offline-test-key'}))
         self.config = self.root / 'qecgraph.toml'
         self.configure('provider = "openrouter"', 'provider = "claude_code"')
@@ -28,6 +30,16 @@ class AIWorkspaceTests(unittest.TestCase):
 
     def configure(self, old, new):
         self.config.write_text(self.config.read_text().replace(old, new))
+
+    def test_source_upload_requires_explicit_opt_in_even_with_credentials(self):
+        self.configure('allow_source_upload = true', 'allow_source_upload = false')
+        (self.root / 'inputs/one.tex').write_bytes(TEX)
+        with patch('qecgraph.llm.client.LLMClient.complete_json') as provider:
+            result = self.workspace.sync()
+            provider.assert_not_called()
+        self.assertEqual(result['status'], 'published')
+        self.assertEqual(result['ai']['status'], 'skipped')
+        self.assertIn('allow_source_upload = true', result['ai']['reason'])
 
     def test_independent_documents_stay_archived_and_unconsumed(self):
         package = self.root / 'inputs/papers.tar'

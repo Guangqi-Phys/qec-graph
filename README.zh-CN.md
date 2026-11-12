@@ -27,7 +27,7 @@ mkdir my-qec
 cd my-qec
 qec-graph init
 # The command creates inputs/ and qecgraph.toml.
-# AI: fill in your OpenRouter API key in qecgraph.toml or OPENROUTER_API_KEY, then:
+# AI: set [ai].allow_source_upload = true and configure OPENROUTER_API_KEY, then:
 qec-graph ai status
 qec-graph ai test
 # Put downloaded LaTeX source packages in inputs/, then run:
@@ -37,8 +37,11 @@ qec-graph validate
 ```
 
 `init` 不抽取、不调用 AI，只准备收件箱和配置；导入由 `qec-graph sync` 执行。
-普通包由本地解析器处理。配置 API key 后，可对符合条件的解析失败和多入口歧义使用 AI。
-语义提案抽取默认开启；设置 `extract_proposals = false` 可跳过这些 skill。
+普通包由本地解析器处理。默认禁止上传源码；显式启用上传并配置 API key 后，
+可对符合条件的解析失败和多入口歧义使用 AI，并执行语义提案抽取。
+设置 `extract_proposals = false` 可跳过抽取 skill。`max_batch_requests` 限制整批
+任务、重试和并发包的请求次数；`max_batch_cost_usd` 累计已报告费用，缺价和在途
+请求使其不能成为硬美元上限。`sync --dry-run` 不调用 provider。
 
 成功导入后原始包留在 `archive/`，收件箱副本被清除。把 `human/` 作为 Obsidian
 vault 打开，按 `YYYY/MM/` 浏览每篇论文的 `一作姓_文章前两个词_thoughts.md`，

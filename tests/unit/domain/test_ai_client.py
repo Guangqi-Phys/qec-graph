@@ -38,6 +38,36 @@ class FakeProvider:
 
 
 class ClientTests(unittest.TestCase):
+    def test_batch_request_limit_is_shared_across_threads_and_retries(self):
+        from concurrent.futures import ThreadPoolExecutor
+        provider = FakeProvider(*(Completion('{"ok": true}', 'model') for _ in range(2)))
+        client = LLMClient(config(max_batch_requests=2), provider=provider)
+        def run(_):
+            try:
+                return client.complete_json([Message('user', 'x')], SCHEMA).data
+            except BudgetExceeded:
+                return None
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            self.assertEqual(sum(result is not None for result in pool.map(run, range(4))), 2)
+        self.assertEqual(provider.calls, 2)
+        self.assertEqual(client.batch_usage()['unpriced_responses'], 2)
+        provider = FakeProvider(ProviderError('retry', retryable=True))
+        client = LLMClient(config(max_batch_requests=1), provider=provider, sleeper=lambda _: None)
+        with self.assertRaises(BudgetExceeded):
+            client.complete_json([Message('user', 'x')], SCHEMA)
+        self.assertEqual(provider.calls, 1)
+
+    def test_reported_batch_cost_accumulates_across_tasks(self):
+        provider = FakeProvider(*(Completion('{"ok": true}', 'model', {'cost': .6}) for _ in range(2)))
+        client = LLMClient(config(max_batch_cost_usd=1), provider=provider)
+        client.complete_json([Message('user', 'one')], SCHEMA)
+        with self.assertRaises(BudgetExceeded):
+            client.complete_json([Message('user', 'two')], SCHEMA)
+        self.assertEqual(client.batch_usage()['reported_cost_usd'], 1.2)
+        with self.assertRaises(BudgetExceeded):
+            client.complete_json([Message('user', 'three')], SCHEMA)
+        self.assertEqual(provider.calls, 2)
+
     def test_retries_retryable_provider_errors(self):
         provider = FakeProvider(ProviderError('rate limited', retryable=True),
                                 Completion('{"ok": true}', 'model', {'prompt_tokens': 1}))

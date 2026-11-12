@@ -182,6 +182,8 @@ class WorkspaceTests(unittest.TestCase):
         from qecgraph.llm.config import DEFAULT_MODEL
 
         self.ws.prepare()
+        from tests.support import enable_fixture_ai
+        enable_fixture_ai(self.root)
         config = self.root / 'qecgraph.toml'
         text = config.read_text(encoding='utf-8')
         text = text.replace('provider = "openrouter"', 'provider = "claude_code"')

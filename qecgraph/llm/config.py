@@ -73,6 +73,8 @@ class AIConfig:
     max_parallel_packages: int = 1
     structure_fallback: bool = True
     extract_proposals: bool = True
+    max_batch_requests: int = 128
+    max_batch_cost_usd: float = 20.0
 
     @property
     def selected(self) -> ProviderConfig:
@@ -158,6 +160,8 @@ def load_ai_config(root, environ: Mapping[str, str] | None = None) -> AIConfig:
         'max_cost_usd': number('max_cost_usd', 5.0, 0),
         'max_input_chars': number('max_input_chars', 200000, 1000, integer=True),
         'max_parallel_packages': number('max_parallel_packages', 1, 1, integer=True),
+        'max_batch_requests': number('max_batch_requests', 128, 1, integer=True),
+        'max_batch_cost_usd': number('max_batch_cost_usd', 20.0, 0),
     }
     if parsed['max_parallel_packages'] > 16:
         raise AIConfigError('[ai].max_parallel_packages must be at most 16')
@@ -170,7 +174,8 @@ def load_ai_config(root, environ: Mapping[str, str] | None = None) -> AIConfig:
     return AIConfig(enabled=enabled, provider=provider, model=model,
                     timeout_seconds=float(parsed['timeout_seconds']),
                     max_retries=parsed['max_retries'], max_cost_usd=float(parsed['max_cost_usd']),
-                    max_input_chars=parsed['max_input_chars'], allow_source_upload=flag('allow_source_upload', True),
+                    max_input_chars=parsed['max_input_chars'], allow_source_upload=flag('allow_source_upload', False),
+                    max_batch_requests=parsed['max_batch_requests'], max_batch_cost_usd=float(parsed['max_batch_cost_usd']),
                     providers=providers, max_parallel_packages=parsed['max_parallel_packages'],
                     structure_fallback=flag('structure_fallback', True),
                     extract_proposals=flag('extract_proposals', True))
@@ -200,9 +205,12 @@ model = "{DEFAULT_MODEL}"
 timeout_seconds = 180
 max_retries = 2
 max_cost_usd = 5.0
+max_batch_requests = 128
+max_batch_cost_usd = 20.0
 max_input_chars = 200000
 max_parallel_packages = 1
-allow_source_upload = true
+# Explicitly enable before sending registered source text to an AI provider.
+allow_source_upload = false
 structure_fallback = true
 extract_proposals = true
 

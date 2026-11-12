@@ -36,6 +36,7 @@ def config(args):
                'config': str(root / CONFIG), 'enabled': ai.enabled,
                'provider': ai.provider, 'model': ai.model,
                'allow_source_upload': ai.allow_source_upload,
+               'max_batch_requests': ai.max_batch_requests, 'max_batch_cost_usd': ai.max_batch_cost_usd,
                'structure_fallback': ai.structure_fallback, 'extract_proposals': ai.extract_proposals,
                'providers': [_redacted_provider(name, provider)
                              for name, provider in sorted(ai.providers.items())]}
@@ -55,6 +56,7 @@ def status(args):
                'configured': bool(selected.resolved_key()) if needs_key
                else bool(selected.command),
                'allow_source_upload': ai.allow_source_upload,
+               'max_batch_requests': ai.max_batch_requests, 'max_batch_cost_usd': ai.max_batch_cost_usd,
                'structure_fallback': ai.structure_fallback, 'extract_proposals': ai.extract_proposals}
     if needs_key:
         payload['api_key_source'] = ('inline' if selected.api_key

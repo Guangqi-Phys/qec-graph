@@ -20,6 +20,7 @@ class AIConfigTests(unittest.TestCase):
         self.assertEqual(config.provider, 'openrouter')
         self.assertEqual(config.model, 'deepseek/deepseek-v4.1-flash-1017')
         self.assertTrue(config.enabled)
+        self.assertFalse(config.allow_source_upload)
         self.assertTrue(config.extract_proposals)
         self.assertEqual(config.selected.base_url, 'https://openrouter.ai/api/v1')
         self.assertEqual(config.selected.api_key_env, 'OPENROUTER_API_KEY')
@@ -82,6 +83,6 @@ class AIConfigTests(unittest.TestCase):
 
     def test_source_upload_switch_is_boolean(self):
         self.write(render_config_template('workspace:test')
-                   .replace('allow_source_upload = true', 'allow_source_upload = "yes"'))
+                   .replace('allow_source_upload = false', 'allow_source_upload = "yes"'))
         with self.assertRaisesRegex(AIConfigError, 'allow_source_upload'):
             load_ai_config(self.root)

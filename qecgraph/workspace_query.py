@@ -616,7 +616,7 @@ class WorkspaceSession:
             from .knowledge import ALIASES
             name = ALIASES.get(name, name)
             metadata = {'scope': self.scope, 'knowledge_snapshot': self.release}
-            if requested_name in {'qec_status', 'qec_workspace_status'} or detail == 'full':
+            if self.profile == 'legacy' or requested_name in {'qec_status', 'qec_workspace_status'} or detail == 'full':
                 metadata['coverage'] = self._coverage
             graph_metadata = {**metadata, 'continuation': None}
             source_query = args.pop('source_query', None)

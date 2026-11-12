@@ -31,7 +31,7 @@ mkdir my-qec
 cd my-qec
 qec-graph init
 # The command creates inputs/ and qecgraph.toml.
-# AI: fill in your OpenRouter API key in qecgraph.toml or OPENROUTER_API_KEY, then:
+# AI: set [ai].allow_source_upload = true and configure OPENROUTER_API_KEY, then:
 qec-graph ai status
 qec-graph ai test
 # Put downloaded LaTeX source packages in inputs/, then run:
@@ -42,9 +42,13 @@ qec-graph validate
 
 `init` never extracts or calls AI. It only prepares the inbox and configuration;
 `qec-graph sync` performs the import. The local parser handles ordinary
-packages. With an API key configured, AI can help with eligible parser failures
+packages. Source upload is disabled by default. With explicit upload opt-in and
+an API key configured, AI can help with eligible parser failures
 and ambiguous multi-root packages. Semantic proposal extraction defaults to
-enabled; set `extract_proposals = false` to skip those skills.
+enabled once upload is allowed; set `extract_proposals = false` to skip those skills.
+`max_batch_requests` caps attempts across tasks, retries and parallel packages.
+`max_batch_cost_usd` tracks reported costs; missing prices and in-flight requests
+prevent a hard dollar cap. `sync --dry-run` makes no provider calls.
 
 Successful imports keep the original package in `archive/` and clear its inbox
 copy. Open `human/` in Obsidian and browse `YYYY/MM/*_thoughts.md`: one file

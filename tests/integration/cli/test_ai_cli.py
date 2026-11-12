@@ -1,3 +1,4 @@
+from tests.support import enable_fixture_ai
 import io
 import json
 import tempfile
@@ -48,6 +49,7 @@ class AICliTests(unittest.TestCase):
         self.assertEqual((self.root / 'qecgraph.toml').stat().st_mode & 0o777, 0o600)
 
     def publish_proposals(self):
+        enable_fixture_ai(self.root)
         from qecgraph.llm.client import LLMResult
         from qecgraph.workspace import Workspace
         from tests.unit.parsing.test_source_package import TEX
@@ -127,7 +129,8 @@ class AICliTests(unittest.TestCase):
         self.assertEqual(stdout, '')
         self.assertIn('missing API key', stderr)
 
-    def test_default_sync_extracts_all_four_skills_after_only_setting_key(self):
+    def test_enabled_sync_extracts_all_four_skills_after_setting_key(self):
+        enable_fixture_ai(self.root)
         from qecgraph.llm.providers.base import HttpResult
         from tests.unit.parsing.test_source_package import TEX
 

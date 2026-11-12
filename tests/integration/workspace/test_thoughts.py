@@ -1,3 +1,4 @@
+from tests.support import enable_fixture_ai
 import copy
 from pathlib import Path
 import tempfile
@@ -95,6 +96,7 @@ class ThoughtTests(unittest.TestCase):
             root = Path(directory)
             ws = Workspace(root)
             ws.prepare()
+            enable_fixture_ai(root)
             (root / 'inputs/paper.tex').write_text(
                 '\\documentclass{article}\n\\begin{document}\nA question remains.\n\\end{document}\n')
             item = {'category': 'open_question', 'statement': '问题仍未解决。',
@@ -145,6 +147,7 @@ class ThoughtTests(unittest.TestCase):
             root = Path(directory)
             ws = Workspace(root)
             ws.prepare()
+            enable_fixture_ai(root)
             config = root / 'qecgraph.toml'
             config.write_text(config.read_text().replace(f'model = "{DEFAULT_MODEL}"', 'model = "fake"'))
             (root / 'inputs/paper.tex').write_text('\\documentclass{article}\n\\begin{document}\nA question remains.\n\\end{document}\n')
@@ -191,6 +194,7 @@ class ThoughtTests(unittest.TestCase):
             root = Path(directory)
             ws = Workspace(root)
             ws.prepare()
+            enable_fixture_ai(root)
             source = ('\\documentclass{article}\n\\begin{document}\n'
                       'Surface codes: erasure study\nSan Zhang\nJune 2025\nhttps://example.org/paper\n'
                       'We study erasure decoding for surface codes.\n\\end{document}\n')
