@@ -590,6 +590,20 @@ class WorkspaceSession:
         result['catalogue_scope'] = 'Non-exhaustive; catalogue entries do not establish use or a release version'
         return result
 
+    def _present_discovery(self, data, requested_name, detail):
+        results = data['results']
+        if not isinstance(results, list):
+            raise TypeError('Discovery results must be a list')
+        if detail == 'concise':
+            data['results'] = self.knowledge.compact_rows(results)
+            if requested_name == 'qec_search':
+                for field in ('retrieval', 'fallback', 'absence'):
+                    data.pop(field, None)
+            data['handle_scope'] = 'Handles are valid only in this pinned release; detail=full returns full provenance.'
+        else:
+            for row in results:
+                row['handle'] = self.knowledge.handles.get(row['id'])
+
     def invoke(self, name, arguments):
         try:
             validator = self._tool_validators.get(name) if isinstance(name, str) else None
@@ -750,15 +764,7 @@ class WorkspaceSession:
                     data['source_candidates'] = self.knowledge.search({'query': source_query, 'limit': min(5, self.graph.max_results)})
                 data['field_coverage'] = self.knowledge.coverage()['field_states']
             if requested_name in {'qec_search', 'qec_list_papers'}:
-                if detail == 'concise':
-                    data['results'] = self.knowledge.compact_rows(data['results'])
-                    if requested_name == 'qec_search':
-                        for field in ('retrieval', 'fallback', 'absence'):
-                            data.pop(field, None)
-                    data['handle_scope'] = 'Handles are valid only in this pinned release; detail=full returns full provenance.'
-                else:
-                    for row in data['results']:
-                        row['handle'] = self.knowledge.handles.get(row['id'])
+                self._present_discovery(data, requested_name, detail)
             data.update(metadata)
             data.setdefault('truncated', False)
             data.setdefault('continuation', None)

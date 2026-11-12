@@ -1,5 +1,5 @@
 """Typed shapes shared by literal source extraction and reading projections."""
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 
 class SourceRange(TypedDict):
@@ -22,3 +22,4 @@ class PaperMetadata(TypedDict):
     published_date: str | None
     topics: list[str]
     link: str | None
+    abstract: NotRequired[str]
