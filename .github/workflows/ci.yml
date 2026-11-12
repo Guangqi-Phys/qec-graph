@@ -37,6 +37,8 @@ jobs:
           python -m pip install --group dev -e .
       - name: Lint
         run: python -m ruff check qecgraph tests tools
+      - name: Prevent new complexity debt
+        run: python tools/check_complexity.py
       - name: Type-check with mypy
         run: python -m mypy
       - name: Type-check with pyright (advisory warnings)

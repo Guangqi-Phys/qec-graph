@@ -39,7 +39,8 @@ Further prose.
             path = Path(directory) / 'paper.tex'
             path.write_bytes(source.encode())
             graph = build_graph(parse_project(path), 'paper', '0' * 64)
-        bibliography, = [node for node in graph['nodes'] if node.get('source_role') == 'bibliography']
+            bibliography, = [node for node in graph['nodes'] if node.get('source_role') == 'bibliography'
+                              and node['kind'] != 'bib_entry']
         self.assertEqual(bibliography['reading_text'], '')
         span = bibliography['source']
         self.assertEqual(source[span['char_start']:span['char_end']], bibliography['latex'])

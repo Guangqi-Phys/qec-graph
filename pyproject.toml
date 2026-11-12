@@ -72,6 +72,15 @@ warn_unused_ignores = true
 module = ["jsonschema", "jsonschema.*", "pylatexenc", "pylatexenc.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["qecgraph.core.*", "qecgraph.llm.client", "qecgraph.llm.extract", "qecgraph.llm.skills",
+          "qecgraph.source.metadata", "qecgraph.source.reading", "qecgraph.source.contracts"]
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["qecgraph.source.metadata", "qecgraph.core.search"]
+disallow_untyped_defs = true
+
 [tool.coverage.run]
 branch = true
 source = ["qecgraph"]

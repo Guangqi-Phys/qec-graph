@@ -17,6 +17,7 @@ from typing import Any
 from .. import PARSER_VERSION
 from ..core.coordinates import SourceLines
 from .reading import CITATION_COMMANDS as _CITATIONS
+from .contracts import MacroDefinition, SourceRange
 
 try:
     from pylatexenc import __version__ as PYLATEXENC_VERSION
@@ -540,14 +541,14 @@ class _ProjectParser:
             raise ValueError("Entry file must have a .tex suffix")
         self.config = config
         self.environment_map = dict(_ENVIRONMENTS)
-        self.environment_headings = {}
+        self.environment_headings: dict[str, str] = {}
         explicit = config.get("environment_map", {})
         if not isinstance(explicit, dict) or any(k not in _KINDS for k in explicit.values()):
             raise ValueError("environment_map must map environment names to supported block kinds")
         self.explicit_environments = explicit
         self.environment_map.update(explicit)
         self.macro_specs: dict[str, str] = {}
-        self.macro_definitions = []
+        self.macro_definitions: list[MacroDefinition] = []
         self.files: dict[str, dict] = {}
         self.structures: dict[str, tuple] = {}
         self.source_lines: dict[str, SourceLines] = {}
@@ -567,13 +568,13 @@ class _ProjectParser:
     def relative(self, path: Path) -> str:
         return path.relative_to(self.root).as_posix()
 
-    def span(self, path: str, start: int, end: int) -> dict:
+    def span(self, path: str, start: int, end: int) -> SourceRange:
         lines = self.source_lines[path]
         return {"path": path, "char_start": start, "char_end": end,
                 "line_start": lines.line_at(start),
                 "line_end": lines.line_at(max(start, end - 1))}
 
-    def node_span(self, path: str, node) -> dict:
+    def node_span(self, path: str, node) -> SourceRange:
         return self.span(path, node.pos, node.pos + node.len)
 
     def diagnostic(self, severity: str, code: str, message: str, source=None):

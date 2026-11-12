@@ -3,13 +3,14 @@ from datetime import datetime
 import re
 from pylatexenc.latex2text import LatexNodes2Text
 from .reading import _group
+from .contracts import PaperMetadata
 
 
-def _plain(value):
+def _plain(value: str) -> str:
     return ' '.join(LatexNodes2Text().latex_to_text(value).split())
 
 
-def _date(value):
+def _date(value: str | None) -> str | None:
     if not value or '\\' in value:
         return None
     for pattern, output in (('%Y-%m-%d', '%Y-%m-%d'), ('%Y/%m/%d', '%Y-%m-%d'),
@@ -22,9 +23,9 @@ def _date(value):
     return None
 
 
-def literal_metadata(text):
+def literal_metadata(text: str) -> PaperMetadata:
     """Read literal title-block commands; do not evaluate arbitrary TeX macros."""
-    result = {'title': None, 'authors': [], 'published_date': None, 'topics': [], 'link': None}
+    result: PaperMetadata = {'title': None, 'authors': [], 'published_date': None, 'topics': [], 'link': None}
     # RevTeX places title/author/date after begin{document}. Read the front
     # matter up to the first abstract, section or maketitle, not the whole paper.
     stop = re.search(r'(?m)^[ \t]*\\(?:maketitle\b|section\b|begin\s*\{abstract\})', text)

@@ -19,8 +19,11 @@ _SPACE = re.compile(r'\s*')
 _MAX_INLINE_ARGUMENT = 8192
 
 
-def _group(text, pos, stop, opening='{', *, literal=False):
-    start = _SPACE.match(text, pos, stop).end()
+def _group(text: str, pos: int, stop: int, opening: str = '{', *, literal: bool = False) -> tuple[int, int, int] | None:
+    space = _SPACE.match(text, pos, stop)
+    if space is None:
+        return None
+    start = space.end()
     if start == stop or text[start] != opening:
         return None
     closing = '}' if opening == '{' else ']'
@@ -37,15 +40,15 @@ def _group(text, pos, stop, opening='{', *, literal=False):
     return None
 
 
-def reading_projection(text, *, kind=None, bibliography=False):
+def reading_projection(text: str, *, kind: str | None = None, bibliography: bool = False) -> tuple[str, list[tuple[int, int, str, list[str]]]]:
     """Return display text and literal citation tokens with original offsets."""
-    citations = []
+    citations: list[tuple[int, int, str, list[str]]] = []
     if bibliography:
         return '', citations
     if kind == 'equation':
         return text.strip(), citations
 
-    def walk(pos, stop, depth=0):
+    def walk(pos: int, stop: int, depth: int = 0) -> str:
         if depth == 16:
             return text[pos:stop]
         result = []
@@ -68,15 +71,15 @@ def reading_projection(text, *, kind=None, bibliography=False):
                 continue
             command = token[1:].removesuffix('*')
             if command == 'verb' and end < stop and text[end] not in '\r\n':
-                closing = text.find(text[end], end + 1, stop)
-                if closing >= 0:
-                    pos = closing + 1
+                closing_position = text.find(text[end], end + 1, stop)
+                if closing_position >= 0:
+                    pos = closing_position + 1
                     result.append(text[start:pos])
                     continue
             if command == 'begin':
                 arg = _group(text, end, stop)
                 name = text[arg[0]:arg[1]] if arg else ''
-                if name in _LITERAL_ENVIRONMENTS or name == 'thebibliography':
+                if arg is not None and (name in _LITERAL_ENVIRONMENTS or name == 'thebibliography'):
                     closing = '\\end{' + name + '}'
                     close = text.find(closing, arg[2], stop)
                     pos = close + len(closing) if close >= 0 else stop
