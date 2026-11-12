@@ -68,15 +68,13 @@ class ThoughtSkillTests(unittest.TestCase):
 
         class Provider(FakeProvider):
             def complete(self, messages, **kwargs):
-                self.evidence = json.loads(messages[1].content)
+                self.evidence = messages[1].content
                 return super().complete(messages, **kwargs)
 
         provider = Provider(Completion(json.dumps(response), 'offline-model'))
         result = extract(main, LLMClient(config(max_input_chars=30000), provider=provider),
                          'extract_thoughts', projection_path='paper.tex', additional_sources={'body.tex': body})
-        source = provider.evidence['sources'][1]
-        self.assertEqual(source['lines'][0], [1, '条件 é😀\r\n'])
-        self.assertEqual(''.join(row[1] for row in source['lines']), body.text)
+        self.assertIn('1 | 条件 é😀\r\n2 | Only simulated noise was studied.\r\n', provider.evidence)
         self.assertEqual(result.proposal['evidence_sources'][1], {'path': 'body.tex', 'sha256': body.sha256})
         self.assertEqual(result.data, response)
         for refs, quoted, error in ((['paper.tex:2'], quote, 'not verbatim'),
@@ -128,11 +126,11 @@ class ThoughtSkillTests(unittest.TestCase):
                          projection_path=evidence['projection_path'])
         self.assertEqual(result.data, expected)
         self.assertEqual(result.proposal['review_status'], 'proposed')
-        self.assertEqual(result.proposal['provenance']['skill_version'], 5)
+        self.assertEqual(result.proposal['provenance']['skill_version'], 6)
         self.assertEqual(result.proposal['normalization_id'], normalized.sha256)
-        self.assertEqual(provider.messages[0].content, skill.system_prompt)
-        self.assertEqual(json.loads(provider.messages[1].content)['sources'][0]['lines'],
-                         evidence['sources'][0]['lines'])
+        self.assertEqual(provider.messages[-1].content, 'Extraction task:\n' + skill.system_prompt)
+        for number, line in evidence['sources'][0]['lines']:
+            self.assertIn(f'{number} | ' + line, provider.messages[1].content)
         self.assertEqual({item['attribution'] for item in result.data['items']},
                          {'author_explicit', 'editorial_inference'})
         conclusion = next(item for item in result.data['items'] if item['category'] == 'conclusion')
@@ -165,7 +163,7 @@ class ThoughtSkillTests(unittest.TestCase):
         self.assertNotEqual(old.ai_result.prompt_sha256, new.ai_result.prompt_sha256)
         self.assertEqual(old.proposal, preserved)
         self.assertEqual(old.proposal['provenance']['skill_version'], 1)
-        self.assertEqual(new.proposal['provenance']['skill_version'], 5)
+        self.assertEqual(new.proposal['provenance']['skill_version'], 6)
 
     def test_generated_and_stitched_quotes_are_rejected_before_caching(self):
         # Non-ASCII source bytes and an injected wrapper exercise the distinction

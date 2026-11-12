@@ -77,7 +77,21 @@ class ExtractionRunnerTests(unittest.TestCase):
         self.assertEqual(value.proposal['skill'], 'extract_theorems')
         self.assertEqual(value.proposal['review_status'], 'proposed')
         self.assertIn('source_refs', value.proposal['items'][0])
-        self.assertIn('theorem extractor', client.messages[0].content)
+        self.assertIn('theorem extractor', client.messages[-1].content)
+
+    def test_extraction_tasks_share_a_source_prefix_and_keep_the_task_after_data(self):
+        from qecgraph.llm.extract import extract, EXTRACTION_SYSTEM
+        calls = []
+        class Client:
+            def complete_json(self, messages, schema, **kwargs):
+                calls.append(messages)
+                return result_with({'items': [], 'unresolved': []})
+        for skill in ('extract_theorems', 'extract_assumptions'):
+            extract(self.normalized(), Client(), skill)
+        self.assertEqual(calls[0][:2], calls[1][:2])
+        self.assertEqual(calls[0][0].content, EXTRACTION_SYSTEM)
+        self.assertIn('3 | Theorem text.', calls[0][1].content)
+        self.assertNotEqual(calls[0][2], calls[1][2])
 
     def test_runner_rejects_forged_citations_and_nonverbatim_theorems(self):
         from qecgraph.llm.extract import extract

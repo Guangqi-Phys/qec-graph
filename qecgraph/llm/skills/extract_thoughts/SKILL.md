@@ -1,7 +1,7 @@
 ---
 name: extract_thoughts
 description: Extract source-grounded research questions, ideas and outcomes as proposals.
-version: 5
+version: 6
 ---
 # Research thought extraction
 
@@ -10,10 +10,12 @@ version: 5
 Extract the paper's reported ideas as independently readable proposals. Do not
 reconstruct private reasoning, invent research ideas or judge mathematical truth.
 
-The user message is `qecgraph.extraction_evidence` JSON. Its `sources` contains
-the selected entry plus its registered body and appendix files. Each has `path`,
-`sha256`, `segments` and `lines`: `[number, exact_text]` pairs with original LF/CRLF
-endings preserved. Use the supplied numbers directly; never count JSON lines.
+The evidence message starts with a `qecgraph.extraction_evidence` JSON header,
+then each file's JSON `path`, `sha256` and `segments` header followed by plain
+`number | exact_text` lines with original LF/CRLF endings preserved. Use these
+numbers directly; the numeric prefix is metadata, not part of a quote.
+The selected entry and its registered body and appendix files are all included.
+JSON examples below illustrate equivalent evidence rather than runtime serialization.
 `projection_path` identifies the main entry, not every file. Each file's
 `segments` maps UTF-8 byte ranges to originals; `origin: null` marks inserted
 normalization text, which is not evidence. Hashes identify the evidence version.

@@ -30,7 +30,7 @@ class ThoughtTests(unittest.TestCase):
 
         result = extract(normalized, Client(), 'extract_thoughts')
         self.assertEqual(result.proposal['review_status'], 'proposed')
-        self.assertEqual(result.proposal['provenance']['skill_version'], 5)
+        self.assertEqual(result.proposal['provenance']['skill_version'], 6)
         for change in ({'source_quote': 'invented', 'statement': 'invented'},
                        {'attribution': 'verified'}, {'source_refs': ['private.md:1']},
                        {'statement': 'A paraphrase'}, {'category': 'hidden_reasoning'}):
@@ -103,7 +103,7 @@ class ThoughtTests(unittest.TestCase):
 
             def answer(messages, schema, **kwargs):
                 return replace(result_with({'items': [copy.deepcopy(item)]
-                                            if 'research thought extractor' in messages[0].content else [], 'unresolved': []}),
+                                            if 'research thought extractor' in '\n'.join(m.content for m in messages) else [], 'unresolved': []}),
                                run_id=uuid.uuid4().hex)
 
             def legacy_skill(name, extra_dir=None):
@@ -123,7 +123,7 @@ class ThoughtTests(unittest.TestCase):
                 result = ws.sync()
                 self.assertNotEqual(result['release_id'], old_release)
                 self.assertEqual(calls.call_count, 1)
-                self.assertIn('research thought extractor', calls.call_args.args[0][0].content)
+                self.assertIn('research thought extractor', '\n'.join(m.content for m in calls.call_args.args[0]))
                 after, _ = ws.registry.read()
                 new = proposal_bindings(after)
                 self.assertEqual(len(new), 4)
@@ -151,7 +151,7 @@ class ThoughtTests(unittest.TestCase):
             item = {'category': 'open_question', 'statement': 'A question remains.', 'source_quote': 'A question remains.',
                     'attribution': 'author_explicit', 'source_refs': ['main.tex:3']}
             def answer(messages, schema, **kwargs):
-                return result_with({'items': [item] if 'research thought extractor' in messages[0].content else [], 'unresolved': []})
+                return result_with({'items': [item] if 'research thought extractor' in '\n'.join(m.content for m in messages) else [], 'unresolved': []})
             with patch.dict('os.environ', {'OPENROUTER_API_KEY': 'offline-fixture'}), patch(
                     'qecgraph.llm.client.LLMClient.complete_json', side_effect=answer) as extraction:
                 result = ws.sync()
@@ -207,7 +207,7 @@ class ThoughtTests(unittest.TestCase):
                     'attribution': 'editorial_inference', 'source_refs': ['main.tex:7']}
             def answer(messages, schema, **kwargs):
                 result = {'items': [], 'unresolved': []}
-                if 'research thought extractor' in messages[0].content:
+                if 'research thought extractor' in '\n'.join(m.content for m in messages):
                     result.update(items=[item], paper=paper)
                 return result_with(result)
             with patch.dict('os.environ', {'OPENROUTER_API_KEY': 'offline-fixture'}), patch(

@@ -172,7 +172,7 @@ class AIWorkspaceTests(unittest.TestCase):
         for binding in latest['ai_extraction']['written']:
             proposal = read_bound_proposal(self.workspace.registry, binding, latest)
             self.assertEqual(proposal['review_status'], 'proposed')
-            self.assertEqual(proposal['provenance']['skill_version'], 5)
+            self.assertEqual(proposal['provenance']['skill_version'], 6)
             self.assertEqual(proposal['provenance']['source_rebindings'], [{
                 'snapshot_id': first['source_snapshot_id'], 'proposal_path': old[binding['skill']]['path'],
                 'proposal_sha256': old[binding['skill']]['proposal_sha256'],
@@ -215,7 +215,7 @@ class AIWorkspaceTests(unittest.TestCase):
                     report = workspace.sync()
                     self.assertEqual(client.call_count, 4)
                     for call in client.call_args_list:
-                        self.assertNotIn('UNSELECTED_MARKER', call.args[0][-1].content)
+                        self.assertNotIn('UNSELECTED_MARKER', '\n'.join(m.content for m in call.args[0]))
                 self.assertEqual(report['inputs'][0]['entrypoint'], 'selected.tex')
                 self.assertEqual(report['inputs'][0]['ai_extraction']['status'], 'complete')
 
@@ -230,7 +230,7 @@ class AIWorkspaceTests(unittest.TestCase):
         stage = self.workspace._stage_ai
 
         def answer_in_parallel(messages, schema, **kwargs):
-            source = json.loads(messages[1].content)['source_tree_hash']
+            source = json.loads(messages[1].content.splitlines()[0])['source_tree_hash']
             with lock:
                 first = source not in sources
                 sources.add(source)
@@ -268,10 +268,11 @@ class AIWorkspaceTests(unittest.TestCase):
         self.assertEqual(report['status'], 'published')
         self.assertEqual(client.call_count, 4)
         for call in client.call_args_list:
-            content = call.args[0][-1].content
-            sources = {row['path']: row for row in json.loads(content)['sources']}
+            content = call.args[0][1].content
+            sources = {row['path']: row for line in content.splitlines() if line.startswith('{')
+                       and (row := json.loads(line)).get('path')}
             self.assertEqual(set(sources), {'main.tex', 'sections/body.tex', 'sections/nested.tex', 'appendix.tex', 'empty.tex'})
-            self.assertEqual(sources['sections/nested.tex']['lines'][0], [1, '条件 é😀\r\n'])
+            self.assertIn('1 | 条件 é😀\r\n', content)
             self.assertNotIn('UNRELATED_PRIVATE_MARKER', content)
         self.assertTrue(self.workspace.validate()['passed'])
 
@@ -284,8 +285,7 @@ class AIWorkspaceTests(unittest.TestCase):
         self.assertEqual(client.call_count, 4)
         self.assertEqual(report['inputs'][0]['ai_extraction']['status'], 'complete')
         for call in client.call_args_list:
-            source = json.loads(call.args[0][-1].content)['sources'][0]
-            self.assertEqual(''.join(row[1] for row in source['lines']).count('\\label{repeated}'), 2)
+            self.assertEqual(call.args[0][1].content.count('\\label{repeated}'), 2)
 
     def test_missing_http_credentials_leave_offline_sync_available_with_concurrency(self):
         self.configure('provider = "claude_code"', 'provider = "openrouter"')
