@@ -94,15 +94,17 @@ class RetrievalTests(unittest.TestCase):
             self.assertGreater(transport.call_count, 0)
         self.assertEqual(self.session().state['retrieval_index']['identity']['model_revision'], '2')
 
-    def test_failed_embedding_keeps_release_and_archive_and_query_fallback_is_visible(self):
+    def test_failed_optional_embedding_publishes_sources_and_visible_keyword_fallback(self):
         self.ws.sync()
         previous = self.session().release
         self.external_config()
         with patch.dict('os.environ', {'QECGRAPH_EMBEDDING_API_KEY': 'TEST-SECRET'}), patch(
                 'qecgraph.llm.providers.http.UrllibTransport.request', return_value=HttpResult(200, {}, b'{"model":"wrong","data":[]}')):
-            with self.assertRaisesRegex(ValueError, 'Embedding provider failed'):
-                self.ws.sync()
-        self.assertEqual(self.session().release, previous)
+            result = self.ws.sync()
+        self.assertEqual(result['status'], 'partial_batch')
+        self.assertEqual(result['retrieval']['status'], 'stale')
+        self.assertNotEqual(self.session().release, previous)
+        self.assertTrue(self.session().invoke('qec_search', {'query': 'memory'})['ok'])
         self.assertTrue(list((self.root / 'archive/blobs/sha256').iterdir()))
         with patch.dict('os.environ', {'QECGRAPH_EMBEDDING_API_KEY': 'TEST-SECRET'}), patch(
                 'qecgraph.llm.providers.http.UrllibTransport.request', side_effect=self.fake_transport):
@@ -118,9 +120,11 @@ class RetrievalTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             configuration({'enabled': True, 'provider': 'openai_compatible', 'base_url': 'https://example.org'})
         self.cfg.write_text(self.cfg.read_text().replace('chunk_chars = 2048', 'chunk_chars = 128\nmax_chunks = 1', 1))
-        with self.assertRaisesRegex(ValueError, 'chunk budget'):
-            self.ws.sync()
-        self.assertFalse((self.root / 'machine/CURRENT.json').exists())
+        result = self.ws.sync()
+        self.assertEqual(result['status'], 'partial_batch')
+        self.assertEqual(result['retrieval']['status'], 'stale')
+        self.assertTrue((self.root / 'machine/CURRENT.json').exists())
+        self.assertTrue(self.ws.validate()['passed'])
 
     def test_corrupt_projection_is_detected_and_rebuild_restores_derived_bytes(self):
         self.ws.sync()

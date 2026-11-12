@@ -358,7 +358,7 @@ class Registry:
             except (OSError, ValueError, KeyError, TypeError) as exc:
                 issues.append({'code': 'research_invalid', 'severity': 'error', 'message': str(exc)})
         phase('Verifying retrieval index integrity')
-        if state.get('retrieval_index'):
+        if state.get('retrieval_index', {}).get('sha256'):
             try:
                 from .retrieval import read_index
                 read_index(self.root, state['retrieval_index'])

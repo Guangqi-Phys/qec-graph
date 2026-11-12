@@ -1052,9 +1052,11 @@ class Workspace:
             warning = 'operational status could not be written: ' + str(exc).replace(str(self.root), '<workspace>')
         partial = any(not r.get('processing_completed') or r.get('cleanup_error') or r.get('retained_claim')
                       or r.get('source_version_conflict') or r.get('ai_extraction', {}).get('errors') for r in rows)
+        retrieval = self.registry.read(release)[0].get('retrieval_index', {})
+        partial = partial or retrieval.get('status') == 'stale'
         result = {'status': 'partial_batch' if partial else 'unchanged' if old == release else 'published',
                   'run_id': run_id, 'workspace_id': cfg['workspace_id'], 'previous_release_id': old,
-                  'release_id': release, 'counts': counts, 'inputs': rows}
+                  'release_id': release, 'counts': counts, 'inputs': rows, 'retrieval': retrieval}
         if warning is not None:
             result['warning'] = warning
         return result
@@ -1070,6 +1072,7 @@ class Workspace:
                        or material.get('ai_extraction', {}).get('errors'))
                       and not material['quarantined']
                       for material in materials)
+        partial = partial or state.get('retrieval_index', {}).get('status') == 'stale'
         pending_inputs = sum(1 for _ in self._inbox())
         pending_claims = sum(1 for _ in self._pending_jobs())
         counts = {'registered': len(materials), 'processed': sum(bool(m.get('processing_completed')) for m in materials),

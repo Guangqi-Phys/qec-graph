@@ -154,7 +154,7 @@ def read_index(machine, binding):
 
 
 @task('Preparing retrieval index')
-def stage_index(registry, state, raw_config, *, repair=False):
+def _stage_index(registry, state, raw_config, *, repair=False):
     """Called under the existing writer lock, before release validation/publication."""
     cfg = configuration(raw_config)
     if not cfg['enabled']:
@@ -166,7 +166,7 @@ def stage_index(registry, state, raw_config, *, repair=False):
     model = identity(cfg)
     binding = corpus_binding(units)
     try:
-        previous = read_index(registry.root, state['retrieval_index']) if state.get('retrieval_index') else None
+        previous = read_index(registry.root, state['retrieval_index']) if state.get('retrieval_index', {}).get('sha256') else None
     except (OSError, ValueError, KeyError, TypeError):
         if not repair:
             raise
@@ -212,15 +212,25 @@ def stage_index(registry, state, raw_config, *, repair=False):
     state['retrieval_index'] = {'sha256': digest, 'corpus_sha256': binding, 'identity': model}
 
 
+def stage_index(registry, state, raw_config, *, repair=False):
+    """Optional projection failures cannot veto a valid source publication."""
+    try:
+        _stage_index(registry, state, raw_config, repair=repair)
+    except (OSError, ValueError) as exc:
+        state['retrieval_index'] = {'status': 'stale',
+            'reason': 'Optional retrieval projection unavailable (' + type(exc).__name__ + '); rebuild to retry'}
+
+
 class RetrievalIndex:
     def __init__(self, view):
         self.view = view
         binding = view.session.state.get('retrieval_index')
-        self.data = read_index(view.session.machine, binding) if binding else None
+        self.stale = bool(binding and binding.get('status') == 'stale')
+        self.data = read_index(view.session.machine, binding) if binding and not self.stale else None
         self.current = self.data is not None and self.data['corpus_sha256'] == corpus_binding(view.search_units)
 
     def status(self):
-        return {'status': 'current' if self.current else 'stale' if self.data else 'not_built',
+        return {'status': 'current' if self.current else 'stale' if self.data or self.stale else 'not_built',
                 'identity': self.data['identity'] if self.data else None,
                 'units': self.data['unit_count'] if self.data else 0,
                 'quality': 'Local vectors are a lexical baseline; external semantic quality requires evaluation'}
