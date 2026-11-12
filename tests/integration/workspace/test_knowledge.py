@@ -60,6 +60,14 @@ class KnowledgeTests(unittest.TestCase):
         self.assertEqual(papers[self.version]['link'], 'https://example.org/paper/v1')
         self.assertEqual(papers[self.version]['field_evidence']['link']['status'], 'user_confirmed')
 
+    def test_human_bytes_do_not_depend_on_unrelated_release_identity(self):
+        from qecgraph.render.thoughts import QUESTIONS, render_pages
+        original = render_pages(self.session)
+        self.session.release = 'a' * 64
+        self.assertEqual(original, render_pages(self.session))
+        self.assertEqual(QUESTIONS[2][1], ('approach',))
+        self.assertEqual(QUESTIONS[5][1], ('conclusion',))
+
     def test_fragment_context_carries_literal_macros_without_expansion(self):
         text = TEXT.replace('The memory survives.', r'The memory uses \rare.')
         text = text.replace(r'\begin{document}', r'% \newcommand{\fake}{do not collect}' + '\n' + r'\begin{document}')

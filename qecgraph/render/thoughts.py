@@ -16,7 +16,7 @@ from ..llm.review import proposal_bindings, read_bound_proposal
 QUESTIONS = (
     ('What problem does the paper aim to solve?', ('problem',)),
     ('Why is this problem important?', ('motivation',)),
-    ('Was the problem solved, and how?', ('approach', 'conclusion')),
+    ('Was the problem solved, and how?', ('approach',)),
     ('What intuitions or ideas underlie the approach?', ('intuition',)),
     ('What are the key assumptions?', ('assumption',)),
     ('What are the conclusions, and do they extend, strengthen or overturn prior results?', ('conclusion',)),
@@ -177,7 +177,7 @@ def render_pages(session):
             sections.extend(answers or ['No answer available: not extracted or insufficient source evidence.'])
             if missing:
                 sections.append('Unresolved:\n\n' + '\n'.join('- ' + inline(s) for s in sorted(set(missing))))
-        sections.append(f'<!-- qecgraph work_sha256={hash_text(work_id)} release={session.release} -->')
+        sections.append(f'<!-- qecgraph work_sha256={hash_text(work_id)} -->')
         rendered = '\n\n'.join(sections) + '\n'
         require_english(path, 'note path')
         require_english(rendered, 'human note; run sync to refresh legacy AI proposals')

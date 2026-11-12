@@ -272,6 +272,9 @@ class HumanTests(unittest.TestCase):
         release = self.ws.sync()['release_id']
         build_human(self.root, release)
         (self.root / 'inputs/second').write_bytes(TEX)
+        # Two changed pages are needed: an unrelated release no longer rewrites
+        # the existing first paper merely to replace its release footer.
+        (self.root / 'inputs/third').write_bytes(TEX.replace(b'Hello', b'Another paper'))
         newest = self.ws.sync()['release_id']
         written = []
         def interrupted(path, raw):
@@ -287,7 +290,7 @@ class HumanTests(unittest.TestCase):
         self.assertEqual(status['operational_status']['human']['status'], 'human_stale')
         self.assertEqual(self.note.read_bytes(), b'private\x00note')
         self.assertEqual(build_human(self.root, newest)['status'], 'current')
-        self.assertEqual(len(self.generated()), 2)
+        self.assertEqual(len(self.generated()), 3)
 
     def test_corrupt_operational_report_and_current_release_status(self):
         status = self.ws.registry.root / 'operational/status.json'
