@@ -2,6 +2,7 @@ import copy
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from qecgraph.core.graph import canonical
 from qecgraph.domain.research import make_record
@@ -93,6 +94,18 @@ Offline fixture: CSS code, n=13, k=1, lower distance 12, measured X weight 4; id
         self.assertNotIn('other', selected)
         self.assertIn('explicit_assumptions', data['missing_components'])
         self.assertFalse(any(e['target']['id'] == 'local' for e in data['edges']))
+
+    def test_repeated_trace_reuses_projection_without_leaking_mutable_results(self):
+        from qecgraph.knowledge_context import _trace_projection
+        session = self.session()
+        with patch('qecgraph.knowledge_context._trace_projection', wraps=_trace_projection) as build:
+            first = session.invoke('qec_trace', {'identifier': self.lemma})
+            first['data']['nodes'][0]['latex'] = 'caller mutation'
+            second = session.invoke('qec_trace', {'identifier': self.lemma, 'direction': 'both'})
+            self.assertEqual(build.call_count, 1)
+            self.assertIn('Under hypothesis H', second['data']['nodes'][0]['latex'])
+            session.invoke('qec_trace', {'identifier': self.lemma, 'include_candidates': True})
+            self.assertEqual(build.call_count, 2)
 
     def records_for_conditions(self):
         def ref(identifier):

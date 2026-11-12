@@ -29,21 +29,9 @@ def current_field(session, record, field):
             and session.source_snapshot_id(span.get('source_version_id')) == span.get('snapshot_id'))
 
 
-def trace(session, args):
-    candidates = args.get('include_candidates', False)
+def _trace_projection(session, candidates):
     nodes = {_identity(n): answer_node(n, candidates)[0] for n in session.graph.source.graph['nodes']}
     nodes.update({k: v for k, v in session.visible.items()})
-    root_record = session._research(args['identifier'], args.get('revision'))
-    if root_record:
-        root = _identity(root_record)
-    elif args.get('revision') or args['identifier'] in session._research_ids:
-        raise ToolError('NOT_FOUND', 'No eligible record revision')
-    else:
-        from .query import resolve, SelectionError
-        try:
-            root = resolve(session.graph.source.graph, args['identifier']), None
-        except SelectionError as exc:
-            raise ToolError(exc.code, str(exc), exc.details) from exc
     edges = []
     for edge in session.graph.source.graph['edges']:
         if eligible(edge, candidates):
@@ -86,20 +74,45 @@ def trace(session, args):
                     'evidence': {'record_ref': _binding(identity), 'field_pointers': []}})
                 edge['evidence']['field_pointers'].append(field)
         edges.extend(evidence_edges.values())
+    return nodes, edges, unresolved
+
+
+def trace(session, args):
+    candidates = args.get('include_candidates', False)
+    cache = session.__dict__.setdefault('_trace_projection_cache', {})
+    if candidates not in cache:
+        cache[candidates] = _trace_projection(session, candidates)
+    nodes, edges, unresolved = cache[candidates]
+    root_record = session._research(args['identifier'], args.get('revision'))
+    if root_record:
+        root = _identity(root_record)
+    elif args.get('revision') or args['identifier'] in session._research_ids:
+        raise ToolError('NOT_FOUND', 'No eligible record revision')
+    else:
+        from .query import resolve, SelectionError
+        try:
+            root = resolve(session.graph.source.graph, args['identifier']), None
+        except SelectionError as exc:
+            raise ToolError(exc.code, str(exc), exc.details) from exc
     allowed = set(args.get('relations') or [])
     known = {e['relation'] for e in session.graph.source.graph['edges']} | {f for fields in RELATIONS.values() for f in fields} | {'evidenced_by'}
     if allowed - known:
         raise ToolError('INVALID_ARGUMENT', 'Unknown relation filter', {'relations': sorted(allowed - known)})
     direction = args.get('direction', 'outgoing')
-    adjacent = defaultdict(list)
-    for edge in edges:
-        if allowed and edge['relation'] not in allowed:
-            continue
-        source, target = (edge['source']['id'], edge['source'].get('revision')), (edge['target']['id'], edge['target'].get('revision'))
-        if direction in ('outgoing', 'both'):
-            adjacent[source].append((target, edge))
-        if direction in ('incoming', 'both'):
-            adjacent[target].append((source, edge))
+    adjacency = session.__dict__.setdefault('_trace_adjacency_cache', {})
+    cache_key = candidates, direction, tuple(sorted(allowed))
+    if cache_key not in adjacency:
+        adjacent = defaultdict(list)
+        for edge in edges:
+            if allowed and edge['relation'] not in allowed:
+                continue
+            source, target = (edge['source']['id'], edge['source'].get('revision')), (edge['target']['id'], edge['target'].get('revision'))
+            if direction in ('outgoing', 'both'):
+                adjacent[source].append((target, edge))
+            if direction in ('incoming', 'both'):
+                adjacent[target].append((source, edge))
+        adjacency[cache_key] = adjacent
+    adjacent = adjacency[cache_key]
     depth, maximum = args.get('depth', min(2, session.graph.max_depth)), args.get('max_nodes', session.graph.max_nodes)
     chosen, seen, pending, selected, omitted = [root], {root}, deque([(root, 0)]), [], set()
     while pending:
