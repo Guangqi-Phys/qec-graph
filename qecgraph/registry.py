@@ -358,6 +358,13 @@ class Registry:
             except (OSError, ValueError, KeyError, TypeError) as exc:
                 issues.append({'code': 'research_invalid', 'severity': 'error', 'message': str(exc)})
         phase('Verifying retrieval index integrity')
+        if state.get('ai_reviews'):
+            from .llm.review import read_decisions
+            try:
+                read_decisions(self, state)
+            except (OSError, ValueError):
+                issues.append({'code': 'ai_review_invalid', 'severity': 'error',
+                               'message': 'Registered AI review failed integrity validation'})
         if state.get('retrieval_index', {}).get('sha256'):
             try:
                 from .retrieval import read_index
