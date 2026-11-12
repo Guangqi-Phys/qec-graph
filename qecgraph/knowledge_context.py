@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections import defaultdict, deque
+import re
 
 from .core.graph import canonical, hash_text
 from .corpus import occurrence_id
@@ -163,7 +164,7 @@ def context(session, args, maximum, metadata):
         if len(selected) == max_nodes:
             omitted += 1
             return
-        projected = answer_node(node, candidates)[0] if 'origin' in node else dict(node)
+        projected = answer_node(node, candidates)[0] if node.get('origin') not in (None, 'ai_proposal') else dict(node)
         data['nodes'].append({**projected, 'context_role': reason})
         selected.add(identity)
 
@@ -179,12 +180,26 @@ def context(session, args, maximum, metadata):
                     append(node, 'proof_context')
                 omitted += proof['omitted_frontier_count']
         ancestor = session.knowledge.parents.get(root['id'])
+        while ancestor in lookup and lookup[ancestor]['kind'] != 'section':
+            ancestor = session.knowledge.parents.get(ancestor)
         if ancestor in lookup:
             append(lookup[ancestor], 'section_heading')
             for child in session.knowledge.children[ancestor]:
                 node = lookup[child]
                 if node['kind'] in {'definition', 'assumption', 'notation'}:
                     append(node, 'local_context_not_inferred_dependency')
+            section = session.knowledge.fetch({'identifier': ancestor})['source']
+            for proposal in session.knowledge.proposal_items.values():
+                if (proposal['kind'] not in {'theorem_proposal', 'assumption_proposal'}
+                        or proposal['source_version_id'] != section['source_version_id']
+                        or proposal['snapshot_id'] != section['snapshot_id']):
+                    continue
+                for reference in proposal['data'].get('source_refs', []):
+                    match = re.fullmatch(r'(.+):(\d+)(?:-(\d+))?', reference)
+                    if (match and match[1] == section['path'] and section['line_start'] <= int(match[2])
+                            <= int(match[3] or match[2]) <= section['line_end']):
+                        append(proposal, 'local_proposal_not_verified_prerequisite')
+                        break
     kinds = {n['kind'] for n in data['nodes']}
     requirements = {
         'theorem': {'definitions': {'definition'}, 'explicit_assumptions': {'assumption'}, 'proof': {'proof'}},
@@ -203,6 +218,7 @@ def context(session, args, maximum, metadata):
     data.update(purpose=purpose, missing_components=missing, unknown_fields=unknown,
                 conflicts=[f for f in unknown if f['status'] == 'conflicting'],
                 context_complete=False, completeness='Structural selection only; semantic prerequisites require reading',
+                missing_components_meaning='Not extracted or selected in this context; not evidence of absence in the paper',
                 omitted_node_count_at_least=omitted, truncated=bool(omitted), continuation=None)
     if purpose == 'lean':
         data['formalization_status'] = 'Preparation only; no Lean build or semantic equivalence claim'

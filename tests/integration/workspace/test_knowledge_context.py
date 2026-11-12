@@ -79,6 +79,21 @@ Offline fixture: CSS code, n=13, k=1, lower distance 12, measured X weight 4; id
         context = session.invoke('qec_get_context', {'identifier': 'code:a', 'purpose': 'construction'})['data']
         self.assertIn('construction', context['missing_components'])
 
+    def test_theorem_context_keeps_local_proposals_unverified(self):
+        session = self.session()
+        def proposal(identifier, reference):
+            return {'id': identifier, 'kind': 'assumption_proposal', 'origin': 'ai_proposal',
+                    'source_version_id': self.source['id'], 'snapshot_id': self.source['revision'],
+                    'review_status': 'proposed', 'data': {'text': 'hypothesis H', 'source_refs': [reference]}}
+        session.knowledge.proposal_items = {'local': proposal('local', 'main.tex:6'),
+                                            'other': proposal('other', 'main.tex:10')}
+        data = session.invoke('qec_get_context', {'identifier': self.lemma, 'purpose': 'theorem'})['data']
+        selected = {n['id']: n for n in data['nodes']}
+        self.assertEqual(selected['local']['review_status'], 'proposed')
+        self.assertNotIn('other', selected)
+        self.assertIn('explicit_assumptions', data['missing_components'])
+        self.assertFalse(any(e['target']['id'] == 'local' for e in data['edges']))
+
     def records_for_conditions(self):
         def ref(identifier):
             return {'id': identifier, 'revision': '1'}
