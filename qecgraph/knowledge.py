@@ -451,7 +451,11 @@ class KnowledgeView:
             text = self.file_text(node) if node['kind'] == 'source_file' else node.get('reading_text', reading_projection(node['latex'])[0])
             if node['kind'] == 'document':
                 text = self.session.state['works'][node['provenance']['work_id']]['title']
-            units.append({**self.summary(node), 'source_role': node.get('source_role'),
+            role = node.get('source_role')
+            if node['kind'] == 'paragraph' and re.match(r'\s*\\(?:title|author|keywords|affiliation|email)\b', node.get('latex', '')):
+                role = 'metadata'  # Older snapshots predate typed title/author blocks.
+            units.append({**self.summary(node), 'source_role': role,
+                          'passage_text': text,
                           'paper_title': self.papers[node['provenance']['source_version_id']]['title'],
                           'section_path': self.section_path(node['id']),
                           'search_text': ' > '.join(self.section_path(node['id'])) + '\n' + ' '.join([self.papers[node['provenance']['source_version_id']]['title'],
@@ -474,6 +478,12 @@ class KnowledgeView:
     def lexical(self):
         from .core.search import LexicalIndex
         from .retrieval import unit_key
+        return LexicalIndex({unit_key(u): u.get('passage_text', u['search_text']) for u in self.search_units})
+
+    @cached_property
+    def context_lexical(self):
+        from .core.search import LexicalIndex
+        from .retrieval import unit_key
         return LexicalIndex({unit_key(u): u['search_text'] for u in self.search_units})
 
     def search(self, args):
@@ -485,8 +495,8 @@ class KnowledgeView:
         allowed = {}
         for unit in self.search_units:
             if not args.get('kind') and (unit['kind'] in {'source_file', 'document', 'section', 'citation_key',
-                                                        'source_artifact', 'paper_version', 'title', 'author_block'}
-                                         or unit.get('source_role') == 'bibliography'):
+                                                        'source_artifact', 'paper_version', 'title', 'author_block', 'asset'}
+                                         or unit.get('source_role') in {'bibliography', 'metadata'}):
                 continue
             if unit['kind'] in PROPOSAL_KINDS.values() and not args.get('include_proposals', True):
                 continue
@@ -499,6 +509,8 @@ class KnowledgeView:
         fallback = None
         from .core.search import normalized
         lexical, matches = self.lexical.rank(args['query'], set(allowed))
+        if not lexical:
+            lexical, matches = self.context_lexical.rank(args['query'], set(allowed))
         if mode == 'literal':
             ranked = [k for k, u in allowed.items() if normalized(args['query']) in normalized(u['search_text'])]
             status, method = self.retrieval.status(), 'literal normalized whitespace search'
@@ -536,7 +548,7 @@ class KnowledgeView:
                 if any(min(b, y) > max(a, x) for x, y in spans[group]):
                     continue
                 spans[group].append((a, b))
-            row = {k: v for k, v in unit.items() if k != 'search_text'}
+            row = {k: v for k, v in unit.items() if k not in {'search_text', 'passage_text'}}
             row['match'] = 'literal' if mode == 'literal' else matches.get(key, 'vector')
             row.update(self.snippet(unit, args['query']), evidence_status='source_or_record_candidate')
             rows.append(row)

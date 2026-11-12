@@ -125,6 +125,23 @@ class KnowledgeTests(unittest.TestCase):
                 self.assertEqual(TEXT[source['char_start']:source['char_end']], row['excerpt'])
                 self.assertTrue(row['section_path'])
 
+    def test_paper_title_does_not_make_unrelated_short_passages_match(self):
+        (self.root / 'inputs/rank.tex').write_text(r'''\documentclass{article}
+\title{Decoder study}
+\begin{document}
+Unrelated banana.
+
+Decoder memory succeeds.
+\end{document}''')
+        self.ws.sync()
+        session = WorkspaceSession(self.ws.registry.root, profile='research')
+        version = next(v for v, paper in session.knowledge.papers.items() if paper['title'] == 'Decoder study')
+        result = session.invoke('qec_search', {'query': 'decoder', 'source_version_id': version, 'detail': 'full'})
+        self.assertTrue(result['ok'], result)
+        rows = result['data']['results']
+        self.assertEqual(len(rows), 1)
+        self.assertIn('Decoder memory succeeds.', rows[0]['excerpt'])
+
     def test_paper_list_card_and_outline_are_navigation_views(self):
         papers = self.invoke('qec_list_papers', {})['results']
         self.assertEqual(len(papers), 1)
