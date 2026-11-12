@@ -16,8 +16,8 @@ def _packaged_schema(name):
     return json.loads(files(__package__).joinpath('schemas/' + name + '.schema.json').read_text(encoding='utf-8'))
 
 
-STATEMENTS = {'lemma', 'theorem', 'proposition', 'corollary', 'conjecture', 'claim'}
-MATHEMATICS = STATEMENTS | {'definition', 'proof', 'equation'}
+STATEMENTS = {'lemma', 'theorem', 'proposition', 'corollary', 'conjecture', 'claim', 'statement_other'}
+MATHEMATICS = STATEMENTS | {'definition', 'assumption', 'notation', 'proof', 'equation'}
 DOMAIN_FIELDS = {entry['if']['properties']['kind']['const']: entry['then']['properties']['data']['required']
                  for entry in _packaged_schema('record')['allOf'] if 'data' not in entry['if']['properties']}
 ENDPOINTS = {

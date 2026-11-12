@@ -37,6 +37,7 @@ except ImportError as exc:
 _KINDS = {
     "definition", "lemma", "theorem", "proposition", "corollary", "conjecture",
     "proof", "equation", "table", "figure", "remark", "example",
+    "abstract", "algorithm", "assumption", "claim", "notation", "acknowledgments", "statement_other",
 }
 _ENVIRONMENTS = {
     "definition": "definition", "defn": "definition", "dfn": "definition",
@@ -49,6 +50,11 @@ _ENVIRONMENTS = {
     "gather": "equation", "multline": "equation", "flalign": "equation",
     "displaymath": "equation",
 }
+_ENVIRONMENTS.update({
+    'abstract': 'abstract', 'algorithm': 'algorithm', 'algorithmic': 'algorithm', 'algobox': 'algorithm',
+    'assumption': 'assumption', 'claim': 'claim', 'fact': 'claim', 'observation': 'claim',
+    'notation': 'notation', 'acknowledgments': 'acknowledgments', 'acknowledgements': 'acknowledgments',
+})
 _SECTIONS = {"part": -1, "chapter": 0, "section": 1, "subsection": 2,
              "subsubsection": 3, "paragraph": 4, "subparagraph": 5}
 _COMMAND_DECLARATIONS = {"newcommand", "renewcommand", "providecommand", "DeclareRobustCommand"}
@@ -533,6 +539,7 @@ class _ProjectParser:
             raise ValueError("Entry file must have a .tex suffix")
         self.config = config
         self.environment_map = dict(_ENVIRONMENTS)
+        self.environment_headings = {}
         explicit = config.get("environment_map", {})
         if not isinstance(explicit, dict) or any(k not in _KINDS for k in explicit.values()):
             raise ValueError("environment_map must map environment names to supported block kinds")
@@ -782,7 +789,7 @@ class _ProjectParser:
         mapping = {"definition": "definition", "lemma": "lemma", "theorem": "theorem",
                    "proposition": "proposition", "corollary": "corollary", "conjecture": "conjecture",
                    "remark": "remark", "example": "example", "proof": "proof"}
-        kind = mapping.get(normalized) or _ENVIRONMENTS.get(name.rstrip("*"))
+        kind = mapping.get(normalized) or _ENVIRONMENTS.get(normalized) or _ENVIRONMENTS.get(name.rstrip("*"))
         if kind is None:
             for word, translated in (("定义", "definition"), ("引理", "lemma"), ("定理", "theorem"),
                                      ("命题", "proposition"), ("推论", "corollary"), ("猜想", "conjecture"),
@@ -791,9 +798,9 @@ class _ProjectParser:
                     kind = translated
                     break
         if kind is None:
-            kind = "remark"
+            kind = "statement_other"
             self.diagnostic("warning", "unclassified_theorem_environment",
-                            f"Environment {name!r}, heading {heading!r}, is kept as remark; configure environment_map to classify it.",
+                            f"Environment {name!r}, heading {heading!r}, is kept as statement_other; configure environment_map to classify it.",
                             self.node_span(path, node))
         previous = self.environment_map.get(name)
         if previous is not None and previous != kind:
@@ -801,6 +808,7 @@ class _ProjectParser:
                             f"Conflicting environment kind for {name}; using the latest declaration ({kind}).",
                             self.node_span(path, node))
         self.environment_map[name] = kind
+        self.environment_headings[name] = heading
 
     def learn_macro(self, node, path):
         args = _args(node)
@@ -897,7 +905,7 @@ class _ProjectParser:
                     self.resources.append({"kind": kind, "literal": literal.strip(), "path": target,
                                            "source": span, "block_key": owner})
                 return
-            if name == "caption" and block is not None and block["kind"] in {"table", "figure"}:
+            if name == "caption" and block is not None and block["kind"] in {"table", "figure", "algorithm"}:
                 if not block["title_tex"]:
                     block["title_tex"] = _last_arg(node, text)
         for child in _children(node):
@@ -911,6 +919,7 @@ class _ProjectParser:
             title = _raw_arg(args[0], self.files[path]["text"])
         block = self.make_block(kind, path, node.pos, node.pos + node.len, parent,
                                 node.environmentname, title)
+        block["heading"] = self.environment_headings.get(node.environmentname)
         for arg in args:
             if arg is not None:
                 self.metadata(arg, path, block["key"], sections)

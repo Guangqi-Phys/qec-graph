@@ -13,8 +13,8 @@ from urllib.parse import quote
 from .. import __version__
 from ..source.reading import reading_projection
 
-STATEMENTS = {"lemma", "theorem", "proposition", "corollary", "conjecture"}
-MATHEMATICS = STATEMENTS | {"definition", "proof", "equation"}
+STATEMENTS = {"lemma", "theorem", "proposition", "corollary", "conjecture", "claim", "statement_other"}
+MATHEMATICS = STATEMENTS | {"definition", "assumption", "notation", "proof", "equation"}
 LEAN_DEPENDENCIES = {'lean_type_depends_on', 'lean_proof_depends_on',
                      'lean_type_depends_on_transitive', 'lean_proof_depends_on_transitive'}
 DEPENDENCIES = {"depends_on_declared", "depends_on_reviewed"} | LEAN_DEPENDENCIES
@@ -177,7 +177,7 @@ class _GraphBuilder:
                       "title": block.get("title_tex") or (owned_labels[0] if owned_labels else block["kind"]),
                       "labels": owned_labels, "source": span, "latex": block["latex"],
                       "content_sha256": hash_text(block["latex"]),
-                      "data": {"environment": block.get("environment"), "order": block.get("order", 0),
+                      "data": {"environment": block.get("environment"), "heading": block.get("heading"), "order": block.get("order", 0),
                                "author_claims_formalized": bool(block.get("leanok_declared", False)),
                                "identity_basis": "label" if owned_labels else "content_and_occurrence",
                                "semantic_context_sha256": self.project_source_hash}})

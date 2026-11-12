@@ -16,6 +16,27 @@ class ParserTests(unittest.TestCase):
         self.entry.write_bytes(source.encode('utf-8'))
         return parse_project(self.entry)
 
+    def test_physics_environments_keep_typed_verbatim_spans(self):
+        text = r"""\documentclass{article}
+\newtheorem{axi}{Assumption}
+\newtheorem{mystery}{Unusual Heading}
+\begin{document}
+\begin{abstract}Our summary.\end{abstract}
+\begin{axi}Independent errors.\end{axi}
+\begin{notation}Let H denote a matrix.\end{notation}
+\begin{algorithm}\caption{Decode}Run BP.\end{algorithm}
+\begin{claim}A conclusion.\end{claim}
+\begin{mystery}Another statement.\end{mystery}
+\end{document}"""
+        parsed = self.parse(text)
+        blocks = {b['kind']: b for b in parsed['blocks']}
+        for kind in ('abstract', 'assumption', 'notation', 'algorithm', 'claim', 'statement_other'):
+            block = blocks[kind]
+            span = block['source']
+            self.assertEqual(block['latex'], text[span['char_start']:span['char_end']])
+        self.assertEqual(blocks['algorithm']['title_tex'], 'Decode')
+        self.assertEqual(blocks['statement_other']['heading'], 'Unusual Heading')
+
     def test_opaque_declarations_and_literals_do_not_create_labels_or_references(self):
         parsed = self.parse(r"""
 \newcommand{\ghost}[1]{\begin{lemma}\label{lem:ghost}#1\end{lemma}}
