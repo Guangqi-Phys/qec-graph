@@ -1,7 +1,9 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import json
+import os
 import unittest
+from unittest import mock
 
 from qecgraph.source.package import SourceTree
 from qecgraph.source.prepare import (
@@ -102,6 +104,74 @@ class PrepareTests(unittest.TestCase):
             for name in ("entry.tex", "source-map.json", "document.json",
                          "coverage.json", "diagnostics.json", "manifest.json"):
                 self.assertTrue((out / name).is_file(), name)
+
+
+    def _prepared(self, text="New text."):
+        tree = SourceTree("directory", {
+            "main.tex": ("\\documentclass{article}\\begin{document}"
+                         + text + "\\end{document}").encode("utf-8"),
+        })
+        return prepare_source(tree)
+
+    def test_write_outputs_refuses_unmanaged_directory(self):
+        prepared = self._prepared()
+        with TemporaryDirectory() as temporary:
+            out = Path(temporary)
+            canary = out / "entry.tex"
+            canary.write_text("USER_ORIGINAL_CANARY", encoding="utf-8")
+            with self.assertRaises(ValueError):
+                write_outputs(prepared, out)
+            self.assertEqual(canary.read_text(encoding="utf-8"),
+                             "USER_ORIGINAL_CANARY")
+            self.assertEqual([path.name for path in out.iterdir()], ["entry.tex"])
+            manifest = write_outputs(prepared, out, overwrite=True)
+            self.assertEqual(manifest["schema"], "qecgraph.prepare/2")
+            self.assertIn("New text.", (out / "entry.tex").read_text(encoding="utf-8"))
+
+    def test_write_outputs_replaces_a_managed_directory_whole(self):
+        with TemporaryDirectory() as temporary:
+            out = Path(temporary) / "prepared"
+            write_outputs(self._prepared("First text."), out)
+            stale = out / "stale.json"
+            stale.write_text("{}", encoding="utf-8")
+            manifest = write_outputs(self._prepared("Second text."), out)
+            self.assertEqual(manifest["entry"], "main.tex")
+            self.assertFalse(stale.exists())
+            self.assertIn("Second text.",
+                          (out / "entry.tex").read_text(encoding="utf-8"))
+
+    def test_write_outputs_refuses_source_overlap_and_symlinks(self):
+        prepared = self._prepared()
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source"
+            source.mkdir()
+            (source / "main.tex").write_bytes(
+                b"\\documentclass{article}\\begin{document}X.\\end{document}")
+            with self.assertRaises(ValueError):
+                write_outputs(prepared, source, source=source)
+            with self.assertRaises(ValueError):
+                write_outputs(prepared, source / "out", source=source)
+            elsewhere = root / "elsewhere"
+            elsewhere.mkdir()
+            link = root / "link"
+            os.symlink(elsewhere, link)
+            with self.assertRaises(ValueError):
+                write_outputs(prepared, link)
+
+    def test_failed_write_keeps_the_previous_complete_result(self):
+        with TemporaryDirectory() as temporary:
+            out = Path(temporary) / "prepared"
+            write_outputs(self._prepared("First text."), out)
+            before = {path.name: path.read_bytes() for path in out.iterdir()}
+            with mock.patch("qecgraph.source.prepare._write_artifacts",
+                            side_effect=OSError("disk full")):
+                with self.assertRaises(OSError):
+                    write_outputs(self._prepared("Second text."), out)
+            after = {path.name: path.read_bytes() for path in out.iterdir()}
+            self.assertEqual(before, after)
+            self.assertEqual([path.name for path in out.parent.iterdir()],
+                             ["prepared"])
 
 
 if __name__ == "__main__":

@@ -17,10 +17,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
-from tempfile import TemporaryDirectory
+import shutil
+from tempfile import TemporaryDirectory, mkdtemp
 from typing import Mapping
+import uuid
 
 from .assembly import AssemblyResult, assemble_files, merge_blocks
 from .package import Limits, SourceTree, unpack
@@ -237,18 +240,57 @@ def prepare_source(tree: SourceTree, entry: str | None = None, *,
     )
 
 
+_MANAGED_SCHEMA_PREFIX = "qecgraph.prepare/"
+
+
+def _managed_output(directory: Path) -> bool:
+    """Return true when a non-empty directory holds a prepare manifest."""
+    manifest = directory / "manifest.json"
+    if not manifest.is_file():
+        return False
+    try:
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return (isinstance(payload, dict)
+            and str(payload.get("schema", "")).startswith(_MANAGED_SCHEMA_PREFIX))
+
+
+def _check_output_root(out: Path, source: Path | None, overwrite: bool) -> None:
+    if out.is_symlink():
+        raise ValueError(f"refusing symbolic-link output directory: {out}")
+    if out.exists() and not out.is_dir():
+        raise ValueError(f"output path is not a directory: {out}")
+    if source is not None:
+        target = out.resolve()
+        origin = source.resolve()
+        if origin == target or origin in target.parents:
+            raise ValueError(f"output directory is inside the source: {out}")
+        if target == origin or target in origin.parents:
+            raise ValueError(f"source is inside the output directory: {out}")
+    if out.is_dir() and any(out.iterdir()):
+        if not overwrite and not _managed_output(out):
+            raise ValueError(
+                f"refusing to replace unmanaged output directory: {out}; "
+                "pass --overwrite to replace it")
+
+
+def _write_artifacts(directory: Path, artifacts: Mapping[str, bytes]) -> None:
+    for name, data in artifacts.items():
+        (directory / name).write_bytes(data)
+
+
 def write_outputs(prepared: PreparedSource, out: Path, *, source: Path | None = None,
-                  parser_version: str = "", parse_options: Mapping | None = None) -> dict:
-    out.mkdir(parents=True, exist_ok=True)
-    (out / "entry.tex").write_bytes(prepared.assembly.data)
-    (out / "source-map.json").write_text(
-        json.dumps(prepared.source_map, indent=1, ensure_ascii=False), encoding="utf-8")
-    (out / "document.json").write_text(
-        json.dumps(prepared.document, indent=1, ensure_ascii=False), encoding="utf-8")
-    (out / "coverage.json").write_text(
-        json.dumps(prepared.coverage, indent=1, ensure_ascii=False), encoding="utf-8")
-    (out / "diagnostics.json").write_text(
-        json.dumps(prepared.diagnostics, indent=1, ensure_ascii=False), encoding="utf-8")
+                  parser_version: str = "", parse_options: Mapping | None = None,
+                  overwrite: bool = False) -> dict:
+    """Write the prepare artifacts, replacing a managed output directory whole.
+
+    A non-empty directory without a prepare manifest is refused unless
+    ``overwrite`` is set. Artifacts are built in a staging directory and swapped
+    in with one directory rename, so a failed write leaves the previous complete
+    result untouched.
+    """
+    _check_output_root(out, source, overwrite)
     manifest = {
         "schema": "qecgraph.prepare/2",
         "source": str(source) if source is not None else None,
@@ -266,6 +308,35 @@ def write_outputs(prepared: PreparedSource, out: Path, *, source: Path | None = 
     manifest["manifest_sha256"] = hashlib.sha256(
         json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
-    (out / "manifest.json").write_text(
-        json.dumps(manifest, indent=1, ensure_ascii=False), encoding="utf-8")
+    artifacts = {
+        "entry.tex": prepared.assembly.data,
+        "source-map.json": json.dumps(
+            prepared.source_map, indent=1, ensure_ascii=False).encode("utf-8"),
+        "document.json": json.dumps(
+            prepared.document, indent=1, ensure_ascii=False).encode("utf-8"),
+        "coverage.json": json.dumps(
+            prepared.coverage, indent=1, ensure_ascii=False).encode("utf-8"),
+        "diagnostics.json": json.dumps(
+            prepared.diagnostics, indent=1, ensure_ascii=False).encode("utf-8"),
+        "manifest.json": json.dumps(
+            manifest, indent=1, ensure_ascii=False).encode("utf-8"),
+    }
+    out.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(mkdtemp(dir=out.parent, prefix=f".{out.name}.staging-"))
+    try:
+        _write_artifacts(staging, artifacts)
+        if out.exists():
+            backup = out.parent / f".{out.name}.backup-{uuid.uuid4().hex[:12]}"
+            os.replace(out, backup)
+            try:
+                os.replace(staging, out)
+            except BaseException:
+                os.replace(backup, out)
+                raise
+            shutil.rmtree(backup, ignore_errors=True)
+        else:
+            os.replace(staging, out)
+    except BaseException:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
     return manifest

@@ -31,6 +31,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="source directory or arXiv package (.tar.gz, .gz)")
     parser.add_argument("--entry", help="entry path inside the source tree")
     parser.add_argument("--out", type=Path, required=True, help="output directory")
+    parser.add_argument("--overwrite", action="store_true",
+                        help="replace an output directory that prepare does not manage")
     parser.add_argument("--no-parser-recovery", action="store_true",
                         help="do not retry failed strict parses with tolerant parsing")
     parser.add_argument("--no-transparent-containers", action="store_true",
@@ -49,7 +51,8 @@ def main(argv: list[str] | None = None) -> int:
             parse_options={
                 "recover_parse_errors": not args.no_parser_recovery,
                 "transparent_containers": not args.no_transparent_containers,
-            })
+            },
+            overwrite=args.overwrite)
     except (OSError, ValueError, RuntimeError) as exc:
         print(f"prepare failed: {exc}", file=sys.stderr)
         return 1

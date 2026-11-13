@@ -397,9 +397,11 @@ preamble，并从来源中的 `\newcommand`/`\def` 学习零参数字面路径�
   以及 `missing_dependencies`、`preamble_missing`。不检查编译，编译不是完成条件。
 
 输出是 `entry.tex`、`source-map.json`、`document.json`、`coverage.json`、
-`diagnostics.json` 和 `manifest.json`（`qecgraph.prepare/2`）。本路径尚未
-接入 workspace 的 stage/validate/publish。parser 错误会让结构保持 partial，
-而不是静默接受；bibliography 和资产复制不属于本步骤。
+`diagnostics.json` 和 `manifest.json`（`qecgraph.prepare/2`）。产物先暂存，再用
+一次目录改名整体切换：写入失败保留上一份完整结果；非空但没有 prepare manifest
+的目录会被拒绝，除非调用方显式覆盖。本路径尚未接入 workspace 的
+stage/validate/publish。parser 错误会让结构保持 partial，而不是静默接受；
+bibliography 和资产复制不属于本步骤。
 
 ```bash
 python tools/prepare_arxiv.py /path/to/source-tree \

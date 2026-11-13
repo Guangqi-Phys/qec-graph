@@ -373,10 +373,12 @@ The document model is `qecgraph.document/2`:
   and is not a completion condition.
 
 Outputs are `entry.tex`, `source-map.json`, `document.json`, `coverage.json`,
-`diagnostics.json` and `manifest.json` (`qecgraph.prepare/2`). This path is not
-connected to workspace stage/validate/publish. Parser errors leave structure
-partial rather than being silently accepted; bibliography and asset copying are
-outside this step.
+`diagnostics.json` and `manifest.json` (`qecgraph.prepare/2`). They are staged and
+swapped in by one directory rename: a failed write leaves the previous complete
+set, and a non-empty directory without a prepare manifest is refused unless the
+caller explicitly overwrites it. This path is not connected to workspace
+stage/validate/publish. Parser errors leave structure partial rather than being
+silently accepted; bibliography and asset copying are outside this step.
 
 ```bash
 python tools/prepare_arxiv.py /path/to/source-tree \

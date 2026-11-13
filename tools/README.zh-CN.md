@@ -49,3 +49,7 @@ python tools/prepare_arxiv.py /path/to/source-tree \
 `--no-parser-recovery` 和 `--no-transparent-containers` 可关闭可选的 partial
 结构恢复。退出码 `0` 表示 `document_complete`；`2` 表示正文完整但结构 partial，
 或正文未解析完整。
+
+输出目录作为一个整体管理：写入失败保留上一份完整产物；已存在但没有 prepare
+manifest 的目录会被拒绝。只有显式传 `--overwrite` 才会整体替换该目录，包括其中
+无关的文件。
