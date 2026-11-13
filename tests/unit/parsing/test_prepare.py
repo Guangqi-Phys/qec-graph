@@ -182,6 +182,21 @@ class PrepareTests(unittest.TestCase):
         self.assertTrue(prepared.coverage["document_complete"])
         self.assertEqual(prepared.coverage["missing_dependencies"], 0)
 
+    def test_mixed_branch_scopes_do_not_pick_a_file(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{one}\n"
+                         b"\\begin{document}\n\\begingroup\n\\ifdefined\\flag\n"
+                         b"\\gdef\\DIR{two}\n\\else\n\\def\\DIR{two}\n"
+                         b"\\fi\n\\endgroup\n\\input{\\DIR/frag}\n"
+                         b"\\end{document}\n"),
+            "one/frag.tex": b"CORRECT_ONE.\n",
+            "two/frag.tex": b"WRONG_TWO.\n",
+        })
+        prepared = prepare_source(tree)
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertFalse(any("WRONG_TWO." in text for text in texts))
+        self.assertFalse(prepared.coverage["document_complete"])
+
     def test_conditional_scope_keeps_the_visible_branch_value(self):
         tree = SourceTree("directory", {
             "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{one}\n"

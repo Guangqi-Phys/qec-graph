@@ -1347,22 +1347,29 @@ class Assembler:
             return
         for name in names:
             values = [self._lookup_in(branch, name) for branch in states]
+            if not any(name in branch for branch in writes):
+                first = values[0]
+                if all(isinstance(value, str) and value == first
+                       for value in values):
+                    self.scopes[-1][name] = first
+                elif not all(value is None for value in values):
+                    self.scopes[-1][name] = UNCERTAIN
+                continue
+            roots = [branch[0].get(name) if branch else None for branch in states]
             first = values[0]
-            if all(isinstance(value, str) and value == first
-                   for value in values):
+            if (all(isinstance(value, str) and value == first for value in values)
+                    and all(isinstance(root, str) and root == first for root in roots)):
                 state: object = first
-            elif all(value is None for value in values):
+            elif (all(value is None for value in values)
+                    and all(root is None for root in roots)):
                 continue
             else:
                 state = UNCERTAIN
-            if any(name in branch for branch in writes):
-                for scope in self.scopes:
-                    scope.pop(name, None)
-                self.scopes[0][name] = state
-                if self.conditional_frames:
-                    self.conditional_frames[-1]["current_globals"][name] = state
-            else:
-                self.scopes[-1][name] = state
+            for scope in self.scopes:
+                scope.pop(name, None)
+            self.scopes[0][name] = state
+            if self.conditional_frames:
+                self.conditional_frames[-1]["current_globals"][name] = state
 
     def _uncertain_reference(self, arguments: tuple[str, ...]) -> bool:
         for argument in arguments:

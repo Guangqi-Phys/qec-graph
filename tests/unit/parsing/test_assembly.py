@@ -265,6 +265,39 @@ class AssembleTests(unittest.TestCase):
         self.assertNotIn(b"WRONG_TWO.", result.data)
         self.assertTrue(result.coverage()["complete"])
 
+    def test_mixed_global_and_local_branch_definitions_stay_uncertain(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{one}\n"
+                         b"\\begin{document}\n\\begingroup\n\\ifdefined\\flag\n"
+                         b"\\gdef\\DIR{two}\n\\else\n\\def\\DIR{two}\n"
+                         b"\\fi\n\\endgroup\n\\input{\\DIR/frag}\n"
+                         b"\\end{document}\n"),
+            "one/frag.tex": b"CORRECT_ONE.\n",
+            "two/frag.tex": b"WRONG_TWO.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertEqual([event.outcome for event in result.events],
+                         ["uncertain_path"])
+        self.assertIsNone(result.events[0].target)
+        self.assertFalse(result.coverage()["complete"])
+
+    def test_global_then_local_branch_values_do_not_become_global(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{one}\n"
+                         b"\\begin{document}\n\\begingroup\n\\ifdefined\\flag\n"
+                         b"\\gdef\\DIR{one}\n\\renewcommand{\\DIR}{two}\n"
+                         b"\\else\n\\gdef\\DIR{three}\n"
+                         b"\\renewcommand{\\DIR}{two}\n\\fi\n\\endgroup\n"
+                         b"\\input{\\DIR/frag}\n\\end{document}\n"),
+            "one/frag.tex": b"ONE.\n",
+            "two/frag.tex": b"WRONG_TWO.\n",
+            "three/frag.tex": b"THREE.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertEqual([event.outcome for event in result.events],
+                         ["uncertain_path"])
+        self.assertIsNone(result.events[0].target)
+
     def test_global_definition_in_all_branches_survives_the_conditional(self):
         source = {
             "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{one}\n"
