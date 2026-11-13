@@ -105,14 +105,19 @@ def publish_pointer(path, pointer_format, /, **binding):
     atomic_json(path, {'format': pointer_format, **binding})
 
 
-def immutable_json(path, value):
+def immutable_json(path, value, *, compact=False):
     path = Path(path)
     if path.exists():
         from .graph import read_json
         if read_json(path) != value:
             raise ValueError(f'Immutable object conflict: {path}')
         return
-    atomic_json(path, value)
+    if compact:
+        from .graph import canonical
+
+        atomic_bytes(path, (canonical(value) + '\n').encode('utf-8'))
+    else:
+        atomic_json(path, value)
 
 
 def atomic_bytes(path, raw):

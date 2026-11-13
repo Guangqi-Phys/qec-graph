@@ -114,7 +114,7 @@ def stage_records(registry, state, records, *, verified_spans=None):
             continue
         record = validated[identifier, revision]
         digest = hash_text(canonical(record))
-        immutable_json(safe_relative(registry.root, _record_path(record)), record)
+        immutable_json(safe_relative(registry.root, _record_path(record)), record, compact=True)
         index.setdefault(identifier, {})[revision] = digest
     return input_count
 

@@ -110,7 +110,7 @@ class Registry:
     def prepare_publication(self, state):
         state = upgrade_state(state)
         revision = hash_text(canonical(state))
-        immutable_json(self.root / 'states' / (revision + '.json'), state)
+        immutable_json(self.root / 'states' / (revision + '.json'), state, compact=bool(state.get('workspace_id')))
         return revision
 
     def publish_prepared(self, revision):
