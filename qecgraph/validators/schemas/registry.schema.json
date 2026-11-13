@@ -237,6 +237,11 @@
           "processing_completed"
         ],
         "additionalProperties": true,
+        "dependentRequired": {
+          "normalization_id": ["normalization_sha256", "normalization_manifest_sha256"],
+          "normalization_sha256": ["normalization_id", "normalization_manifest_sha256"],
+          "normalization_manifest_sha256": ["normalization_id", "normalization_sha256"]
+        },
         "oneOf": [
           {
             "properties": {

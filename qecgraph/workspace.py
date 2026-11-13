@@ -254,7 +254,7 @@ class Workspace:
             return None
 
     def _resolve_normalization(self, client, tree, prior):
-        from .llm.artifacts import load_normalization, normalization_binding, revalidate_legacy_normalization, write_normalization
+        from .llm.artifacts import load_normalization, normalization_binding, write_normalization
         from .llm.normalize import NormalizationError, normalize_package
 
         if prior.get('normalization_manifest_sha256'):
@@ -262,13 +262,8 @@ class Workspace:
             binding = {field: prior[field] for field in (
                 'normalization_id', 'normalization_sha256', 'normalization_manifest_sha256')}
             return SourceTree(tree.format, {**tree.files, 'main.tex': source.data}), binding
-        if prior.get('normalization_id'):
-            try:
-                source, binding = revalidate_legacy_normalization(self.registry.root, prior, tree)
-                return SourceTree(tree.format, {**tree.files, 'main.tex': source.data}), binding
-            except NormalizationError:
-                if client is None:
-                    raise
+        if client is None:
+            raise NormalizationError('Select an explicit entry point or configure AI normalization')
         with task('AI checking TeX entry point', retain=True):
             normalized = normalize_package(tree, client)
         artifact, manifest = write_normalization(self.registry.root, normalized, tree)
@@ -922,10 +917,6 @@ class Workspace:
 
         for digest, material in state.get('materials', {}).items():
             if not material.get('normalization_id'):
-                continue
-            if not material.get('normalization_manifest_sha256'):
-                yield {'code': 'normalization_unbound', 'archive_sha256': digest, 'severity': 'warning',
-                       'message': 'Historical normalization is missing a bound source map'}
                 continue
             try:
                 raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)

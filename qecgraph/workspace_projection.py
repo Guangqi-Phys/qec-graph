@@ -67,8 +67,7 @@ def project_sources(registry, state, fixed, *, verify_sources=False, verified_sp
             if node.get('source'):
                 node['source'].update(node['provenance'])
                 if normalization and node['source']['path'] == 'main.tex':
-                    node['source']['source_kind'] = (
-                        'normalized' if normalization.get('normalization_manifest_sha256') else 'normalized_unbound')
+                    node['source']['source_kind'] = 'normalized'
                 else:
                     node['source']['archive_uri'] = archive_prefix + quote(node['source']['path'])
             node['labels'] = [label_prefix + label for label in node['labels']]

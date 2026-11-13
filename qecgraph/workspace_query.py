@@ -305,13 +305,11 @@ class WorkspaceSession:
         material = self._normalizations.get((span['source_version_id'], span['snapshot_id']))
         if material and span['path'] == 'main.tex':
             span.pop('archive_uri', None)
-            span['source_kind'] = 'normalized_unbound'
-            if material.get('normalization_manifest_sha256'):
-                normalized, manifest = load_normalization(self.machine, material)
-                if span['file_sha256'] != normalized.sha256 or normalized.text[start:end] != latex:
-                    raise ValueError('Normalized source does not match the registered occurrence')
-                span['source_kind'] = 'normalized'
-                result['original_ranges'] = mapped_ranges(normalized.text, manifest['source_map'], start, end)
+            normalized, manifest = load_normalization(self.machine, material)
+            if span['file_sha256'] != normalized.sha256 or normalized.text[start:end] != latex:
+                raise ValueError('Normalized source does not match the registered occurrence')
+            span['source_kind'] = 'normalized'
+            result['original_ranges'] = mapped_ranges(normalized.text, manifest['source_map'], start, end)
         return result
 
     def _annotate_encoding_range(self, span, result):

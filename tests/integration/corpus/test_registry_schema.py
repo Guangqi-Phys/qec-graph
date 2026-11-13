@@ -48,3 +48,15 @@ class RegistrySchemaTests(unittest.TestCase):
                     }}}
                     with self.assertRaises(ManagedDataError):
                         registry.prepare_publication(state)
+
+
+    def test_normalization_requires_a_complete_source_map_binding(self):
+        digest = 'a' * 64
+        with tempfile.TemporaryDirectory() as directory:
+            registry = Registry(directory)
+            state = {**empty_state('workspace:test'), 'materials': {digest: {
+                'archive_sha256': digest, 'status': 'archived_only', 'processing_completed': False,
+                'normalization_id': 'incomplete',
+            }}}
+            with self.assertRaises(ManagedDataError):
+                registry.prepare_publication(state)

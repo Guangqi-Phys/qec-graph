@@ -9,7 +9,7 @@ from pathlib import Path
 from ..core.graph import canonical, hash_text, read_json
 from ..core.transactions import atomic_bytes, immutable_json
 from ..store import safe_relative
-from .normalize import NormalizationError, NormalizationResult, NormalizedSource, assemble, inventory, validate_root_roles
+from .normalize import NormalizationResult, NormalizedSource
 
 
 def write_normalization(root, result: NormalizationResult, tree, *, run_id=None):
@@ -116,32 +116,6 @@ def load_normalization(root, material, *, tree=None):
                              or _source_map(data, manifest['segments'], tree) != manifest['source_map']):
         raise ValueError('Normalization source map does not match the archive')
     return NormalizedSource(manifest['source_tree_hash'], data, plan, tuple(manifest['segments'])), manifest
-
-
-def revalidate_legacy_normalization(root, material, tree):
-    """Build a new bound mapping only when archived bytes reproduce the old projection."""
-    target = _normalization_path(root, material)
-    try:
-        manifest = read_json(target / 'manifest.json')
-        plan = read_json(target / 'plan.json')
-        if (not isinstance(manifest, dict) or manifest.get('schema') != 'qecgraph.normalization'
-                or manifest.get('fallback_reason') or type(manifest.get('skill_version')) is not int
-                or manifest.get('source_tree_hash') != tree.digest
-                or manifest.get('run_id') != material['normalization_id']
-                or manifest.get('normalized_sha256') != material['normalization_sha256']
-                or manifest.get('plan_sha256') != hash_text(json.dumps(plan, sort_keys=True))):
-            raise ValueError('Historical normalization lacks a confirmed plan')
-        normalized = assemble(tree, plan)
-        validate_root_roles(tree, plan)
-        if (normalized.sha256 != material['normalization_sha256']
-                or (target / 'main.tex').read_bytes() != normalized.data):
-            raise ValueError('Historical projection differs from the archived plan')
-    except (OSError, ValueError, KeyError, TypeError) as exc:
-        raise NormalizationError('Historical normalization needs a new plan or an explicit entry point') from exc
-    result = NormalizationResult(normalized, inventory(tree), None, manifest['skill_version'])
-    run_id = 'revalidated-' + hash_text(canonical([material['normalization_id'], normalized.sha256, normalized.segments]))
-    artifact, verified = write_normalization(root, result, tree, run_id=run_id)
-    return normalized, normalization_binding(artifact, verified)
 
 
 def mapped_ranges(text, source_map, start, end):

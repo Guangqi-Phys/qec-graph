@@ -148,13 +148,11 @@ class KnowledgeView:
         self.session._annotate_encoding_range(source, result)
         material = self.session._normalizations.get((source['source_version_id'], source['snapshot_id']))
         if material and source['path'] == 'main.tex':
-            source['source_kind'] = 'normalized_unbound'
-            if material.get('normalization_manifest_sha256'):
-                normalized, manifest = load_normalization(self.session.machine, material)
-                if normalized.text != text:
-                    raise ValueError('Normalized source changed')
-                source['source_kind'] = 'normalized'
-                result['original_ranges'] = mapped_ranges(text, manifest['source_map'], start, end)
+            normalized, manifest = load_normalization(self.session.machine, material)
+            if normalized.text != text:
+                raise ValueError('Normalized source changed')
+            source['source_kind'] = 'normalized'
+            result['original_ranges'] = mapped_ranges(text, manifest['source_map'], start, end)
         return result
 
     def summary(self, node):
