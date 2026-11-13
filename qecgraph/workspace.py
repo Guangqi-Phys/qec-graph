@@ -1134,33 +1134,6 @@ class Workspace:
         rows.extend(materials[digest] for digest in sorted(digests - claimed_digests))
         return old, release, materials, proposal_map, rows, digests, ai_results, limits
 
-    def _publish_semantic(self, cfg, release, materials, digests, ai_results, limits, client, *, rebuild):
-        from .core.transactions import WriterBusy
-        from .domain.ai_records import stage_ai_records
-        from .llm.review import proposal_issues
-        from .retrieval import stage_index
-
-        state, _ = self.registry.read(release)
-        previous = dict(ai_results)
-        self._complete_ai(client, materials, digests, state['versions'], ai_results, limits)
-        if previous == ai_results:
-            return release, None
-        try:
-            with writer_lock(self.path('.qecgraph')), writer_lock(self.registry.root):
-                if self.registry.read()[1] != release or self.config() != cfg:
-                    return release, 'Workspace changed during AI extraction; run sync to publish pending results'
-                for material in state['materials'].values():
-                    identity = material.get('source_version_id'), material.get('source_snapshot_id')
-                    if material.get('processing_completed') and identity in ai_results:
-                        material['ai_extraction'] = ai_results[identity]
-                if next(proposal_issues(self.registry, state), None) is not None:
-                    raise ValueError('AI results failed publication validation')
-                stage_ai_records(self.registry, state)
-                stage_index(self.registry, state, cfg.get('retrieval', {}), repair=rebuild)
-                return self.registry._publish(state), None
-        except WriterBusy:
-            return release, 'Another writer is active; run sync to publish pending AI results'
-
     def _run_impl(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None, ai_client=None, workspace_locked=False):
         run_id = uuid.uuid4().hex
         with nullcontext() if workspace_locked else writer_lock(self.path('.qecgraph')):
@@ -1169,8 +1142,10 @@ class Workspace:
                 progress=progress, ai_client=ai_client)
         ai_warning = None
         if ai_client is not None and ai_client.config.extract_proposals and digests:
-            release, ai_warning = self._publish_semantic(
-                cfg, release, materials, digests, ai_results, limits, ai_client, rebuild=rebuild)
+            from .workspace_publication import publish_semantic
+
+            release, ai_warning = publish_semantic(
+                self, cfg, release, materials, digests, ai_results, limits, ai_client, rebuild=rebuild)
             if ai_warning is None:
                 for row in rows:
                     identity = row.get('source_version_id'), row.get('source_snapshot_id')
