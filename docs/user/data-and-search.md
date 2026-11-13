@@ -133,7 +133,7 @@ actually used, including the version when available. [Bundled software catalog](
 
 The `research_thought` kind preserves one source-grounded thought per record.
 Its nine categories correspond to the questions retained in
-[Human.md](../design/Human.md):
+[Human.md](../review/Human-2026-11-11.zh-CN.md):
 
 | `category` | What to retain |
 |---|---|

@@ -121,7 +121,7 @@ usage 记录需要论文或运行实际使用内容的证据，包括已知版�
 ### 研究思路 — ThoughtsGraph
 
 `research_thought` 每条记录保存一项有来源依据的研究思路，九个类别对应
-[Human.md](../design/Human.md) 中保留的问题：
+[Human.md](../review/Human-2026-11-11.zh-CN.md) 中保留的问题：
 
 | `category` | 保存什么 |
 |---|---|

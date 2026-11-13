@@ -465,7 +465,7 @@ The typed JSON envelope (`ok/data` or `error/code/message/details/scope`) is sha
 paper (`work_id`), under `human/YYYY/MM/Surname_First_Two_thoughts.md`.
 This layout ships in **v0.6.3**; v0.6.2 used the earlier vault.
 
-- Each note contains the nine questions from [Human.md](Human.md), AI answers,
+- Each note contains the nine questions from [Human.md](../review/Human-2026-11-11.zh-CN.md), AI answers,
   verbatim supporting quotations and source-version/line references. Missing
   answers are explicitly unavailable. Matching `research_thought` records are
   also shown with their actual review status. AI proposals remain `proposed`.
@@ -751,7 +751,7 @@ offline fixtures.
 ## 16. Searchable knowledge and implementation roadmap
 
 This section integrates the 2026-11-11 `QEC_KNOWLEDGE_MCP_SUMMARY.md` and
-[Guangqi's retained requirements](Human.md). The original summary is preserved
+[Guangqi's retained requirements](../review/Human-2026-11-11.zh-CN.md). The original summary is preserved
 in Git history. It is engineering input, not evidence that a feature exists.
 The existing workspace, IDs, schemas, review flow and CLI remain the foundation.
 
