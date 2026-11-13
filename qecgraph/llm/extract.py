@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from collections.abc import Iterator, Mapping
 import copy
 import json
 import re
@@ -11,6 +12,7 @@ from ..core.language import require_english
 
 if TYPE_CHECKING:
     from .client import LLMResult
+    from .normalize import NormalizedSource
 
 from .errors import LLMError
 
@@ -259,7 +261,9 @@ def _numbered_source(path, source, bounds=None):
                       for index, line in enumerate(parts) if bounds is None or line or index + 1 < len(parts)]}
 
 
-def authored_sections(graph, sources):
+def authored_sections(
+    graph: dict, sources: Mapping[str, NormalizedSource],
+) -> Iterator[dict[str, tuple[int, int]]]:
     """Partition each file at authored heading starts, including introductory prose."""
     starts: dict[str, set[int]] = {}
     for node in graph['nodes']:

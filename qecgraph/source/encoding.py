@@ -45,9 +45,11 @@ def project_encoding(raw: bytes, explicit: str | None = None) -> tuple[bytes, di
     return text.encode('utf-8'), {'encoding': codec, 'original_sha256': sha256(raw).hexdigest()}
 
 
-def project_tex_files(files: dict[str, bytes], explicit: str | None = None):
+def project_tex_files(
+    files: dict[str, bytes], explicit: str | None = None,
+) -> tuple[dict[str, bytes], dict[str, dict[str, str]]]:
     projected = dict(files)
-    mappings = {}
+    mappings: dict[str, dict[str, str]] = {}
     for path, raw in files.items():
         if path.lower().endswith('.tex'):
             projected[path], mapping = project_encoding(raw, explicit)
