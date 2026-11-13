@@ -316,14 +316,42 @@ class AIWorkspaceTests(unittest.TestCase):
         (self.root / 'inputs/paper.tex').write_bytes(TEX)
         empty = answer({'items': [], 'unresolved': []})
         with patch('qecgraph.llm.client.LLMClient.complete_json', return_value=empty), patch.object(
-                self.workspace.registry, 'validate', return_value={'passed': False}):
-            with self.assertRaisesRegex(ValueError, 'Candidate machine release failed validation'):
+                self.workspace.registry, '_publish', side_effect=ValueError('AI publication interrupted')):
+            with self.assertRaisesRegex(ValueError, 'AI publication interrupted'):
                 self.workspace.sync()
         orphan = next((self.workspace.registry.root / 'ai/proposals').rglob('*.json'))
         self.assertEqual(proposals(self.root), [])
-        with self.assertRaisesRegex(AIReviewError, 'No machine release'):
+        with self.assertRaisesRegex(AIReviewError, 'registered'):
             decide(self.root, orphan, actor={'id': 'reviewer', 'kind': 'human'}, decision='approve',
                    rationale='checked', checked_scopes=['statement', 'hypotheses', 'dependencies'])
+
+    def test_semantic_work_releases_writer_locks_and_rejects_outdated_publication(self):
+        from qecgraph.core.transactions import writer_lock
+
+        source = self.root / 'inputs/paper.tex'
+        source.write_bytes(TEX)
+        published = []
+
+        def provider(*args, **kwargs):
+            if not published:
+                registry = self.workspace.registry
+                with writer_lock(self.root / '.qecgraph'), writer_lock(registry.root):
+                    self.assertFalse(source.exists())
+                    state, release = registry.read()
+                    self.assertTrue(state['versions'])
+                    state['works'][next(iter(state['works']))]['title'] = 'Concurrent title'
+                    published.append((release, registry._publish(state)))
+            return answer({'items': [], 'unresolved': []})
+
+        with patch('qecgraph.llm.client.LLMClient.complete_json', side_effect=provider):
+            first = self.workspace.sync()
+        self.assertEqual(first['status'], 'partial_batch')
+        self.assertIn('Workspace changed', first['warning'])
+        self.assertEqual(self.workspace.registry.read()[1], published[0][1])
+        with patch('qecgraph.llm.client.LLMClient.complete_json', return_value=provider()):
+            second = self.workspace.sync()
+        self.assertEqual(second['inputs'][0]['ai_extraction']['status'], 'complete')
+        self.assertIn('Concurrent title', {work['title'] for work in self.workspace.registry.read()[0]['works'].values()})
 
     def test_rebuild_revalidates_legacy_map_without_calling_a_provider(self):
         from qecgraph.core.transactions import writer_lock

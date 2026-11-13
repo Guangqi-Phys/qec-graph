@@ -95,7 +95,7 @@ A workspace is a local directory with a single writer. `init` creates the layout
 4. Validation binds sources, records and registered review hashes in `machine/states/<release>.json`; atomic replacement of `CURRENT.json` publishes it. Only then may the claimed input be consumed. A failed required step retains the prior release; an unavailable optional retrieval projection may publish as `stale` with keyword fallback.
 5. Human rendering reads that fixed release. A research MCP client calls `qec_list_papers`, `qec_search`, then `qec_fetch` or `qec_get_context` with returned handles. It receives source locations, proposed/reviewed status and explicit missing components. An answer cites those locations; a search hit is not mathematical verification.
 
-The writer still holds its lock through AI work; the two-stage publication proposal is not implemented. Parser fallback and input consumption must share a defined recovery protocol before that changes.
+The writer first publishes the structure and completes eligible claims. Optional semantic extraction runs outside the writer locks. Pending work is derived from the published source bindings and can be retried by sync. Publication reacquires the locks and checks the pinned release and configuration before publishing AI results. AI needed to resolve an entry point or recover source structure runs during the structural transaction.
 
 ### 2.3 Compatibility surfaces
 

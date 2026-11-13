@@ -1,6 +1,7 @@
 """Local workspace, immutable archive receipts and one batch publication pointer."""
 from __future__ import annotations
 
+from contextlib import nullcontext
 from contextvars import copy_context
 from datetime import datetime, timezone
 import errno
@@ -195,7 +196,7 @@ class Workspace:
                 atomic_bytes(target, f'format = "{FORMAT}"\nworkspace_id = "{workspace_id}"\n'.encode())
                 cfg = self.config()
             return self._run(cfg, scan_inputs=not no_ingest, rebuild=False,
-                             keep_inputs=no_ingest or keep_inputs, progress=progress)
+                             keep_inputs=no_ingest or keep_inputs, progress=progress, workspace_locked=True)
 
     def prepare(self):
         """Create inputs/ and the AI configuration, without extracting anything."""
@@ -476,21 +477,18 @@ class Workspace:
                         'max_batch_requests': cfg.get('ai', {}).get('max_batch_requests', 128), 'cost_usd': None,
                         'scope': 'Four extraction tasks per eligible source; cache, recovery, corrections and retries vary. '
                                  'No provider request or dollar estimate is made during dry-run.'}}
-        with writer_lock(self.path('.qecgraph')):
-            return self._run(self.config(), scan_inputs=True, rebuild=False, keep_inputs=keep_inputs,
-                             progress=progress, ai_client=self._ai_client())
+        return self._run(self.config(), scan_inputs=True, rebuild=False, keep_inputs=keep_inputs,
+                         progress=progress, ai_client=self._ai_client())
 
     def rebuild(self, *, include_inputs=False, keep_inputs=False, progress=None):
-        self.config()
-        with writer_lock(self.path('.qecgraph')):
-            cfg = self.config()
-            before = None
-            ai_client = self._ai_client()
-            if include_inputs:
-                before = self._run(cfg, scan_inputs=True, rebuild=False, keep_inputs=keep_inputs, progress=progress,
-                                   ai_client=ai_client)
-            result = self._run(cfg, scan_inputs=False, rebuild=True, keep_inputs=True, progress=progress,
+        cfg = self.config()
+        before = None
+        ai_client = self._ai_client()
+        if include_inputs:
+            before = self._run(cfg, scan_inputs=True, rebuild=False, keep_inputs=keep_inputs, progress=progress,
                                ai_client=ai_client)
+        result = self._run(cfg, scan_inputs=False, rebuild=True, keep_inputs=True, progress=progress,
+                           ai_client=ai_client)
         if before is not None:
             result['sync'] = before
             if before['status'] == 'partial_batch':
@@ -949,9 +947,6 @@ class Workspace:
             for digest, original_names in names.items():
                 if digest in materials:
                     materials[digest]['original_names'] = original_names
-            if ai_client is not None and ai_client.config.extract_proposals and digests:
-                update(package_count + 1, 'Extracting AI proposals')
-                self._complete_ai(ai_client, materials, digests, state['versions'], ai_results, limits)
             for material in materials.values():
                 identity = material.get('source_version_id'), material.get('source_snapshot_id')
                 if identity in ai_results and material.get('processing_completed'):
@@ -1005,9 +1000,9 @@ class Workspace:
                     raise ValueError('Extraction tools changed while preparing; retry')
                 phase('Publishing workspace')
                 release = self.registry.publish_prepared(candidate)
-        return old, release, materials, proposal_map
+        return old, release, materials, proposal_map, ai_results
 
-    def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None, ai_client=None):
+    def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None, ai_client=None, workspace_locked=False):
         from .core.errors import failure_details
         from .core.transactions import atomic_bytes
         events = []
@@ -1026,19 +1021,19 @@ class Workspace:
         record('started')
         try:
             result = self._run_impl(cfg, scan_inputs=scan_inputs, rebuild=rebuild, keep_inputs=keep_inputs,
-                                    progress=progress, ai_client=ai_client)
+                                    progress=progress, ai_client=ai_client,
+                                    workspace_locked=workspace_locked)
         except Exception as exc:
             record('failed', error=failure_details(exc))
             raise
         record(result['status'], run_id=result['run_id'], release_id=result['release_id'])
         return result
 
-    def _run_impl(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None, ai_client=None):
+    def _publish_structure(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress, ai_client):
         if not self.path('machine/CURRENT.json').is_file() and (
                 self.path('machine/operational/status.json').exists()
                 or self.path('.qecgraph/migration.json').exists()):
             raise ValueError('Published workspace is missing its release pointer')
-        run_id = uuid.uuid4().hex
         limits = Limits(**cfg.get('limits', {}))
         for path in ('inputs/.processing', 'archive/blobs/sha256', 'archive/receipts', 'sources', 'machine'):
             self.path(path).mkdir(parents=True, exist_ok=True)
@@ -1069,22 +1064,58 @@ class Workspace:
             if progress:
                 progress(done, steps, message)
 
-        old, release, materials, proposal_map = self._publish_archive(
+        old, release, materials, proposal_map, ai_results = self._publish_archive(
             cfg, digests, limits, rebuild=rebuild, update=update, ai_client=ai_client)
         update(steps - 1, 'Finalizing workspace')
         rows.extend(self._finish_claims(claims, materials, release, limits.input_bytes, keep_inputs))
         rows.extend(materials[digest] for digest in sorted(digests - claimed_digests))
+        return old, release, materials, proposal_map, rows, digests, ai_results, limits
+
+    def _publish_semantic(self, cfg, release, materials, digests, ai_results, limits, client, *, rebuild):
+        from .core.transactions import WriterBusy
+        from .llm.review import proposal_issues
+        from .retrieval import stage_index
+
+        state, _ = self.registry.read(release)
+        previous = dict(ai_results)
+        self._complete_ai(client, materials, digests, state['versions'], ai_results, limits)
+        if previous == ai_results:
+            return release, None
+        try:
+            with writer_lock(self.path('.qecgraph')), writer_lock(self.registry.root):
+                if self.registry.read()[1] != release or self.config() != cfg:
+                    return release, 'Workspace changed during AI extraction; run sync to publish pending results'
+                for material in state['materials'].values():
+                    identity = material.get('source_version_id'), material.get('source_snapshot_id')
+                    if material.get('processing_completed') and identity in ai_results:
+                        material['ai_extraction'] = ai_results[identity]
+                if next(proposal_issues(self.registry, state), None) is not None:
+                    raise ValueError('AI results failed publication validation')
+                stage_index(self.registry, state, cfg.get('retrieval', {}), repair=rebuild)
+                return self.registry._publish(state), None
+        except WriterBusy:
+            return release, 'Another writer is active; run sync to publish pending AI results'
+
+    def _run_impl(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None, ai_client=None, workspace_locked=False):
+        run_id = uuid.uuid4().hex
+        with nullcontext() if workspace_locked else writer_lock(self.path('.qecgraph')):
+            old, release, materials, proposal_map, rows, digests, ai_results, limits = self._publish_structure(
+                cfg, scan_inputs=scan_inputs, rebuild=rebuild, keep_inputs=keep_inputs,
+                progress=progress, ai_client=ai_client)
+        ai_warning = None
+        if ai_client is not None and ai_client.config.extract_proposals and digests:
+            release, ai_warning = self._publish_semantic(
+                cfg, release, materials, digests, ai_results, limits, ai_client, rebuild=rebuild)
+            if ai_warning is None:
+                for row in rows:
+                    identity = row.get('source_version_id'), row.get('source_snapshot_id')
+                    if row.get('processing_completed') and identity in ai_results:
+                        row['ai_extraction'] = ai_results[identity]
         counts = {'registered': len(materials), 'processed': sum(x['processing_completed'] for x in materials.values()),
                   'conflicting': sum(x['source_version_conflict'] for x in materials.values()),
                   'code_mention_proposals': sum(p['code_parameters_mentions'] for p in proposal_map.values())}
-        warning = None
-        try:
-            self._write_operational_status(release, counts)
-        except (OSError, ValueError) as exc:
-            # The machine release is already published and inputs may already be
-            # consumed; a derived-status write must not turn that into a failure.
-            warning = 'operational status could not be written: ' + str(exc).replace(str(self.root), '<workspace>')
-        partial = any(not r.get('processing_completed') or r.get('cleanup_error') or r.get('retained_claim')
+        warning = ai_warning or self._update_operational_status(release, counts)
+        partial = ai_warning is not None or any(not r.get('processing_completed') or r.get('cleanup_error') or r.get('retained_claim')
                       or r.get('source_version_conflict') or r.get('ai_extraction', {}).get('errors') for r in rows)
         retrieval = self.registry.read(release)[0].get('retrieval_index', {})
         partial = partial or retrieval.get('status') == 'stale'
@@ -1096,6 +1127,19 @@ class Workspace:
         if warning is not None:
             result['warning'] = warning
         return result
+
+    def _update_operational_status(self, release, counts):
+        from .core.transactions import WriterBusy
+
+        try:
+            with writer_lock(self.registry.root):
+                if self.registry.read()[1] == release:
+                    self._write_operational_status(release, counts)
+        except WriterBusy:
+            return None
+        except (OSError, ValueError) as exc:
+            return 'operational status could not be written: ' + str(exc).replace(str(self.root), '<workspace>')
+        return None
 
     def status(self):
         cfg = self.config()

@@ -102,7 +102,7 @@ release，绝不在会话中途读取移动的 `CURRENT`。
 4. 校验将来源、记录和已登记审核哈希绑定在 `machine/states/<release>.json`，原子替换 `CURRENT.json` 后发布，之后才可消费认领输入。必需步骤失败保留旧 release；可选检索投影不可用时可发布 `stale` 并回退关键词检索。
 5. 人类生成器只读这个固定 release。research MCP 客户端调用 `qec_list_papers`、`qec_search`，再用返回的短标识调用 `qec_fetch` 或 `qec_get_context`，获取来源坐标、proposed/reviewed 状态和明确缺项。回答引用这些坐标；搜索命中不等于数学验证。
 
-当前 writer 仍在 AI 工作期间持锁，两阶段发布尚未实现。改变之前必须统一解析回退和输入消费的恢复协议。
+写入者先发布结构，再完成符合条件的认领。可选语义抽取在写锁之外执行。待处理任务由已发布的来源绑定确定，可由 sync 重试。发布 AI 结果时重新取锁，并核对固定 release 和配置。解决入口或恢复来源结构所需的 AI 在结构事务中运行。
 
 ### 2.3 兼容接口
 
