@@ -176,6 +176,24 @@ Decoder memory succeeds.
         blocks = self.invoke('qec_fetch', {'identifier': self.version, 'view': 'outline', 'depth': 'blocks'})['results']
         self.assertIn('lemma', [r['kind'] for r in blocks])
 
+    def test_paper_graph_has_paginated_sections_and_results(self):
+        arguments = {'identifier': self.version, 'view': 'graph', 'limit': 3}
+        first = self.invoke('qec_fetch', arguments)
+        self.assertEqual(first['view'], 'graph')
+        self.assertTrue(first['truncated'])
+        self.assertEqual(first['continuation'], 3)
+        page = first
+        rows = list(first['results'])
+        while page['truncated']:
+            page = self.invoke('qec_fetch', {**arguments, 'offset': page['continuation']})
+            rows.extend(page['results'])
+        lemma = next(row for row in rows if row['type'] == 'node' and row['kind'] == 'lemma')
+        method = next(row for row in rows if row['type'] == 'node' and row['title'] == 'Method')
+        self.assertEqual(lemma['parent_id'], method['id'])
+        self.assertEqual(self.invoke('qec_fetch', {'identifier': lemma['id']})['text'],
+                         TEXT[lemma['source']['char_start']:lemma['source']['char_end']])
+        self.assertEqual(first['total_matches'], len(rows))
+
     def test_resources_list_papers_and_source_bindings_survive_other_releases(self):
         listing = self.session.list_resources()['resources']
         self.assertEqual(len(listing), 1)

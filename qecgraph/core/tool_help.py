@@ -25,7 +25,7 @@ PARAMETERS = {
     'revision': 'Exact record revision; unavailable revisions never fall back to another version.',
     'source_version_id': 'Restrict to this exact registered source version, never a guessed latest version.',
     'release_id': 'Optional assertion of this session release; cannot switch the pinned scope.',
-    'view': 'raw preserves TeX; reading is derived display text; outline lists structure; card previews one paper.',
+    'view': 'raw preserves TeX; reading derives display text; outline lists structure; card previews one paper; graph pages through a paper’s nodes and relations.',
     'detail': 'concise reduces discovery rows to handles and excerpts; full retains hashes and provenance.',
     'max_chars': 'Maximum serialized response characters within the session cap. Truncation is explicit.',
     'max_nodes': 'Maximum complete nodes in a traversal or context result, including its root.',

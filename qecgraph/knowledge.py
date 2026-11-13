@@ -284,6 +284,29 @@ class KnowledgeView:
             result['truncated'] = True
         return result
 
+    def paper_graph(self, document, args):
+        """Page through source structure, results and explicit relations for one paper."""
+        from .domain.status import eligible
+
+        version = document['provenance']['source_version_id']
+        snapshot = document['provenance']['snapshot_id']
+        nodes = sorted((node for node in self.nodes.values()
+                        if node['provenance']['source_version_id'] == version),
+                       key=lambda node: (node['data'].get('order', -1), node['id']))
+        ids = {node['id'] for node in nodes}
+        rows = [{'type': 'node', **self.summary(node)} for node in nodes]
+        binding = {'id': version, 'revision': snapshot}
+        for record in self.session.visible.values():
+            if record['data'].get('source_ref') == binding:
+                rows.append({'type': 'record', 'id': record['id'], 'revision': record['revision'],
+                             'kind': record['kind'], 'source_ref': binding})
+        rows.extend({'type': 'edge', **edge} for edge in self.session.graph.source.graph['edges']
+                    if edge['source'] in ids and edge['target'] in ids and eligible(edge)
+                    and edge['relation'] != 'contains')
+        return {'view': 'graph', 'document_id': document['id'], 'source_version_id': version,
+                'snapshot_id': snapshot, 'relation_scope': 'Registered within-paper relations and source containment',
+                **self.session._paginate(rows, args, min(20, self.session.graph.max_results))}
+
     def _descendants(self, identifier):
         seen, pending = {identifier}, [identifier]
         while pending:
@@ -333,6 +356,13 @@ class KnowledgeView:
 
     def fetch(self, args):
         identifier = args['identifier']
+        if args.get('view') == 'graph':
+            if {'char_start', 'char_end', 'revision', 'depth'} & args.keys():
+                raise ToolError('INVALID_ARGUMENT', 'Paper graph accepts a document and row pagination')
+            document = self.resolve(identifier, args.get('source_version_id'))
+            if document['kind'] != 'document':
+                raise ToolError('INVALID_ARGUMENT', 'Select a paper to read its graph')
+            return self.paper_graph(document, args)
         if identifier in self.proposal_items:
             proposal = self.proposal_items[identifier]
             if args.get('revision') and args['revision'] != proposal['revision']:
@@ -643,7 +673,7 @@ def descriptors(session, legacy):
                          idle={'enum': ['included', 'excluded']}, loss={'enum': ['included', 'excluded']},
                          source_query=_string(4096))
     properties = {'identifier': _string(4096), 'source_version_id': _string(4096), 'revision': _string(),
-                  'view': {'enum': ['raw', 'reading', 'outline', 'card']}, 'depth': {'enum': ['sections', 'blocks']}, 'char_start': _integer(), 'char_end': _integer(),
+                  'view': {'enum': ['raw', 'reading', 'outline', 'card', 'graph']}, 'depth': {'enum': ['sections', 'blocks']}, 'char_start': _integer(), 'char_end': _integer(),
                   'offset': _integer(), 'limit': _integer(1, session.graph.max_results)}
     for name, props, required, description in (
         ('qec_list_papers', {'query': _string(4096), 'topic': _string(), 'year': _integer(1, 9999),
@@ -654,7 +684,7 @@ def descriptors(session, legacy):
                        'relations': {'type': 'array', 'minItems': 1, 'maxItems': 50, 'uniqueItems': True, 'items': _string()},
                        'direction': {'enum': ['outgoing', 'incoming', 'both']}, 'include_candidates': {'type': 'boolean'}},
          ['identifier'], 'Trace typed source, evidence or research relations with a bounded depth. Citations are not proof dependencies.'),
-        ('qec_fetch', properties, ['identifier'], 'Read a registered document, file, section or record. Outline is paginated; raw text preserves source bytes.'),
+        ('qec_fetch', properties, ['identifier'], 'Read a registered document, file, section or record. Outlines and paper graphs are paginated; raw text preserves source bytes.'),
         ('qec_search', {'query': _string(4096), 'kind': _string(), 'source_version_id': _string(4096),
                         'include_proposals': {'type': 'boolean', 'default': True},
                         'mode': {'enum': ['keyword', 'vector', 'hybrid', 'literal']},

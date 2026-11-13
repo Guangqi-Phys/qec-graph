@@ -367,6 +367,8 @@ its registered source files separately, preserving include boundaries. A section
 returns continuous text through the next section boundary, including subsections.
 Exact `source_version_id` requests never fall back to a different version.
 
+Pass `view: "graph"` to `qec_fetch` with a paper identifier. The paginated results give source nodes in paper order, their parent IDs, registered research record references, and explicit within-paper edges. Use returned IDs to fetch exact source and record evidence. Edge status retains the distinction between a textual reference and a declared dependency.
+
 `--profile compatible` exposes just `search(query)` and `fetch(id)`, returning
 citable evidence units. Register a version-specific public `canonical_url` in
 `[sources."<source-tree-hash>"]` alongside `work_id`, then rebuild. No URL is

@@ -317,6 +317,8 @@ Workspace MCP 默认使用八个 `research` 工具。指定 `--profile legacy` �
 `char_start`/`char_end`。论文分别返回登记源文件，保留 include 边界；章节返回
 到下一个章节边界的连续文本，包括子章节。精确 `source_version_id` 不回退版本。
 
+对论文标识调用 `qec_fetch` 并传入 `view: "graph"`。分页结果提供按论文顺序排列的来源节点、父节点 ID、已登记研究记录的引用，以及论文内部的显式边。使用返回的 ID 读取准确原文和记录证据。关系状态保留文字引用与声明依赖的区别。
+
 `--profile compatible` 只暴露 `search(query)` 和 `fetch(id)`，返回可引用证据单元。
 在 `[sources."<source-tree-hash>"]` 中与 `work_id` 一起登记版本对应的公开
 `canonical_url`，再 rebuild。不会为本地来源捏造 URL；它们仍可用研究 profile 访问。
