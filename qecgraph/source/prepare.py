@@ -5,8 +5,8 @@ This module is the supported offline preparation layer:
 1. recognize a TeX entry from content, not only from a ``.tex`` suffix;
 2. assemble literal includes and literal zero-argument path macros into an
    entry that is made only of original source bytes;
-3. parse each origin file separately and merge the blocks into an
-   entry-ordered document model;
+3. parse the assembled entry once, so entry-level declarations apply to every
+   included fragment, and merge its blocks into an entry-ordered document model;
 4. report content, structure and dependency completeness separately.
 
 It does not expand arbitrary macros, evaluate conditionals, run TeX, or call
@@ -25,7 +25,14 @@ from tempfile import TemporaryDirectory, mkdtemp
 from typing import Mapping
 import uuid
 
-from .assembly import AssemblyResult, assemble_files, merge_blocks
+from .assembly import (
+    AssemblyResult,
+    SourceLineIndex,
+    assemble_files,
+    document_bounds,
+    entry_source_spans,
+    merge_blocks,
+)
 from .package import Limits, SourceTree, unpack
 from .parser import parse_project
 
@@ -148,48 +155,208 @@ def select_entry(tree: SourceTree, requested: str | None = None) -> str:
                      + ", ".join(candidates[:8]))
 
 
-def _parse_origin_files(tree: SourceTree, origin_files: list[str], root: Path, *,
-                        recover: bool, transparent: bool
-                        ) -> tuple[dict[str, list[dict]], list[dict], list[dict]]:
-    blocks_by_file: dict[str, list[dict]] = {}
+_ENTRY_NAME = "__qecgraph_prepared_entry__.tex"
+
+
+def _entry_name(files: Mapping[str, bytes]) -> str:
+    name = _ENTRY_NAME
+    suffix = 0
+    while name in files:
+        suffix += 1
+        name = f"__qecgraph_prepared_entry_{suffix}__.tex"
+    return name
+
+
+def _run_parse(path: Path, root: Path, data: bytes, *, recover: bool,
+               transparent: bool) -> dict:
+    path.write_bytes(data)
+    return parse_project(
+        path, project_root=root,
+        recover_parse_errors=recover,
+        transparent_containers=transparent,
+        allow_non_tex_entry=True)
+
+
+def _shift_parsed(parsed: dict, name: str, shift: int, prefix: str,
+                  ) -> tuple[list[dict], list[dict]]:
+    """Re-base one chunk parse onto entry coordinates and unique block keys."""
+    blocks: list[dict] = []
+    for block in parsed.get("blocks", []):
+        source = block.get("source") or {}
+        if source.get("path") != name:
+            continue
+        start = int(source.get("char_start", 0))
+        end = int(source.get("char_end", 0))
+        if start < shift:
+            continue
+        block = dict(block)
+        block["source"] = {**source, "char_start": start - shift,
+                           "char_end": max(start, end) - shift}
+        key = block.get("key")
+        parent = block.get("parent_key")
+        block["key"] = f"{prefix}-{key}" if key else key
+        block["parent_key"] = f"{prefix}-{parent}" if parent else parent
+        blocks.append(block)
+    diagnostics: list[dict] = []
+    for diagnostic in parsed.get("diagnostics", []):
+        source = diagnostic.get("source")
+        if not isinstance(source, dict) or source.get("path") != name:
+            continue
+        start = source.get("char_start")
+        end = source.get("char_end")
+        if not isinstance(start, int) or not isinstance(end, int):
+            continue
+        if start < shift:
+            continue
+        diagnostic = dict(diagnostic)
+        diagnostic["source"] = {**source, "char_start": start - shift,
+                                "char_end": max(start, end) - shift}
+        diagnostics.append(diagnostic)
+    return blocks, diagnostics
+
+
+def _salvage_ranges(path: Path, root: Path, assembly: AssemblyResult, name: str,
+                    *, recover: bool, transparent: bool
+                    ) -> tuple[list[dict], list[dict]] | None:
+    """Parse the entry in chunks when one malformed region breaks the walk.
+
+    Each chunk is parsed with the entry preamble prepended, so shared
+    declarations still apply, and its blocks are re-based onto entry
+    coordinates. Chunks split at resolved top-level includes, which keeps a
+    broken file from discarding the structure of every other file.
+    """
+    text = assembly.text
+    _, body_start, end_start = document_bounds(text)
+    if body_start is None:
+        return None
+    body_end = end_start if end_start is not None else len(text)
+    preamble = text[:body_start]
+    shift = len(preamble)
+    boundaries: list[tuple[int, int]] = []
+    for event in assembly.events:
+        if (event.outcome != "resolved" or event.path != assembly.entry
+                or event.out_char_start is None or event.out_char_end is None):
+            continue
+        boundaries.append((event.out_char_start, event.out_char_end))
+    boundaries.sort()
+    ranges: list[tuple[int, int]] = []
+    cursor = body_start
+    for low, high in boundaries:
+        if low < cursor:
+            continue
+        if low > cursor:
+            ranges.append((cursor, low))
+        ranges.append((low, high))
+        cursor = high
+    if cursor < body_end:
+        ranges.append((cursor, body_end))
+    if len(ranges) <= 1:
+        return None
+    blocks: list[dict] = []
+    diagnostics: list[dict] = []
+    for index, (low, high) in enumerate(ranges):
+        chunk = (preamble + text[low:high]).encode("utf-8")
+        parsed = _run_parse(path, root, chunk, recover=recover,
+                            transparent=transparent)
+        chunk_blocks, chunk_diagnostics = _shift_parsed(
+            parsed, name, shift, f"part{index}")
+        blocks.extend(chunk_blocks)
+        diagnostics.extend(chunk_diagnostics)
+    return blocks, diagnostics
+
+
+def _map_diagnostic(diagnostic: dict, assembly: AssemblyResult, name: str,
+                    lines: SourceLineIndex) -> dict:
+    source = diagnostic.get("source")
+    if not isinstance(source, dict) or source.get("path") != name:
+        return diagnostic
+    try:
+        start = int(source.get("char_start", 0))
+        end = max(start, int(source.get("char_end", start)))
+    except (TypeError, ValueError):
+        return diagnostic
+    spans = entry_source_spans(assembly, start, max(end, start + 1))
+    if not spans:
+        return diagnostic
+    path, low, high = spans[0]
+    if end <= start:
+        high = low
+    mapped = dict(diagnostic)
+    mapped["source"] = {
+        "path": path,
+        "char_start": low,
+        "char_end": high,
+        "line_start": lines.line_at(path, low),
+        "line_end": lines.line_at(path, max(low, high - 1)),
+    }
+    return mapped
+
+
+def _parse_entry(tree: SourceTree, assembly: AssemblyResult, selected: str,
+                 root: Path, *, recover: bool, transparent: bool
+                 ) -> tuple[list[dict], list[dict], list[dict]]:
+    """Parse the assembled entry once and project diagnostics back to source.
+
+    The entry is written into the materialized tree so the parser sees one
+    document context: preamble declarations, theorem environments and macros
+    that the entry defines apply to every included fragment. Blocks the parser
+    reads from files outside the entry are not part of the assembled document
+    and are reported instead of silently mixed in.
+    """
+    name = _entry_name(tree.files)
+    path = root / name
+    try:
+        parsed = _run_parse(path, root, assembly.data,
+                            recover=recover, transparent=transparent)
+        blocks = list(parsed.get("blocks", []))
+        diagnostics = list(parsed.get("diagnostics", []))
+        if recover and any(item.get("code") == "latex_parse_error"
+                           for item in diagnostics):
+            salvaged = _salvage_ranges(path, root, assembly, name,
+                                       recover=recover, transparent=transparent)
+            if salvaged is not None and len(salvaged[0]) > len(blocks):
+                blocks, diagnostics = salvaged
+    except (OSError, ValueError, RuntimeError) as exc:
+        return [], [{"code": "parse_failed", "path": selected,
+                     "message": str(exc)}], []
+    lines = SourceLineIndex(tree.files)
+    outside = sorted({
+        (block.get("source") or {}).get("path")
+        for block in blocks
+        if (block.get("source") or {}).get("path") != name
+        and block.get("kind") != "bib_entry"})
+    blocks = [block for block in blocks
+              if (block.get("source") or {}).get("path") == name]
+    dependencies = [{"code": "include_not_in_entry", "path": selected,
+                     "message": f"parser read {other!r}, which the entry does not contain"}
+                    for other in outside if other]
+    unresolved: dict[str, list[tuple[int, int]]] = {}
+    for event in assembly.events:
+        if event.outcome == "resolved":
+            continue
+        unresolved.setdefault(event.path, []).append(
+            (event.source_char_start, event.source_char_end))
     fatal: list[dict] = []
-    dependencies: list[dict] = []
-    for relative in origin_files:
-        path = root / relative
-        if not path.is_file():
+    for diagnostic in diagnostics:
+        diagnostic = _map_diagnostic(diagnostic, assembly, name, lines)
+        source = diagnostic.get("source") or {}
+        position = source.get("char_start")
+        if (diagnostic.get("code") in _DEPENDENCY_CODES
+                and isinstance(position, int)
+                and source.get("path") in unresolved
+                and any(low <= position < high
+                        for low, high in unresolved[source["path"]])):
             continue
-        suffix = path.suffix.lower()
-        if suffix == ".tex":
-            allow_non_tex = False
-        elif not suffix and looks_like_tex(path.read_bytes()):
-            allow_non_tex = True
+        if diagnostic.get("severity") != "error":
+            continue
+        item = {"code": diagnostic.get("code"),
+                "path": source.get("path") or selected,
+                "message": diagnostic.get("message")}
+        if diagnostic.get("code") in _DEPENDENCY_CODES:
+            dependencies.append(item)
         else:
-            continue
-        try:
-            parsed = parse_project(
-                path, project_root=root,
-                recover_parse_errors=recover,
-                transparent_containers=transparent,
-                allow_non_tex_entry=allow_non_tex)
-        except (OSError, ValueError, RuntimeError) as exc:
-            fatal.append({"code": "parse_failed", "path": relative,
-                          "message": str(exc)})
-            continue
-        blocks_by_file[relative] = [
-            block for block in parsed.get("blocks", [])
-            if block.get("source", {}).get("path") == relative
-        ]
-        for diagnostic in parsed.get("diagnostics", []):
-            if diagnostic.get("severity") != "error":
-                continue
-            item = {"code": diagnostic.get("code"),
-                    "path": relative,
-                    "message": diagnostic.get("message")}
-            if diagnostic.get("code") in _DEPENDENCY_CODES:
-                dependencies.append(item)
-            else:
-                fatal.append(item)
-    return blocks_by_file, fatal, dependencies
+            fatal.append(item)
+    return blocks, fatal, dependencies
 
 
 def _coverage(assembly: AssemblyResult, document: dict,
@@ -221,11 +388,12 @@ def prepare_source(tree: SourceTree, entry: str | None = None, *,
     with TemporaryDirectory(prefix="prepare-") as temporary:
         materialized = Path(temporary) / "tree"
         tree.materialize(materialized)
-        blocks_by_file, parser_errors, dependencies = _parse_origin_files(
-            tree, assembly.coverage()["origin_files"], materialized,
+        blocks, parser_errors, dependencies = _parse_entry(
+            tree, assembly, selected, materialized,
             recover=recover_parse_errors,
             transparent=transparent_containers)
-    document = merge_blocks(assembly, blocks_by_file, source_tree_hash=tree.digest)
+    document = merge_blocks(assembly, blocks, source_tree_hash=tree.digest,
+                            files=tree.files)
     coverage = _coverage(assembly, document, parser_errors, dependencies)
     document["coverage"] = coverage
     document["diagnostics"] = [*assembly.diagnostics, *parser_errors, *dependencies]

@@ -6,6 +6,17 @@ from qecgraph.source.assembly import assemble_files, merge_blocks
 from qecgraph.source.parser import parse_project
 
 
+def _parse_assembled(source, entry="main.tex"):
+    """Parse the assembled entry the way prepare does, then merge it."""
+    result = assemble_files(source, entry)
+    with TemporaryDirectory() as temporary:
+        root = Path(temporary)
+        path = root / "entry.tex"
+        path.write_bytes(result.data)
+        parsed = parse_project(path, project_root=root)
+    return result, parsed["blocks"]
+
+
 class AssembleTests(unittest.TestCase):
     def test_input_and_subfile_are_copied_byte_faithfully(self):
         source = {
@@ -97,19 +108,9 @@ class AssembleTests(unittest.TestCase):
             "a.tex": (b"\\section{A}\\label{sec:a}\n"
                       b"\\begin{theorem}\\label{thm:a} Statement.\\end{theorem}\n"),
         }
-        with TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            for name, data in source.items():
-                path = root / name
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_bytes(data)
-            result = assemble_files(source, "main.tex")
-            blocks_by_file = {}
-            for name in ("main.tex", "a.tex"):
-                parsed = parse_project(root / name, project_root=root)
-                blocks_by_file[name] = [block for block in parsed["blocks"]
-                                        if block["source"]["path"] == name]
-            document = merge_blocks(result, blocks_by_file, source_tree_hash="0" * 64)
+        result, blocks = _parse_assembled(source)
+        document = merge_blocks(result, blocks, source_tree_hash="0" * 64,
+                                files=source)
         self.assertEqual(document["schema"], "qecgraph.document/2")
         titles = [section["title"] for section in document["sections"]]
         self.assertEqual(titles, ["Main", "A"])
@@ -136,13 +137,9 @@ class AssembleTests(unittest.TestCase):
                          b"\\appendix\n\\section{Appendix}\nApp text.\n"
                          b"\\end{document}\n"),
         }
-        with TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            (root / "main.tex").write_bytes(source["main.tex"])
-            result = assemble_files(source, "main.tex")
-            parsed = parse_project(root / "main.tex", project_root=root)
-            document = merge_blocks(result, {"main.tex": parsed["blocks"]},
-                                    source_tree_hash="0" * 64)
+        result, blocks = _parse_assembled(source)
+        document = merge_blocks(result, blocks, source_tree_hash="0" * 64,
+                                files=source)
         self.assertEqual([section["level"] for section in document["sections"]],
                          [1, 2, 1, 1])
         self.assertEqual([section["parent_id"] for section in document["sections"]],
@@ -179,17 +176,9 @@ class AssembleTests(unittest.TestCase):
             "b.tex": (b"\\documentclass[../main]{subfiles}\n\\begin{document}\n"
                       b"\\section{B}\nB text.\n\\end{document}\n"),
         }
-        with TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            for name, data in source.items():
-                (root / name).write_bytes(data)
-            result = assemble_files(source, "main.tex")
-            blocks_by_file = {}
-            for name in ("main.tex", "b.tex"):
-                parsed = parse_project(root / name, project_root=root)
-                blocks_by_file[name] = [block for block in parsed["blocks"]
-                                        if block["source"]["path"] == name]
-            document = merge_blocks(result, blocks_by_file, source_tree_hash="0" * 64)
+        result, blocks = _parse_assembled(source)
+        document = merge_blocks(result, blocks, source_tree_hash="0" * 64,
+                                files=source)
         section_b = next(block for block in document["blocks"]
                          if block["kind"] == "section" and block["title_tex"] == "B")
         for block in document["blocks"]:

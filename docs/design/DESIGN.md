@@ -363,8 +363,8 @@ The document model is `qecgraph.document/2`:
 - `sections[]`: stable `id`, `parent_id`, normalized `level` (the highest level
   present becomes 1), `source_level`, `command`, `numbered`, `appendix`,
   `title`, `title_tex`, `source`, `entry`, `block_ids`;
-- `blocks[]`: `id`, `document_id`, `section_id`, `kind`, plain `text`, labels,
-  references, `source`, `entry`;
+- `blocks[]`: `key`, `document_id`, `section_id`, `kind`, plain `text`, labels,
+  references, `source`, `source_spans`, `entry`;
 - `text_projection: reading-v1`: plain text strips commands, comments and
   labels, preserves mathematics, citation keys as `[key]`, and theorem/proof
   bodies;
@@ -372,13 +372,25 @@ The document model is `qecgraph.document/2`:
   plus `missing_dependencies` and `preamble_missing`. Compilation is not checked
   and is not a completion condition.
 
+The model comes from one parse of the assembled entry, so declarations in the
+entry preamble — theorem environments, macros — apply to every included
+fragment, and block boundaries follow the entry rather than each file. Blocks
+are projected back onto the original files through the source map: `source`
+anchors the block's first non-space character and `source_spans` lists every
+source range the block covers, in entry order (`spans_include` marks a block
+that crosses an include boundary). A repeated include therefore yields one
+block per occurrence, each with its own entry span and section parent.
+
 Outputs are `entry.tex`, `source-map.json`, `document.json`, `coverage.json`,
 `diagnostics.json` and `manifest.json` (`qecgraph.prepare/2`). They are staged and
 swapped in by one directory rename: a failed write leaves the previous complete
 set, and a non-empty directory without a prepare manifest is refused unless the
 caller explicitly overwrites it. This path is not connected to workspace
 stage/validate/publish. Parser errors leave structure partial rather than being
-silently accepted; bibliography and asset copying are outside this step.
+silently accepted; when one malformed region breaks the structural walk, the
+entry is re-parsed in chunks split at resolved top-level includes so a broken
+file does not discard the structure of the others. Bibliography and asset
+copying are outside this step.
 
 ```bash
 python tools/prepare_arxiv.py /path/to/source-tree \

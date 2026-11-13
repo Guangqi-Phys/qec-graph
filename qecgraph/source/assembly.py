@@ -8,13 +8,14 @@ Unresolved directives stay in the entry and are reported.
 
 The module accepts a mapping of POSIX relative paths to bytes (normally
 ``SourceTree.files``) so assembly can be tested without touching the filesystem.
-Per-file parser blocks are merged into an entry-ordered document model by
-``merge_blocks``; the caller is responsible for parsing each origin file with
-the same source tree.
+``merge_blocks`` turns one parse of the assembled entry into an entry-ordered
+document model and projects each block back onto the original source files
+through the source map.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import bisect
 import hashlib
 import re
 from typing import Mapping
@@ -448,7 +449,7 @@ def _parse_group(text: str, index: int) -> tuple[str, int]:
     return "", index
 
 
-def _document_bounds(text: str) -> tuple[int | None, int | None, int | None]:
+def document_bounds(text: str) -> tuple[int | None, int | None, int | None]:
     """Locate ``\\begin{document}``/``\\end{document}`` outside literal content.
 
     Returns ``(begin_start, body_start, end_start)`` as character offsets.
@@ -507,7 +508,7 @@ def _document_bounds(text: str) -> tuple[int | None, int | None, int | None]:
 def _document_body(raw: bytes) -> tuple[int, int, bool, bool]:
     """Return body byte range, has-document flag, and preamble-dropped flag."""
     text = raw.decode("utf-8")
-    begin_start, body_start, end_start = _document_bounds(text)
+    begin_start, body_start, end_start = document_bounds(text)
     if begin_start is None or body_start is None:
         return 0, len(raw), False, False
     char_end = end_start if end_start is not None else len(text)
@@ -584,7 +585,7 @@ class Assembler:
                     [], [{"code": "unsupported_encoding", "path": rel}])
         base_char = len(raw[:base].decode("utf-8"))
         self._learn_literal_macros(text)
-        _, body_start, _ = _document_bounds(text)
+        _, body_start, _ = document_bounds(text)
         preamble_end = body_start
         directives, diagnostics = _scan(text)
         for diagnostic in diagnostics:
@@ -841,14 +842,68 @@ def _block_text(value: str, kind: str | None, environment: str | None) -> str:
     return _plain(value)
 
 
-def merge_blocks(result: AssemblyResult, blocks_by_file: Mapping[str, list[dict]],
-                 *, source_tree_hash: str) -> dict:
-    """Merge per-file parser blocks into an entry-ordered document model.
+def _line_starts(text: str) -> list[int]:
+    starts = [0]
+    for index, char in enumerate(text):
+        if char == "\n":
+            starts.append(index + 1)
+    return starts
 
-    The model preserves the parser's block hierarchy and adds a separate
-    document-level section tree. Section levels are normalized per entry:
-    the highest sectioning level present becomes 1. Blocks carry plain reading
-    text plus exact source and entry spans.
+
+class SourceLineIndex:
+    """Map a source character offset to a 1-based line number."""
+
+    def __init__(self, files: Mapping[str, bytes] | None):
+        self._starts: dict[str, list[int]] = {}
+        for path, raw in (files or {}).items():
+            text = raw.decode("utf-8", "replace") if isinstance(raw, bytes) else raw
+            self._starts[path] = _line_starts(text)
+
+    def line_at(self, path: str, position: int) -> int | None:
+        starts = self._starts.get(path)
+        if not starts:
+            return None
+        return bisect.bisect_right(starts, max(0, int(position)))
+
+
+def entry_source_spans(result: AssemblyResult, start: int,
+                       end: int) -> list[tuple[str, int, int]]:
+    """Map an entry character range to the original source ranges it covers.
+
+    The assembled entry is a tiling of source segments, so a range inside one
+    included file maps to one source range, while a range that crosses an
+    include boundary maps to several ranges in entry order.
+    """
+    segments = result.segments
+    if not segments or end <= start:
+        return []
+    starts = [segment.out_char_start for segment in segments]
+    index = max(0, bisect.bisect_right(starts, start) - 1)
+    spans: list[tuple[str, int, int]] = []
+    while index < len(segments) and segments[index].out_char_start < end:
+        segment = segments[index]
+        low = max(start, segment.out_char_start)
+        high = min(end, segment.out_char_end)
+        if low < high:
+            offset = low - segment.out_char_start
+            spans.append((segment.path, segment.char_start + offset,
+                          segment.char_start + offset + (high - low)))
+        index += 1
+    return spans
+
+
+def merge_blocks(result: AssemblyResult, blocks: list[dict], *,
+                 source_tree_hash: str,
+                 files: Mapping[str, bytes] | None = None) -> dict:
+    """Build an entry-ordered document model from one parse of the entry.
+
+    The parser reads the assembled entry, so a block's character range is an
+    entry range; every block is projected back onto the original source files
+    through the source map. A block whose range crosses an include boundary
+    keeps its first source range as ``source`` and lists every range, in entry
+    order, in ``source_spans``. Section levels are normalized per entry: the
+    highest sectioning level present becomes 1. Blocks carry plain reading text
+    plus exact source and entry spans.
     """
     entry_text = result.text
     char_to_byte = [0] * (len(entry_text) + 1)
@@ -857,125 +912,79 @@ def merge_blocks(result: AssemblyResult, blocks_by_file: Mapping[str, list[dict]
         char_to_byte[index] = byte_cursor
         byte_cursor += len(char.encode("utf-8"))
     char_to_byte[len(entry_text)] = byte_cursor
+    lines = SourceLineIndex(files)
 
-    segments = result.segments
-    by_path: dict[str, list[Segment]] = {}
-    for segment in segments:
-        by_path.setdefault(segment.path, []).append(segment)
-    for values in by_path.values():
-        values.sort(key=lambda item: item.char_start)
-
-    def map_position(path: str, position: int) -> int | None:
-        for segment in by_path.get(path, []):
-            if segment.char_start <= position < segment.char_end:
-                return segment.out_char_start + (position - segment.char_start)
-            if position == segment.char_end:
-                return segment.out_char_end
-        return None
-
-    replaced: dict[str, list[tuple[int, int]]] = {}
-    for event in result.events:
-        if event.outcome != "resolved" or event.target is None:
-            continue
-        replaced.setdefault(event.path, []).append(
-            (event.source_char_start, event.source_char_end))
-    for ranges in replaced.values():
-        ranges.sort()
-
-    def block_record(path: str, block: dict, start: int, end: int, *,
-                     text: str, source_start: int | None = None,
-                     source_end: int | None = None) -> dict | None:
-        entry_start = map_position(path, start)
-        entry_end = map_position(path, max(start, end - 1))
-        if entry_start is None or entry_end is None:
-            return None
-        entry_end += 1
+    merged: list[dict] = []
+    for block in blocks:
         source = block.get("source") or {}
+        start = int(source.get("char_start", 0))
+        end = int(source.get("char_end", 0))
+        if end <= start:
+            continue
         kind = block.get("kind")
-        raw_level = block.get("section_level")
-        command, numbered = _section_metadata(text, raw_level) if kind == "section" else (None, None)
-        title_tex = block.get("title_tex", "")
-        title_text = _plain(title_tex) if kind == "section" else ""
-        body_text = _block_text(text, kind, block.get("environment"))
+        block_text = block.get("latex", "")
+        body_text = _block_text(block_text, kind, block.get("environment"))
         if kind in {"paragraph", "unknown"} and not body_text:
-            return None
-        return {
+            continue
+        spans = entry_source_spans(result, start, end)
+        if not spans:
+            raise ValueError("block does not map to the source tree: "
+                             f"{source.get('path')!r} [{start}, {end})")
+        anchor = 0
+        for index, char in enumerate(block_text):
+            if not char.isspace():
+                anchor = index
+                break
+        anchor_spans = entry_source_spans(result, start + anchor,
+                                          start + anchor + 1)
+        first = anchor_spans[0] if anchor_spans else spans[0]
+        record = {
             "kind": kind,
             "environment": block.get("environment"),
             "level": None,
-            "source_level": raw_level,
-            "command": command,
-            "numbered": numbered,
+            "source_level": block.get("section_level"),
+            "command": None,
+            "numbered": None,
             "appendix": False,
-            "title": title_text,
-            "title_tex": title_tex,
+            "title": "",
+            "title_tex": block.get("title_tex", ""),
             "text": body_text,
             "labels": list(block.get("labels") or []),
             "references": list(block.get("references") or []),
             "source": {
-                "path": path,
-                "char_start": start if source_start is None else source_start,
-                "char_end": end if source_end is None else source_end,
-                "line_start": source.get("line_start"),
-                "line_end": source.get("line_end"),
+                "path": first[0],
+                "char_start": first[1],
+                "char_end": first[2],
+                "line_start": lines.line_at(first[0], first[1]),
+                "line_end": lines.line_at(first[0], max(first[1], first[2] - 1)),
             },
+            "source_spans": [
+                {"path": path, "char_start": low, "char_end": high,
+                 "line_start": lines.line_at(path, low),
+                 "line_end": lines.line_at(path, max(low, high - 1))}
+                for path, low, high in spans],
             "entry": {
-                "char_start": entry_start,
-                "char_end": entry_end,
-                "byte_start": char_to_byte[entry_start],
-                "byte_end": char_to_byte[entry_end],
+                "char_start": start,
+                "char_end": end,
+                "byte_start": char_to_byte[start],
+                "byte_end": char_to_byte[end],
             },
             "origin_block_key": block.get("key"),
             "origin_parent_key": block.get("parent_key"),
-            "spans_include": False,
+            "spans_include": len(spans) > 1,
         }
+        if kind == "section":
+            record["command"], record["numbered"] = _section_metadata(
+                block_text, record["source_level"])
+            record["title"] = _plain(block.get("title_tex", ""))
+        merged.append(record)
 
-    merged: list[dict] = []
-    for path in sorted(blocks_by_file):
-        for block in blocks_by_file[path]:
-            source = block.get("source") or {}
-            if source.get("path") != path:
-                continue
-            start = int(source.get("char_start", 0))
-            end = int(source.get("char_end", 0))
-            if end <= start:
-                continue
-            block_text = block.get("latex", "")
-            cuts = [span for span in replaced.get(path, [])
-                    if span[0] < end and span[1] > start]
-            if not cuts or block.get("kind") not in {"paragraph", "unknown"}:
-                record = block_record(path, block, start, end, text=block_text)
-                if record is not None:
-                    record["spans_include"] = bool(cuts)
-                    merged.append(record)
-                continue
-            cursor = start
-            for cut_start, cut_end in cuts:
-                left = max(cursor, start)
-                right = min(cut_start, end)
-                if right > left:
-                    offset = left - start
-                    length = right - left
-                    piece = block_text[offset:offset + length]
-                    if piece.strip():
-                        record = block_record(path, block, left, right, text=piece)
-                        if record is not None:
-                            merged.append(record)
-                cursor = max(cursor, min(cut_end, end))
-            if cursor < end:
-                piece = block_text[cursor - start:]
-                if piece.strip():
-                    record = block_record(path, block, cursor, end, text=piece)
-                    if record is not None:
-                        merged.append(record)
-    merged.sort(key=lambda item: item["entry"]["char_start"])
     for index, block in enumerate(merged, start=1):
         block["order"] = index
         block["key"] = f"block-{index}"
+    key_map = {block["origin_block_key"]: block["key"]
+               for block in merged if block.get("origin_block_key")}
 
-    origin_map: dict[tuple[str, object], str] = {
-        (block["source"]["path"], block.get("origin_block_key")): block["key"]
-        for block in merged if block.get("origin_block_key")}
     section_blocks = [block for block in merged if block["kind"] == "section"]
     raw_levels = [int(block["source_level"]) for block in section_blocks
                   if isinstance(block.get("source_level"), int)]
@@ -1016,6 +1025,7 @@ def merge_blocks(result: AssemblyResult, blocks_by_file: Mapping[str, list[dict]
             "title": block["title"],
             "title_tex": block["title_tex"],
             "source": block["source"],
+            "source_spans": block["source_spans"],
             "entry": block["entry"],
             "block_ids": [block["key"]],
         })
@@ -1032,8 +1042,7 @@ def merge_blocks(result: AssemblyResult, blocks_by_file: Mapping[str, list[dict]
                 section_stack.pop()
             section_stack.append(block["section_id"])
             continue
-        origin_parent = origin_map.get((block["source"]["path"],
-                                        block.get("origin_parent_key")))
+        origin_parent = key_map.get(block.get("origin_parent_key"))
         block["parent_key"] = origin_parent or (
             section_block_keys.get(section_stack[-1]) if section_stack else None)
         block["section_id"] = section_stack[-1] if section_stack else None

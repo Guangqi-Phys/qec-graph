@@ -89,6 +89,63 @@ class PrepareTests(unittest.TestCase):
         self.assertEqual(texts, ["CORRECT_CHAPTER."])
         self.assertTrue(prepared.coverage["document_complete"])
 
+    def test_theorem_declared_in_the_entry_applies_to_an_included_file(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n"
+                         b"\\newtheorem{specialthm}{Theorem}\n"
+                         b"\\begin{document}\n\\input{frag}\n\\end{document}\n"),
+            "frag.tex": (b"\\begin{specialthm}\\label{thm:one}\n"
+                         b"IMPORTANT_THEOREM.\n\\end{specialthm}\n"),
+        })
+        prepared = prepare_source(tree)
+        block = next(block for block in prepared.document["blocks"]
+                     if block["kind"] == "theorem")
+        self.assertEqual(block["environment"], "specialthm")
+        self.assertEqual(block["source"]["path"], "frag.tex")
+        self.assertIn("thm:one", block["labels"])
+        self.assertIn("IMPORTANT_THEOREM.", block["text"])
+
+    def test_included_theorem_body_stays_inside_its_theorem(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n"
+                         b"\\newtheorem{theorem}{Theorem}\n"
+                         b"\\begin{document}\n"
+                         b"\\begin{theorem}\\input{body}\\end{theorem}\n"
+                         b"\\end{document}\n"),
+            "body.tex": b"INSIDE_THEOREM_BODY.\n",
+        })
+        prepared = prepare_source(tree)
+        blocks = prepared.document["blocks"]
+        self.assertEqual([block["kind"] for block in blocks], ["theorem"])
+        self.assertEqual(blocks[0]["text"], "INSIDE_THEOREM_BODY.")
+        self.assertTrue(blocks[0]["spans_include"])
+        self.assertEqual([span["path"] for span in blocks[0]["source_spans"]],
+                         ["main.tex", "body.tex", "main.tex"])
+
+    def test_repeated_include_yields_one_block_per_occurrence(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\section{A}\n\\input{frag}\n"
+                         b"\\section{B}\n\\input{frag}\n\\end{document}\n"),
+            "frag.tex": b"REPEATED_CONTENT.\n",
+        })
+        prepared = prepare_source(tree)
+        document = prepared.document
+        self.assertEqual(prepared.assembly.text.count("REPEATED_CONTENT."), 2)
+        paragraphs = [block for block in document["blocks"]
+                      if block["kind"] == "paragraph"]
+        self.assertEqual([block["text"] for block in paragraphs],
+                         ["REPEATED_CONTENT.", "REPEATED_CONTENT."])
+        self.assertEqual([block["source"]["path"] for block in paragraphs],
+                         ["frag.tex", "frag.tex"])
+        self.assertEqual(paragraphs[0]["source"]["char_start"],
+                         paragraphs[1]["source"]["char_start"])
+        self.assertNotEqual(paragraphs[0]["entry"]["char_start"],
+                            paragraphs[1]["entry"]["char_start"])
+        titles = {section["id"]: section["title"] for section in document["sections"]}
+        self.assertEqual(titles[paragraphs[0]["section_id"]], "A")
+        self.assertEqual(titles[paragraphs[1]["section_id"]], "B")
+
     def test_theorem_body_group_is_not_stripped_as_an_environment_argument(self):
         tree = SourceTree("directory", {
             "main.tex": (b"\\documentclass{article}\n"

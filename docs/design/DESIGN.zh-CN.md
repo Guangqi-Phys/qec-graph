@@ -389,19 +389,27 @@ preamble，并从来源中的 `\newcommand`/`\def` 学习零参数字面路径�
 - `sections[]`：稳定 `id`、`parent_id`、归一化 `level`（当前文档最高层为 1）、
   `source_level`、`command`、`numbered`、`appendix`、`title`、`title_tex`、
   `source`、`entry`、`block_ids`；
-- `blocks[]`：`id`、`document_id`、`section_id`、`kind`、纯文本 `text`、
-  labels、references、`source`、`entry`；
+- `blocks[]`：`key`、`document_id`、`section_id`、`kind`、纯文本 `text`、
+  labels、references、`source`、`source_spans`、`entry`；
 - `text_projection: reading-v1`：纯文本去掉命令、注释和 label，保留数学、
   形如 `[key]` 的引用键，以及 theorem/proof 正文；
 - `coverage`：`content_complete`、`structure_complete`、`document_complete`，
   以及 `missing_dependencies`、`preamble_missing`。不检查编译，编译不是完成条件。
+
+模型来自对组装后 entry 的一次解析，因此 entry preamble 中的声明——定理环境、
+宏——会作用于所有被引入片段，block 边界跟随 entry 而不是各个文件。block 再通过
+source map 投影回原始文件：`source` 锚定 block 首个非空白字符，`source_spans`
+按 entry 顺序列出该 block 覆盖的每个来源区间（`spans_include` 标记跨越 include
+边界的 block）。因此重复 include 的每次出现各有一个 block，并各自带有 entry 区间
+和所属 section。
 
 输出是 `entry.tex`、`source-map.json`、`document.json`、`coverage.json`、
 `diagnostics.json` 和 `manifest.json`（`qecgraph.prepare/2`）。产物先暂存，再用
 一次目录改名整体切换：写入失败保留上一份完整结果；非空但没有 prepare manifest
 的目录会被拒绝，除非调用方显式覆盖。本路径尚未接入 workspace 的
 stage/validate/publish。parser 错误会让结构保持 partial，而不是静默接受；
-bibliography 和资产复制不属于本步骤。
+当某一处畸形内容打断结构扫描时，entry 会按已解析的顶层 include 分块重新解析，
+避免一个坏文件丢掉其他文件的结构。bibliography 和资产复制不属于本步骤。
 
 ```bash
 python tools/prepare_arxiv.py /path/to/source-tree \
