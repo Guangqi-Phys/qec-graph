@@ -19,12 +19,16 @@ def overlaps(source, expected):
                 and min(source['char_end'], expected['char_end']) > max(source['char_start'], expected['char_start']))
 
 
-def evaluate(session, dataset, *, allow_replayed_release=False):
+def evaluate(session, dataset, *, modes=('literal', 'keyword'), allow_replayed_release=False):
     if not isinstance(dataset.get('cases'), list) or not dataset['cases']:
         raise ValueError('A nonempty explicit case list is required')
     formal = dataset.get('format') == 'qecgraph.source-first-retrieval-cases.v1'
     if formal:
         validate_formal_dataset(session, dataset, allow_replayed_release)
+    if {'vector', 'hybrid'} & set(modes):
+        projection = session.knowledge.retrieval
+        if not projection.current or projection.data['identity']['provider'] != 'local':
+            raise ValueError('Offline evaluation requires a current local vector index')
     measurements = []
     for case in dataset['cases']:
         expected = case['expected_sources']
@@ -36,7 +40,7 @@ def evaluate(session, dataset, *, allow_replayed_release=False):
             if file['data']['sha256'] != span['file_sha256'] or not 0 <= span['char_start'] < span['char_end'] <= len(text):
                 raise ValueError('Expected evidence is not bound to this source release')
         outcomes = {}
-        for mode in ('literal', 'keyword'):
+        for mode in modes:
             args = {'query': case['query'], 'mode': mode, 'include_proposals': False, 'include_ai_extracted': False}
             start = perf_counter()
             response = session.invoke('qec_search', {**args, 'limit': 10, 'detail': 'full'})
@@ -61,7 +65,7 @@ def evaluate(session, dataset, *, allow_replayed_release=False):
                               'error': response.get('error') or compact.get('error')}
         measurements.append({'id': case['id'], 'question': case['question'], 'query': case['query'], 'modes': outcomes})
     summary = {}
-    for mode in ('literal', 'keyword'):
+    for mode in modes:
         rows = [case['modes'][mode] for case in measurements]
         summary[mode] = {metric: mean(row[metric] for row in rows) for metric in
                          ('hit_at_5', 'recall_at_5', 'recall_at_10', 'reciprocal_rank_at_10')}
@@ -72,12 +76,12 @@ def evaluate(session, dataset, *, allow_replayed_release=False):
     return {'format': 'qecgraph.retrieval-evaluation.v1', 'scope': session.scope,
             'label_release': dataset.get('release'),
             'dataset_sha256': hash_text(canonical(dataset)), 'label_status': dataset['label_status'],
-            'comparison': 'Literal versus BM25 on the same current implementation, release and eligible units; not an old-code replay',
+            'comparison': 'Selected ranking modes share the same implementation, release and eligible units within this run',
             'interpretation': ('Source-first agent annotations for evidence discovery. Independent researcher review is pending.'
                                if formal else 'Engineering smoke labels for source-block discovery.'),
             'acceptance': ({'thresholds': dataset['thresholds'],
                             'passed': (summary['keyword']['hit_at_5'] >= dataset['thresholds']['hit_at_5']
-                                       and not summary['keyword']['failures'])} if formal else None),
+                                       and not summary['keyword']['failures'])} if formal and 'keyword' in summary else None),
             'summary': summary, 'cases': measurements}
 
 
@@ -98,15 +102,20 @@ def main():
     parser.add_argument('--cases', type=Path, required=True, help='Explicit source-bound JSON questions')
     parser.add_argument('--allow-replayed-release', action='store_true',
                         help='Allow another explicitly pinned release when all labeled source versions and hashes match')
+    parser.add_argument('--mode', action='append', choices=('literal', 'keyword', 'vector', 'hybrid'),
+                        help='Select a ranking mode, repeat to compare several (default: literal and keyword)')
     parser.add_argument('--enforce', action='store_true', help='Return failure if the frozen threshold is missed')
     parser.add_argument('--out', type=Path, required=True, help='Local measurement report')
     args = parser.parse_args()
     if args.allow_replayed_release and args.release is None:
         parser.error('--allow-replayed-release requires an explicit --release')
+    modes = tuple(dict.fromkeys(args.mode or ('literal', 'keyword')))
+    if args.enforce and 'keyword' not in modes:
+        parser.error('--enforce requires keyword mode')
     dataset = read_json(args.cases)
     session = WorkspaceSession(args.machine, args.release or dataset.get('release'),
                                profile='research', max_chars=1000000)
-    report = evaluate(session, dataset, allow_replayed_release=args.allow_replayed_release)
+    report = evaluate(session, dataset, modes=modes, allow_replayed_release=args.allow_replayed_release)
     atomic_json(args.out, report)
     print(json.dumps({'report': str(args.out.resolve()), 'summary': report['summary']}, indent=2))
     missed = args.enforce and report['acceptance'] is not None and not report['acceptance']['passed']
