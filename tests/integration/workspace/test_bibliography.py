@@ -54,6 +54,9 @@ Previous work \cite{target,duplicate,missing}.
             self.assertEqual(link['evidence']['identifiers'], ['arxiv:2512.12345v2'])
             source = link['evidence']['source']
             self.assertEqual(source['path'], 'references.bib')
+            snapshot = workspace.registry.root / session.state['versions'][source['source_version_id']]['snapshot_path']
+            self.assertEqual((snapshot / 'sources/references.bib').read_bytes(), bib.encode())
+            self.assertFalse((snapshot / 'assets/references.bib').exists())
             result = session.invoke('qec_fetch', {'identifier': link['source']})
             self.assertTrue(result['ok'], result)
             self.assertEqual(result['data']['text'], bib[source['char_start']:source['char_end']])

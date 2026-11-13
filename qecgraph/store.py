@@ -62,7 +62,7 @@ def extraction_tool_identity():
 
 def extraction_semantics(tool_identity):
     """Only declared extraction semantics affect identity; build bytes are provenance."""
-    return {'snapshot_format': 2, 'parser_version': tool_identity.get('parser_version', PARSER_VERSION),
+    return {'snapshot_format': 3, 'parser_version': tool_identity.get('parser_version', PARSER_VERSION),
             'rule_version': tool_identity.get('rule_version', RULE_VERSION)}
 
 
@@ -247,6 +247,26 @@ def ingest(entry, project_id, out, project_root=None, config_path=None, annotati
 
 
 @task('Preparing source extraction')
+def _capture_resources(parsed, root, source_bytes):
+    resource_bytes, resource_digests = {}, {}
+    for resource in parsed.get("resources", []):
+        path = resource.get("path")
+        if not path:
+            continue
+        if path not in resource_bytes:
+            resolved = safe_relative(root, path)
+            if not resolved.is_file():
+                raise ValueError(f'Input changed during build: {path}; retry')
+            raw = resolved.read_bytes()
+            resource_bytes[path] = raw
+            resource_digests[path] = hashlib.sha256(raw).hexdigest()
+        if path in source_bytes and source_bytes[path] != resource_bytes[path]:
+            raise ValueError(f'Input changed during build: {path}; retry')
+        resource["sha256"] = resource_digests[path]
+        resource["size_bytes"] = len(resource_bytes[path])
+    return resource_bytes, resource_digests
+
+
 def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, annotations_path=None, catalog_dir=None,
                    *, strict=False, incremental=False, tool_identity=None, recover_source=None):
     from .source.parser import parse_project
@@ -283,20 +303,7 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
         if hashlib.sha256(raw).hexdigest() != item["sha256"]:
             raise ValueError(f"Parser did not preserve original UTF-8 bytes: {item['path']}")
         source_bytes[item["path"]] = raw
-    resource_bytes, resource_digests = {}, {}
-    for resource in parsed.get("resources", []):
-        path = resource.get("path")
-        if not path:
-            continue
-        if path not in resource_bytes:
-            resolved = safe_relative(root, path)
-            if not resolved.is_file():
-                raise ValueError(f'Input changed during build: {path}; retry')
-            raw = resolved.read_bytes()
-            resource_bytes[path] = raw
-            resource_digests[path] = hashlib.sha256(raw).hexdigest()
-        resource["sha256"] = resource_digests[path]
-        resource["size_bytes"] = len(resource_bytes[path])
+    resource_bytes, resource_digests = _capture_resources(parsed, root, source_bytes)
     source_manifest = [{"path": path, "sha256": hashlib.sha256(raw).hexdigest()} for path, raw in sorted(source_bytes.items())]
     resource_manifest = [{"path": path, "sha256": digest} for path, digest in sorted(resource_digests.items())]
     project_source_hash = _project_source_hash(parsed["entry"], source_manifest, resource_manifest, config)
@@ -347,7 +354,8 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
 
         try:
             write_json(temporary / '.qecgraph-building.json', {'format': 'qecgraph.building', 'snapshot_id': snapshot_id})
-            for directory, files in (("sources", source_bytes), ("assets", resource_bytes)):
+            unique_resources = {path: raw for path, raw in resource_bytes.items() if path not in source_bytes}
+            for directory, files in (("sources", source_bytes), ("assets", unique_resources)):
                 for rel, raw in files.items():
                     path = safe_relative(temporary / directory, rel)
                     write_output(path.relative_to(temporary).as_posix(), raw)
@@ -650,7 +658,9 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_has
             raise ValueError("Source hash mismatch")
         sources[path] = raw.decode("utf-8")
         captured[relative] = digest
-    required = {"assets/" + row["path"]: row["sha256"] for row in manifest["resources"]}
+    shared_sources = sources.keys() if fingerprint["snapshot_format"] >= 3 else ()
+    required = {("sources/" if row["path"] in shared_sources else "assets/") + row["path"]: row["sha256"]
+                for row in manifest["resources"]}
     required["graph.sqlite"] = None
     source_lines = {}
     nodes = {n["id"]: n for n in graph["nodes"]}
