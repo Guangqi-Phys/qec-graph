@@ -288,7 +288,6 @@ scope（`stabilizer`/`gauge`/`measured`）和 min/max/mean/histogram。在 sympl
 - 数学：`depends_on_declared`、`depends_on_candidate`、`depends_on_reviewed`、`proof_of`、`proof_of_candidate`、`normalizes_to`；
 - 数据：`has_check_matrix`、`has_matrix`、`instance_of`、`generated_by`；
 - 实验：`uses_circuit`、`uses_noise`、`uses_decoder`、`reports`、`supports`、`contradicts`；
-- Lean：`formalizes`、`maps_declaration`、`maps_source_occurrence`、`has_build_evidence`、`lean_type_depends_on`、`lean_proof_depends_on`（及传递变体）；
 - catalog：`catalog:*` 保留导入含义；它们不变成证明边。
 - 思路：`addresses_refs`、`motivated_by_refs`、`extends_refs`、`contradicts_refs` 关联思路；`related_refs` 关联研究对象，目标均包含精确修订。
 
@@ -345,8 +344,7 @@ parser diagnostic，不是数学环。
 它不展开任意宏、不判断条件、不执行 TeX、不推断数学真值。partial 抽取是有效且
 显式标记的快照；`--strict` 把它留在 staging，不推进 `CURRENT`。
 
-数学块之外的 `\lean` 和 `\uses` 作为带诊断的 `describes` / `references` 关联保留，
-不升级为类型化证明依赖。`\def` 和 `\let` 仅为后续可静态判定的 `\ifdefined` 标记
+数学块之外的 `\uses` 作为带诊断的引用保留。形式化标记保留在原始来源字节中。`\def` 和 `\let` 仅为后续可静态判定的 `\ifdefined` 标记
 已定义，替换文本保持不透明。
 
 带花括号的 `\href`、`\url` 和 `\nolinkurl` 目标保留 URL 中的百分号编码。

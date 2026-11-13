@@ -24,7 +24,6 @@ tests/
 | Integration | 工作区 | `integration/workspace/test_workspace.py`、`test_workspace_migration.py`、`test_workspace_query.py`、`test_incremental.py`、`test_watch.py`、`test_status.py` | init/sync/rebuild、迁移、查询、增量/watch、状态 |
 | Integration | Corpus/审核 | `integration/corpus/test_corpus.py`、`test_review.py`、`test_apply.py`、`test_research.py` | corpus 身份、review/apply、类型化研究记录 |
 | Integration | MCP/CLI/渲染 | `integration/mcp/test_mcp.py`、`integration/mcp/test_ai_tools.py`、`integration/cli/test_cli.py`、`integration/rendering/test_human.py` | 只读 MCP、CLI、Obsidian 渲染 |
-| Integration | Lean（延期） | `integration/lean/test_lean_export.py`、`integration/lean/test_lean_integration.py` | 仅实验回归 fixtures |
 | Contract | 文档 | `contracts/docs/test_docs.py`、`contracts/docs/test_docs_bilingual.py` | 状态/目录/链接契约和中英一致性 |
 | Contract | 分发包 | `contracts/packaging/test_distribution.py`、`contracts/packaging/test_installer.py` | 元数据、安装器、分发包 |
 | Contract | 架构/工具 | `contracts/tooling/test_architecture.py`、`contracts/tooling/test_tools.py` | 导入边界/公共 API 和所有 `tools/*.py --help` 路径 |

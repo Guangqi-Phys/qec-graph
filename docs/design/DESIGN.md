@@ -270,7 +270,6 @@ The canonical relation registry is `qecgraph.research.RELATIONS` / graph validat
 - mathematical: `depends_on_declared`, `depends_on_candidate`, `depends_on_reviewed`, `proof_of`, `proof_of_candidate`, `normalizes_to`;
 - data: `has_check_matrix`, `has_matrix`, `instance_of`, `generated_by`;
 - experiments: `uses_circuit`, `uses_noise`, `uses_decoder`, `reports`, `supports`, `contradicts`;
-- Lean: `formalizes`, `maps_declaration`, `maps_source_occurrence`, `has_build_evidence`, `lean_type_depends_on`, `lean_proof_depends_on` (and transitive variants);
 - catalogs: `catalog:*` preserve imported meaning; they do not become proof edges.
 - thoughts: `addresses_refs`, `motivated_by_refs`, `extends_refs`, `contradicts_refs` link thoughts; `related_refs` links research objects. Each target includes its exact revision.
 
@@ -325,9 +324,9 @@ Braced `\href`, `\url`, and `\nolinkurl` targets preserve literal percent escape
 
 It does not expand arbitrary macros, evaluate conditionals, execute TeX, or infer mathematical truth. A partial extraction is a valid, explicitly marked snapshot; `--strict` keeps it in staging without advancing `CURRENT`.
 
-`\lean` and `\uses` outside a mathematical block are preserved as `describes` / `references` associations with a diagnostic; they do not become typed proof dependencies. `\def` and `\let` mark a name as defined for a later statically decidable `\ifdefined`, while their replacement text stays opaque.
+`\uses` outside a mathematical block is preserved as a reference with a diagnostic. Formalization markup remains in original source bytes. `\def` and `\let` mark a name as defined for a later statically decidable `\ifdefined`, while their replacement text stays opaque.
 
-Parsed kinds also include abstract, algorithm, assumption, claim, notation, acknowledgments, statement_other, title, author_block and literal bib_entry. Unique local bibliography keys resolve to exact entries; duplicates remain ambiguous. BibTeX/.bbl and cross-paper identity resolution remain incomplete. Fragment reads attach bounded literal macro definitions and reference previews, without macro expansion or inferred proof dependencies. Non-UTF-8 input produces an explicit unsupported-encoding diagnostic; original bytes remain archived.
+Parsed kinds also include abstract, algorithm, assumption, claim, notation, acknowledgments, statement_other, title, author_block and literal bib_entry. Unique local bibliography keys resolve to exact entries; duplicates remain ambiguous. Literal BibTeX entries and explicitly included traditional .bbl files are read. Cross-paper edges require an exact match to a unique registered DOI or arXiv identifier. Fragment reads attach bounded literal macro definitions and reference previews, without macro expansion or inferred proof dependencies. Non-UTF-8 input produces an explicit unsupported-encoding diagnostic; original bytes remain archived.
 
 ### 5.2 Source block vs normalized claim
 

@@ -1059,7 +1059,7 @@ class Workspace:
         if candidate == old:
             return
         phase('Validating candidate release')
-        validation = self.registry.validate(candidate, check_live_lean=False, manifest_hashes=manifest_hashes)
+        validation = self.registry.validate(candidate, manifest_hashes=manifest_hashes)
         if (not validation['passed'] or any(issue['severity'] == 'error'
                                             for issue in self._normalization_issues(state, limits))
                 or next(proposal_issues(self.registry, state), None) is not None):
@@ -1224,7 +1224,7 @@ class Workspace:
             progress(1, 3, 'Checking the current release')
         state, fixed = self.registry.read()
         verified_spans = {}
-        result = self.registry._validate_state(state, fixed, check_live_lean=False, verified_spans=verified_spans)
+        result = self.registry._validate_state(state, fixed, verified_spans=verified_spans)
         issues = result.setdefault('issues', [])
         if progress:
             progress(2, 3, 'Verifying archived packages')

@@ -42,14 +42,12 @@
         "check_matrix",
         "implementation",
         "evidence",
-        "formalization",
         "circuit",
         "noise",
         "decoder",
         "experiment",
         "metric",
-        "asset",
-        "lean_declaration"
+        "asset"
       ]
     },
     "revision": {
@@ -814,60 +812,6 @@
       "if": {
         "properties": {
           "kind": {
-            "const": "formalization"
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "data": {
-            "required": [
-              "claim_id",
-              "lean_declaration",
-              "build_evidence_id",
-              "semantic_review",
-              "proof_progress"
-            ],
-            "properties": {
-              "claim_id": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "lean_declaration": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "build_evidence_id": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "semantic_review": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "proof_progress": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "kind": {
             "const": "circuit"
           }
         }
@@ -1282,85 +1226,6 @@
                   "null"
                 ],
                 "minimum": 1
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "kind": {
-            "const": "lean_declaration"
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "data": {
-            "required": [
-              "declaration_name",
-              "module",
-              "type",
-              "type_expr_sha256",
-              "build_evidence_id",
-              "build_id",
-              "proof_progress",
-              "axiom_audit",
-              "semantic_review"
-            ],
-            "properties": {
-              "declaration_name": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "module": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "type": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "type_expr_sha256": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "build_evidence_id": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "build_id": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "proof_progress": {
-                "enum": [
-                  "build_passed",
-                  "referenced_name_only"
-                ]
-              },
-              "axiom_audit": {
-                "enum": [
-                  "allowed",
-                  "not_exported"
-                ]
-              },
-              "semantic_review": {
-                "const": "not_reviewed"
               }
             }
           }

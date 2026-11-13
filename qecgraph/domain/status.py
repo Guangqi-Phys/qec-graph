@@ -3,7 +3,6 @@ from __future__ import annotations
 
 
 INACTIVE = {'stale', 'unbound_review', 'unresolved'}
-LEAN_RECORD_KINDS = {'lean_declaration', 'formalization'}
 
 
 def eligible(edge, include_candidates=False):

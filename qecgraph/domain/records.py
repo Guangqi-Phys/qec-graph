@@ -9,7 +9,7 @@ RECORD_SCHEMA = 'qecgraph.record'
 HASH_PROTOCOL = 'sha256:json-sort-utf8-v1:record-excluding-content_sha256'
 KINDS = {'source_work', 'source_version', 'definition', 'claim', 'family', 'construction',
          'classical_code', 'quantum_code', 'check_matrix', 'implementation', 'evidence',
-         'formalization', 'lean_declaration', 'circuit', 'noise', 'decoder', 'experiment', 'metric', 'asset'}
+         'circuit', 'noise', 'decoder', 'experiment', 'metric', 'asset'}
 
 
 def record_hash(record):

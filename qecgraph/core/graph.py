@@ -15,14 +15,12 @@ from ..source.reading import reading_projection
 
 STATEMENTS = {"lemma", "theorem", "proposition", "corollary", "conjecture", "claim", "statement_other"}
 MATHEMATICS = STATEMENTS | {"definition", "assumption", "notation", "proof", "equation"}
-LEAN_DEPENDENCIES = {'lean_type_depends_on', 'lean_proof_depends_on',
-                     'lean_type_depends_on_transitive', 'lean_proof_depends_on_transitive'}
-DEPENDENCIES = {"depends_on_declared", "depends_on_reviewed"} | LEAN_DEPENDENCIES
+DEPENDENCIES = {"depends_on_declared", "depends_on_reviewed"}
 CANDIDATES = {"depends_on_candidate"}
 KNOWN_RELATIONS = {
     "contains", "defined_in", "includes", "references", "cites", "cites_paper", "uses_resource",
     "depends_on_declared", "depends_on_candidate", "depends_on_reviewed",
-    "proof_of", "proof_of_candidate", "formalizes", "describes", "about",
+    "proof_of", "proof_of_candidate", "describes", "about",
     "has_matrix", "has_check_matrix", "generated_by", "uses_circuit", "uses_noise",
     "uses_decoder", "supports", "contradicts", "reports", "instance_of",
 }
@@ -185,7 +183,6 @@ class _GraphBuilder:
                                **({'bibliography_key': block['bibliography_key'],
                                    'bibliography_ids': citation_identifiers(block['latex'])}
                                   if 'bibliography_key' in block else {}),
-                               "author_claims_formalized": bool(block.get("leanok_declared", False)),
                                "identity_basis": "label" if owned_labels else "content_and_occurrence",
                                "semantic_context_sha256": self.project_source_hash}})
             for label in owned_labels:
@@ -254,22 +251,6 @@ class _GraphBuilder:
                         self.edge(identifier, target, "proof_of", "unresolved" if unresolved else "declared", evidence)
                     else:
                         self.edge(identifier, target, "references", "unresolved" if unresolved else "observed", evidence)
-
-            for declaration in block.get("lean_declarations", []):
-                target = "lean:" + self.project_id + ":" + quote(declaration, safe="._-")
-                if target not in self.nodes:
-                    self.add_node({"id": target, "kind": "lean_declaration", "title": declaration, "origin": "parser",
-                              "data": {"declaration": declaration, "project_revision": None, "build_evidence": None,
-                                       "mapping_status": "author_declared", "proof_status": "not_checked"}})
-                if block["kind"] in MATHEMATICS:
-                    self.edge(target, identifier, "formalizes", "declared", {"method": "latex_lean", "source": block["source"]})
-                else:
-                    # \lean on a remark/table/paragraph is author metadata, not a
-                    # formalization of a mathematical statement.
-                    self.diag("lean_metadata_outside_mathematics",
-                              "\\lean outside a mathematical block is preserved as a declared association",
-                              block["source"])
-                    self.edge(target, identifier, "describes", "declared", {"method": "latex_lean", "source": block["source"]})
 
     def infer_adjacent_proofs(self) -> None:
         # A neighbouring proof is a candidate association, never a verified claim.
@@ -461,8 +442,8 @@ class _GraphBuilder:
 
 def views(graph):
     all_nodes = {n["id"]: n for n in graph["nodes"]}
-    source_ids = {n["id"] for n in graph["nodes"] if n["origin"] == "parser" and n["kind"] != "lean_declaration"}
-    lemma_ids = {n["id"] for n in graph["nodes"] if n["kind"] in MATHEMATICS | {"lean_declaration"}}
+    source_ids = {n["id"] for n in graph["nodes"] if n["origin"] == "parser"}
+    lemma_ids = {n["id"] for n in graph["nodes"] if n["kind"] in MATHEMATICS}
     data_ids = {n["id"] for n in graph["nodes"] if n["origin"] in {"sidecar", "catalog"} or n["kind"] in {"table", "figure", "asset"}}
     result = {}
     for name, base in (("sourcegraph", source_ids), ("lemmagraph", lemma_ids), ("datagraph", data_ids)):

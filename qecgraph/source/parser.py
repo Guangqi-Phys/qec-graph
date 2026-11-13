@@ -850,8 +850,7 @@ class _ProjectParser:
         key = "block-" + str(len(self.blocks) + 1)
         block = {"key": key, "kind": kind, "environment": environment, "title_tex": title_tex,
                  "source": self.span(path, start, end), "latex": self.files[path]["text"][start:end],
-                 "parent_key": parent_key, "labels": [], "references": [], "lean_declarations": [],
-                 "leanok_declared": False, "order": len(self.blocks)}
+                 "parent_key": parent_key, "labels": [], "references": [], "order": len(self.blocks)}
         self.blocks.append(block)
         self.by_key[key] = block
         return block
@@ -898,17 +897,7 @@ class _ProjectParser:
                     block["references"].append({"kind": "cite" if name in _CITATIONS else _REFERENCE_KINDS[name],
                                                 "targets": targets, "source": self.node_span(path, node), "macro": name})
                 return
-            if name == "lean" and block is not None:
-                for declaration in _last_arg(node, text).split(","):
-                    declaration = declaration.strip()
-                    if declaration and declaration not in block["lean_declarations"]:
-                        block["lean_declarations"].append(declaration)
-                return
-            if name in {"leanok", "mathlibok"} and block is not None:
-                block["leanok_declared"] = True
-                return
-            if name == "notready" and block is not None:
-                block["notready_declared"] = True
+            if name in {"lean", "leanok", "mathlibok", "notready"}:
                 return
             if name in {"includegraphics", "bibliography", "addbibresource"}:
                 kind = "graphic" if name == "includegraphics" else "bibliography"

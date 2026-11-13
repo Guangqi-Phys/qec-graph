@@ -208,12 +208,12 @@ class Registry:
             asset['original_path'] = original_path
         return asset
 
-    def validate(self, registry_revision=None, *, check_live_lean=True, manifest_hashes=None):
+    def validate(self, registry_revision=None, *, manifest_hashes=None):
         state, fixed = self.read(registry_revision)
-        return self._validate_state(state, fixed, check_live_lean=check_live_lean, manifest_hashes=manifest_hashes)
+        return self._validate_state(state, fixed, manifest_hashes=manifest_hashes)
 
     @task('Validating record references and evidence')
-    def _validate_state(self, state, fixed, *, check_live_lean=True, verified_spans=None, manifest_hashes=None):
+    def _validate_state(self, state, fixed, *, verified_spans=None, manifest_hashes=None):
         from .validators import validate_graph_types
         from .workspace_projection import project_sources
 

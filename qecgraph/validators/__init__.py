@@ -27,7 +27,6 @@ ENDPOINTS = {
     'depends_on_declared': (MATHEMATICS, MATHEMATICS),
     'depends_on_candidate': (MATHEMATICS, MATHEMATICS),
     'depends_on_reviewed': (MATHEMATICS, MATHEMATICS),
-    'formalizes': ({'lean_declaration', 'formalization'}, MATHEMATICS),
     'supports': ({'evidence'}, {'claim'}),
     'contradicts': ({'evidence', 'claim'}, {'claim'}),
     'has_matrix': ({'quantum_code', 'check_matrix', 'classical_code'}, {'matrix', 'asset'}),
@@ -36,13 +35,6 @@ ENDPOINTS = {
     'uses_noise': ({'experiment', 'circuit'}, {'noise'}),
     'uses_decoder': ({'experiment'}, {'decoder'}),
     'normalizes_to': (MATHEMATICS | {'paragraph', 'table', 'remark'}, {'claim'}),
-    'maps_declaration': ({'formalization'}, {'lean_declaration'}),
-    'maps_source_occurrence': ({'formalization'}, MATHEMATICS | {'paragraph', 'remark'}),
-    'has_build_evidence': ({'formalization', 'lean_declaration'}, {'evidence'}),
-    'lean_type_depends_on': ({'lean_declaration'}, {'lean_declaration'}),
-    'lean_proof_depends_on': ({'lean_declaration'}, {'lean_declaration'}),
-    'lean_type_depends_on_transitive': ({'lean_declaration'}, {'lean_declaration'}),
-    'lean_proof_depends_on_transitive': ({'lean_declaration'}, {'lean_declaration'}),
 }
 
 @lru_cache
@@ -134,7 +126,6 @@ def registry_issues(registry, records):
         fields = {
             'quantum_code': {'construction_id': {'construction'}, 'check_matrix_ids': {'check_matrix'}, 'distance_estimate_ids': {'claim'}},
             'check_matrix': {'instance_id': {'quantum_code'}, 'matrix_definition_id': {'definition'}},
-            'formalization': {'claim_id': {'claim'}},
             'claim': {'subject_id': {'quantum_code', 'check_matrix', 'circuit', 'family', 'construction',
                                       'classical_code'},
                       'check_matrix_id': {'check_matrix'}, 'metric_id': {'definition', 'metric'}},

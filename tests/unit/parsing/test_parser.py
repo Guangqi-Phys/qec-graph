@@ -163,12 +163,10 @@ A remark with \lean{Foo.bar} and a use \uses{lem:x}.
         validate_graph_types(graph)
         kinds = {node['id']: node['kind'] for node in graph['nodes']}
         relations = {(edge['source'], edge['relation'], edge['target']) for edge in graph['edges']}
-        self.assertTrue(any(kinds[source] == 'lean_declaration' and relation == 'describes' and kinds[target] == 'remark'
-                            for source, relation, target in relations))
+        self.assertNotIn('lean_declaration', kinds.values())
         self.assertTrue(any(kinds[source] == 'remark' and relation == 'references' and kinds[target] == 'lemma'
                             for source, relation, target in relations))
         codes = {diagnostic['code'] for diagnostic in graph['diagnostics']}
-        self.assertIn('lean_metadata_outside_mathematics', codes)
         self.assertIn('uses_outside_mathematics', codes)
 
     def test_unclosed_conditional_records_the_structural_limit(self):

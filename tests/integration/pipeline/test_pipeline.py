@@ -253,19 +253,13 @@ class PipelineSemanticsTests(unittest.TestCase):
         )
         self.assertFalse(any(edge["relation"] == "depends_on_reviewed" for edge in graph["edges"]))
 
-    def test_author_leanok_does_not_claim_mathematical_or_lean_verification(self):
+    def test_formalization_markup_is_preserved_as_source_bytes_only(self):
         _, graph, _ = self._demo()
         lemma = self._node(graph, "lem:css-commutation")
-        self.assertTrue(lemma["data"]["author_claims_formalized"])
-        lean_nodes = [node for node in graph["nodes"] if node["kind"] == "lean_declaration"]
-        self.assertEqual(len(lean_nodes), 1)
-        declaration = lean_nodes[0]
-        self.assertEqual(declaration["data"]["declaration"], "QEC.Examples.binary_css_commutation")
-        self.assertEqual(declaration["data"]["proof_status"], "not_checked")
-        self.assertIsNone(declaration["data"]["build_evidence"])
-        self.assertEqual(
-            len(self._edges(graph, declaration["id"], lemma["id"], "formalizes")), 1
-        )
+        self.assertIn(r"\leanok", lemma["latex"])
+        self.assertNotIn("author_claims_formalized", lemma["data"])
+        self.assertFalse(any(node["kind"] == "lean_declaration" for node in graph["nodes"]))
+        self.assertFalse(any(edge["relation"] == "formalizes" for edge in graph["edges"]))
         forbidden = {"verified", "lean_verified", "kernel_checked"}
         self.assertTrue(all(node["verification_status"] not in forbidden for node in graph["nodes"]))
         self.assertEqual(graph["semantic_status"], "not_mathematically_verified")

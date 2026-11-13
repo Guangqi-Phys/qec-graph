@@ -404,10 +404,10 @@ leave source publication available. Run rebuild to regenerate an older-format or
 ### Research context and exact conditions
 
 In the research profile, `qec_get_context` adds `purpose`:
-`theorem`, `performance`, `construction`, `thought` or `lean`. It returns whole
+`theorem`, `performance`, `construction` or `thought`. It returns whole
 source blocks/records, typed evidence links, `missing_components`, `unknown_fields`
 and `conflicts`. Local definitions are labeled context, not inferred dependencies.
-The root is never silently shortened. Lean mode only prepares reading material.
+The root is never silently shortened.
 
 `qec_trace` accepts an exact identifier/revision, `relations`, `direction`
 (`outgoing`, `incoming`, `both`), `depth`, `max_nodes` and `include_candidates`.

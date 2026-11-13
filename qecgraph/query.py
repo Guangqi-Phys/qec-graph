@@ -242,7 +242,7 @@ class QuerySession:
                 "nodes": [item[0] for item in projected], "edges": edges,
                 'excluded_ineligible_annotations': sum(item[1] for item in projected),
                 "truncated": bool(omitted), "omitted_frontier_count": len(omitted),
-                "note": "Document declared/reviewed edges and separately named actual Lean constant edges; bounded scope, not semantic equivalence of a paper and Lean type."}
+                "note": "Declared and reviewed dependencies within the selected graph scope."}
 
     def context(self, identifier, depth=2, include_candidates=False, max_nodes=60):
         if not 0 <= depth <= 20 or not 1 <= max_nodes <= 1000:
@@ -267,7 +267,7 @@ class QuerySession:
                     chosen.extend(additional)
                     chosen_ids.update(additional)
                     omitted |= extra_omitted
-        contextual = {"references", "cites", "uses_resource", "describes", "about", "supports", "formalizes",
+        contextual = {"references", "cites", "uses_resource", "describes", "about", "supports",
                       "has_matrix", "has_check_matrix", "generated_by", "uses_circuit", "uses_noise",
                       "uses_decoder", "instance_of", "reports", "normalizes_to", 'maps_declaration', 'has_build_evidence',
                       'maps_source_occurrence'}

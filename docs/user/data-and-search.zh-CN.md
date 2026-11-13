@@ -352,9 +352,9 @@ embedding 不可用时 hybrid 明确报告关键词回退，纯向量模式返�
 ### 研究上下文与精确条件
 
 研究 profile 的 `qec_get_context` 增加 `purpose`：`theorem`、`performance`、
-`construction`、`thought` 或 `lean`。返回完整来源块/记录、类型化证据关系、
+`construction` 或 `thought`。返回完整来源块/记录、类型化证据关系、
 `missing_components`、`unknown_fields` 和 `conflicts`。局部定义标为上下文，
-不推断为依赖；根陈述不静默截断。Lean 模式只准备阅读材料。
+不推断为依赖；根陈述不静默截断。
 
 `qec_trace` 接受精确 identifier/revision、`relations`、`direction`
 （`outgoing`、`incoming`、`both`）、`depth`、`max_nodes`、`include_candidates`。
