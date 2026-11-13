@@ -91,7 +91,7 @@ A workspace is a local directory with a single writer. `init` creates the layout
 
 1. Put `paper.tar.gz` in `inputs/`; run `qec-graph workspace sync --workspace /path/to/workspace`. The writer claims a copy, archives the exact package under `archive/blobs/sha256/`, and records its receipt.
 2. Verified extraction creates `sources/<tree-hash>/` and a managed store under `machine/source_snapshots/`. It registers the paper version and literal parameter mentions. It does **not** resolve code/decoder/noise/experiment identities automatically.
-3. With explicit `[ai].allow_source_upload = true`, enabled skills and credentials, optional extraction writes four kinds of proposed artifacts under `machine/ai/proposals/`. Canonical domain records require explicit curation and import.
+3. With explicit `[ai].allow_source_upload = true`, enabled skills and credentials, optional extraction writes four kinds of proposed artifacts under `machine/ai/proposals/`. Validated outputs also publish directly as `ai_extraction` research records marked `ai_extracted`. The recorded items retain their paper version, line references and model provenance. Reported labels remain paper-local, and unbound mentions do not enter exact code or performance filters.
 4. Validation binds sources, records and registered review hashes in `machine/states/<release>.json`; atomic replacement of `CURRENT.json` publishes it. Only then may the claimed input be consumed. A failed required step retains the prior release; an unavailable optional retrieval projection may publish as `stale` with keyword fallback.
 5. Human rendering reads that fixed release. A research MCP client calls `qec_list_papers`, `qec_search`, then `qec_fetch` or `qec_get_context` with returned handles. It receives source locations, proposed/reviewed status and explicit missing components. An answer cites those locations; a search hit is not mathematical verification.
 
@@ -241,7 +241,7 @@ Rules:
 - `source_reported`, `computed_exact`, `certificate_checked`, and `lean_build` are distinct evidence kinds.
 - A field-level source locator must resolve to a registered version and a verbatim span.
 - Structural/schema validation is not mathematical verification, and neither is a passing test or a Lean build.
-- AI/provider output is a draft/proposal by default; only an explicit review decision can publish it.
+- Schema- and source-checked semantic outputs publish as research records with `origin: ai_extracted`.
 
 ### 4.3 Domain objects and required distinctions
 

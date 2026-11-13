@@ -291,6 +291,10 @@
         }
       }
     },
+    "ai_research_records": {
+      "type": "object",
+      "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    },
     "generated_research": {
       "type": "object",
       "additionalProperties": {

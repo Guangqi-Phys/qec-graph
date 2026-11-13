@@ -36,6 +36,7 @@ PARAMETERS = {
     'char_start': 'Inclusive Unicode codepoint offset in the registered source file, not a byte offset.',
     'char_end': 'Exclusive Unicode codepoint offset; must remain inside the selected source unit.',
     'include_proposals': 'Include unreviewed AI proposals (default true); each retains proposed status.',
+    'include_ai_extracted': 'Include published research records with AI extraction provenance (default true).',
     'include_candidates': 'Opt into candidate/proposed relationships; never promotes them to verified dependencies.',
     'purpose': 'Select theorem, performance, construction, thought or Lean preparation context; missing evidence stays explicit.',
     'mode': 'keyword uses BM25; hybrid adds optional vectors; vector requires an index; literal normalizes whitespace only.',

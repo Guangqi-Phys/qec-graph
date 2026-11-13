@@ -36,11 +36,13 @@
         "software_project",
         "software_release",
         "software_usage",
-        "research_thought"
+        "research_thought",
+        "ai_extraction"
       ]
     },
     "data": {"type": "object", "properties": {"review_status": {"enum": [null, "proposed", "unreviewed"]}}},
     "is_synthetic": {"type": "boolean"},
+    "origin": {"const": "ai_extracted"},
     "field_evidence": {
       "type": "object",
       "propertyNames": {"pattern": "^/data/(?:[^~]|~[01])*$"},
@@ -91,6 +93,16 @@
     "nullable_refs": {"type": ["array", "null"], "items": {"$ref": "#/$defs/ref"}, "uniqueItems": true},
     "record_data": {
       "$defs": {
+        "ai_extraction": {
+          "required": ["source_ref", "extraction_kind", "extracted", "source_refs", "provenance"],
+          "properties": {
+            "source_ref": {"$ref": "#/$defs/ref", "x-qec-target-kinds": ["paper_version"]},
+            "extraction_kind": {"enum": ["theorem", "assumption", "data", "thought"]},
+            "extracted": {"type": "object"},
+            "source_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+            "provenance": {"type": "object", "required": ["skill", "model", "artifact_sha256"]}
+          }
+        },
         "research_thought": {
         "required": [
           "category",
@@ -570,6 +582,10 @@
     {
       "if": {"properties": {"kind": {"const": "software_usage"}}},
       "then": {"properties": {"data": {"$ref": "#/$defs/record_data/$defs/software_usage"}}}
+    },
+    {
+      "if": {"properties": {"kind": {"const": "ai_extraction"}}},
+      "then": {"required": ["origin"], "properties": {"data": {"$ref": "#/$defs/record_data/$defs/ai_extraction"}}}
     },
     {
       "if": {"properties": {"kind": {"const": "research_thought"}}},

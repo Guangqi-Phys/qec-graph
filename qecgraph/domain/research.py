@@ -203,13 +203,14 @@ def validate_bundle(records):
     return lookup
 
 
-def make_record(kind, identifier, revision, data, *, source=None, method, synthetic=False, evidence=None):
+def make_record(kind, identifier, revision, data, *, source=None, method, synthetic=False, evidence=None, origin=None):
     fields = {_ptr(field): ({'status': 'not_extracted'} if value is None else
                            {'status': 'known', 'source_ref': source, 'method': method})
               for field, value in data.items()}
     fields.update(evidence or {})
     return prepare({'schema': SCHEMA, 'kind': kind, 'id': identifier, 'revision': revision,
-                    'data': data, 'field_evidence': fields, 'is_synthetic': synthetic})
+                    'data': data, 'field_evidence': fields, 'is_synthetic': synthetic,
+                    **({'origin': origin} if origin else {})})
 
 
 def adapt_synthetic(payload):

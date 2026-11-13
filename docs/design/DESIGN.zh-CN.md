@@ -98,7 +98,7 @@ release，绝不在会话中途读取移动的 `CURRENT`。
 
 1. 将 `paper.tar.gz` 放入 `inputs/`，运行 `qec-graph workspace sync --workspace /path/to/workspace`。writer 认领副本，原样归档到 `archive/blobs/sha256/` 并写入回执。
 2. 验证后的解包产生 `sources/<tree-hash>/`，受管理的 store 位于 `machine/source_snapshots/`。自动登记论文版本和字面参数提及；**不自动**归并码、译码器、噪声及实验身份。
-3. 显式配置 `[ai].allow_source_upload = true`、启用 skill 并提供凭据后，可选抽取将四类 proposed 产物写入 `machine/ai/proposals/`。权威领域记录仍需显式整理和导入。
+3. 显式配置 `[ai].allow_source_upload = true`、启用 skill 并提供凭据后，可选抽取将四类 proposed 产物写入 `machine/ai/proposals/`。通过程序校验的结果也直接写入规范研究库，类型为 `ai_extraction`，来源标为 `ai_extracted`。记录保留论文版本、行号引用和模型出处。名称在论文内使用，尚未绑定的提及不进入码或性能精确筛选。
 4. 校验将来源、记录和已登记审核哈希绑定在 `machine/states/<release>.json`，原子替换 `CURRENT.json` 后发布，之后才可消费认领输入。必需步骤失败保留旧 release；可选检索投影不可用时可发布 `stale` 并回退关键词检索。
 5. 人类生成器只读这个固定 release。research MCP 客户端调用 `qec_list_papers`、`qec_search`，再用返回的短标识调用 `qec_fetch` 或 `qec_get_context`，获取来源坐标、proposed/reviewed 状态和明确缺项。回答引用这些坐标；搜索命中不等于数学验证。
 

@@ -75,6 +75,7 @@ class WorkspaceSession:
         self.records = validate_bundle(load_records(self.registry, self.state))
         generated = {r['id']: r['revision'] for v in self.state.get('generated_research', {}).values()
                      for r in v['bindings']}
+        active_ai = self.state.get('ai_research_records', {})
         self.review_states = {}
         for decision in self.state.get('semantic_decisions', {}).values():
             if decision['decision'] != 'approve':
@@ -88,6 +89,7 @@ class WorkspaceSession:
         self.visible = {identity: {**r, **({'effective_review': self.review_states[identity]} if identity in self.review_states else {})}
                         for identity, r in self.records.items() if not r['is_synthetic']
                         and (r['id'] not in generated or generated[r['id']] == r['revision'])
+                        and (r.get('origin') != 'ai_extracted' or active_ai.get(r['id']) == r['revision'])
                         and self.review_states.get(identity, {}).get('status') != 'stale'}
         self._research_ids = {identifier for identifier, _ in self.records}
         self._visible_by_id = {}

@@ -517,9 +517,9 @@ class KnowledgeView:
         for record in self.session.visible.values():
             source = record['data'].get('source_ref') or {}
             units.append({'id': record['id'], 'revision': record['revision'], 'kind': record['kind'],
-                          'title': record['data'].get('statement', record['id']),
+                          'title': self.record_title(record),
                           'source_version_id': source.get('id'), 'snapshot_id': source.get('revision'),
-                          'url': None, 'review_status': record.get('effective_review', {}).get('status', 'proposed'),
+                          'url': None, 'review_status': record.get('origin') or record.get('effective_review', {}).get('status', 'proposed'),
                           'search_text': canonical(record)})
         for material in self.session._materials.values():
             units.append({**material, 'title': material['id'], 'url': None, 'search_text': canonical(material)})
@@ -527,6 +527,13 @@ class KnowledgeView:
             units.append({**{k: v for k, v in proposal.items() if k not in {'data', 'provenance'}},
                           'title': proposal_title(proposal['data']), 'url': None, 'search_text': canonical(proposal['data'])})
         return sorted(units, key=lambda u: (u['kind'] == 'source_file', u['id'], u.get('revision', '')))
+
+    @staticmethod
+    def record_title(record):
+        data = record['data']
+        if record['kind'] == 'ai_extraction':
+            return proposal_title(data['extracted'])
+        return data.get('statement', record['id'])
 
     @cached_property
     def lexical(self):
@@ -552,7 +559,7 @@ class KnowledgeView:
                                                         'source_artifact', 'paper_version', 'title', 'author_block', 'asset'}
                                          or unit.get('source_role') in {'bibliography', 'metadata'}):
                 continue
-            if unit['kind'] in PROPOSAL_KINDS.values() and not args.get('include_proposals', True):
+            if not self._include_extraction(unit['kind'], args):
                 continue
             if args.get('kind') and unit['kind'] != args['kind']:
                 continue
@@ -598,6 +605,14 @@ class KnowledgeView:
         return {**self.session._paginate(rows, args, min(20, self.session.graph.max_results)),
                 'query_semantics': 'discovery', 'method': method, 'retrieval': status, 'fallback': fallback,
                 'absence': 'No match in this release does not establish nonexistence'}
+
+    def _include_extraction(self, kind, args):
+        if kind == 'ai_extraction':
+            return args.get('include_ai_extracted', True)
+        if kind in PROPOSAL_KINDS.values():
+            return args.get('include_proposals', 'ai_research_records' not in self.session.state
+                            or args.get('kind') == kind)
+        return True
 
     def _search_rows(self, allowed, ranked, matches, args, mode):
         """Build source-bound excerpts, suppress overlapping spans and balance papers."""
@@ -708,6 +723,7 @@ def descriptors(session, legacy):
         ('qec_search', {'query': _string(4096), 'kind': _string(), 'source_version_id': _string(4096),
                         'unit': {'enum': ['evidence', 'section']},
                         'include_proposals': {'type': 'boolean', 'default': True},
+                        'include_ai_extracted': {'type': 'boolean', 'default': True},
                         'mode': {'enum': ['keyword', 'vector', 'hybrid', 'literal']},
                         'offset': _integer(), 'limit': _integer(1, session.graph.max_results)}, ['query'],
          'Discover source and record candidates, including unextracted text. Empty results do not establish nonexistence.'),

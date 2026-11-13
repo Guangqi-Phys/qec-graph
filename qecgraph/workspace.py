@@ -913,6 +913,7 @@ class Workspace:
                        'message': str(exc)}
 
     def _publish_archive(self, cfg, digests, limits, *, rebuild, update, ai_client=None):
+        from .domain.ai_records import stage_ai_records
         from .llm.review import proposal_issues
 
         package_count = len(digests)
@@ -1001,6 +1002,8 @@ class Workspace:
                                                 'code_parameters_mentions': len(records) - 1}
                 if generated:
                     stage_records(self.registry, state, generated, verified_spans=verified_spans)
+                if 'ai_research_records' not in state:
+                    stage_ai_records(self.registry, state)
                 collisions = {}
                 for material in materials.values():
                     if material.get('upstream_version') and material.get('source_tree_hash'):
@@ -1101,6 +1104,7 @@ class Workspace:
 
     def _publish_semantic(self, cfg, release, materials, digests, ai_results, limits, client, *, rebuild):
         from .core.transactions import WriterBusy
+        from .domain.ai_records import stage_ai_records
         from .llm.review import proposal_issues
         from .retrieval import stage_index
 
@@ -1119,6 +1123,7 @@ class Workspace:
                         material['ai_extraction'] = ai_results[identity]
                 if next(proposal_issues(self.registry, state), None) is not None:
                     raise ValueError('AI results failed publication validation')
+                stage_ai_records(self.registry, state)
                 stage_index(self.registry, state, cfg.get('retrieval', {}), repair=rebuild)
                 return self.registry._publish(state), None
         except WriterBusy:

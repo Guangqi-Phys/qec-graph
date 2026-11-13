@@ -33,7 +33,7 @@ def evaluate(session, dataset):
                 raise ValueError('Expected evidence is not bound to this source release')
         outcomes = {}
         for mode in ('literal', 'keyword'):
-            args = {'query': case['query'], 'mode': mode, 'include_proposals': False}
+            args = {'query': case['query'], 'mode': mode, 'include_proposals': False, 'include_ai_extracted': False}
             start = perf_counter()
             response = session.invoke('qec_search', {**args, 'limit': 10, 'detail': 'full'})
             elapsed = perf_counter() - start

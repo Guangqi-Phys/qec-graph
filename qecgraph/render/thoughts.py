@@ -143,7 +143,7 @@ def render_pages(session):
         front += ['link: ' + yaml_value(metadata['link']), 'title: ' + yaml_value(metadata['title']),
                   'author:' + ('' if metadata['authors'] else ' []')]
         front += ['  - ' + yaml_value(name) for name in metadata['authors']]
-        front += ['---', '', '# ' + inline(title), '', '> AI answers are proposals awaiting review. Read them alongside the cited source evidence.']
+        front += ['---', '', '# ' + inline(title), '', '> AI-extracted answers include citations to the source evidence.']
         if not metadata['title'] or not metadata['authors'] or not date or len(date) < 7:
             front += ['', '> Some bibliographic metadata is missing or submission dates conflict. Unknown fields use placeholders; ingestion dates are not paper dates.']
         if len(versions) > 1:
@@ -162,7 +162,7 @@ def render_pages(session):
                     for item in proposal['items']:
                         if item['category'] in categories:
                             label = 'AI answer' if item['attribution'] == 'editorial_inference' else 'AI excerpt (author wording)'
-                            answers.append(f'**{label} · proposed**\n\n{inline(item["statement"])}\n\n'
+                            answers.append(f'**{label} · AI extracted**\n\n{inline(item["statement"])}\n\n'
                                            f'Source evidence ({inline(", ".join(item["source_refs"]))}; version {inline(version_label)}):\n\n'
                                            + quote_block(item['source_quote']))
                 for record in records:

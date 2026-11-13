@@ -141,7 +141,7 @@ class ThoughtTests(unittest.TestCase):
                 require_english(page.read_text())
                 self.assertIn('The question remains unresolved', page.read_text())
 
-    def test_workspace_defaults_write_thought_proposals_without_promotion(self):
+    def test_workspace_publishes_thought_extractions_as_research_records(self):
         from qecgraph.render.human import build_human
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -164,6 +164,12 @@ class ThoughtTests(unittest.TestCase):
             self.assertEqual(read_json(proposal)['review_status'], 'proposed')
             self.assertFalse(any(r['kind'] == 'research_thought' for r in WorkspaceSession(root / 'machine').records.values()))
             session = WorkspaceSession(root / 'machine', profile='research')
+            rows = session.invoke('qec_search', {'query': 'question', 'kind': 'ai_extraction'})['data']['results']
+            [row] = rows
+            record = session.invoke('qec_fetch', {'identifier': row['id']})['data']['entity']
+            self.assertEqual(record['origin'], 'ai_extracted')
+            self.assertEqual(record['data']['extracted'], item)
+            self.assertEqual(record['field_evidence']['/data/extracted']['method'], 'ai_extracted')
             args = {'query': 'question', 'kind': 'research_thought_proposal'}
             self.assertEqual(session.invoke('qec_search', {**args, 'include_proposals': False})['data']['results'], [])
             found = session.invoke('qec_search', args)['data']['results']
@@ -181,7 +187,7 @@ class ThoughtTests(unittest.TestCase):
             self.assertEqual(rendered['status'], 'current', rendered)
             page, = (root / 'human').rglob('*_thoughts.md')
             text = page.read_text()
-            self.assertIn('AI excerpt (author wording) · proposed', text)
+            self.assertIn('AI excerpt (author wording) · AI extracted', text)
             self.assertIn('```latex\nA question remains.\n```', text)
             self.assertIn('main\\.tex:3', text)
             self.assertEqual(text.count('No answer available'), 8)
@@ -226,7 +232,7 @@ class ThoughtTests(unittest.TestCase):
             self.assertTrue(before.decode().startswith('---\ntags:\n  - "surface-codes"\n  - "erasure-decoding"\n'
                             'link: "https://example.org/paper"\ntitle: "Surface codes: erasure study"\n'
                             'author:\n  - "San Zhang"\n---\n'))
-            self.assertIn('AI answer · proposed', before.decode())
+            self.assertIn('AI answer · AI extracted', before.decode())
             self.assertIn('Study erasure decoding in surface codes', before.decode())
             proposal = next((root / 'machine/ai/proposals').rglob('extract_thoughts-*.json'))
             data = read_json(proposal)
