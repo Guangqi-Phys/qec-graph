@@ -81,7 +81,9 @@ Each page declares its status at the top. **Only Current pages describe 0.6.x.**
 
 Review records and maintainer decisions use Chinese. Implementation and generated
 knowledge content use English. Original sources and quotations preserve their language.
-[Review and execution notes](reviews/review-2026-11-12/EXECUTION-2026-11-13.zh-CN.md)
+
+- [2026-11-12: full review and execution notes](reviews/review-2026-11-12-Claude-full-review/EXECUTION-2026-11-13.zh-CN.md)
+- [2026-11-13: offline preparation review and validation summary](reviews/review-2026-11-13-arxiv-prepare-redesign/11-pre-push-review.zh-CN.md)
 
 There are no redirect-only or archive pages. Superseded material lives in Git
 history, not in a second documentation tree.

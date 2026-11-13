@@ -16,6 +16,6 @@ globs:
 ignores:
   # Preserve the author's requirements and dated review as supplied.
   - "docs/design/Human.md"
-  - "docs/reviews/review-2026-11-12/REVIEW-2026-11-12.zh-CN.md"
+  - "docs/reviews/review-2026-11-12-Claude-full-review/REVIEW-2026-11-12.zh-CN.md"
   - "legacy/**"
   - "validation/**"
