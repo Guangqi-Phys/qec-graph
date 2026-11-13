@@ -126,6 +126,37 @@ class PrepareTests(unittest.TestCase):
         self.assertEqual([span["path"] for span in blocks[0]["source_spans"]],
                          ["main.tex", "body.tex", "main.tex"])
 
+    def test_empty_path_macro_value_resolves_to_the_empty_prefix(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n"
+                         b"\\newcommand{\\PREFIX}{old}\n\\begin{document}\n"
+                         b"\\renewcommand{\\PREFIX}{}\n"
+                         b"\\input{\\PREFIX-frag}\n\\end{document}\n"),
+            "old-frag.tex": b"STALE_OLD.\n",
+            "-frag.tex": b"CORRECT_EMPTY.\n",
+        })
+        prepared = prepare_source(tree)
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertIn("CORRECT_EMPTY.", texts)
+        self.assertNotIn("STALE_OLD.", texts)
+        self.assertTrue(prepared.coverage["document_complete"])
+
+    def test_conditional_path_definition_is_partial_not_wrong(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\flag}{}\n"
+                         b"\\newcommand{\\DIR}{one}\n\\begin{document}\n"
+                         b"\\ifdefined\\flag\\renewcommand{\\DIR}{one}"
+                         b"\\else\\renewcommand{\\DIR}{two}\\fi\n"
+                         b"\\input{\\DIR/frag}\n\\end{document}\n"),
+            "one/frag.tex": b"CORRECT_ONE.\n",
+            "two/frag.tex": b"WRONG_TWO.\n",
+        })
+        prepared = prepare_source(tree)
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertFalse(any("WRONG_TWO." in text for text in texts))
+        self.assertFalse(prepared.coverage["document_complete"])
+        self.assertIn("unresolved_directives", prepared.coverage["reasons"])
+
     def test_extensionless_fragment_reaches_the_document_model(self):
         tree = SourceTree("directory", {
             "main.tex": (b"\\documentclass{article}\\begin{document}"

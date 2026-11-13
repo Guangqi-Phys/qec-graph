@@ -201,6 +201,97 @@ class AssembleTests(unittest.TestCase):
                          ["one/frag.tex", "one/frag.tex"])
         self.assertNotIn(b"TWO_BODY.", result.data)
 
+    def test_non_literal_redefinition_makes_a_path_uncertain(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{one}\n"
+                         b"\\newcommand{\\OTHER}{two}\n\\begin{document}\n"
+                         b"\\renewcommand{\\DIR}{\\OTHER}\n"
+                         b"\\input{\\DIR/frag}\n\\end{document}\n"),
+            "one/frag.tex": b"STALE_ONE.\n",
+            "two/frag.tex": b"CORRECT_TWO.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertEqual([event.outcome for event in result.events],
+                         ["uncertain_path"])
+        self.assertIsNone(result.events[0].target)
+        self.assertIn(b"\\input{\\DIR/frag}", result.data)
+        self.assertNotIn(b"STALE_ONE.", result.data)
+        self.assertFalse(result.coverage()["complete"])
+
+    def test_empty_redefinition_resolves_the_empty_path(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\PREFIX}{old}\n"
+                         b"\\begin{document}\n\\renewcommand{\\PREFIX}{}\n"
+                         b"\\input{\\PREFIX-frag}\n\\end{document}\n"),
+            "old-frag.tex": b"STALE_OLD.\n",
+            "-frag.tex": b"CORRECT_EMPTY.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertEqual([event.target for event in result.events], ["-frag.tex"])
+        self.assertIn(b"CORRECT_EMPTY.", result.data)
+        self.assertNotIn(b"STALE_OLD.", result.data)
+        self.assertTrue(result.coverage()["complete"])
+
+    def test_definition_in_an_undecidable_conditional_does_not_leak(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\ifdefined\\flag\\newcommand{\\DIR}{two}"
+                         b"\\input{\\DIR/frag}\\fi\n"
+                         b"\\input{\\DIR/frag}\n\\end{document}\n"),
+            "two/frag.tex": b"TWO_BODY.\n",
+            "one/frag.tex": b"ONE_BODY.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertEqual([event.outcome for event in result.events],
+                         ["resolved", "uncertain_path"])
+        self.assertEqual(result.events[0].target, "two/frag.tex")
+        self.assertIsNone(result.events[1].target)
+        self.assertIn(b"TWO_BODY.", result.data)
+        self.assertNotIn(b"ONE_BODY.", result.data)
+
+    def test_equal_conditional_branches_keep_a_definite_path(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{one}\n"
+                         b"\\begin{document}\n"
+                         b"\\ifdefined\\flag\\renewcommand{\\DIR}{two}"
+                         b"\\else\\renewcommand{\\DIR}{two}\\fi\n"
+                         b"\\input{\\DIR/frag}\n\\end{document}\n"),
+            "one/frag.tex": b"ONE_BODY.\n",
+            "two/frag.tex": b"TWO_BODY.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertEqual([event.target for event in result.events], ["two/frag.tex"])
+        self.assertTrue(result.coverage()["complete"])
+
+    def test_gdef_overrides_a_local_definition(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{one}\n"
+                         b"\\begin{document}\n"
+                         b"{\\renewcommand{\\DIR}{two}\\gdef\\DIR{three}"
+                         b"\\input{\\DIR/frag}}\n"
+                         b"\\input{\\DIR/frag}\n\\end{document}\n"),
+            "one/frag.tex": b"ONE_BODY.\n",
+            "two/frag.tex": b"TWO_BODY.\n",
+            "three/frag.tex": b"THREE_BODY.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertEqual([event.target for event in result.events],
+                         ["three/frag.tex", "three/frag.tex"])
+
+    def test_begingroup_scopes_a_path_definition(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{one}\n"
+                         b"\\begin{document}\n\\begingroup\n"
+                         b"\\renewcommand{\\DIR}{two}\\input{\\DIR/frag}\n"
+                         b"\\endgroup\n\\input{\\DIR/frag}\n"
+                         b"\\end{document}\n"),
+            "one/frag.tex": b"ONE_BODY.\n",
+            "two/frag.tex": b"TWO_BODY.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertEqual([event.target for event in result.events],
+                         ["two/frag.tex", "one/frag.tex"])
+
     def test_path_macro_used_before_its_definition_stays_dynamic(self):
         source = {
             "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"

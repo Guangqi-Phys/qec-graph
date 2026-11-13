@@ -360,10 +360,15 @@ comment into the parent; block text is projected from that parse view while
 coordinates still map to the untouched entry bytes.
 Path macros are learned in source order and follow brace-group scope: a use
 before its definition, after a closed group, or inside an inactive conditional
-stays dynamic and is reported. A statically decidable `\iffalse`/`\iftrue`
-branch is followed; other conditionals keep both branches and mark an include
-inside one as uncertain. Dynamic paths and missing body dependencies stay in
-the entry and are reported.
+stays dynamic and is reported. An empty literal value is a definite value; a
+non-literal redefinition makes the name uncertain instead of leaving the old
+value in place. `\gdef`/`\xdef` and `\begingroup`/`\endgroup` follow their
+group scope, and a conditional keeps a value only when every branch gives the
+same definite value. A path that uses an uncertain macro is reported as
+`uncertain_path`. A statically decidable `\iffalse`/`\iftrue` branch is
+followed; other conditionals keep both branches and mark an include inside one
+as uncertain. Dynamic paths and missing body dependencies stay in the entry and
+are reported.
 A missing preamble dependency is a dependency warning, not content loss. Entry
 and source-map coordinates use the half-open convention in §4.5.
 

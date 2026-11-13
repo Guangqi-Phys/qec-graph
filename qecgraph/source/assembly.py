@@ -42,6 +42,11 @@ _LITERAL_MACRO = re.compile(
     r"\\(?:newcommand|renewcommand|providecommand)\*?\s*\{\s*\\([A-Za-z@]+)\s*\}"
     r"\s*\{\s*([^{}\\\r\n]*?)\s*\}"
     r"|\\(?:def|gdef|edef|xdef)\s*\\([A-Za-z@]+)\s*\{\s*([^{}\\\r\n]*?)\s*\}")
+_NEWCOMMAND_NAME = re.compile(
+    r"\\(?:newcommand|renewcommand|providecommand|DeclareRobustCommand)\*?\s*"
+    r"\{\s*\\([A-Za-z@]+)\s*\}")
+_DEF_NAME = re.compile(r"\\(?:def|gdef|edef|xdef)\s*\\([A-Za-z@]+)")
+_LET_NAME = re.compile(r"\\let\s*\\([A-Za-z@]+)")
 _SECTION = re.compile(r"\\(part|chapter|section|subsection|subsubsection|paragraph|subparagraph)"
                       r"\s*(\*)?")
 _SECTION_NAMES = {-1: "part", 0: "chapter", 1: "section", 2: "subsection",
@@ -448,19 +453,39 @@ class _Directive:
     line: int
 
 
+class _UncertainType:
+    """Marker for a macro whose path value is not a definite literal."""
+
+    def __repr__(self) -> str:  # pragma: no cover - debugging aid
+        return "UNCERTAIN"
+
+
+UNCERTAIN = _UncertainType()
+
+
 @dataclass(frozen=True)
 class _MacroDef:
     name: str
-    value: str
+    value: str | None
     start: int
     provide_only: bool = False
     global_scope: bool = False
+
+    def state(self) -> object:
+        return UNCERTAIN if self.value is None else self.value
 
 
 @dataclass(frozen=True)
 class _ScopeEvent:
     opening: bool
     start: int
+
+
+@dataclass(frozen=True)
+class _ConditionalEvent:
+    kind: str
+    start: int
+    names: tuple[str, ...] = ()
 
 
 def _parse_args(text: str, index: int, name: str) -> tuple[tuple[str, ...], int]:
@@ -487,21 +512,37 @@ def _parse_args(text: str, index: int, name: str) -> tuple[tuple[str, ...], int]
     return tuple(arguments), index
 
 
-def _literal_definition(text: str, index: int, name: str) -> _MacroDef | None:
-    """Return a zero-argument literal macro definition, if this is one."""
-    if name not in {"def", "gdef", "edef", "xdef", "newcommand", "renewcommand",
-                    "providecommand"}:
-        return None
-    match = _LITERAL_MACRO.match(text, index)
-    if not match:
-        return None
-    macro = match.group(1) or match.group(3)
-    value = match.group(2) if match.group(2) is not None else match.group(4)
-    if not macro or value is None:
-        return None
-    return _MacroDef(macro, value.strip(), index,
-                     provide_only=name == "providecommand",
-                     global_scope=name in {"gdef", "xdef"})
+def _definition_event(text: str, index: int, name: str) -> _MacroDef | None:
+    """Return a macro definition event, with None when the value is dynamic."""
+    if name in {"def", "gdef", "edef", "xdef"}:
+        match = _DEF_NAME.match(text, index)
+        if not match:
+            return None
+        literal = _LITERAL_MACRO.match(text, index)
+        value = None
+        if literal is not None:
+            value = literal.group(2) if literal.group(2) is not None else literal.group(4)
+            value = value.strip() if value is not None else None
+        return _MacroDef(match.group(1), value, index,
+                         global_scope=name in {"gdef", "xdef"})
+    if name in {"newcommand", "renewcommand", "providecommand",
+                "DeclareRobustCommand"}:
+        match = _NEWCOMMAND_NAME.match(text, index)
+        if not match:
+            return None
+        literal = _LITERAL_MACRO.match(text, index)
+        value = None
+        if literal is not None:
+            value = literal.group(2) if literal.group(2) is not None else literal.group(4)
+            value = value.strip() if value is not None else None
+        return _MacroDef(match.group(1), value, index,
+                         provide_only=name == "providecommand")
+    if name == "let":
+        match = _LET_NAME.match(text, index)
+        if not match:
+            return None
+        return _MacroDef(match.group(1), None, index)
+    return None
 
 
 def _scan(text: str) -> tuple[list, list[dict]]:
@@ -515,11 +556,11 @@ def _scan(text: str) -> tuple[list, list[dict]]:
     diagnostics: list[dict] = []
     conditionals = 0
     uncertain_directives = 0
+    conditional_names: list[set[str]] = []
 
     def walk(start: int, stop: int, uncertain: int) -> None:
         nonlocal conditionals, uncertain_directives
         index = start
-        depth = 0
         while index < stop:
             char = text[index]
             if char == "%":
@@ -569,37 +610,64 @@ def _scan(text: str) -> tuple[list, list[dict]]:
                         diagnostics.append({"code": "iffalse_skipped"})
                     else:
                         diagnostics.append({"code": "iffalse_else_branch"})
-                        walk(min(else_start, stop), fi_start, uncertain + depth)
+                        walk(min(else_start, stop), fi_start, uncertain)
                     index = fi_end
                     continue
                 if else_start is None:
                     index = after
                 else:
-                    walk(after, min(else_start, stop), uncertain + depth)
+                    walk(after, min(else_start, stop), uncertain)
                     index = fi_end
                 continue
             if name == "endinput":
                 diagnostics.append({"code": "endinput"})
                 break
             if name.startswith("if") and name not in {"ifthenelse", "ifboolexpr"}:
+                else_start, fi_start, fi_end = _conditional_bounds(text, after)
+                fi_start = min(fi_start, stop)
+                fi_end = min(fi_end, stop)
+                else_start = (min(else_start, stop)
+                              if else_start is not None else None)
                 conditionals += 1
-                depth += 1
-                index = after
+                names: set[str] = set()
+                conditional_names.append(names)
+                items.append(_ConditionalEvent("enter", index))
+                walk(after, else_start if else_start is not None else fi_start,
+                     uncertain + 1)
+                items.append(_ConditionalEvent(
+                    "switch", else_start if else_start is not None else fi_start))
+                if else_start is not None:
+                    walk(else_start, fi_start, uncertain + 1)
+                items.append(_ConditionalEvent("leave", fi_end,
+                                               tuple(sorted(names))))
+                conditional_names.pop()
+                if conditional_names:
+                    conditional_names[-1].update(names)
+                index = fi_end
                 continue
             if name == "fi":
-                depth = max(0, depth - 1)
+                index = after
+                continue
+            if name in {"begingroup", "bgroup"}:
+                items.append(_ScopeEvent(True, index))
+                index = after
+                continue
+            if name in {"endgroup", "egroup"}:
+                items.append(_ScopeEvent(False, index))
                 index = after
                 continue
             if name in _DECLARATIONS:
-                definition = _literal_definition(text, index, name)
+                definition = _definition_event(text, index, name)
                 if definition is not None:
                     items.append(definition)
+                    for names in conditional_names:
+                        names.add(definition.name)
                 index = _skip_definition(text, after, name)
                 continue
             if name in DIRECTIVES:
                 arguments, after_args = _parse_args(text, after, name)
                 if len(arguments) == (1 if name in ONE_ARG else 2):
-                    if uncertain + depth > 0:
+                    if uncertain > 0:
                         uncertain_directives += 1
                     items.append(_Directive(
                         name, index, after_args, arguments,
@@ -736,13 +804,15 @@ class Assembler:
         self.files = dict(files)
         self.events: list[DirectiveEvent] = []
         self.diagnostics: list[dict] = []
-        self.scopes: list[dict[str, str]] = [{}]
+        self.scopes: list[dict[str, object]] = [{}]
+        self.conditional_frames: list[dict] = []
 
     def assemble(self, entry: str, *, diagnostics: list[dict] | None = None) -> AssemblyResult:
         clean_entry = _safe_literal(entry)
         if clean_entry is None or clean_entry not in self.files:
             raise ValueError(f"entry is not a regular source file: {entry!r}")
         self.scopes = [{}]
+        self.conditional_frames = []
         data, segments, events, local_diagnostics = self._assemble_range(
             clean_entry, 0, len(self.files[clean_entry]), (), whole=True,
             context="")
@@ -794,11 +864,10 @@ class Assembler:
                     self.scopes.pop()
                 continue
             if isinstance(item, _MacroDef):
-                if item.value:
-                    if not (item.provide_only and self._macro(item.name) is not None):
-                        target = (self.scopes[0] if item.global_scope
-                                  else self.scopes[-1])
-                        target[item.name] = item.value
+                self._define(item)
+                continue
+            if isinstance(item, _ConditionalEvent):
+                self._conditional(item)
                 continue
             directive = item
             start = directive.start
@@ -826,8 +895,11 @@ class Assembler:
             resolution = self._resolve(rel, directive, expanded_args, context)
             if resolution is None:
                 add_original(start, stop)
-                event = _replace(event, outcome="dynamic_path",
-                                 out_byte_end=len(output), out_char_end=out_chars)
+                uncertain = self._uncertain_reference(expanded_args)
+                event = _replace(
+                    event,
+                    outcome="uncertain_path" if uncertain else "dynamic_path",
+                    out_byte_end=len(output), out_char_end=out_chars)
                 events.append(event)
                 cursor = stop
                 continue
@@ -849,10 +921,12 @@ class Assembler:
                 continue
             target_base, target_end = target_range
             depth_before = len(self.scopes)
+            frames_before = len(self.conditional_frames)
             child_data, child_segments, child_events, child_diagnostics = self._assemble_range(
                 target, target_base, target_end, stack + (rel,),
                 whole=stripped is False, context=child_context)
             del self.scopes[depth_before:]
+            del self.conditional_frames[frames_before:]
             offset_bytes = len(output)
             offset_chars = out_chars
             for segment in child_segments:
@@ -938,17 +1012,75 @@ class Assembler:
         return (chosen, target_range, stripped, preamble_dropped, "resolved",
                 existing[1:] or None, child_context)
 
-    def _macro(self, name: str) -> str | None:
+    def _macro(self, name: str) -> object | None:
+        for frame in reversed(self.conditional_frames):
+            if name in frame["current"]:
+                return frame["current"][name]
         for scope in reversed(self.scopes):
             if name in scope:
                 return scope[name]
         return None
 
+    def _store(self, name: str, state: object) -> None:
+        if self.conditional_frames:
+            self.conditional_frames[-1]["current"][name] = state
+        else:
+            self.scopes[-1][name] = state
+
+    def _define(self, definition: _MacroDef) -> None:
+        if (definition.provide_only
+                and self._macro(definition.name) is not None):
+            return
+        state = definition.state()
+        if self.conditional_frames:
+            self.conditional_frames[-1]["current"][definition.name] = state
+            return
+        if definition.global_scope:
+            for scope in self.scopes:
+                scope.pop(definition.name, None)
+            self.scopes[0][definition.name] = state
+            return
+        self.scopes[-1][definition.name] = state
+
+    def _conditional(self, event: _ConditionalEvent) -> None:
+        if event.kind == "enter":
+            self.conditional_frames.append({"first": {}, "current": {}})
+            return
+        if event.kind == "switch":
+            if self.conditional_frames:
+                frame = self.conditional_frames[-1]
+                frame["first"] = frame["current"]
+                frame["current"] = {}
+            return
+        if event.kind == "leave":
+            if not self.conditional_frames:
+                return
+            frame = self.conditional_frames.pop()
+            first = frame["first"]
+            second = frame["current"]
+            for name in event.names:
+                left = first.get(name, self._macro(name))
+                right = second.get(name, self._macro(name))
+                if isinstance(left, str) and left == right:
+                    state: object = left
+                elif left is None and right is None:
+                    continue
+                else:
+                    state = UNCERTAIN
+                self._store(name, state)
+
+    def _uncertain_reference(self, arguments: tuple[str, ...]) -> bool:
+        for argument in arguments:
+            for match in re.finditer(r"\\([A-Za-z@]+)", argument):
+                if self._macro(match.group(1)) is UNCERTAIN:
+                    return True
+        return False
+
     def _expand_literal(self, value: str) -> str:
         def replace(match: re.Match) -> str:
             name = match.group(1)
             found = self._macro(name)
-            return found if found is not None else match.group(0)
+            return found if isinstance(found, str) else match.group(0)
         return re.sub(r"\\([A-Za-z@]+)", replace, value)
 
     @staticmethod
