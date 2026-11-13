@@ -1,30 +1,18 @@
-"""Explicit decisions bound to published AI proposals and source projections."""
+"""Read registered AI extraction artifacts and their source bindings."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from pathlib import Path
 import stat
-import uuid
 
 from ..core.graph import canonical, hash_text, read_json
-from ..core.transactions import immutable_json, writer_lock
 from ..registry import Registry
 
 
-SCOPES = frozenset({'statement', 'hypotheses', 'dependencies'})
 _PROPOSALS = Path('ai/proposals')
 
 
 class AIReviewError(ValueError):
-    """An AI proposal review request is invalid."""
-
-
-def _actor(actor):
-    if (not isinstance(actor, dict) or set(actor) != {'id', 'kind'}
-            or not isinstance(actor['id'], str) or not actor['id'].strip()
-            or actor['kind'] not in {'human', 'ai', 'program'}):
-        raise AIReviewError('actor needs an explicit ID and kind')
-    return dict(actor)
+    """An extraction artifact could not be read."""
 
 
 def _registry(workspace):
@@ -97,105 +85,3 @@ def proposals(workspace):
             item.update(review_status=value['review_status'], items=len(value['items']))
         items.append(item)
     return items
-
-
-def decide(workspace, proposal_path, *, actor, decision, rationale, checked_scopes=()):
-    actor = _actor(actor)
-    if decision not in {'approve', 'reject'}:
-        raise AIReviewError('decision must be approve or reject')
-    if not isinstance(rationale, str) or not rationale.strip():
-        raise AIReviewError('review requires a rationale')
-    scopes = set(checked_scopes)
-    if not scopes <= SCOPES:
-        raise AIReviewError('unknown review scope')
-    if actor['kind'] == 'human' and decision == 'approve' and scopes != SCOPES:
-        raise AIReviewError('human approval must check statement, hypotheses and dependencies')
-
-    registry = _registry(workspace)
-    proposal_path = Path(proposal_path).absolute()
-    try:
-        relative = proposal_path.relative_to(registry.root).as_posix()
-    except ValueError as exc:
-        raise AIReviewError('Proposal must be registered in the workspace machine release') from exc
-    if not (registry.root / 'CURRENT.json').is_file():
-        raise AIReviewError('No machine release has published this proposal')
-    with writer_lock(registry.root):
-        state, release = registry.read()
-        entry = proposal_bindings(state).get(relative)
-        if entry is None:
-            raise AIReviewError('Proposal is not registered in the current source projection')
-        binding, material = entry
-        proposal = read_bound_proposal(registry, binding, material)
-        version = state['versions'][proposal['source_version_id']]
-        registry.validate_source_snapshot(version)
-        if material.get('normalization_manifest_sha256'):
-            from .artifacts import load_normalization
-            load_normalization(registry.root, material)
-        review = {
-            'schema': 'qecgraph.ai.review',
-            'id': 'ai-review:' + uuid.uuid4().hex,
-            'proposal_path': 'machine/' + relative,
-            'proposal_sha256': binding['proposal_sha256'],
-            'release_id': release,
-            'source_version_id': proposal['source_version_id'],
-            'snapshot_id': proposal['snapshot_id'],
-            'source_tree_hash': proposal['source_tree_hash'],
-            'skill': proposal['skill'],
-            'actor': actor,
-            'actor_authentication': 'self_asserted_local_identity',
-            'decision': decision,
-            'status': ('rejected' if decision == 'reject'
-                       else 'human_approved' if actor['kind'] == 'human' else 'machine_accepted'),
-            'checked_scopes': sorted(scopes),
-            'rationale': rationale,
-            'created_at': datetime.now(timezone.utc).isoformat(),
-            'scope': 'AI proposal review only; no automatic research-record application',
-        }
-        directory = registry.root / 'ai' / 'reviews'
-        if directory.resolve() != directory:
-            raise AIReviewError('AI review directory must be an unlinked managed path')
-        digest = hash_text(canonical(review))
-        immutable_json(directory / (digest + '.json'), review)
-        state.setdefault('ai_reviews', {})[review['id']] = digest
-        registry._publish(state)
-    return review
-
-
-def read_decisions(registry, state):
-    """Read only release-registered decisions, verifying their exact content."""
-    directory = registry.root / 'ai' / 'reviews'
-    current = proposal_bindings(state)
-    values = []
-    for identifier, digest in sorted(state.get('ai_reviews', {}).items()):
-        path = directory / (digest + '.json')
-        try:
-            metadata = path.lstat()
-            if path.resolve() != path or not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
-                raise AIReviewError('Registered AI review is not a regular managed file')
-            value = read_json(path)
-        except (OSError, ValueError) as exc:
-            raise AIReviewError('Registered AI review is unavailable') from exc
-        if not (isinstance(value, dict) and value.get('id') == identifier and value.get('schema') == 'qecgraph.ai.review'
-                and isinstance(value.get('proposal_path'), str) and path.stem == hash_text(canonical(value))):
-            raise AIReviewError('Registered AI review content binding is invalid')
-        entry = current.get(value['proposal_path'].removeprefix('machine/'))
-        effective_status = 'stale'
-        if entry and entry[0]['proposal_sha256'] == value.get('proposal_sha256'):
-            try:
-                read_bound_proposal(registry, *entry)
-            except (OSError, ValueError, KeyError, TypeError):
-                pass
-            else:
-                material = entry[1]
-                if (value.get('source_version_id') == material['source_version_id']
-                        and value.get('snapshot_id') == material['source_snapshot_id']):
-                    effective_status = value['status']
-        values.append({**value, 'effective_status': effective_status})
-    return values
-
-
-def decisions(workspace, release_id=None):
-    registry = _registry(workspace)
-    if not (registry.root / 'CURRENT.json').exists():
-        return []
-    return read_decisions(registry, registry.read(release_id)[0])

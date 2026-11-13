@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import base64
 import copy
-from collections import Counter, deque
+from collections import deque
 from datetime import datetime
 from functools import cached_property
 from math import isfinite
@@ -653,11 +653,6 @@ class WorkspaceSession:
                 data = {'operational_status': self._operational()}
                 if requested_name == 'qec_status':
                     data['knowledge_coverage'] = self.knowledge.coverage()
-                    from .llm.review import read_decisions
-                    decisions = read_decisions(self.registry, self.state)
-                    data['ai_review_decisions'] = {'registered': len(decisions),
-                        'effective_status': dict(Counter(row['effective_status'] for row in decisions)),
-                        'identity_assurance': 'Local self-assertions; no authenticated human identity'}
             elif name == 'qec_get_asset':
                 uri = args['identifier']
                 if uri not in self.assets:

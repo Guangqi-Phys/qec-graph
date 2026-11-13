@@ -121,7 +121,6 @@ _GROUPS = {
     'human': ('Render human-readable views', {'build': 'human-build'}),
     'ai': ('Configure and test optional AI providers', {
         'test': 'ai-test', 'status': 'ai-status', 'config': 'ai-config', 'proposals': 'ai-proposals',
-        'decide': 'ai-decide', 'decisions': 'ai-decisions',
     }),
     'software': ('Manage the software directory', {
         'import-seed': 'software-import-seed', 'coverage': 'software-coverage',
@@ -137,8 +136,7 @@ _GROUPS = {
 _SHORTCUTS = {'init', 'sync', 'rebuild', 'status', 'validate', 'search', 'show',
               'deps', 'impact', 'context', 'doctor', 'snapshot'}
 _GROUP_ONLY = {'query-performance', 'query-software', 'review-show',
-               'ai-test', 'ai-status', 'ai-config', 'ai-proposals',
-               'ai-decide', 'ai-decisions'}
+               'ai-test', 'ai-status', 'ai-config', 'ai-proposals'}
 _LEGACY_PATHS = {command: f'{group} {verb}' for group, (_, actions) in _GROUPS.items()
                  for verb, command in actions.items() if command not in _SHORTCUTS | _GROUP_ONLY}
 
@@ -202,20 +200,10 @@ def _register_commands(add):
     for name, description in (('ai-test', 'Test the configured AI provider without sending paper text'),
                               ('ai-status', 'Report the selected AI provider/model and key source'),
                               ('ai-config', 'Show the workspace AI configuration with secrets redacted'),
-                              ('ai-proposals', 'List AI proposals waiting for review'),
-                              ('ai-decisions', 'List AI proposal review decisions')):
+                              ('ai-proposals', 'List registered AI extraction artifacts')):
         cmd = add(name, help=description)
         cmd.add_argument('--workspace',
             help='Path to the QEC workspace; omit to use local discovery where supported')
-    cmd = add('ai-decide', help='Record an explicit decision on an AI proposal')
-    cmd.add_argument('proposal', help='Path to a qecgraph.ai.proposal JSON file')
-    cmd.add_argument('--workspace', required=True, help='Path to the QEC workspace')
-    cmd.add_argument('--actor-id', required=True, help='Reviewer identifier')
-    cmd.add_argument('--actor-kind', choices=['human', 'ai', 'program'], required=True)
-    cmd.add_argument('--decision', choices=['approve', 'reject'], required=True)
-    cmd.add_argument('--rationale', required=True, help='Explain the decision')
-    cmd.add_argument('--checked-scope', choices=['statement', 'hypotheses', 'dependencies'],
-                     action='append', default=[], help='Part checked; repeat to include more than one')
     cmd = add('human-build', help='Render Obsidian pages from the current fixed machine release')
     cmd.add_argument('--workspace',
         help='Path to the QEC workspace; omit to use local discovery where supported')

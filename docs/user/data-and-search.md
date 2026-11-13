@@ -264,15 +264,7 @@ conditions before comparing values. [Import and review records](advanced-usage.m
 
 ## AI proposals
 
-AI extraction writes `qecgraph.ai.proposal` files under
-`machine/ai/proposals/`. They remain `proposed` and are not selected by the
-default verified evidence policy. List them with `qec-graph ai proposals` and
-record an explicit decision with `qec-graph ai decide`. A decision binds the
-published proposal hash and source snapshot. If either changes, the original
-decision is retained and reported as stale. Proposal references use
-`projection_path:first-last` with 1-based inclusive lines. The projection maps
-back to the archived source. Existing unbound proposals are retained on disk.
-Run `sync` with AI configured to generate bound proposals from the archive.
+AI extraction artifacts are listed by `qec-graph ai proposals`. Validated items publish as research records with `origin: ai_extracted`. Source references identify the projection file and 1-based inclusive line range.
 
 ### Extract and read research thoughts
 

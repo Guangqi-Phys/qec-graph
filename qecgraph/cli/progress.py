@@ -44,7 +44,6 @@ ACTIVITIES = {
     'register': 'Verifying and registering source snapshot',
     'ai-test': 'Checking AI provider connectivity', 'ai-status': 'Reading AI provider status',
     'ai-config': 'Reading redacted AI configuration', 'ai-proposals': 'Loading published AI proposals',
-    'ai-decide': 'Checking AI proposal review bindings', 'ai-decisions': 'Loading AI review decisions',
 }
 
 _ESCAPES = re.compile(r'\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-?]*[ -/]*[@-~]')

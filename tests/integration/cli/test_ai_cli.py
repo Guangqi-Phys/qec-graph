@@ -84,42 +84,10 @@ class AICliTests(unittest.TestCase):
         self.assertNotIn('thm:a', stdout)
         self.assertNotIn('orphan.json', stdout)
 
-    def test_human_review_requires_the_published_proposal_and_tracks_staleness(self):
-        report = self.publish_proposals()
-        from qecgraph.workspace_query import WorkspaceSession
-        pinned = WorkspaceSession(self.root / 'machine', profile='research')
-        items = json.loads(self.invoke('ai', 'proposals', '--json')[1])['proposals']
-        proposal = next(item['path'] for item in items if item['skill'] == 'extract_theorems')
-        approval = ('--actor-id', 'ada', '--actor-kind', 'human', '--decision', 'approve',
-                    '--rationale', 'checked sources', '--checked-scope', 'statement',
-                    '--checked-scope', 'hypotheses', '--checked-scope', 'dependencies')
-        code, stdout, stderr = self.invoke('ai', 'decide', proposal, *approval)
-        self.assertEqual((code, stderr), (0, ''))
-        review = json.loads(stdout)
-        self.assertEqual(review['status'], 'human_approved')
-        self.assertEqual(review['release_id'], report['release_id'])
-        self.assertEqual(review['snapshot_id'], report['inputs'][0]['source_snapshot_id'])
-        self.assertEqual(review['scope'], 'AI proposal review only; no automatic research-record application')
-        current = WorkspaceSession(self.root / 'machine', profile='research')
-        self.assertNotEqual(current.release, pinned.release)
-        self.assertEqual(pinned.invoke('qec_status', {})['data']['ai_review_decisions']['registered'], 0)
-        self.assertEqual(current.invoke('qec_status', {})['data']['ai_review_decisions']['registered'], 1)
-        self.assertEqual(review['actor_authentication'], 'self_asserted_local_identity')
-        code, stdout, stderr = self.invoke('ai', 'decisions', '--json')
-        self.assertEqual((code, stderr), (0, ''))
-        self.assertEqual(json.loads(stdout)['decisions'][0]['effective_status'], 'human_approved')
-
-        target = Path(proposal)
-        value = json.loads(target.read_text())
-        value['items'][0]['statement'] = 'altered'
-        target.write_text(json.dumps(value))
-        self.assertNotEqual(self.invoke('ai', 'decide', proposal, *approval)[0], 0)
-        self.assertEqual(len(list((self.root / 'machine/ai/reviews').glob('*.json'))), 1)
-        decisions = json.loads(self.invoke('ai', 'decisions', '--json')[1])['decisions']
-        self.assertEqual(decisions[0]['status'], 'human_approved')
-        self.assertEqual(decisions[0]['effective_status'], 'stale')
-        from qecgraph.workspace import Workspace
-        self.assertFalse(Workspace(self.root).validate()['passed'])
+    def test_ai_decision_commands_have_been_removed(self):
+        for action in ('decide', 'decisions'):
+            with self.subTest(action=action):
+                self.assertEqual(self.invoke('ai', action)[0], 64)
 
     def test_test_reports_missing_key_without_network(self):
         with patch('qecgraph.llm.providers.http.UrllibTransport.request') as transport:

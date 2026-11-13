@@ -925,6 +925,7 @@ class Workspace:
             state, old = self.registry._state_and_revision()
             materials = state.setdefault('materials', {})
             state['workspace_id'] = cfg['workspace_id']
+            state.pop('ai_reviews', None)
             tool_identity = extraction_tool_identity() if digests else None
             def fingerprint(material):
                 tree = material.get('source_tree_hash')

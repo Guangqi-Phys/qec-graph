@@ -350,8 +350,8 @@ class AIWorkspaceTests(unittest.TestCase):
         self.assertEqual(report['status'], 'published')
         self.assertTrue(report['inputs'][0]['input_consumed'])
 
-    def test_proposals_left_by_failed_publication_cannot_be_reviewed(self):
-        from qecgraph.llm.review import AIReviewError, decide, proposals
+    def test_proposals_left_by_failed_publication_are_not_registered(self):
+        from qecgraph.llm.review import proposals
 
         (self.root / 'inputs/paper.tex').write_bytes(TEX)
         empty = answer({'items': [], 'unresolved': []})
@@ -359,11 +359,8 @@ class AIWorkspaceTests(unittest.TestCase):
                 self.workspace.registry, '_publish', side_effect=ValueError('AI publication interrupted')):
             with self.assertRaisesRegex(ValueError, 'AI publication interrupted'):
                 self.workspace.sync()
-        orphan = next((self.workspace.registry.root / 'ai/proposals').rglob('*.json'))
+        self.assertTrue(list((self.workspace.registry.root / 'ai/proposals').rglob('*.json')))
         self.assertEqual(proposals(self.root), [])
-        with self.assertRaisesRegex(AIReviewError, 'registered'):
-            decide(self.root, orphan, actor={'id': 'reviewer', 'kind': 'human'}, decision='approve',
-                   rationale='checked', checked_scopes=['statement', 'hypotheses', 'dependencies'])
 
     def test_semantic_work_releases_writer_locks_and_rejects_outdated_publication(self):
         from qecgraph.core.transactions import writer_lock
