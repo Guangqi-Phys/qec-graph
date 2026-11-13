@@ -902,6 +902,19 @@ def _manifest_digest(directory: Path) -> str | None:
         return None
 
 
+def _artifacts_match(directory: Path, expected: dict) -> bool:
+    for name, digest in expected.items():
+        path = directory / name
+        if not path.is_file():
+            return False
+        try:
+            if hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+                return False
+        except OSError:
+            return False
+    return True
+
+
 def recover_output(out: Path) -> str | None:
     """Restore or clean up an interrupted publish described by the journal.
 
@@ -937,6 +950,10 @@ def recover_output(out: Path) -> str | None:
     if out.is_dir():
         current = _manifest_digest(out)
         if expected is not None and current == expected:
+            recorded = payload.get("artifacts")
+            if (isinstance(recorded, dict) and recorded
+                    and not _artifacts_match(out, recorded)):
+                return "conflict"
             clean_staging()
             if backup is not None:
                 shutil.rmtree(backup, ignore_errors=True)
@@ -1023,7 +1040,10 @@ def write_outputs(prepared: PreparedSource, out: Path, *, source: Path | None = 
                "phase": "staged",
                "new_manifest_sha256":
                    hashlib.sha256(artifacts["manifest.json"]).hexdigest(),
-               "previous_manifest_sha256": previous_manifest}
+               "previous_manifest_sha256": previous_manifest,
+               "artifacts": {
+                   name: hashlib.sha256(data).hexdigest()
+                   for name, data in artifacts.items()}}
     backup: Path | None = None
     try:
         _write_artifacts(staging, artifacts)

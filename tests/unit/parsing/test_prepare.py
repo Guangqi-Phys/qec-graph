@@ -652,7 +652,9 @@ class PrepareTests(unittest.TestCase):
                 "out": out.name, "staging": staging.name,
                 "backup": backup.name, "phase": "backup",
                 "previous_manifest_sha256": previous,
-                "new_manifest_sha256": _sha256_text("new")}),
+                "new_manifest_sha256": _sha256_text("new"),
+                "artifacts": {"manifest.json": _sha256_text("new"),
+                              "entry.tex": _sha256_text("entry")}}),
                 encoding="utf-8")
             out.mkdir()
             self.assertEqual(recover_output(out), "conflict")
@@ -670,6 +672,11 @@ class PrepareTests(unittest.TestCase):
             shutil.rmtree(out)
             out.mkdir()
             (out / "manifest.json").write_text("other version", encoding="utf-8")
+            self.assertEqual(recover_output(out), "conflict")
+            self.assertTrue(backup.is_dir())
+            shutil.rmtree(out)
+            out.mkdir()
+            (out / "manifest.json").write_text("new", encoding="utf-8")
             self.assertEqual(recover_output(out), "conflict")
             self.assertTrue(backup.is_dir())
             shutil.rmtree(out)
