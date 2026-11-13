@@ -9,6 +9,7 @@ import stat
 import tempfile
 from pathlib import Path
 
+from .core.fs import managed_path, regular_managed_path
 from .core.graph import canonical, hash_text, read_json
 from .store import current_snapshot, load_validated_snapshot, safe_relative
 from .core.transactions import ManagedDataError, atomic_bytes, immutable_json, publish_pointer, read_pointer
@@ -65,7 +66,7 @@ class Registry:
             if pointer_path is not None:
                 raise ManagedDataError(pointer_path, 'CURRENT does not identify a valid registry revision')
             raise ValueError('Invalid registry revision')
-        state_path = self.root / 'states' / (revision + '.json')
+        state_path = managed_path(self.root, 'states/' + revision + '.json')
         try:
             metadata = state_path.lstat()
         except FileNotFoundError:
@@ -165,9 +166,8 @@ class Registry:
         if verify:
             graph, snapshot, _ = self._load_verified_source(version, manifest_hashes=manifest_hashes)
             return graph, snapshot, version
-        snapshot = safe_relative(self.root, version['snapshot_path'])
-        graph = read_json(snapshot / 'graph.json')
-        _check_source_binding(graph, version)
+        snapshot = managed_path(self.root, version['snapshot_path'])
+        graph = read_json(regular_managed_path(snapshot, 'graph.json'))
         return graph, snapshot, version
 
     def validate_source_snapshot(self, version):
@@ -188,7 +188,7 @@ class Registry:
         digest = uri.removeprefix(prefix)
         if not uri.startswith(prefix) or len(digest) != 64 or any(c not in '0123456789abcdef' for c in digest):
             raise ValueError('Unknown managed asset URI')
-        raw = safe_relative(self.root, 'assets/' + digest).read_bytes()
+        raw = regular_managed_path(self.root, 'assets/' + digest).read_bytes()
         if hashlib.sha256(raw).hexdigest() != digest:
             raise ValueError('Managed asset content changed')
         return raw

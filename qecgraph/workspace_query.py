@@ -17,7 +17,7 @@ from .source.reading import source_reading_text
 from .registry import Registry
 from .domain.research import RELATIONS, key, ref
 from .domain.research_store import load_records
-from .core.fs import check_machine_tree as check_machine_tree, managed_path as _managed, read_regular
+from .core.fs import managed_path as _managed, read_regular
 from .core.fs import SHA256_HEX as HEX
 from .workspace_assets import asset_bytes, references
 from .llm.artifacts import load_normalization, mapped_ranges
@@ -40,7 +40,6 @@ class WorkspaceSession:
         if machine.is_symlink():
             raise ValueError('The machine directory cannot be a symlink')
         self.machine = machine.resolve()
-        check_machine_tree(self.machine)
         self.registry = Registry(self.machine)
         if _candidate_state is None:
             self.state, self.release = self.registry.read(release_id, verify=False)

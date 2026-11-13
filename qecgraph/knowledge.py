@@ -12,7 +12,7 @@ from .core.graph import canonical, hash_text
 from .llm.artifacts import load_normalization, mapped_ranges
 from .core.errors import ToolError
 from .source.reading import reading_projection
-from .core.fs import managed_path as _managed
+from .core.fs import regular_managed_path
 
 
 def public_url(value):
@@ -38,6 +38,7 @@ def proposal_title(data):
 class KnowledgeView:
     def __init__(self, session):
         self.session = session
+        self._file_texts = {}
         self.nodes = {n['id']: n for n in session.graph.source.graph['nodes'] if n['origin'] == 'parser'}
         self.children = defaultdict(list)
         self.parents = {}
@@ -131,12 +132,13 @@ class KnowledgeView:
         return public_url(version.get('canonical_url'))
 
     def file_text(self, node):
-        version = self.version(node['provenance']['source_version_id'])
-        path = _managed(self.session.machine, version['snapshot_path'] + '/sources/' + node['data']['path'])
-        text = path.read_bytes().decode('utf-8')
-        if hash_text(text) != node['data']['sha256']:
-            raise ValueError('Registered source bytes changed')
-        return text
+        key = node['id']
+        if key not in self._file_texts:
+            version = self.version(node['provenance']['source_version_id'])
+            relative = version['snapshot_path'] + '/sources/' + node['data']['path']
+            path = regular_managed_path(self.session.machine, relative)
+            self._file_texts[key] = path.read_bytes().decode('utf-8')
+        return self._file_texts[key]
 
     def span(self, file, text, start, end):
         lines = SourceLines(text)

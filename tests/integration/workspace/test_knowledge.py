@@ -305,12 +305,15 @@ Decoder memory succeeds.
         constrained = WorkspaceSession(self.ws.registry.root, profile='compatible', max_chars=256)
         self.assertEqual(constrained.invoke('fetch', {'id': hit['id']})['error']['code'], 'BUDGET_TOO_SMALL')
 
-    def test_tampered_source_bytes_are_not_served(self):
+    def test_source_text_is_cached_and_explicit_validate_detects_damage(self):
         file = next(n for n in self.session.knowledge.nodes.values() if n['kind'] == 'source_file')
         version = self.session.state['versions'][self.version]
         path = self.session.machine / version['snapshot_path'] / 'sources' / file['data']['path']
+        original = self.invoke('qec_fetch', {'identifier': file['id']})['text']
         path.write_text(TEXT + 'corruption')
-        self.assertFalse(self.session.invoke('qec_fetch', {'identifier': file['id']})['ok'])
+        self.assertEqual(self.invoke('qec_fetch', {'identifier': file['id']})['text'], original)
+        with self.assertRaises(ValueError):
+            self.ws.validate()
 
     def test_coverage_reports_fields_and_metadata_only_inputs(self):
         (self.root / 'inputs/broken').write_bytes(b'PK\x03\x04bad')

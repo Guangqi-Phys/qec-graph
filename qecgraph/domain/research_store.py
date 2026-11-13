@@ -1,6 +1,7 @@
-"""Publish explicit, immutable research revisions alongside the legacy corpus."""
+"""Publish explicit, immutable research revisions."""
 from __future__ import annotations
 
+from ..core.fs import regular_managed_path
 from ..core.graph import canonical, hash_text, read_json
 from .research import key, ref, validate_bundle
 from ..store import load_validated_snapshot, safe_relative, source_span_index
@@ -17,7 +18,7 @@ def load_records(registry, state, *, verify=True):
     for identifier, revisions in sorted(state.get('research_records', {}).items()):
         for revision, digest in sorted(revisions.items()):
             binding = {'id': identifier, 'revision': revision}
-            path = safe_relative(registry.root, _record_path(binding))
+            path = regular_managed_path(registry.root, _record_path(binding))
             record = read_json(path)
             if verify and (ref(record) != binding or hash_text(canonical(record)) != digest):
                 raise ValueError('Research revision binding or hash mismatch')

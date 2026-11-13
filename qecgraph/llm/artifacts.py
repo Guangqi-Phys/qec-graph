@@ -8,7 +8,7 @@ from pathlib import Path
 
 from ..core.graph import canonical, hash_text, read_json
 from ..core.transactions import atomic_bytes, immutable_json
-from ..store import safe_relative
+from ..core.fs import managed_path, regular_managed_path
 from .normalize import NormalizationResult, NormalizedSource
 
 
@@ -93,23 +93,23 @@ def _normalization_path(root, material):
         raise ValueError('Invalid normalization source tree hash')
     if not isinstance(run_id, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', run_id):
         raise ValueError('Invalid normalization run ID')
-    return safe_relative(Path(root), f'derived/normalizations/{tree_hash}/{run_id}')
+    return managed_path(Path(root), f'derived/normalizations/{tree_hash}/{run_id}')
 
 
 def load_normalization(root, material, *, tree=None):
     """Verify a normalization pinned by a release, optionally against original bytes."""
     target = _normalization_path(root, material)
-    manifest = read_json(target / 'manifest.json')
+    manifest = read_json(regular_managed_path(target, 'manifest.json'))
     if (not isinstance(manifest, dict) or manifest.get('schema') != 'qecgraph.normalization'
             or manifest.get('source_tree_hash') != material['source_tree_hash']
             or manifest.get('run_id') != material['normalization_id']
             or normalization_binding(target, manifest) != {field: material.get(field) for field in (
                 'normalization_id', 'normalization_sha256', 'normalization_manifest_sha256')}):
         raise ValueError('Normalization manifest does not match the published binding')
-    data = (target / 'main.tex').read_bytes()
+    data = (regular_managed_path(target, 'main.tex')).read_bytes()
     if hashlib.sha256(data).hexdigest() != manifest['normalized_sha256']:
         raise ValueError('Normalized TeX does not match the published hash')
-    plan = read_json(target / 'plan.json')
+    plan = read_json(regular_managed_path(target, 'plan.json'))
     if hash_text(json.dumps(plan, sort_keys=True)) != manifest['plan_sha256']:
         raise ValueError('Normalization plan does not match the published hash')
     if tree is not None and (tree.digest != manifest['source_tree_hash']

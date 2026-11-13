@@ -44,6 +44,15 @@ def managed_path(root, relative):
     return current
 
 
+def regular_managed_path(root, relative):
+    """Resolve one managed file without scanning other releases."""
+    path = managed_path(root, relative)
+    mode = path.lstat()
+    if not stat.S_ISREG(mode.st_mode) or mode.st_nlink != 1:
+        raise ValueError('Managed content must be a regular unlinked file')
+    return path
+
+
 @contextmanager
 def _regular_input(path, limit):
     fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)

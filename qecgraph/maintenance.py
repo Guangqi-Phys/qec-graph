@@ -9,7 +9,7 @@ from . import __version__
 from .core.graph import read_json
 from .core.transactions import ManagedDataError
 from .workspace import HEX, JOB, Workspace
-from .workspace_query import check_machine_tree
+from .core.fs import check_machine_tree
 
 
 def doctor(workspace):

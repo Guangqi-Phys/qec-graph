@@ -270,19 +270,18 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.assertEqual(responses[5]['structuredContent']['data']['results'], [])
         self.assertEqual(WorkspaceSession(self.ws.registry.root).invoke('qec_workspace_status', {})['data']['coverage']['excluded_synthetic'], 11)
 
-    def test_symlink_in_machine_is_rejected_before_reading(self):
+    def test_operational_symlink_is_rejected_when_accessed(self):
         (self.ws.registry.root / 'operational/status.json').unlink()
         (self.ws.registry.root / 'operational/status.json').symlink_to(self.notes / 'private-only-name.md')
-        with self.assertRaisesRegex(ValueError, 'Linked or special'):
-            WorkspaceSession(self.ws.registry.root)
-        failure = self.session.invoke('qec_workspace_status', {})
+        session = WorkspaceSession(self.ws.registry.root)
+        failure = session.invoke('qec_workspace_status', {})
         self.assertFalse(failure['ok'])
         self.assertNotIn('private-only-name', str(failure))
 
     def test_pinned_queries_do_not_rescan_or_reproject_the_machine(self):
         from unittest.mock import patch
 
-        with patch('qecgraph.workspace_query.check_machine_tree', side_effect=AssertionError('tree scan')), \
+        with patch('qecgraph.core.fs.check_machine_tree', side_effect=AssertionError('tree scan')), \
              patch('qecgraph.mcp.ai_tools.project_sources', side_effect=AssertionError('graph reload')):
             self.assertTrue(self.session.list_resources()['resources'])
             for _ in range(2):
