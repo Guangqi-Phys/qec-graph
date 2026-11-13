@@ -7,9 +7,7 @@ from collections import deque
 from datetime import datetime
 from functools import cached_property
 from math import isfinite
-import os
 from pathlib import Path
-import stat
 
 from .mcp.ai_tools import ReadOnlySession, tool_validators
 from .core.errors import ToolError
@@ -20,28 +18,10 @@ from .source.reading import source_reading_text
 from .registry import Registry
 from .domain.research import RELATIONS, key, validate_bundle
 from .domain.research_store import load_records
-from .workspace import HEX
-from .core.fs import managed_path as _managed, read_regular
+from .core.fs import check_machine_tree as check_machine_tree, managed_path as _managed, read_regular
+from .core.fs import SHA256_HEX as HEX
 from .workspace_assets import asset_bytes, references
 from .llm.artifacts import load_normalization, mapped_ranges
-
-
-def check_machine_tree(machine):
-    """Refuse linked files before any registry reader dereferences a path."""
-    machine = Path(machine)
-    if machine.is_symlink() or not machine.is_dir():
-        raise ValueError('A real machine directory is required')
-    pending = [machine]
-    while pending:
-        with os.scandir(pending.pop()) as children:
-            for entry in children:
-                mode = entry.stat(follow_symlinks=False)
-                if stat.S_ISDIR(mode.st_mode):
-                    # Atomic register uses an unpublished private directory.
-                    if not entry.name.startswith('.register-'):
-                        pending.append(entry.path)
-                elif not stat.S_ISREG(mode.st_mode) or mode.st_nlink != 1:
-                    raise ValueError('Linked or special machine content is not readable by this service')
 
 
 def _string(max_length=512):

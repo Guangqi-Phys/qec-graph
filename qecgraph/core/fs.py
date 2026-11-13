@@ -3,13 +3,33 @@ from contextlib import contextmanager
 import hashlib
 import os
 from pathlib import Path
+import re
 import stat
 
 from .errors import PackageError
 from .graph import strict_json_loads
 from .progress import task
 
+SHA256_HEX = re.compile(r'[0-9a-f]{64}')
 _CHUNK_BYTES = 256 << 10
+
+
+def check_machine_tree(machine):
+    """Refuse linked files before any registry reader dereferences a path."""
+    machine = Path(machine)
+    if machine.is_symlink() or not machine.is_dir():
+        raise ValueError('A real machine directory is required')
+    pending = [machine]
+    while pending:
+        with os.scandir(pending.pop()) as children:
+            for entry in children:
+                mode = entry.stat(follow_symlinks=False)
+                if stat.S_ISDIR(mode.st_mode):
+                    # Atomic register uses an unpublished private directory.
+                    if not entry.name.startswith('.register-'):
+                        pending.append(entry.path)
+                elif not stat.S_ISREG(mode.st_mode) or mode.st_nlink != 1:
+                    raise ValueError('Linked or special machine content is not readable by this service')
 
 
 def managed_path(root, relative):

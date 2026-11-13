@@ -19,7 +19,7 @@ from .source.extraction import RULE_VERSION, proposals
 from .domain.research_store import stage_records
 from .core.progress import ProgressStep, outcome, phase, task, track
 from .core.graph import canonical, hash_text, read_json
-from .core.fs import (managed_path as _managed, read_regular as _read_regular,
+from .core.fs import (SHA256_HEX as HEX, check_machine_tree, managed_path as _managed, read_regular as _read_regular,
                       hash_regular as _hash_regular, matches_regular as _matches_regular,
                       read_operational_status as read_operational_status)
 from .registry import Registry
@@ -31,7 +31,6 @@ from .llm.config import render_config_template
 CONFIG = 'qecgraph.toml'
 FORMAT = 'qecgraph.workspace'
 PROCESSOR = f'archive-structure-v2:parser-{PARSER_VERSION}:{RULE_VERSION}'
-HEX = re.compile(r'[0-9a-f]{64}')
 JOB = re.compile(r'[0-9a-f]{32}')
 AI_EXTRACTION_SKILLS = ('extract_theorems', 'extract_assumptions', 'extract_data', 'extract_thoughts')
 
@@ -949,7 +948,6 @@ class Workspace:
         package_stage = 'Checking archive packages' if rebuild else 'Checking inbox packages'
         update(1, f'{package_stage} 0/{package_count}' if package_count else 'Preparing workspace')
         with writer_lock(self.registry.root):
-            from .workspace_query import check_machine_tree
             check_machine_tree(self.registry.root)
             state, old = self.registry._state_and_revision()
             materials = state.setdefault('materials', {})
@@ -1224,7 +1222,6 @@ class Workspace:
         from .llm.review import proposal_issues
 
         cfg = self.config()
-        from .workspace_query import check_machine_tree
         check_machine_tree(self.registry.root)
         phase('Checking the current release')
         if progress:

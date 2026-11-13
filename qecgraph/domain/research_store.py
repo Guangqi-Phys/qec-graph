@@ -27,7 +27,7 @@ def load_records(registry, state):
 
 def validate_sources(registry, state, records, *, require_source=True, verified_spans=None):
     """Resolve verified locators through registered graph identity, never paths supplied by a record."""
-    from ..workspace import HEX
+    from ..core.fs import SHA256_HEX as HEX
     from ..workspace_assets import references, verify_asset
     graphs = {}
     verified_assets = set()
