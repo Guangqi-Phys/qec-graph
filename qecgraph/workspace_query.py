@@ -102,9 +102,6 @@ class WorkspaceSession:
                               if n['origin'] == 'parser' and n.get('source')}
         self.resources = {self._resource_uri(identifier): identifier for identifier in self._source_nodes}
         self._resource_bindings = sorted(self.resources.items())
-        # Keep old pinned-release URIs readable without advertising every block.
-        self.resources.update({f'qec://source/{self.release}/{hash_text(identifier)}': identifier
-                               for identifier in self._source_nodes})
         self._paper_resources = {f'qec://paper/{hash_text(version)}': node['id']
                                  for version, node in self.knowledge.documents.items()}
         if self.profile != 'legacy':

@@ -212,6 +212,11 @@ Decoder memory succeeds.
         self.assertTrue(self.session.resource_templates()['resourceTemplates'])
         root = next(n for n in self.session._source_nodes.values() if n['kind'] == 'lemma')
         uri = self.session._resource_uri(root['id'])
+        from qecgraph.core.graph import hash_text
+        from qecgraph.core.errors import ToolError
+        legacy_uri = f'qec://source/{self.session.release}/{hash_text(root["id"])}'
+        with self.assertRaises(ToolError):
+            self.session.read_resource(legacy_uri)
         before = self.session.read_resource(uri)['contents'][0]['text']
         (self.root / 'inputs/second.tex').write_text(TEXT.replace('memory survives', 'another result'))
         self.ws.sync()
