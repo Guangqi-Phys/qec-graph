@@ -14,3 +14,4 @@ htmlcov/
 .ruff_cache/
 .mypy_cache/
 .pytest_cache/
+test-sources/
