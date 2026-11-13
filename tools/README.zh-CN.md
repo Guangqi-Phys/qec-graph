@@ -50,6 +50,12 @@ python tools/prepare_arxiv.py /path/to/source-tree \
 结构恢复。退出码 `0` 表示 `document_complete`；`2` 表示正文完整但结构 partial，
 或正文未解析完整。
 
-输出目录作为一个整体管理：写入失败保留上一份完整产物；已存在但没有 prepare
-manifest 的目录会被拒绝。只有显式传 `--overwrite` 才会整体替换该目录，包括其中
-无关的文件。
+输出目录作为一个整体管理：产物先暂存，再通过带 journal 的 rename 发布，普通
+失败会保留上一份完整产物；已存在但没有 prepare manifest 的目录会被拒绝。只有
+显式传 `--overwrite` 才会整体替换该目录，包括其中无关的文件。如果进程在两次
+目录 rename 之间被终止，目标路径会暂时消失，下一次写入或 `--recover` 会从 journal
+恢复上一份结果并清理遗留的暂存目录：
+
+```bash
+python tools/prepare_arxiv.py --out build/prepared/paper --recover
+```

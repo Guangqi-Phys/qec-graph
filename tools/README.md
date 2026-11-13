@@ -50,4 +50,8 @@ python tools/prepare_arxiv.py /path/to/source-tree \
 
 `--no-parser-recovery` and `--no-transparent-containers` disable the opt-in partial-structure fallbacks. Exit `0` means `document_complete`; `2` means content is complete but structure is partial, or content remains unresolved.
 
-The output directory is managed as a unit: a failed write leaves the previous complete artifacts untouched, and an existing directory without a prepare manifest is refused. Pass `--overwrite` to replace such a directory deliberately; it is replaced whole, including unrelated files.
+The output directory is managed as a unit: artifacts are staged and published through a journaled backup, so a normal failure leaves the previous complete artifacts in place. An existing directory without a prepare manifest is refused; pass `--overwrite` to replace it whole, including unrelated files. If the process is killed between the two directory renames, the target path is absent until the next write or `--recover` restores the journaled previous result and removes staged leftovers:
+
+```bash
+python tools/prepare_arxiv.py --out build/prepared/paper --recover
+```

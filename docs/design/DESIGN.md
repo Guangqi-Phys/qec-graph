@@ -408,10 +408,14 @@ that crosses an include boundary). A repeated include therefore yields one
 block per occurrence, each with its own entry span and section parent.
 
 Outputs are `entry.tex`, `source-map.json`, `document.json`, `coverage.json`,
-`diagnostics.json` and `manifest.json` (`qecgraph.prepare/2`). They are staged and
-swapped in by one directory rename: a failed write leaves the previous complete
-set, and a non-empty directory without a prepare manifest is refused unless the
-caller explicitly overwrites it. This path is not connected to workspace
+`diagnostics.json` and `manifest.json` (`qecgraph.prepare/2`). They are built in
+a sibling staging directory and published through a journaled transaction: the
+old managed directory is renamed aside, staging is renamed into place, and the
+backup is removed. A normal failure restores the old directory. A process
+killed between the two renames leaves the target absent until the next write or
+`--recover` restores the journaled backup and removes staged leftovers. A
+non-empty directory without a prepare manifest is refused unless the caller
+explicitly overwrites it. This path is not connected to workspace
 stage/validate/publish. Parser errors leave structure partial rather than being
 silently accepted; when one malformed region breaks the structural walk, the
 entry is re-parsed in chunks split at resolved top-level includes so a broken

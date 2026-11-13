@@ -21,24 +21,37 @@ from qecgraph import PARSER_VERSION  # noqa: E402
 from qecgraph.source.prepare import (  # noqa: E402
     load_source,
     prepare_source,
+    recover_output,
     write_outputs,
 )
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("source", type=Path,
+    parser.add_argument("source", type=Path, nargs="?",
                         help="source directory or arXiv package (.tar.gz, .gz)")
     parser.add_argument("--entry", help="entry path inside the source tree")
     parser.add_argument("--out", type=Path, required=True, help="output directory")
     parser.add_argument("--overwrite", action="store_true",
                         help="replace an output directory that prepare does not manage")
+    parser.add_argument("--recover", action="store_true",
+                        help="restore an interrupted output publish and exit")
     parser.add_argument("--no-parser-recovery", action="store_true",
                         help="do not retry failed strict parses with tolerant parsing")
     parser.add_argument("--no-transparent-containers", action="store_true",
                         help="do not traverse unknown environments transparently")
     parser.add_argument("--json", action="store_true", help="print a JSON summary")
     args = parser.parse_args(argv)
+    if args.recover:
+        outcome = recover_output(args.out)
+        if args.json:
+            print(json.dumps({"out": str(args.out), "recovered": outcome},
+                             indent=1))
+        else:
+            print(f"output {args.out}: {outcome or 'no interrupted publish'}")
+        return 0
+    if args.source is None:
+        parser.error("source is required unless --recover is used")
     try:
         tree = load_source(args.source)
         prepared = prepare_source(

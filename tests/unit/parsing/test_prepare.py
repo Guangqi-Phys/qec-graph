@@ -2,6 +2,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import json
 import os
+import subprocess
+import sys
+import textwrap
 import unittest
 from unittest import mock
 
@@ -14,6 +17,7 @@ from qecgraph.source.prepare import (
     _uncovered_entry_prose,
     entry_candidates,
     prepare_source,
+    recover_output,
     write_outputs,
 )
 
@@ -462,6 +466,67 @@ class PrepareTests(unittest.TestCase):
                          + text + "\\end{document}").encode("utf-8"),
         })
         return prepare_source(tree)
+
+    def test_recover_output_restores_an_interrupted_replacement(self):
+        with TemporaryDirectory() as temporary:
+            out = Path(temporary) / "prepared"
+            write_outputs(self._prepared("First text."), out)
+            before = (out / "manifest.json").read_bytes()
+            staging = out.parent / f".{out.name}.staging-test"
+            staging.mkdir()
+            (staging / "entry.tex").write_text("new", encoding="utf-8")
+            backup = out.parent / f".{out.name}.backup-test"
+            os.replace(out, backup)
+            journal = out.parent / f".{out.name}.transaction.json"
+            journal.write_text(json.dumps({
+                "out": out.name, "staging": staging.name,
+                "backup": backup.name, "phase": "backup"}),
+                encoding="utf-8")
+            self.assertEqual(recover_output(out), "restored")
+            self.assertEqual((out / "manifest.json").read_bytes(), before)
+            self.assertFalse(journal.exists())
+            self.assertFalse(staging.exists())
+            self.assertFalse(backup.exists())
+
+    @unittest.skipUnless(os.name == "posix", "needs POSIX replace semantics")
+    def test_interrupted_replacement_is_recovered_on_next_write(self):
+        root_path = Path(__file__).resolve().parents[3]
+        with TemporaryDirectory() as temporary:
+            out = Path(temporary) / "prepared"
+            write_outputs(self._prepared("First text."), out)
+            script = textwrap.dedent("""
+                import os, sys
+                from pathlib import Path
+                from qecgraph.source.package import SourceTree
+                from qecgraph.source.prepare import prepare_source, write_outputs
+                out = Path(sys.argv[1])
+                prepared = prepare_source(SourceTree("review", {"main.tex":
+                    br"\\documentclass{article}\\begin{document}Second.\\end{document}"}))
+                real = os.replace
+                def trap(src, dst):
+                    real(src, dst)
+                    if ".backup-" in str(dst):
+                        os._exit(77)
+                os.replace = trap
+                write_outputs(prepared, out)
+            """)
+            script_path = Path(temporary) / "fault.py"
+            script_path.write_text(script, encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(script_path), str(out)],
+                capture_output=True, text=True,
+                env={**os.environ, "PYTHONPATH": str(root_path)})
+            self.assertEqual(result.returncode, 77, result.stderr)
+            self.assertFalse(out.exists())
+            manifest = write_outputs(self._prepared("Third text."), out)
+            self.assertIn("Third text.",
+                          (out / "entry.tex").read_text(encoding="utf-8"))
+            self.assertEqual(
+                json.loads((out / "manifest.json").read_text())["entry_sha256"],
+                manifest["entry_sha256"])
+            leftovers = sorted(path.name for path in out.parent.iterdir()
+                               if path.name.startswith("."))
+            self.assertEqual(leftovers, [])
 
     def test_write_outputs_refuses_unmanaged_directory(self):
         prepared = self._prepared()

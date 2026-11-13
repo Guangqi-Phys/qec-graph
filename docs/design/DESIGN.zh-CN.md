@@ -420,9 +420,11 @@ source map 投影回原始文件：`source` 锚定 block 首个非空白字符�
 和所属 section。
 
 输出是 `entry.tex`、`source-map.json`、`document.json`、`coverage.json`、
-`diagnostics.json` 和 `manifest.json`（`qecgraph.prepare/2`）。产物先暂存，再用
-一次目录改名整体切换：写入失败保留上一份完整结果；非空但没有 prepare manifest
-的目录会被拒绝，除非调用方显式覆盖。本路径尚未接入 workspace 的
+`diagnostics.json` 和 `manifest.json`（`qecgraph.prepare/2`）。产物先写入同级
+staging 目录，再通过带 journal 的事务发布：旧目录改名让位、staging 改名就位、
+删除 backup。普通失败会恢复旧目录；进程在两次改名之间被终止时，目标路径会暂时
+消失，下一次写入或 `--recover` 会恢复 journal 记录的 backup 并清理暂存遗留。
+非空但没有 prepare manifest 的目录会被拒绝，除非调用方显式覆盖。本路径尚未接入 workspace 的
 stage/validate/publish。parser 错误会让结构保持 partial，而不是静默接受；
 当某一处畸形内容打断结构扫描时，entry 会按已解析的顶层 include 分块重新解析，
 避免一个坏文件丢掉其他文件的结构。bibliography 和资产复制不属于本步骤。

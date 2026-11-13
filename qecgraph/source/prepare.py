@@ -699,6 +699,74 @@ def _check_output_root(out: Path, source: Path | None, overwrite: bool) -> None:
                 "pass --overwrite to replace it")
 
 
+def _journal_path(out: Path) -> Path:
+    return out.parent / f".{out.name}.transaction.json"
+
+
+def _write_journal(out: Path, payload: dict) -> None:
+    journal = _journal_path(out)
+    temporary = journal.with_name(journal.name + ".tmp")
+    temporary.write_text(json.dumps(payload, indent=1), encoding="utf-8")
+    os.replace(temporary, journal)
+
+
+def _remove_journal(out: Path) -> None:
+    try:
+        _journal_path(out).unlink()
+    except FileNotFoundError:
+        pass
+
+
+def _sibling(out: Path, name: str, prefix: str) -> Path | None:
+    """Return a journal-named sibling created by this writer, or None."""
+    if (not isinstance(name, str) or "/" in name
+            or not name.startswith(prefix)):
+        return None
+    candidate = out.parent / name
+    return candidate if candidate.parent == out.parent else None
+
+
+def recover_output(out: Path) -> str | None:
+    """Restore or clean up an interrupted publish described by the journal.
+
+    Returns ``"restored"`` when the previous complete directory was put back,
+    ``"committed"`` when the new directory was already in place and leftovers
+    were removed, ``"cleaned"`` when only a staged directory remained, or None
+    when there is no journal. The target path is absent only between the two
+    renames of a replacement; recovery closes that window.
+    """
+    journal = _journal_path(out)
+    if not journal.is_file():
+        return None
+    try:
+        payload = json.loads(journal.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    staging = _sibling(out, payload.get("staging", ""),
+                       f".{out.name}.staging-")
+    backup = (_sibling(out, payload.get("backup", ""),
+                       f".{out.name}.backup-")
+              if payload.get("backup") else None)
+    if out.is_dir():
+        if staging is not None:
+            shutil.rmtree(staging, ignore_errors=True)
+        if backup is not None:
+            shutil.rmtree(backup, ignore_errors=True)
+        outcome = "committed"
+    elif backup is not None and backup.is_dir():
+        os.replace(backup, out)
+        if staging is not None:
+            shutil.rmtree(staging, ignore_errors=True)
+        outcome = "restored"
+    elif staging is not None and staging.is_dir():
+        os.replace(staging, out)
+        outcome = "cleaned"
+    else:
+        outcome = "cleaned"
+    _remove_journal(out)
+    return outcome
+
+
 def _write_artifacts(directory: Path, artifacts: Mapping[str, bytes]) -> None:
     for name, data in artifacts.items():
         (directory / name).write_bytes(data)
@@ -710,10 +778,12 @@ def write_outputs(prepared: PreparedSource, out: Path, *, source: Path | None = 
     """Write the prepare artifacts, replacing a managed output directory whole.
 
     A non-empty directory without a prepare manifest is refused unless
-    ``overwrite`` is set. Artifacts are built in a staging directory and swapped
-    in with one directory rename, so a failed write leaves the previous complete
-    result untouched.
+    ``overwrite`` is set. Artifacts are built in a staging directory and the
+    directory is replaced through a journaled backup, so a normal failure keeps
+    the previous complete result and an interrupted publish is recoverable with
+    :func:`recover_output` (also called before the next write).
     """
+    recover_output(out)
     _check_output_root(out, source, overwrite)
     manifest = {
         "schema": "qecgraph.prepare/2",
@@ -747,15 +817,23 @@ def write_outputs(prepared: PreparedSource, out: Path, *, source: Path | None = 
     }
     out.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(mkdtemp(dir=out.parent, prefix=f".{out.name}.staging-"))
+    journal = {"out": out.name, "staging": staging.name, "backup": None,
+               "phase": "staged"}
+    backup: Path | None = None
     try:
         _write_artifacts(staging, artifacts)
+        _write_journal(out, journal)
         if out.exists():
             backup = out.parent / f".{out.name}.backup-{uuid.uuid4().hex[:12]}"
+            journal["backup"] = backup.name
+            journal["phase"] = "backup"
+            _write_journal(out, journal)
             os.replace(out, backup)
             try:
                 os.replace(staging, out)
             except BaseException:
                 os.replace(backup, out)
+                _remove_journal(out)
                 raise
             shutil.rmtree(backup, ignore_errors=True)
         else:
@@ -763,4 +841,7 @@ def write_outputs(prepared: PreparedSource, out: Path, *, source: Path | None = 
     except BaseException:
         shutil.rmtree(staging, ignore_errors=True)
         raise
+    finally:
+        if out.is_dir():
+            _remove_journal(out)
     return manifest
