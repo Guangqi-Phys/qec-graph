@@ -355,6 +355,21 @@ class _Directive:
     line: int
 
 
+@dataclass(frozen=True)
+class _MacroDef:
+    name: str
+    value: str
+    start: int
+    provide_only: bool = False
+    global_scope: bool = False
+
+
+@dataclass(frozen=True)
+class _ScopeEvent:
+    opening: bool
+    start: int
+
+
 def _parse_args(text: str, index: int, name: str) -> tuple[tuple[str, ...], int]:
     index = _skip_space(text, index)
     if index < len(text) and text[index] == "*":
@@ -379,8 +394,26 @@ def _parse_args(text: str, index: int, name: str) -> tuple[tuple[str, ...], int]
     return tuple(arguments), index
 
 
-def _scan(text: str) -> tuple[list[_Directive], list[dict]]:
-    directives: list[_Directive] = []
+def _literal_definition(text: str, index: int, name: str) -> _MacroDef | None:
+    """Return a zero-argument literal macro definition, if this is one."""
+    if name not in {"def", "gdef", "edef", "xdef", "newcommand", "renewcommand",
+                    "providecommand"}:
+        return None
+    match = _LITERAL_MACRO.match(text, index)
+    if not match:
+        return None
+    macro = match.group(1) or match.group(3)
+    value = match.group(2) if match.group(2) is not None else match.group(4)
+    if not macro or value is None:
+        return None
+    return _MacroDef(macro, value.strip(), index,
+                     provide_only=name == "providecommand",
+                     global_scope=name in {"gdef", "xdef"})
+
+
+def _scan(text: str) -> tuple[list, list[dict]]:
+    """Scan one file into ordered scope, definition and directive events."""
+    items: list = []
     diagnostics: list[dict] = []
     index = 0
     conditionals = 0
@@ -389,6 +422,14 @@ def _scan(text: str) -> tuple[list[_Directive], list[dict]]:
         if char == "%":
             end = text.find("\n", index)
             index = len(text) if end < 0 else end + 1
+            continue
+        if char == "{":
+            items.append(_ScopeEvent(True, index))
+            index += 1
+            continue
+        if char == "}":
+            items.append(_ScopeEvent(False, index))
+            index += 1
             continue
         if char != "\\":
             index += 1
@@ -425,13 +466,16 @@ def _scan(text: str) -> tuple[list[_Directive], list[dict]]:
         if name.startswith("if"):
             conditionals += 1
         if name in _DECLARATIONS:
+            definition = _literal_definition(text, index, name)
+            if definition is not None:
+                items.append(definition)
             index = _skip_definition(text, after, name)
             continue
         if name in DIRECTIVES:
             arguments, after_args = _parse_args(text, after, name)
             if len(arguments) == (1 if name in ONE_ARG else 2):
-                directives.append(_Directive(name, index, after_args, arguments,
-                                             text.count("\n", 0, index) + 1))
+                items.append(_Directive(name, index, after_args, arguments,
+                                        text.count("\n", 0, index) + 1))
             else:
                 diagnostics.append({"code": "unparsed_directive", "name": name})
             index = after_args
@@ -439,7 +483,7 @@ def _scan(text: str) -> tuple[list[_Directive], list[dict]]:
         index = after
     if conditionals:
         diagnostics.append({"code": "conditionals_present", "count": conditionals})
-    return directives, diagnostics
+    return items, diagnostics
 
 
 def _parse_group(text: str, index: int) -> tuple[str, int]:
@@ -559,12 +603,13 @@ class Assembler:
         self.files = dict(files)
         self.events: list[DirectiveEvent] = []
         self.diagnostics: list[dict] = []
-        self.macros: dict[str, str] = {}
+        self.scopes: list[dict[str, str]] = [{}]
 
     def assemble(self, entry: str, *, diagnostics: list[dict] | None = None) -> AssemblyResult:
         clean_entry = _safe_literal(entry)
         if clean_entry is None or clean_entry not in self.files:
             raise ValueError(f"entry is not a regular source file: {entry!r}")
+        self.scopes = [{}]
         data, segments, events, local_diagnostics = self._assemble_range(
             clean_entry, 0, len(self.files[clean_entry]), (), whole=True,
             context="")
@@ -584,10 +629,9 @@ class Assembler:
                              0, end - base, 0, end - base)],
                     [], [{"code": "unsupported_encoding", "path": rel}])
         base_char = len(raw[:base].decode("utf-8"))
-        self._learn_literal_macros(text)
         _, body_start, _ = document_bounds(text)
         preamble_end = body_start
-        directives, diagnostics = _scan(text)
+        items, diagnostics = _scan(text)
         for diagnostic in diagnostics:
             diagnostic["path"] = rel
         output = bytearray()
@@ -609,7 +653,21 @@ class Assembler:
             out_chars += stop - start
 
         cursor = 0
-        for directive in directives:
+        for item in items:
+            if isinstance(item, _ScopeEvent):
+                if item.opening:
+                    self.scopes.append({})
+                elif len(self.scopes) > 1:
+                    self.scopes.pop()
+                continue
+            if isinstance(item, _MacroDef):
+                if item.value:
+                    if not (item.provide_only and self._macro(item.name) is not None):
+                        target = (self.scopes[0] if item.global_scope
+                                  else self.scopes[-1])
+                        target[item.name] = item.value
+                continue
+            directive = item
             start = directive.start
             stop = directive.end
             if start < cursor:
@@ -657,9 +715,11 @@ class Assembler:
                 cursor = stop
                 continue
             target_base, target_end = target_range
+            depth_before = len(self.scopes)
             child_data, child_segments, child_events, child_diagnostics = self._assemble_range(
                 target, target_base, target_end, stack + (rel,),
                 whole=stripped is False, context=child_context)
+            del self.scopes[depth_before:]
             offset_bytes = len(output)
             offset_chars = out_chars
             for segment in child_segments:
@@ -745,18 +805,17 @@ class Assembler:
         return (chosen, target_range, stripped, preamble_dropped, "resolved",
                 existing[1:] or None, child_context)
 
-    def _learn_literal_macros(self, text: str) -> None:
-        masked = _mask_comments(text)
-        for match in _LITERAL_MACRO.finditer(masked):
-            name = match.group(1) or match.group(3)
-            value = match.group(2) if match.group(2) is not None else match.group(4)
-            if name and value and value.strip():
-                self.macros[name] = value.strip()
+    def _macro(self, name: str) -> str | None:
+        for scope in reversed(self.scopes):
+            if name in scope:
+                return scope[name]
+        return None
 
     def _expand_literal(self, value: str) -> str:
         def replace(match: re.Match) -> str:
             name = match.group(1)
-            return self.macros.get(name, match.group(0))
+            found = self._macro(name)
+            return found if found is not None else match.group(0)
         return re.sub(r"\\([A-Za-z@]+)", replace, value)
 
     @staticmethod

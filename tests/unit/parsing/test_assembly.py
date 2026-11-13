@@ -154,6 +154,66 @@ class AssembleTests(unittest.TestCase):
         self.assertIn("App text.", [block["text"] for block in document["blocks"]
                                     if block["section_id"] == appendix["id"]])
 
+    def test_path_macro_state_follows_source_order(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{one}\n"
+                         b"\\begin{document}\n\\input{\\DIR/frag}\n"
+                         b"\\renewcommand{\\DIR}{two}\n\\input{\\DIR/frag}\n"
+                         b"\\end{document}\n"),
+            "one/frag.tex": b"FIRST_BODY.\n",
+            "two/frag.tex": b"SECOND_BODY.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertEqual([event.target for event in result.events],
+                         ["one/frag.tex", "two/frag.tex"])
+        self.assertEqual([event.expanded_args for event in result.events],
+                         [("one/frag",), ("two/frag",)])
+        self.assertLess(result.data.index(b"FIRST_BODY."),
+                        result.data.index(b"SECOND_BODY."))
+        self.assertTrue(result.coverage()["complete"])
+
+    def test_path_macro_definition_inside_a_group_does_not_leak(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{one}\n"
+                         b"\\begin{document}\n"
+                         b"{\\renewcommand{\\DIR}{two}\\input{\\DIR/frag}}\n"
+                         b"\\input{\\DIR/frag}\n\\end{document}\n"),
+            "one/frag.tex": b"ONE_BODY.\n",
+            "two/frag.tex": b"TWO_BODY.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertEqual([event.target for event in result.events],
+                         ["two/frag.tex", "one/frag.tex"])
+        self.assertLess(result.data.index(b"TWO_BODY."),
+                        result.data.index(b"ONE_BODY."))
+
+    def test_path_macro_in_inactive_conditional_is_not_learned(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{one}\n"
+                         b"\\begin{document}\n\\input{\\DIR/frag}\n"
+                         b"\\iffalse\\renewcommand{\\DIR}{two}\\fi\n"
+                         b"\\input{\\DIR/frag}\n\\end{document}\n"),
+            "one/frag.tex": b"ONE_BODY.\n",
+            "two/frag.tex": b"TWO_BODY.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertEqual([event.target for event in result.events],
+                         ["one/frag.tex", "one/frag.tex"])
+        self.assertNotIn(b"TWO_BODY.", result.data)
+
+    def test_path_macro_used_before_its_definition_stays_dynamic(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\input{\\DIR/frag}\n\\newcommand{\\DIR}{one}\n"
+                         b"\\input{\\DIR/frag}\n\\end{document}\n"),
+            "one/frag.tex": b"ONE_BODY.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertEqual([event.outcome for event in result.events],
+                         ["dynamic_path", "resolved"])
+        self.assertIn(b"\\input{\\DIR/frag}", result.data)
+        self.assertFalse(result.coverage()["complete"])
+
     def test_literal_zero_argument_macro_resolves_an_input_path(self):
         source = {
             "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"

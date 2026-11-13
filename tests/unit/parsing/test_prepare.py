@@ -122,6 +122,20 @@ class PrepareTests(unittest.TestCase):
         self.assertEqual([span["path"] for span in blocks[0]["source_spans"]],
                          ["main.tex", "body.tex", "main.tex"])
 
+    def test_path_macro_redefinition_keeps_source_order(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{one}\n"
+                         b"\\begin{document}\n\\input{\\DIR/frag}\n"
+                         b"\\renewcommand{\\DIR}{two}\n\\input{\\DIR/frag}\n"
+                         b"\\end{document}\n"),
+            "one/frag.tex": b"FIRST_BODY.\n",
+            "two/frag.tex": b"SECOND_BODY.\n",
+        })
+        prepared = prepare_source(tree)
+        self.assertEqual([block["text"] for block in prepared.document["blocks"]],
+                         ["FIRST_BODY.", "SECOND_BODY."])
+        self.assertTrue(prepared.coverage["document_complete"])
+
     def test_repeated_include_yields_one_block_per_occurrence(self):
         tree = SourceTree("directory", {
             "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"

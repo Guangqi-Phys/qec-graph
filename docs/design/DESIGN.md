@@ -354,7 +354,10 @@ preamble of subfiles and of complete documents included from another entry, and
 learns literal zero-argument path macros from source (`\newcommand`/`\def`).
 A multi-argument include becomes the search context of the files it includes, so
 an `\import`ed chapter resolves its own sibling inputs before root-level ones.
-Dynamic paths and missing body dependencies stay in the entry and are reported.
+Path macros are learned in source order and follow brace-group scope: a use
+before its definition, after a closed group, or inside an inactive conditional
+stays dynamic and is reported. Dynamic paths and missing body dependencies stay
+in the entry and are reported.
 A missing preamble dependency is a dependency warning, not content loss. Entry
 and source-map coordinates use the half-open convention in §4.5.
 
