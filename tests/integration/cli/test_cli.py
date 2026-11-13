@@ -48,7 +48,7 @@ class CLIContractTests(unittest.TestCase):
 
     def test_unknown_commands_suggest_the_closest_help_topic(self):
         for command, expected in ((['serach'], 'search'), (['workspace', 'stauts'], 'workspace status'),
-                                  (['review', 'lsit'], 'review list')):
+                                  (['ai', 'porposals'], 'ai proposals')):
             with self.subTest(command=command):
                 process = subprocess.run([sys.executable, '-m', 'qecgraph', '--json', *command],
                                          text=True, capture_output=True, timeout=10)
@@ -328,7 +328,7 @@ class CLIContractTests(unittest.TestCase):
         retired = (['mcp', 'serve', '--store', '.'],
                    ['query', 'codes', '--corpus', '.'],
                    ['mcp', 'config', '--workspace', '.', '--profile', 'legacy'],
-                   ['review', 'decide', 'example'],
+                   ['review', 'decide', 'example'], ['review', 'list'], ['review-list'],
                    ['register'], ['recover-store'], ['validate-corpus'])
         for arguments in retired:
             with self.subTest(arguments=arguments), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):

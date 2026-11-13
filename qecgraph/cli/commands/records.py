@@ -31,7 +31,7 @@ def workspace_records(args):
         from ...domain.software import coverage
         state, release = ws.registry.read()
         result = {'release_id': release, **coverage(r for r in load_records(ws.registry, state) if not r['is_synthetic'])}
-    elif args.command == 'research-import':
+    else:
         payload = read_json(args.input)
         if args.format == 'software-seed':
             from ...domain.software import adapt_seed
@@ -42,11 +42,6 @@ def workspace_records(args):
         if not isinstance(payload, list):
             raise ValueError('Research import expects a list of records')
         result = publish_records(ws.registry, payload)
-    else:
-        state, release = ws.registry.read()
-        rows = [row for row in load_records(ws.registry, state)
-                if not row['is_synthetic'] and row['data'].get('review_status') == 'proposed']
-        result = {'release_id': release, 'proposals': rows}
     return emit_report(result, quiet=args.quiet, exit_code=2 if result.get('status') == 'partial' else 0)
 
 

@@ -14,7 +14,6 @@ HANDLERS = {
     'human-build': workspace.human_build,
     'asset-add': workspace.asset_add,
     'research-import': records.workspace_records,
-    'review-list': records.workspace_records,
     'software-import-seed': records.workspace_records,
     'software-coverage': records.workspace_records,
     'software-refresh': records.workspace_records,

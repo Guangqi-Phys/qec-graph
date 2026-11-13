@@ -137,7 +137,7 @@ TAR 扩展元数据（如 PAX 和 GNU 长文件名）单条最多 256 KiB，整�
 ## 研究查询和审核
 
 ```bash
-qec-graph review list
+qec-graph ai proposals
 qec-graph software import-seed
 qec-graph software coverage
 qec-graph software refresh --project-id software:stim  # 显式联网，仅公开元数据

@@ -171,7 +171,7 @@ PAX and GNU long names) is limited to 256 KiB per entry, 4 MiB per package and
 ## Research queries and review
 
 ```bash
-qec-graph review list
+qec-graph ai proposals
 qec-graph software import-seed
 qec-graph software coverage
 qec-graph software refresh --project-id software:stim  # 显式联网，仅公开元数据

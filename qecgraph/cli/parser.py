@@ -98,9 +98,6 @@ _GROUPS = {
         'context': 'context', 'codes': 'codes', 'performance': 'query-performance',
         'software': 'query-software',
     }),
-    'review': ('Create, inspect, or apply proposals', {
-        'list': 'review-list',
-    }),
     'mcp': ('Configure or serve read-only MCP tools', {
         'serve': 'serve-mcp', 'config': 'mcp-config',
     }),
@@ -127,7 +124,7 @@ _LEGACY_PATHS = {command: f'{group} {verb}' for group, (_, actions) in _GROUPS.i
 def _print_aliases():
     print('Legacy commands remain available. These grouped names are preferred:\n')
     for name, replacement in sorted(_LEGACY_PATHS.items()):
-        display = 'review FILE' if name == 'review' else name
+        display = name
         print(f'  {display:22} {replacement}')
 
 
@@ -213,9 +210,6 @@ def _register_commands(add):
         help='Path to the QEC workspace; omit to use local discovery where supported')
     cmd.add_argument('--format', choices=['records', 'software-seed', 'synthetic-fixture'], default='records',
         help='Format of the research record input (default: %(default)s)')
-    cmd = add('review-list', help='List source-linked proposals without approving them')
-    cmd.add_argument('--workspace',
-        help='Path to the QEC workspace; omit to use local discovery where supported')
     cmd = add('mcp-config', help='Print a reviewable fixed-scope client config without editing user settings')
     _add_ai_arguments(cmd)
     cmd = add('serve-mcp', help='Serve only fixed-scope read tools over local MCP stdio')
@@ -417,7 +411,7 @@ def parse_command(argv: list[str], *, entrypoint: tuple[str, str] | None = None)
     flat_name = name
     args.alias = None
     if entrypoint is None and not hasattr(args, 'action') and flat_name in _LEGACY_PATHS:
-        display = 'review FILE' if flat_name == 'review' else flat_name
+        display = flat_name
         args.alias = (display, _LEGACY_PATHS[flat_name])
     args.display_command = next((f'{group} {verb}' for group, (_, actions) in _GROUPS.items()
                                  for verb, command in actions.items()
