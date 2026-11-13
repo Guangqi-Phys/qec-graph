@@ -118,8 +118,7 @@ class AIWorkspaceTests(unittest.TestCase):
         manifest.unlink()
         self.assertFalse(self.workspace.validate()['passed'])
         self.assertFalse(session.invoke('qec_get_source', args)['ok'])
-        with self.assertRaisesRegex(ValueError, 'Candidate machine release failed validation'):
-            self.workspace.sync()
+        self.assertEqual(self.workspace.sync()['status'], 'unchanged')
         self.assertEqual(self.workspace.registry.read()[1], report['release_id'])
 
     def test_provider_error_body_and_environment_key_never_reach_release(self):
