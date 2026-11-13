@@ -50,11 +50,17 @@ def _check_source_binding(graph, version):
         raise ValueError('Registered source structure binding mismatch')
 
 
+def _verify_state_binding(state, revision, path):
+    if hash_text(canonical(state)) != revision:
+        raise ManagedDataError(path, 'Registry state hash mismatch')
+    validate_state_format(state, path)
+
+
 class Registry:
     def __init__(self, root):
         self.root = Path(root).resolve()
 
-    def read(self, revision=None):
+    def read(self, revision=None, *, verify=True):
         pointer_path = self.root / 'CURRENT.json' if revision is None else None
         if pointer_path is not None:
             pointer = read_pointer(pointer_path, CURRENT_FORMAT)
@@ -75,9 +81,10 @@ class Registry:
             state = read_json(state_path)
         except ValueError as exc:
             raise ManagedDataError(state_path, 'Registry state contains invalid JSON') from exc
-        if not isinstance(state, dict) or state.get('schema') != FORMAT or hash_text(canonical(state)) != revision:
-            raise ManagedDataError(state_path, 'Registry state schema/hash mismatch')
-        validate_state_format(state, state_path)
+        if not isinstance(state, dict) or state.get('schema') != FORMAT:
+            raise ManagedDataError(state_path, 'Registry state schema mismatch')
+        if verify:
+            _verify_state_binding(state, revision, state_path)
         return state, revision
 
     def _state_or_empty(self):

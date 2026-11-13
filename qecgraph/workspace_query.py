@@ -16,7 +16,7 @@ from .core.graph import canonical, hash_text, strict_json_loads
 from .query import GraphTextIndex, search_node_summary
 from .source.reading import source_reading_text
 from .registry import Registry
-from .domain.research import RELATIONS, key, validate_bundle
+from .domain.research import RELATIONS, key, ref
 from .domain.research_store import load_records
 from .core.fs import check_machine_tree as check_machine_tree, managed_path as _managed, read_regular
 from .core.fs import SHA256_HEX as HEX
@@ -44,7 +44,7 @@ class WorkspaceSession:
         check_machine_tree(self.machine)
         self.registry = Registry(self.machine)
         if _candidate_state is None:
-            self.state, self.release = self.registry.read(release_id)
+            self.state, self.release = self.registry.read(release_id, verify=False)
         else:
             self.state = copy.deepcopy(_candidate_state)
             self.release = hash_text(canonical(self.state))
@@ -52,7 +52,7 @@ class WorkspaceSession:
             raise ValueError('A QEC workspace machine release is required')
         self.graph = ReadOnlySession(corpus=self.machine, check_live_lean=False,
                                      _fixed_registry=(self.registry, self.state, self.release), **budgets)
-        self.records = validate_bundle(load_records(self.registry, self.state))
+        self.records = {key(ref(record)): record for record in load_records(self.registry, self.state, verify=False)}
         generated = {r['id']: r['revision'] for v in self.state.get('generated_research', {}).values()
                      for r in v['bindings']}
         active_ai = self.state.get('ai_research_records', {})

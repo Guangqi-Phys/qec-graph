@@ -12,14 +12,14 @@ def _record_path(record):
     return 'research/' + hash_text(identifier) + '/' + hash_text(revision) + '.json'
 
 
-def load_records(registry, state):
+def load_records(registry, state, *, verify=True):
     result = []
     for identifier, revisions in sorted(state.get('research_records', {}).items()):
         for revision, digest in sorted(revisions.items()):
             binding = {'id': identifier, 'revision': revision}
             path = safe_relative(registry.root, _record_path(binding))
             record = read_json(path)
-            if ref(record) != binding or hash_text(canonical(record)) != digest:
+            if verify and (ref(record) != binding or hash_text(canonical(record)) != digest):
                 raise ValueError('Research revision binding or hash mismatch')
             result.append(record)
     return result
