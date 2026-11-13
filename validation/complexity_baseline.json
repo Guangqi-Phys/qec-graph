@@ -73,7 +73,6 @@
   "qecgraph/store.py:_validate_output_hashes": 11,
   "qecgraph/store.py:check_output_directory": 11,
   "qecgraph/store.py:load_validated_snapshot": 29,
-  "qecgraph/validators/__init__.py:validate_record": 16,
   "qecgraph/validators/qec.py:check_css": 12,
   "qecgraph/validators/qec.py:check_experiment": 23,
   "qecgraph/validators/qec.py:distance_issues": 12,

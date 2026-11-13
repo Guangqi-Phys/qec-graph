@@ -4,7 +4,6 @@ from importlib.resources import files
 from jsonschema import Draft202012Validator
 
 from qecgraph.core.graph import read_json
-from qecgraph.domain.records import prepare_record
 from qecgraph.validators import packaged_validator
 
 
@@ -25,7 +24,7 @@ class SchemaTests(unittest.TestCase):
         for name in ('annotations.example.json', 'catalog-links.example.json'):
             with self.subTest(example=name):
                 packaged_validator('annotations').validate(read_json(EXAMPLES / name))
-        packaged_validator('record').validate(prepare_record(read_json(EXAMPLES / 'claim.example.json')))
+
     def test_research_schema_dispatches_each_supported_kind(self):
         binding = {'id': 'record:fixture', 'revision': 'r1'}
         records = {

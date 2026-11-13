@@ -1,9 +1,0 @@
-{
-  "link_id": "mapping:demo:hgp-length",
-  "source_version_id": "version:demo:1",
-  "source_selector": "thm:hgp-length",
-  "claim_id": "claim:demo:hgp-length",
-  "claim_revision": "1",
-  "assumptions": ["Binary seeds and ordinary HGP conventions from the source"],
-  "notation_scope": {"n_i": "seed column count", "r_i": "seed row count"}
-}

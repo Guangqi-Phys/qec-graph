@@ -216,7 +216,6 @@ workspace/
 | Schema | 用途 | 位置 |
 |---|---|---|
 | `qecgraph.research` | 当前 workspace 研究记录（27 kinds、47 typed relations） | `qecgraph/validators/schemas/research.schema.json` |
-| `qecgraph.record` | 独立切割的类型记录 schema | `qecgraph/validators/schemas/record.schema.json` |
 | `qecgraph.graph` | 抽取图及 SourceGraph/LemmaGraph/DataGraph 投影 | `qecgraph/validators/schemas/graph.schema.json` |
 | `qecgraph.annotations` | 对抽取 store 的人工/AI 增补 | packaged schema |
 

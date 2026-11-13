@@ -199,9 +199,7 @@ extraction. `unresolved` can indicate an ambiguous link. `not_reported`
 requires a dated check of a specified part of the source. `not_applicable`
 and `conflicting` record why the field has no single value. Default workspace
 queries filter synthetic records and stale provider approvals. Proposed or draft
-records remain visible with their `review_status`; they are never treated as verified. Legacy
-`qecgraph.record` records can also carry claims and evidence, plus
-historical Lean mapping fields. Lean execution has been removed. See [the design note](../design/DESIGN.md#10-lean-integration-removed).
+records remain visible with their `review_status`; they are never treated as verified.
 The research schema lists the supported kinds, the fields that must be present
 for each kind, and the shape of nullable `{id, revision}` links. Its
 `x-qec-target-kinds` annotations describe the allowed target kinds. A JSON
@@ -212,7 +210,7 @@ QEC Graph checks consistency between related values, that the exact target
 revision is present, that the pointer resolves to the value, and that the
 records agree.
 
-[Research record schema](../../qecgraph/validators/schemas/research.schema.json) · [Corpus record schema](../../qecgraph/validators/schemas/record.schema.json)
+[Research record schema](../../qecgraph/validators/schemas/research.schema.json)
 
 ## Search by keyword, source, or structured fields
 

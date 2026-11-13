@@ -4,14 +4,7 @@ import unittest
 from pathlib import Path
 
 from qecgraph.core.graph import read_json
-from qecgraph.domain.records import prepare_record
 from qecgraph.store import current_snapshot, ingest
-
-
-def claim(identifier='claim:typed'):
-    return {'schema': 'qecgraph.record', 'id': identifier, 'kind': 'claim',
-            'revision': '1', 'title': 'Typed claim',
-            'data': {'statement': 'A statement.', 'hypotheses': [], 'quantifiers': []}}
 
 
 class ValidatorTests(unittest.TestCase):
@@ -26,20 +19,6 @@ class ValidatorTests(unittest.TestCase):
             path.write_text(raw)
             with self.subTest(raw=raw), self.assertRaises(ValueError):
                 read_json(path)
-
-    def test_domain_fields_and_unknowns_are_explicit(self):
-        value = claim()
-        del value['data']['quantifiers']
-        with self.assertRaisesRegex(ValueError, 'quantifiers'):
-            prepare_record(value)
-        value['data']['quantifiers'] = None
-        with self.assertRaisesRegex(ValueError, 'unknown_reason'):
-            prepare_record(value)
-        value['data']['unknown_reason'] = 'Not yet normalized'
-        self.assertEqual(prepare_record(value)['review']['status'], 'proposed')
-        value['invented_top_level_field'] = True
-        with self.assertRaisesRegex(ValueError, 'Additional properties'):
-            prepare_record(value)
 
     def test_bad_proof_endpoint_rejected_without_publishing(self):
         entry = self.root / 'main.tex'

@@ -23,7 +23,6 @@ tests/
 | Unit | Domain | `unit/domain/test_semantic.py`, `unit/domain/test_qec_validation.py`, `unit/domain/test_validators.py`, `unit/domain/test_schemas.py` | Graph/evidence rules, QEC checks, schema contracts |
 | Integration | Pipeline | `integration/pipeline/test_pipeline.py`, `test_publication.py`, `test_registry.py`, `test_splitter.py` | Snapshot, publication, registry, splitting |
 | Integration | Workspace | `integration/workspace/test_workspace.py`, `test_workspace_migration.py`, `test_workspace_query.py`, `test_incremental.py`, `test_watch.py`, `test_status.py` | Init/sync/rebuild, migration, queries, incremental/watch, status |
-| Integration | Corpus/review | `integration/corpus/test_corpus.py`, `test_review.py`, `test_apply.py`, `test_research.py` | Corpus identity, review/apply, typed research records |
 | Integration | MCP/CLI/rendering | `integration/mcp/test_mcp.py`, `integration/mcp/test_ai_tools.py`, `integration/cli/test_cli.py`, `integration/rendering/test_human.py` | Read-only MCP, CLI, Obsidian rendering |
 | Contract | Docs | `contracts/docs/test_docs.py`, `contracts/docs/test_docs_bilingual.py` | Status/TOC/link contracts and English/Chinese parity |
 | Contract | Packaging | `contracts/packaging/test_distribution.py`, `contracts/packaging/test_installer.py` | Metadata, installer, packaged distribution |

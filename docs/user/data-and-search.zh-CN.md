@@ -178,16 +178,14 @@ construction 仍未知。
 歧义；`not_reported` 要求对来源指定部分做带日期检查；`not_applicable` 和
 `conflicting` 记录字段为何没有单一值。默认工作区查询过滤 synthetic 记录和
 过期 provider 批准；proposed/draft 记录仍可见并携带 `review_status`，但绝不当作已验证。
-旧 `qecgraph.record` 记录也可携带 claims、证据和实验性
-Lean 历史映射字段。Lean 执行已移除。见
-[设计说明](../design/DESIGN.zh-CN.md#10-lean-路线已移除)。
+
 research schema 列出受支持 kinds、每种 kind 必填字段，以及可空 `{id, revision}`
 链接形状。`x-qec-target-kinds` 注解描述允许的目标 kind。JSON Schema 校验器还
 检查证据元数据、受管理资产 ID，以及矩阵 recipe、码参数、界方向、测量单位和
 速率等可移植值约束。QEC Graph 检查相关值的一致性、精确目标修订是否存在、
 指针是否解析到该值，以及记录是否一致。
 
-[研究记录 schema](../../qecgraph/validators/schemas/research.schema.json) · [corpus 记录 schema](../../qecgraph/validators/schemas/record.schema.json)
+[研究记录 schema](../../qecgraph/validators/schemas/research.schema.json)
 
 ## 按关键词、来源或结构化字段检索
 

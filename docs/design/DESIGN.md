@@ -203,7 +203,6 @@ Duplicate labels are ambiguous and must be resolved with an exact ID. Missing re
 | Schema | Use | Location |
 |---|---|---|
 | `qecgraph.research` | Current workspace research records (27 kinds, 47 typed relations) | `qecgraph/validators/schemas/research.schema.json` |
-| `qecgraph.record` | Typed records for standalone source splitting | `qecgraph/validators/schemas/record.schema.json` |
 | `qecgraph.graph` | Extraction graph and SourceGraph/LemmaGraph/DataGraph projections | `qecgraph/validators/schemas/graph.schema.json` |
 | `qecgraph.annotations` | Human/AI additions to an extraction store | packaged schema |
 
