@@ -61,12 +61,12 @@ class SplitterIntegrationTests(unittest.TestCase):
     def test_inventory_points_to_real_typed_fragments_and_exact_original_sources(self):
         self.demo()
         originals = {item.relative_to(self.paper).as_posix(): item.read_bytes()
-                     for item in self.paper.rglob("*.tex")}
+                     for item in self.paper.rglob("*") if item.suffix in {".tex", ".bib"}}
         result = self.split()
         categories = result["fragments_by_kind"]
         expected = {"section": 3, "definition": 2, "lemma": 1, "theorem": 2,
                     "proof": 3, "equation": 5, "table": 1, "figure": 1,
-                    "remark": 1, "example": 1}
+                    "remark": 1, "example": 1, "bib_entry": 1}
         for kind, count in expected.items():
             with self.subTest(kind=kind):
                 self.assertEqual(categories[kind]["count"], count)

@@ -183,7 +183,7 @@ class PipelineSemanticsTests(unittest.TestCase):
         }
         self.assertEqual(
             file_paths,
-            {"main.tex", "sections/foundations.tex", "sections/hgp.tex"},
+            {"main.tex", "sections/foundations.tex", "sections/hgp.tex", "references.bib"},
         )
         self.assertFalse(
             any("must-not-be-read" in diagnostic["message"] for diagnostic in graph["diagnostics"])
