@@ -1,7 +1,7 @@
 ---
 name: extract_data
 description: Use when extracting reported QEC performance data, table rows, metrics, units, decoders, noise models and experimental conditions into source-linked proposals without interpolation.
-version: 6
+version: 7
 ---
 
 # Extract reported data
@@ -68,3 +68,5 @@ metric, a number or nonempty string value, and nonempty `source_refs`.
 - [ ] Experimental conditions are not invented.
 - [ ] Missing context is unresolved.
 - [ ] Conflicts are preserved.
+
+For a request with `source_ranges`, extract only from those authored section ranges. Preserve the supplied global file and line references. Report missing cross-section conditions in `unresolved` and avoid claiming full-paper coverage.

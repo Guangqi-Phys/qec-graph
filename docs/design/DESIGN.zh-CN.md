@@ -721,11 +721,11 @@ Provider 在 `qecgraph.toml` 中选择（OpenAI、Anthropic、OpenRouter 或本�
 | 软件优先的结构回退 | 已实现于符合条件的原始 TeX 入口，块分类保留为 proposed |
 | 定理/假设/数据/思路 proposal | 显式允许上传并配置凭据后写入 `machine/ai/proposals`；审核决定会记录，但不会自动转换为权威研究记录 |
 
-四个语义抽取 skill 使用 v6：共用安全 system、带文件映射的编号纯文本证据，以及证据之后的 skill 任务。provider 前缀缓存收益尚未测量。请求包含主投影及已选入口登记的 TeX 文件集合，
+四个语义抽取 skill 使用 v7：共用安全 system、带文件映射的编号纯文本证据，以及证据之后的 skill 任务。provider 前缀缓存收益尚未测量。请求包含主投影及已选入口登记的 TeX 文件集合，
 包括嵌套正文与附录。每个文件都核对归档和来源快照，以明确行号、独立路径、哈希和
 原始字节映射提供；不混入压缩包中的无关文件。模型直接使用提供的行号，引用解析到
 对应文件，逐字引文仍须是一个原文区间内的连续子串，生成包装和拼接引文会被拒绝。
-显式允许来源上传且 `extract_proposals = true` 后，多文件论文自动走此流程，无需手动合并文件。预算约束完整请求，超过预算明确失败，不截断正文。
+显式允许来源上传且 `extract_proposals = true` 后，多文件论文自动走此流程，无需手动合并文件。预算约束完整请求。超过输入上限时按论文的 TeX 标题边界重试，包括最深的子章节。每段保留全局文件与行号。成功段带覆盖范围及失败信息发布，后续 sync 重试失败段。单段仍超过输入上限时保持待处理。
 响应未通过 schema 或原文校验时，抽取最多追加一次纠错请求，携带相同证据，并将
 被拒绝的输出明确标为不可信数据。完整请求预算和全部校验再次生效；成功提议的来源信息
 保留两次请求 ID、prompt 哈希与用量。再次失败则保持待处理；无效响应不会作为成功结果
@@ -802,7 +802,7 @@ ThoughtsGraph 保存有来源依据的研究意图与解读。九个类别和阅
 | `addresses_refs`、`motivated_by_refs`、`extends_refs`、`contradicts_refs` | 其他 `research_thought` 记录的精确修订，附字段证据 |
 | `related_refs` | 允许的研究类型的精确修订，如构造、实验或 decoder；解析块仍通过来源证据访问 |
 
-`extract_thoughts` v6 产生 `qecgraph.ai.proposal` 包，默认可搜索（`include_proposals=false` 可排除），以
+`extract_thoughts` v7 产生 `qecgraph.ai.proposal` 包，默认可搜索（`include_proposals=false` 可排除），以
 `research_thought_proposal` 条目暴露，与已发布研究记录分开。明确审核与记录导入是
 两个步骤，AI 结果或批准都不会自动创建规范记录。记录和提案保留实际审核状态；
 候选解读关系需显式开启遍历，引用和思路关联不会转为证明依赖。

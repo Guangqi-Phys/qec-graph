@@ -292,7 +292,7 @@ class Workspace:
         from .core.language import require_english
         from .llm.artifacts import load_normalization
         from .llm.client import LLMResult
-        from .llm.extract import ExtractionResult, extract, validate_extraction, validate_source_refs
+        from .llm.extract import ExtractionResult, authored_sections, validate_extraction, validate_source_refs
         from .llm.normalize import original_document
         from .llm.redact import redact
         from .llm.review import read_bound_proposal
@@ -328,7 +328,10 @@ class Workspace:
             outcome('failed', detail='AI extraction could not read its registered source')
             return [], [{'error': 'AI extraction could not read its registered source'}]
 
-        completed = {item['skill'] for item in previous.get('written', []) if item.get('proposal_sha256')}
+        failed_skills = {error.get('skill') for error in previous.get('errors', [])}
+        completed = {item['skill'] for item in previous.get('written', [])} - failed_skills
+        sections = list(authored_sections(graph, {material['entrypoint']: normalized, **additional}))
+        saved_sections = self._partial_sections(material, previous, failed_skills)
         results, errors = [], []
         evidence = {path: source.sha256 for path, source in
                     {material['entrypoint']: normalized, **additional}.items()}
@@ -378,14 +381,15 @@ class Workspace:
                             on_skill_done()
                         continue
                     try:
-                        result = extract(normalized, client, skill, projection_path=material['entrypoint'],
-                                         additional_sources=additional)
+                        result, pending = self._extract_skill(
+                            normalized, client, skill, material['entrypoint'], additional, sections, saved_sections.get(skill))
                     except (OSError, ValueError, RuntimeError) as exc:
                         error = redact(str(exc), client.secrets)
                         errors.append({'skill': skill, 'error': error})
                         activity.outcome('failed', detail=error)
                         plan.step(skill, 'failed', detail=error)
                     else:
+                        errors.extend({'skill': skill, **failure} for failure in pending)
                         results.append(result)
                         state = 'reused' if result.ai_result.cached else 'finished'
                         detail = (f'{len(result.data.get("items", []))} items | '
@@ -401,6 +405,29 @@ class Workspace:
             outcome('partial')
         return results, errors
 
+    def _partial_sections(self, material, previous, failed_skills):
+        from .llm.review import read_bound_proposal
+
+        return {binding['skill']: read_bound_proposal(self.registry, binding, material)
+                for binding in previous.get('written', []) if binding['skill'] in failed_skills}
+
+    @staticmethod
+    def _extract_skill(normalized, client, skill, entry, additional, sections, saved):
+        from .llm.client import InputBudgetExceeded
+        from .llm.extract import extract, extract_sections
+
+        if saved is None:
+            try:
+                return extract(normalized, client, skill, projection_path=entry,
+                               additional_sources=additional), []
+            except InputBudgetExceeded:
+                pass
+        result, pending = extract_sections(normalized, client, skill, entry, additional, sections, saved)
+        if result is None:
+            detail = pending[0]['error'] if pending else 'No usable authored source section'
+            raise InputBudgetExceeded(detail)
+        return result, pending
+
     def _stage_ai(self, identity, previous, results, errors):
         source_version_id, snapshot_id = identity
         written = [item for item in previous.get('written', []) if item.get('proposal_sha256')]
@@ -415,6 +442,7 @@ class Workspace:
             except (OSError, ValueError):
                 errors.append({'skill': skill, 'error': 'AI proposal could not be stored'})
             else:
+                written = [binding for binding in written if binding['skill'] != skill]
                 written.append({'skill': skill, 'path': target.relative_to(self.registry.root).as_posix(),
                                 'run_id': run_id, 'proposal_sha256': hash_text(canonical(proposal))})
         return {'status': 'pending' if errors else 'complete', 'written': written, 'errors': errors}

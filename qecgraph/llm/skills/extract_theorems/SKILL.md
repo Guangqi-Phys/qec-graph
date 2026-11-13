@@ -1,7 +1,7 @@
 ---
 name: extract_theorems
 description: Use when extracting theorem, lemma, proposition, corollary or claim statements from a QEC paper, including explicit and inferred hypotheses and proof/dependency references.
-version: 6
+version: 7
 ---
 
 # Extract theorem-like statements
@@ -100,3 +100,5 @@ The example is illustrative; follow the schema, not its optional fields.
 - [ ] Explicit hypotheses have source references.
 - [ ] Implicit hypotheses are marked and reasoned.
 - [ ] No theorem was created from a proof, experiment or guess.
+
+For a request with `source_ranges`, extract only from those authored section ranges. Preserve the supplied global file and line references. Report missing cross-section conditions in `unresolved` and avoid claiming full-paper coverage.

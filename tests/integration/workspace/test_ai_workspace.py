@@ -184,7 +184,7 @@ class AIWorkspaceTests(unittest.TestCase):
         for binding in latest['ai_extraction']['written']:
             proposal = read_bound_proposal(self.workspace.registry, binding, latest)
             self.assertEqual(proposal['review_status'], 'proposed')
-            self.assertEqual(proposal['provenance']['skill_version'], 6)
+            self.assertEqual(proposal['provenance']['skill_version'], 7)
             self.assertEqual(proposal['provenance']['source_rebindings'], [{
                 'snapshot_id': first['source_snapshot_id'], 'proposal_path': old[binding['skill']]['path'],
                 'proposal_sha256': old[binding['skill']]['proposal_sha256'],
@@ -298,6 +298,46 @@ class AIWorkspaceTests(unittest.TestCase):
         self.assertEqual(report['inputs'][0]['ai_extraction']['status'], 'complete')
         for call in client.call_args_list:
             self.assertEqual(call.args[0][1].content.count('\\label{repeated}'), 2)
+
+    def test_long_paper_retries_only_failed_authored_sections_with_global_lines(self):
+        from qecgraph.llm.client import InputBudgetExceeded
+
+        text = (r'\documentclass{article}' '\n' r'\begin{document}' '\n'
+                r'\section{First}' '\nFirst result.\n'
+                r'\subsection{Deep}' '\nDeep result.\n'
+                r'\section{Last}' '\nLast result.\n' r'\end{document}' '\n')
+        (self.root / 'inputs/long.tex').write_text(text)
+        fail = True
+        ranges_seen = []
+
+        def provider(messages, schema, **kwargs):
+            if 'theorem extractor' not in messages[-1].content:
+                return answer({'items': [], 'unresolved': []})
+            evidence = messages[1].content
+            header = json.loads(evidence.splitlines()[0])
+            if 'source_ranges' not in header:
+                raise InputBudgetExceeded('AI request exceeds [ai].max_input_chars')
+            [(path, bounds)] = header['source_ranges'].items()
+            ranges_seen.append(bounds)
+            if 'Deep result.' in evidence:
+                if fail:
+                    raise ValueError('Simulated provider failure')
+                self.assertIn('6 | Deep result.', evidence)
+                return answer({'items': [{'label': 'deep', 'statement': 'Deep result.',
+                                           'source_refs': [path + ':6'], 'hypotheses': []}], 'unresolved': []})
+            return answer({'items': [], 'unresolved': []})
+
+        with patch('qecgraph.llm.client.LLMClient.complete_json', side_effect=provider):
+            first = self.workspace.sync()
+            self.assertEqual(first['inputs'][0]['ai_extraction']['status'], 'pending')
+            self.assertEqual(len(ranges_seen), 4)
+            failed_range = ranges_seen[2]
+            fail = False
+            ranges_seen.clear()
+            second = self.workspace.sync()
+        self.assertEqual(ranges_seen, [failed_range])
+        self.assertEqual(second['inputs'][0]['ai_extraction']['status'], 'complete')
+        self.assertTrue(self.workspace.validate()['passed'])
 
     def test_missing_http_credentials_leave_offline_sync_available_with_concurrency(self):
         self.configure('provider = "claude_code"', 'provider = "openrouter"')

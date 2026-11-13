@@ -686,7 +686,7 @@ API keys are redacted and the configuration file is created mode `0600`.
 | Parser-first structure recovery | Implemented for eligible original TeX entries, with proposed block kinds |
 | Theorem/assumption/data/thought proposals | Runs when explicitly allowed to upload and credentials are configured; written as `machine/ai/proposals`; explicit review decisions are recorded, conversion to canonical research records is not automatic |
 
-The four semantic extraction skills use v6: a shared safety system message, numbered plain-text evidence with file mappings, and the skill task after that evidence. Provider prefix-cache savings have not been measured. Requests
+The four semantic extraction skills use v7: a shared safety system message, numbered plain-text evidence with file mappings, and the skill task after that evidence. Provider prefix-cache savings have not been measured. Requests
 contain the main projection plus the selected entry's registered TeX file
 closure, including nested body and appendix inputs. Each file is checked against
 both the archive and source snapshot, then supplied as numbered exact lines
@@ -695,7 +695,7 @@ archive are excluded. The model uses supplied line numbers; citations resolve
 against the matching file and quotations still require an exact contiguous
 original substring. Generated wrappers and stitched quotations are rejected.
 With explicit source-upload permission and `extract_proposals = true`, multi-file papers use this path without manual concatenation. Input budgets apply
-to the complete request; exceeding them fails explicitly without truncation.
+to the complete request. When it exceeds the input limit, extraction retries at authored TeX heading boundaries, including the deepest subsections. Each slice retains global file and line coordinates. Successful slices publish with coverage and failures; a later sync retries failed slices. A slice that still exceeds the input limit remains pending.
 After schema or source validation rejects a response, extraction may make
 one corrective request with the same evidence and the rejected output marked
 as untrusted data. The full request budget and all validators apply again.
@@ -794,7 +794,7 @@ remain separate records so their evidence and revisions can evolve independently
 | `addresses_refs`, `motivated_by_refs`, `extends_refs`, `contradicts_refs` | Exact revisions of other `research_thought` records, with field-level evidence |
 | `related_refs` | Exact revisions of allowed research kinds, such as a construction, experiment or decoder; parser occurrences remain accessible through source evidence |
 
-`extract_thoughts` v6 produces `qecgraph.ai.proposal` packages, exposed by default
+`extract_thoughts` v7 produces `qecgraph.ai.proposal` packages, exposed by default
 in search as `research_thought_proposal` items (`include_proposals=false` opts out). These are distinct from published
 research records. Explicit review and record import remain separate steps; no
 AI result or approval automatically creates a canonical record. Both records

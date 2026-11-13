@@ -28,6 +28,9 @@ from .redact import redact
 class BudgetExceeded(LLMError):
     """A configured limit was reached."""
 
+class InputBudgetExceeded(BudgetExceeded):
+    """The supplied evidence exceeds the per-request input limit."""
+
 
 class ResponseSchemaError(LLMError):
     """The model returned text that is not valid for the requested schema."""
@@ -115,7 +118,7 @@ class LLMClient:
         if not selected_model.strip():
             raise LLMError('AI model is empty')
         if sum(len(message.content) for message in messages) > self.config.max_input_chars:
-            raise BudgetExceeded('AI request exceeds [ai].max_input_chars')
+            raise InputBudgetExceeded('AI request exceeds [ai].max_input_chars')
         Draft202012Validator.check_schema(schema)
         schema_validator = Draft202012Validator(schema)
 

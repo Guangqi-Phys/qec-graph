@@ -126,7 +126,7 @@ class ThoughtSkillTests(unittest.TestCase):
                          projection_path=evidence['projection_path'])
         self.assertEqual(result.data, expected)
         self.assertEqual(result.proposal['review_status'], 'proposed')
-        self.assertEqual(result.proposal['provenance']['skill_version'], 6)
+        self.assertEqual(result.proposal['provenance']['skill_version'], 7)
         self.assertEqual(result.proposal['normalization_id'], normalized.sha256)
         self.assertEqual(provider.messages[-1].content, 'Extraction task:\n' + skill.system_prompt)
         for number, line in evidence['sources'][0]['lines']:
@@ -163,7 +163,7 @@ class ThoughtSkillTests(unittest.TestCase):
         self.assertNotEqual(old.ai_result.prompt_sha256, new.ai_result.prompt_sha256)
         self.assertEqual(old.proposal, preserved)
         self.assertEqual(old.proposal['provenance']['skill_version'], 1)
-        self.assertEqual(new.proposal['provenance']['skill_version'], 6)
+        self.assertEqual(new.proposal['provenance']['skill_version'], 7)
 
     def test_generated_and_stitched_quotes_are_rejected_before_caching(self):
         # Non-ASCII source bytes and an injected wrapper exercise the distinction

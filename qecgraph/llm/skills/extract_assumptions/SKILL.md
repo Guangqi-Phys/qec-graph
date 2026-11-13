@@ -1,7 +1,7 @@
 ---
 name: extract_assumptions
 description: Use when identifying explicit, implicit and editorial assumptions needed by QEC theorems, constructions or performance claims, with source references and uncertainty preserved.
-version: 6
+version: 7
 ---
 
 # Extract assumptions
@@ -70,3 +70,5 @@ reason and confidence.
 - [ ] Implicit items have reasons and confidence.
 - [ ] Editorial items are clearly marked.
 - [ ] Unresolved conditions are listed.
+
+For a request with `source_ranges`, extract only from those authored section ranges. Preserve the supplied global file and line references. Report missing cross-section conditions in `unresolved` and avoid claiming full-paper coverage.

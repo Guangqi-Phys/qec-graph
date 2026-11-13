@@ -189,12 +189,30 @@ def _source_index(normalized):
     return text, line_offsets, originals
 
 
-def validate_source_refs(normalized, projection_path, skill, data, *, additional_sources=None):
+def _section_citation(selected, text, first, last, start, end):
+    if selected is True:
+        return start, end
+    if selected is None or start >= selected[1] or end <= selected[0]:
+        raise ExtractionError('AI source reference is outside the supplied section')
+    if first < text.count('\n', 0, selected[0]) + 1 or last > text.count('\n', 0, selected[1] - 1) + 1:
+        raise ExtractionError('AI source reference crosses a supplied section boundary')
+    return max(start, selected[0]), min(end, selected[1])
+
+
+def _citation_bounds(source_ranges):
+    if source_ranges is None:
+        return lambda path: True
+    return source_ranges.get
+
+
+def validate_source_refs(normalized, projection_path, skill, data, *, additional_sources=None, source_ranges=None):
     """Resolve model citations within supplied evidence and check verbatim claims."""
     if not data['items'] and not (skill == 'extract_thoughts' and data.get('paper')):
         return
     sources = {projection_path: normalized, **(additional_sources or {})}
     indexes = {path: _source_index(source) for path, source in sources.items()}
+
+    bounds = _citation_bounds(source_ranges)
 
     def check(row, verbatim=None, *, field='statement'):
         excerpts = []
@@ -207,6 +225,7 @@ def validate_source_refs(normalized, projection_path, skill, data, *, additional
             if not first <= last < len(line_offsets):
                 raise ExtractionError('AI source reference line range is out of bounds')
             start, end = line_offsets[first - 1], line_offsets[last]
+            start, end = _section_citation(bounds(match[1]), text, first, last, start, end)
             chunks = [text[max(start, a):min(end, b)] for a, b in originals if start < b and a < end]
             if not any(chunk.strip() for chunk in chunks):
                 raise ExtractionError('AI source reference contains no original text')
@@ -228,13 +247,99 @@ def validate_source_refs(normalized, projection_path, skill, data, *, additional
             check(row, row['source_quote'], field='paper metadata quote')
 
 
-def _numbered_source(path, source):
+def _numbered_source(path, source, bounds=None):
     # Split only on LF, retaining CRLF, Unicode separators and the exact bytes
     # after decoding. Line numbers are metadata, never part of a quotation.
-    parts = source.text.split('\n')
+    text = source.text
+    start, end = bounds if bounds is not None else (0, len(text))
+    first = text.count('\n', 0, start) + 1
+    parts = text[start:end].split('\n')
     return {'path': path, 'sha256': source.sha256, 'segments': list(source.segments),
-            'lines': [[number, line + ('\n' if number < len(parts) else '')]
-                      for number, line in enumerate(parts, 1)]}
+            'lines': [[first + index, line + ('\n' if index + 1 < len(parts) else '')]
+                      for index, line in enumerate(parts) if bounds is None or line or index + 1 < len(parts)]}
+
+
+def authored_sections(graph, sources):
+    """Partition each file at authored heading starts, including introductory prose."""
+    starts: dict[str, set[int]] = {}
+    for node in graph['nodes']:
+        if node['kind'] == 'section' and (span := node.get('source')):
+            starts.setdefault(span['path'], set()).add(span['char_start'])
+    for path, source in sources.items():
+        text = source.text
+        for start, end in zip(bounds := sorted({0, *starts.get(path, ()), len(text)}), bounds[1:]):
+            if text[start:end].strip():
+                yield {path: (start, end)}
+
+
+def extract_sections(normalized, client, skill, projection_path, additional_sources, sections, previous=None):
+    """Retry failed sections using the same release coordinates and merge exact duplicates."""
+    sources = {projection_path: normalized, **additional_sources}
+    pending = []
+    coverage = []
+    ai_result = None
+    from ..core.graph import canonical, hash_text
+    from .redact import redact
+
+    saved = (previous or {}).get('provenance', {}).get('sections', [])
+    completed = {(row['path'], row['char_start'], row['char_end']): row for row in saved if 'data' in row}
+    for ranges in sections:
+        (path, (start, end)), = ranges.items()
+        entry = {'path': path, 'char_start': start, 'char_end': end}
+        if reused := completed.get((path, start, end)):
+            coverage.append(reused)
+        else:
+            try:
+                result = extract(normalized, client, skill, projection_path=projection_path,
+                                 additional_sources=additional_sources, source_ranges=ranges)
+            except (OSError, ValueError, RuntimeError) as exc:
+                failed = {**entry, 'error': redact(str(exc), client.secrets)}
+                pending.append(failed)
+                coverage.append(failed)
+                continue
+            ai_result = result.ai_result
+            coverage.append({**entry, 'data': result.data, 'run_id': ai_result.run_id,
+                             'prompt_sha256': ai_result.prompt_sha256})
+    if ai_result is None:
+        return None, pending
+    merged = _merge_sections(coverage, skill)
+    from dataclasses import replace
+    from .skills import load_skill
+    ai_result = replace(ai_result, data=merged, run_id='sections-' + hash_text(canonical(coverage)))
+    proposal = make_proposal(skill, merged, source_tree_hash=normalized.source_tree_hash, ai_result=ai_result,
+                             normalization_id=normalized.sha256)
+    proposal.update(projection_path=projection_path,
+                    evidence_sources=[{'path': path, 'sha256': source.sha256} for path, source in sources.items()])
+    proposal['provenance'].update(skill_version=load_skill(skill).version, sections=coverage)
+    return ExtractionResult(skill, merged, proposal, ai_result), pending
+
+
+def _merge_sections(coverage, skill):
+    from ..core.graph import canonical
+
+    merged: dict = {'items': [], 'unresolved': []}
+    seen: set[str] = set()
+    for row in coverage:
+        if 'data' not in row:
+            continue
+        data = row['data']
+        for item in data['items']:
+            signature = canonical(item)
+            if signature not in seen:
+                seen.add(signature)
+                merged['items'].append(copy.deepcopy(item))
+        merged['unresolved'].extend(data['unresolved'])
+        if 'paper' in data and 'paper' not in merged:
+            merged['paper'] = data['paper']
+    if skill == 'extract_thoughts':
+        merged['items'] = merged['items'][:18]
+    if skill == 'extract_theorems':
+        from collections import Counter
+        labels = Counter(item['label'] for item in merged['items'])
+        for item in merged['items']:
+            if labels[item['label']] > 1:
+                item['label'] += ' @ ' + item['source_refs'][0]
+    return merged
 
 
 EXTRACTION_SYSTEM = (
@@ -258,7 +363,7 @@ def evidence_text(evidence):
 
 
 def extract(normalized, client, skill_name, *, projection_path='main.tex', additional_sources=None,
-            extra_skills_dir=None, use_cache=True):
+            extra_skills_dir=None, use_cache=True, source_ranges=None):
     """Ask one extraction skill for a proposal over a normalized source."""
     from .normalize import NormalizedSource
     from .skills import load_skill
@@ -281,8 +386,11 @@ def extract(normalized, client, skill_name, *, projection_path='main.tex', addit
         'source_tree_hash': normalized.source_tree_hash,
         'normalized_sha256': normalized.sha256,
         'projection_path': projection_path,
-        'sources': [_numbered_source(path, source) for path, source in sources.items()],
+        'sources': [_numbered_source(path, source, source_ranges[path] if source_ranges else None)
+                    for path, source in sources.items() if source_ranges is None or path in source_ranges],
     }
+    if source_ranges is not None:
+        evidence['source_ranges'] = source_ranges
     content = evidence_text(evidence) if skill.version >= 6 else json.dumps(evidence, ensure_ascii=False, sort_keys=True)
     checked = None
 
@@ -290,7 +398,7 @@ def extract(normalized, client, skill_name, *, projection_path='main.tex', addit
         nonlocal checked
         validate_extraction(skill_name, data, skill_version=skill.version)
         validate_source_refs(normalized, projection_path, skill_name, data,
-                             additional_sources=additional_sources)
+                             additional_sources=additional_sources, source_ranges=source_ranges)
         checked = data
 
     messages = ([Message('system', EXTRACTION_SYSTEM), Message('user', content),
