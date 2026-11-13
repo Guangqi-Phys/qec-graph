@@ -44,7 +44,7 @@ Offline fixture: CSS code, n=13, k=1, lower distance 12, measured X weight 4; id
     def session(self):
         return WorkspaceSession(self.root / 'machine', profile='research')
 
-    def test_theorem_and_lean_context_preserve_statement_and_report_missing_assumptions(self):
+    def test_theorem_context_preserves_statement_and_reports_missing_assumptions(self):
         session = self.session()
         result = session.invoke('qec_get_context', {'identifier': self.lemma, 'purpose': 'theorem'})
         self.assertTrue(result['ok'], result)
@@ -54,9 +54,8 @@ Offline fixture: CSS code, n=13, k=1, lower distance 12, measured X weight 4; id
         self.assertFalse(any('unrelated definition' in n.get('latex', '') for n in data['nodes']))
         self.assertIn('explicit_assumptions', data['missing_components'])
         self.assertFalse(data['context_complete'])
-        lean = session.invoke('qec_get_context', {'identifier': self.lemma, 'purpose': 'lean'})['data']
-        self.assertIn('formalization_mapping', lean['missing_components'])
-        self.assertIn('no Lean build', lean['formalization_status'])
+        removed = session.invoke('qec_get_context', {'identifier': self.lemma, 'purpose': 'lean'})
+        self.assertEqual(removed['error']['code'], 'INVALID_ARGUMENT')
         limited = session.invoke('qec_get_context', {'identifier': self.lemma, 'purpose': 'theorem',
                                                    'max_chars': len(canonical(data)) - 100})
         self.assertTrue(limited['ok'], limited)

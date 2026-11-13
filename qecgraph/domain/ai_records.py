@@ -53,4 +53,5 @@ def stage_ai_records(registry, state):
             records[record['id']] = record
     if records:
         stage_records(registry, state, records.values())
-    state['ai_research_records'] = {identifier: record['revision'] for identifier, record in records.items()}
+    if records or 'ai_research_records' in state:
+        state['ai_research_records'] = {identifier: record['revision'] for identifier, record in records.items()}

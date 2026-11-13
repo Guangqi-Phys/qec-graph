@@ -27,9 +27,7 @@ class SchemaTests(unittest.TestCase):
         for name in ('annotations.example.json', 'catalog-links.example.json'):
             with self.subTest(example=name):
                 packaged_validator('annotations').validate(read_json(EXAMPLES / name))
-        for name in ('claim.example.json', 'lean/claim.json'):
-            with self.subTest(example=name):
-                packaged_validator('record').validate(prepare_record(read_json(EXAMPLES / name)))
+        packaged_validator('record').validate(prepare_record(read_json(EXAMPLES / 'claim.example.json')))
         with tempfile.TemporaryDirectory() as directory:
             proposal = create_proposal(directory, actor={'id': 'fixture:docs', 'kind': 'human'},
                                        **read_json(EXAMPLES / 'proposal.example.json'))
@@ -39,6 +37,9 @@ class SchemaTests(unittest.TestCase):
         binding = {'id': 'record:fixture', 'revision': 'r1'}
         records = {
             'algorithm': {},
+            'ai_extraction': {'source_ref': binding, 'extraction_kind': 'theorem', 'extracted': {},
+                              'source_refs': ['main.tex:1'], 'provenance': {'skill': 'fixture',
+                              'model': 'fixture', 'artifact_sha256': 'a' * 64}},
             'research_thought': {'category': 'problem', 'statement': 'Question?', 'source_quote': 'Question?',
                                  'attribution': 'author_explicit', 'source_ref': binding},
             'catalog_source': {},
@@ -76,6 +77,8 @@ class SchemaTests(unittest.TestCase):
         for kind, data in records.items():
             record = {'schema': 'qecgraph.research', 'id': 'record:fixture', 'revision': 'r1', 'kind': kind,
                       'data': data, 'field_evidence': {}, 'is_synthetic': True}
+            if kind == 'ai_extraction':
+                record['origin'] = 'ai_extracted'
             with self.subTest(kind=kind):
                 validator.validate(record)
             for field in data:
