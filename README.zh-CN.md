@@ -152,7 +152,7 @@ release 保持可读。人类笔记永不作为知识输入。
 | 知识检索 | 完整原文/章节/目录读取、可选本地或外部 embedding、混合搜索、任务上下文与覆盖报告 |
 | AI 辅助 | 可选 provider 配置、多 TeX 根的来源映射规范化、定理/假设/数据/思路提议 |
 | 人类视图 | 每篇论文一份 Obsidian thoughts 笔记，包含主题标签、书目信息和九问 |
-| 接口面 | workspace 为主；单篇 store 和多篇 corpus 仍可用 |
+| 接口面 | 查询和 MCP 使用工作区，独立 LaTeX 切割输出来源片段 |
 
 ## 已实现接口面
 
@@ -296,7 +296,7 @@ opencode mcp list
 | 查命令、退出码或发布检查 | [进阶用法](docs/user/advanced-usage.zh-CN.md) |
 | 理解身份、证据和发布 | [系统设计](docs/design/DESIGN.zh-CN.md) |
 | 浏览文档索引 | [docs/README.zh-CN.md](docs/README.zh-CN.md) |
-| 运维 store 或 corpus | [运维](docs/operations/README.zh-CN.md) |
+| 维护工作区 | [运维](docs/operations/README.zh-CN.md) |
 
 ## 许可证
 

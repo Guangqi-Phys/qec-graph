@@ -1,7 +1,7 @@
 # Operations and maintenance
 
 > **Status: Current (0.6.x).** Daily workspace usage lives in the [user guides](../user/README.md).
-> This section covers the supported store/corpus surface, review and evidence.
+> This section covers workspace maintenance, validation and evidence.
 
 > **English** · [中文](README.zh-CN.md)
 
@@ -22,7 +22,6 @@
 | [Workspace maintenance](maintenance.md) | Workspace | How-to | Validate, rebuild and recover a workspace |
 | [Workspace guide](../user/workspace.md) | Workspace | How-to | Current daily workflow (linked here for convenience) |
 | [Advanced usage](../user/advanced-usage.md) | Workspace/CLI | How-to / reference | Release checks, exit codes and grouped commands |
-
 
 ## Validation
 

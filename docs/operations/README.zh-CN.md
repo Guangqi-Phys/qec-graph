@@ -1,7 +1,7 @@
 # 运维与维护
 
 > **状态：当前（0.6.x）。** 日常工作区用法在[用户指南](../user/README.zh-CN.md)。
-> 本节覆盖受支持的 store/corpus 接口、审核和证据。
+> 本节覆盖工作区维护、验证和证据。
 
 > **中文** · [English](README.md)
 
@@ -19,10 +19,9 @@
 
 | 页面 | 接口 | 类型 | 适用场景 |
 |---|---|---|---|
-| [store 与 corpus 维护](maintenance.zh-CN.md) | store/corpus | How-to | 导入、验证或恢复单篇 store/corpus |
+| [工作区维护](maintenance.zh-CN.md) | 工作区 | How-to | 验证、重建或恢复工作区 |
 | [工作区说明](../user/workspace.zh-CN.md) | 工作区 | How-to | 当前日常流程（方便链接） |
 | [进阶用法](../user/advanced-usage.zh-CN.md) | 工作区/CLI | How-to / reference | 发布检查、退出码和命令分组 |
-
 
 ## 验证
 

@@ -164,7 +164,7 @@ validation leaves the previous release readable. Human notes are never knowledge
 | Knowledge retrieval | Full source/section/outline reads, optional local or external embeddings, hybrid search, task contexts and coverage reports |
 | AI assistance | Optional provider config, source-mapped normalization of multiple TeX roots, proposed theorem/assumption/data/thought extraction |
 | Human view | One Obsidian thoughts note per paper, with topic tags, bibliographic properties and nine questions |
-| Surfaces | Workspace is primary; single-paper store and multi-paper corpus remain available |
+| Surfaces | Workspace for queries and MCP, standalone LaTeX splitting for source fragments |
 
 ## Implemented surfaces
 
@@ -315,7 +315,7 @@ Use `qec-graph mcp config --machine /path/to/machine` for a machine-only mount.
 | Look up commands, exit codes or release checks | [Advanced usage](docs/user/advanced-usage.md) |
 | Understand identities, evidence and publication | [System design](docs/design/DESIGN.md) |
 | Browse the documentation index | [docs/README.md](docs/README.md) |
-| Operate a store or corpus | [Operations](docs/operations/README.md) |
+| Maintain a workspace | [Operations](docs/operations/README.md) |
 
 ## License
 
