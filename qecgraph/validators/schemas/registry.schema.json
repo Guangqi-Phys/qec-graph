@@ -287,18 +287,6 @@
         "type": "object"
       }
     },
-    "applications": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "object"
-      }
-    },
-    "lean_projects": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "object"
-      }
-    },
     "retrieval_index": {
       "type": "object",
       "properties": {
@@ -350,30 +338,6 @@
           }
         }
       ]
-    },
-    "legacy_import": {
-      "type": "object",
-      "properties": {
-        "registry_revision": {
-          "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
-        },
-        "source_versions": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "archive_status": {
-          "const": "original_download_blobs_not_available_in_legacy_corpus"
-        }
-      },
-      "required": [
-        "registry_revision",
-        "source_versions",
-        "archive_status"
-      ],
-      "additionalProperties": false
     }
   },
   "required": [

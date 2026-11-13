@@ -50,7 +50,8 @@ def _verify_state_binding(state, revision, path):
 def _is_workspace_state(state):
     return (isinstance(state, dict) and state.get('schema') == FORMAT and state.get('format_version') == 2
             and isinstance(state.get('workspace_id'), str)
-            and not {'corpus_id', 'records', 'links', 'ai_reviews', 'semantic_decisions'} & state.keys())
+            and not {'corpus_id', 'records', 'links', 'ai_reviews', 'semantic_decisions',
+                     'applications', 'lean_projects', 'legacy_import'} & state.keys())
 
 
 class Registry:
@@ -182,16 +183,6 @@ class Registry:
         graph, report = load_validated_snapshot(snapshot, manifest_hashes=manifest_hashes)
         _check_source_binding(graph, version)
         return graph, snapshot, report
-
-    def asset_bytes(self, uri):
-        prefix = 'qecasset:sha256:'
-        digest = uri.removeprefix(prefix)
-        if not uri.startswith(prefix) or len(digest) != 64 or any(c not in '0123456789abcdef' for c in digest):
-            raise ValueError('Unknown managed asset URI')
-        raw = regular_managed_path(self.root, 'assets/' + digest).read_bytes()
-        if hashlib.sha256(raw).hexdigest() != digest:
-            raise ValueError('Managed asset content changed')
-        return raw
 
     def _put_asset(self, raw, media_type, original_path=None):
         digest = hashlib.sha256(raw).hexdigest()

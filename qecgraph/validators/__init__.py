@@ -1,7 +1,6 @@
 """Structural/type validation. Passing these checks is not mathematical evidence."""
 from __future__ import annotations
 
-import hashlib
 import json
 from functools import lru_cache
 from importlib.resources import files
@@ -101,64 +100,3 @@ def validate_graph_types(graph):
             if relation in KNOWN_RELATIONS or relation.startswith('catalog:'):
                 continue  # Explicit unknown endpoint, never a usable typed dependency.
         validate_endpoint(source_kind, target_kind, relation)
-
-
-def registry_issues(registry, records):
-    issues = []
-    for identifier, record in records.items():
-        if record['schema'] != 'qecgraph.record':
-            issues.append({'code': 'legacy_record_requires_migration', 'record_id': identifier})
-            continue
-        for asset in record['assets']:
-            try:
-                raw = registry.asset_bytes(asset['uri'])
-                if len(raw) != asset['size_bytes'] or hashlib.sha256(raw).hexdigest() != asset['sha256']:
-                    raise ValueError('Asset size/hash mismatch')
-            except (OSError, ValueError) as exc:
-                issues.append({'code': 'asset_unavailable', 'record_id': identifier, 'asset': asset['uri'], 'message': str(exc)})
-        if record['kind'] == 'claim' and record['data'].get('relation') in {'exact', 'lower_bound', 'upper_bound', 'interval'}:
-            from .qec import distance_issues
-            issues.extend({'code': 'distance_scope_incomplete', 'severity': 'warning', 'record_id': identifier, 'message': message}
-                          for message in distance_issues(record['data']))
-        for evidence_id in record['evidence_ids']:
-            if evidence_id not in records or records[evidence_id]['kind'] != 'evidence':
-                issues.append({'code': 'unresolved_evidence', 'record_id': identifier, 'evidence_id': evidence_id})
-        fields = {
-            'quantum_code': {'construction_id': {'construction'}, 'check_matrix_ids': {'check_matrix'}, 'distance_estimate_ids': {'claim'}},
-            'check_matrix': {'instance_id': {'quantum_code'}, 'matrix_definition_id': {'definition'}},
-            'claim': {'subject_id': {'quantum_code', 'check_matrix', 'circuit', 'family', 'construction',
-                                      'classical_code'},
-                      'check_matrix_id': {'check_matrix'}, 'metric_id': {'definition', 'metric'}},
-        }.get(record['kind'], {})
-        for field, kinds in fields.items():
-            values = record['data'].get(field)
-            if values is None:
-                continue
-            for target_id in values if isinstance(values, list) else [values]:
-                target = records.get(target_id)
-                if target is None:
-                    issues.append({'code': 'domain_reference', 'record_id': identifier, 'field': field,
-                                   'target': target_id})
-                elif target['kind'] not in kinds:
-                    issues.append({'code': 'domain_reference', 'severity': 'warning', 'record_id': identifier,
-                                   'field': field, 'target': target_id, 'target_kind': target['kind']})
-        if record['kind'] == 'evidence' and isinstance(record['data'].get('inputs'), list):
-            for binding in record['data']['inputs']:
-                if not isinstance(binding, dict):
-                    issues.append({'code': 'evidence_binding', 'record_id': identifier, 'message': 'Input binding must be an object'})
-                    continue
-                target = records.get(binding.get('id'))
-                if target is None or target['revision'] != binding.get('revision') or target['content_sha256'] != binding.get('content_sha256'):
-                    issues.append({'code': 'evidence_binding_stale', 'severity': 'warning', 'record_id': identifier, 'binding': binding})
-        for ref in record['refs']:
-            target = records.get(ref['target'])
-            if target is None:
-                issues.append({'code': 'unresolved_reference', 'record_id': identifier, 'target': ref['target']})
-                continue
-            try:
-                validate_endpoint(record['kind'], target['kind'], ref['relation'])
-            except ValueError as exc:
-                issues.append({'code': 'reference_type_or_revision', 'record_id': identifier, 'target': ref['target'], 'message': str(exc)})
-            if ref.get('revision') and ref['revision'] != target['revision']:
-                issues.append({'code': 'reference_revision_stale', 'severity': 'warning', 'record_id': identifier, 'target': ref['target']})
-    return issues
