@@ -367,9 +367,15 @@ stays dynamic and is reported. An empty literal value is a definite value; a
 non-literal redefinition makes the name uncertain instead of leaving the old
 value in place. `\gdef`/`\xdef` and `\begingroup`/`\endgroup` follow their
 group scope, and a conditional keeps a value only when every branch gives the
-same definite value. A path that uses an uncertain macro is reported as
+same definite value. Each branch runs against a full snapshot of the scope
+stack, so a definition inside a group that closes before the branch ends does
+not enter the merge, and a global definition in every branch takes effect
+globally. `\ifcase` treats every `\or` branch and the optional `\else` (or an
+implicit empty branch) as alternatives. Condition pairing skips declaration
+bodies, literal environments and comments, so a `\fi` shown there does not
+close the conditional. A path that uses an uncertain macro is reported as
 `uncertain_path`. A statically decidable `\iffalse`/`\iftrue` branch is
-followed; other conditionals keep both branches and mark an include inside one
+followed; other conditionals keep all branches and mark an include inside one
 as uncertain. Dynamic paths and missing body dependencies stay in the entry and
 are reported.
 A missing preamble dependency is a dependency warning, not content loss. Entry

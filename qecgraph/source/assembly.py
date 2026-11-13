@@ -438,23 +438,29 @@ def _skip_definition(text: str, index: int, name: str) -> int:
     return index
 
 
-def _conditional_bounds(text: str, index: int,
-                        defined: frozenset[str] | set[str] = frozenset(),
-                        ) -> tuple[int | None, int, int]:
-    """Return ``(else_start, fi_start, fi_end)`` for a conditional body.
+def _conditional_branches(text: str, index: int, kind: str,
+                          defined: frozenset[str] | set[str] = frozenset(),
+                          stop: int | None = None,
+                          ) -> tuple[list[tuple[int, int]], int, int, bool]:
+    """Split a conditional body into branch ranges with lexical context.
 
-    ``index`` is the offset just after the opening ``\\if...`` control word.
-    ``else_start`` is the offset just after the matching ``\\else`` or None;
-    ``fi_start`` is the offset of the matching ``\\fi`` and ``fi_end`` the
-    offset just after it.
+    ``index`` is the offset just after the opening control word and ``kind``
+    its name, so ``ifcase`` splits at ``\\or`` as well as ``\\else``. Comments,
+    ``\\verb``-like macros, literal environments, declaration bodies and
+    ``\\newif`` declarations are skipped, so a ``\\fi`` shown in one of them does
+    not close the conditional. Returns ``(branches, fi_start, fi_end)``; when no
+    matching ``\\fi`` exists ``fi_start`` equals the stop offset.
     """
-    depth = 1
-    else_start: int | None = None
-    while index < len(text):
+    limit = len(text) if stop is None else stop
+    branches: list[tuple[int, int]] = []
+    branch_start = index
+    has_else = False
+    depth = 0
+    while index < limit:
         char = text[index]
         if char == "%":
-            end = text.find("\n", index)
-            index = len(text) if end < 0 else end + 1
+            newline = text.find("\n", index)
+            index = limit if newline < 0 else newline + 1
             continue
         if char != "\\":
             index += 1
@@ -465,16 +471,73 @@ def _conditional_bounds(text: str, index: int,
             continue
         name = match.group(1)
         after = match.end()
+        if name in {"verb", "verb*", "lstinline"}:
+            if after < limit:
+                delimiter = text[after]
+                newline = text.find(delimiter, after + 1, limit)
+                index = limit if newline < 0 else newline + 1
+            else:
+                index = after
+            continue
+        if name == "begin":
+            environment, group_end = _parse_group(text, after)
+            if environment in LITERAL_ENVIRONMENTS:
+                closing = "\\end{" + environment + "}"
+                end = text.find(closing, group_end, limit)
+                index = limit if end < 0 else end + len(closing)
+                continue
+            index = group_end
+            continue
+        if name == "newif":
+            probe = _skip_space(text, after)
+            flag = _CONTROL.match(text, probe)
+            if flag:
+                defined.update({flag.group(1) + "true", flag.group(1) + "false"})
+                index = flag.end()
+            else:
+                index = probe
+            continue
+        if name in _DECLARATIONS:
+            definition = _definition_event(text, index, name)
+            if definition is not None:
+                defined.add(definition.name)
+            index = _skip_definition(text, after, name)
+            continue
         if _is_conditional(name, text, after, defined):
             depth += 1
         elif name == "fi":
-            depth -= 1
             if depth == 0:
-                return else_start, index, after
-        elif name == "else" and depth == 1 and else_start is None:
-            else_start = after
+                branches.append((branch_start, index))
+                return branches, index, after, has_else
+            depth -= 1
+        elif depth == 0 and name == "else":
+            branches.append((branch_start, index))
+            branch_start = after
+            has_else = True
+        elif depth == 0 and name == "or" and kind == "ifcase":
+            branches.append((branch_start, index))
+            branch_start = after
+        elif name == "endinput":
+            break
         index = after
-    return else_start, len(text), len(text)
+    branches.append((branch_start, limit))
+    return branches, limit, limit, has_else
+
+
+def _conditional_bounds(text: str, index: int,
+                        defined: frozenset[str] | set[str] = frozenset(),
+                        stop: int | None = None,
+                        ) -> tuple[int | None, int, int]:
+    """Return ``(else_start, fi_start, fi_end)`` for a conditional body.
+
+    ``index`` is the offset just after the opening ``\\if...`` control word.
+    ``else_start`` is the offset just after the first matching branch separator
+    or None; without a matching ``\\fi`` the scan stops at ``stop``.
+    """
+    branches, fi_start, fi_end, has_else = _conditional_branches(
+        text, index, "", defined, stop)
+    else_start = branches[1][0] if has_else else None
+    return else_start, fi_start, fi_end
 
 
 @dataclass(frozen=True)
@@ -663,27 +726,23 @@ def _scan(text: str) -> tuple[list, list[dict]]:
                 diagnostics.append({"code": "endinput"})
                 break
             if _is_conditional(name, text, after, defined_names):
-                else_start, fi_start, fi_end = _conditional_bounds(
-                    text, after, defined_names)
+                branches, fi_start, fi_end, has_else = _conditional_branches(
+                    text, after, name, defined_names, stop)
                 if fi_start >= stop:
                     diagnostics.append({"code": "unclosed_conditional",
                                         "name": name})
                     index = after
                     continue
-                fi_start = min(fi_start, stop)
-                fi_end = min(fi_end, stop)
-                else_start = (min(else_start, stop)
-                              if else_start is not None else None)
+                if not has_else:
+                    branches.append((fi_start, fi_start))
                 conditionals += 1
                 names: set[str] = set()
                 conditional_names.append(names)
                 items.append(_ConditionalEvent("enter", index))
-                walk(after, else_start if else_start is not None else fi_start,
-                     uncertain + 1)
-                items.append(_ConditionalEvent(
-                    "switch", else_start if else_start is not None else fi_start))
-                if else_start is not None:
-                    walk(else_start, fi_start, uncertain + 1)
+                for position, (branch_start, branch_stop) in enumerate(branches):
+                    if position:
+                        items.append(_ConditionalEvent("switch", branch_start))
+                    walk(branch_start, branch_stop, uncertain + 1)
                 items.append(_ConditionalEvent("leave", fi_end,
                                                tuple(sorted(names))))
                 conditional_names.pop()
@@ -1221,29 +1280,30 @@ class Assembler:
                 existing[1:] or None, child_context)
 
     def _macro(self, name: str) -> object | None:
-        for frame in reversed(self.conditional_frames):
-            if name in frame["current"]:
-                return frame["current"][name]
         for scope in reversed(self.scopes):
             if name in scope:
                 return scope[name]
         return None
 
-    def _store(self, name: str, state: object) -> None:
-        if self.conditional_frames:
-            self.conditional_frames[-1]["current"][name] = state
-        else:
-            self.scopes[-1][name] = state
+    @staticmethod
+    def _lookup_in(scopes: list[dict[str, object]], name: str) -> object | None:
+        for scope in reversed(scopes):
+            if name in scope:
+                return scope[name]
+        return None
+
+    def _copy_scopes(self) -> list[dict[str, object]]:
+        return [dict(scope) for scope in self.scopes]
 
     def _define(self, definition: _MacroDef) -> None:
         if (definition.provide_only
                 and self._macro(definition.name) is not None):
             return
         state = definition.state()
-        if self.conditional_frames:
-            self.conditional_frames[-1]["current"][definition.name] = state
-            return
         if definition.global_scope:
+            if self.conditional_frames:
+                frame = self.conditional_frames[-1]
+                frame["current_globals"][definition.name] = state
             for scope in self.scopes:
                 scope.pop(definition.name, None)
             self.scopes[0][definition.name] = state
@@ -1252,30 +1312,54 @@ class Assembler:
 
     def _conditional(self, event: _ConditionalEvent) -> None:
         if event.kind == "enter":
-            self.conditional_frames.append({"first": {}, "current": {}})
+            self.conditional_frames.append({
+                "snapshot": self._copy_scopes(),
+                "states": [],
+                "globals": [],
+                "current_globals": {},
+            })
             return
         if event.kind == "switch":
-            if self.conditional_frames:
-                frame = self.conditional_frames[-1]
-                frame["first"] = frame["current"]
-                frame["current"] = {}
+            if not self.conditional_frames:
+                return
+            frame = self.conditional_frames[-1]
+            frame["states"].append(self._copy_scopes())
+            frame["globals"].append(dict(frame["current_globals"]))
+            frame["current_globals"] = {}
+            self.scopes = [dict(scope) for scope in frame["snapshot"]]
             return
         if event.kind == "leave":
             if not self.conditional_frames:
                 return
             frame = self.conditional_frames.pop()
-            first = frame["first"]
-            second = frame["current"]
-            for name in event.names:
-                left = first.get(name, self._macro(name))
-                right = second.get(name, self._macro(name))
-                if isinstance(left, str) and left == right:
-                    state: object = left
-                elif left is None and right is None:
-                    continue
-                else:
-                    state = UNCERTAIN
-                self._store(name, state)
+            frame["states"].append(self._copy_scopes())
+            frame["globals"].append(dict(frame["current_globals"]))
+            self.scopes = [dict(scope) for scope in frame["snapshot"]]
+            self._merge_branches(event.names, frame)
+
+    def _merge_branches(self, names: tuple[str, ...], frame: dict) -> None:
+        states: list[list[dict[str, object]]] = frame["states"]
+        writes: list[dict[str, object]] = frame["globals"]
+        if not states:
+            return
+        for name in names:
+            values = [self._lookup_in(branch, name) for branch in states]
+            first = values[0]
+            if all(isinstance(value, str) and value == first
+                   for value in values):
+                state: object = first
+            elif all(value is None for value in values):
+                continue
+            else:
+                state = UNCERTAIN
+            if any(name in branch for branch in writes):
+                for scope in self.scopes:
+                    scope.pop(name, None)
+                self.scopes[0][name] = state
+                if self.conditional_frames:
+                    self.conditional_frames[-1]["current_globals"][name] = state
+            else:
+                self.scopes[-1][name] = state
 
     def _uncertain_reference(self, arguments: tuple[str, ...]) -> bool:
         for argument in arguments:

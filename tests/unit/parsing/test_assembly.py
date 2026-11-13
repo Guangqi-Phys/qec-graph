@@ -249,6 +249,84 @@ class AssembleTests(unittest.TestCase):
         self.assertIn(b"TWO_BODY.", result.data)
         self.assertNotIn(b"ONE_BODY.", result.data)
 
+    def test_branch_local_definition_does_not_survive_the_conditional(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{one}\n"
+                         b"\\newcommand{\\flag}{}\n\\begin{document}\n"
+                         b"\\ifdefined\\flag\n{\\renewcommand{\\DIR}{two}}\n"
+                         b"\\else\n{\\renewcommand{\\DIR}{two}}\n\\fi\n"
+                         b"\\input{\\DIR/frag}\n\\end{document}\n"),
+            "one/frag.tex": b"CORRECT_ONE.\n",
+            "two/frag.tex": b"WRONG_TWO.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertEqual([event.target for event in result.events],
+                         ["one/frag.tex"])
+        self.assertNotIn(b"WRONG_TWO.", result.data)
+        self.assertTrue(result.coverage()["complete"])
+
+    def test_global_definition_in_all_branches_survives_the_conditional(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{one}\n"
+                         b"\\newcommand{\\flag}{}\n\\begin{document}\n"
+                         b"{\\ifdefined\\flag\n\\gdef\\DIR{two}\n"
+                         b"\\else\n\\gdef\\DIR{two}\n\\fi}\n"
+                         b"\\input{\\DIR/frag}\n\\end{document}\n"),
+            "one/frag.tex": b"WRONG_ONE.\n",
+            "two/frag.tex": b"CORRECT_TWO.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertEqual([event.target for event in result.events],
+                         ["two/frag.tex"])
+
+    def test_ifcase_branches_with_different_values_stay_uncertain(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{old}\n"
+                         b"\\begin{document}\n\\ifcase0\n"
+                         b"\\renewcommand{\\DIR}{one}\n\\or\n"
+                         b"\\renewcommand{\\DIR}{two}\n\\else\n"
+                         b"\\renewcommand{\\DIR}{two}\n\\fi\n"
+                         b"\\input{\\DIR/frag}\n\\end{document}\n"),
+            "one/frag.tex": b"CORRECT_ONE.\n",
+            "two/frag.tex": b"WRONG_TWO.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertEqual([event.outcome for event in result.events],
+                         ["uncertain_path"])
+        self.assertIsNone(result.events[0].target)
+        self.assertFalse(result.coverage()["complete"])
+
+    def test_fi_inside_a_declaration_does_not_end_the_conditional(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{old}\n"
+                         b"\\begin{document}\n\\iftrue\n"
+                         b"\\newcommand{\\fake}{\\fi}\n"
+                         b"\\renewcommand{\\DIR}{one}\n\\else\n"
+                         b"\\renewcommand{\\DIR}{two}\n\\fi\n"
+                         b"\\input{\\DIR/frag}\n\\end{document}\n"),
+            "one/frag.tex": b"CORRECT_ONE.\n",
+            "two/frag.tex": b"WRONG_TWO.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertEqual([event.target for event in result.events],
+                         ["one/frag.tex"])
+        self.assertTrue(result.coverage()["complete"])
+
+    def test_fi_inside_verbatim_does_not_end_the_conditional(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{old}\n"
+                         b"\\begin{document}\n\\iftrue\n"
+                         b"\\begin{verbatim}\n\\fi\n\\end{verbatim}\n"
+                         b"\\renewcommand{\\DIR}{one}\n\\else\n"
+                         b"\\renewcommand{\\DIR}{two}\n\\fi\n"
+                         b"\\input{\\DIR/frag}\n\\end{document}\n"),
+            "one/frag.tex": b"CORRECT_ONE.\n",
+            "two/frag.tex": b"WRONG_TWO.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertEqual([event.target for event in result.events],
+                         ["one/frag.tex"])
+
     def test_equal_conditional_branches_keep_a_definite_path(self):
         source = {
             "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{one}\n"

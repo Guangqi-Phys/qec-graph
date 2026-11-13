@@ -181,6 +181,55 @@ class PrepareTests(unittest.TestCase):
         self.assertTrue(prepared.coverage["document_complete"])
         self.assertEqual(prepared.coverage["missing_dependencies"], 0)
 
+    def test_conditional_scope_keeps_the_visible_branch_value(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{one}\n"
+                         b"\\newcommand{\\flag}{}\n\\begin{document}\n"
+                         b"\\ifdefined\\flag\n{\\renewcommand{\\DIR}{two}}\n"
+                         b"\\else\n{\\renewcommand{\\DIR}{two}}\n\\fi\n"
+                         b"\\input{\\DIR/frag}\n\\end{document}\n"),
+            "one/frag.tex": b"CORRECT_ONE.\n",
+            "two/frag.tex": b"WRONG_TWO.\n",
+        })
+        prepared = prepare_source(tree)
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertIn("CORRECT_ONE.", texts)
+        self.assertNotIn("WRONG_TWO.", texts)
+        self.assertTrue(prepared.coverage["document_complete"])
+
+    def test_ifcase_differing_branches_do_not_pick_a_branch(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{old}\n"
+                         b"\\begin{document}\n\\ifcase0\n"
+                         b"\\renewcommand{\\DIR}{one}\n\\or\n"
+                         b"\\renewcommand{\\DIR}{two}\n\\else\n"
+                         b"\\renewcommand{\\DIR}{two}\n\\fi\n"
+                         b"\\input{\\DIR/frag}\n\\end{document}\n"),
+            "one/frag.tex": b"CORRECT_ONE.\n",
+            "two/frag.tex": b"WRONG_TWO.\n",
+        })
+        prepared = prepare_source(tree)
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertFalse(any("WRONG_TWO." in text for text in texts))
+        self.assertFalse(prepared.coverage["document_complete"])
+
+    def test_fi_in_a_declaration_does_not_close_the_conditional(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{old}\n"
+                         b"\\begin{document}\n\\iftrue\n"
+                         b"\\newcommand{\\fake}{\\fi}\n"
+                         b"\\renewcommand{\\DIR}{one}\n\\else\n"
+                         b"\\renewcommand{\\DIR}{two}\n\\fi\n"
+                         b"\\input{\\DIR/frag}\n\\end{document}\n"),
+            "one/frag.tex": b"CORRECT_ONE.\n",
+            "two/frag.tex": b"WRONG_TWO.\n",
+        })
+        prepared = prepare_source(tree)
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertIn("CORRECT_ONE.", texts)
+        self.assertNotIn("WRONG_TWO.", texts)
+        self.assertTrue(prepared.coverage["document_complete"])
+
     def test_unknown_body_branches_are_marked_conditional(self):
         tree = SourceTree("directory", {
             "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
