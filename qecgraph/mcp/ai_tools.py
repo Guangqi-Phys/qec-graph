@@ -35,6 +35,7 @@ class ReadOnlySession:
             raise ValueError('Session budgets exceed supported bounds')
         self.max_nodes, self.max_depth, self.max_chars, self.max_results = max_nodes, max_depth, max_chars, max_results
         self.corpus = corpus
+        self._fixed_publication = _fixed_registry is not None
         self.check_live_lean = check_live_lean
         self.reference = None
         self._manifest_hashes = {}
@@ -63,7 +64,7 @@ class ReadOnlySession:
 
     def _project_corpus(self, state, revision, source_version_id):
         graph, _ = _project_state(self._registry, state, revision, source_version_id,
-                                  check_live_lean=self.check_live_lean, verify_sources=True,
+                                  check_live_lean=self.check_live_lean, verify_sources=not self._fixed_publication,
                                   manifest_hashes=self._manifest_hashes)
         return graph
 
@@ -75,6 +76,10 @@ class ReadOnlySession:
             graph, _ = load_validated_snapshot(self.reference.path, self.reference.snapshot_id,
                                                manifest_hashes=self._manifest_hashes)
             self.source = GraphInput(graph, self.reference.path)
+
+    @cached_property
+    def _published_query(self):
+        return query.QuerySession(self.source)
 
     @cached_property
     def _tool_descriptors(self):
@@ -194,9 +199,10 @@ class ReadOnlySession:
                 raise ToolError('INVALID_ARGUMENT', error.message)
             if name == 'qecgraph_search' and not arguments['query'].strip():
                 raise ToolError('INVALID_ARGUMENT', 'Search query must not be blank')
-            self._refresh()
+            if not self._fixed_publication:
+                self._refresh()
             action = name.removeprefix('qecgraph_')
-            session = query.QuerySession(self.source)
+            session = self._published_query if self._fixed_publication else query.QuerySession(self.source)
             identifier = arguments.get('identifier')
             if action != 'search' and self.scope['kind'] == 'corpus':
                 identifier = session.corpus_identifier(identifier, self.scope['source_version_id'])

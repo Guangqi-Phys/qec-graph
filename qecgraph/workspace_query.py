@@ -14,14 +14,14 @@ import stat
 from .mcp.ai_tools import ReadOnlySession, tool_validators
 from .core.errors import ToolError
 from .domain.domain_query import codes
-from .core.graph import canonical, hash_text, read_json
+from .core.graph import canonical, hash_text, strict_json_loads
 from .query import GraphTextIndex, search_node_summary
 from .source.reading import source_reading_text
 from .registry import Registry
 from .domain.research import RELATIONS, key, validate_bundle
 from .domain.research_store import load_records
 from .workspace import HEX
-from .core.fs import managed_path as _managed
+from .core.fs import managed_path as _managed, read_regular
 from .workspace_assets import asset_bytes, references
 from .llm.artifacts import load_normalization, mapped_ranges
 
@@ -148,11 +148,10 @@ class WorkspaceSession:
         """Read the verified original graph for an exact registered source."""
         if self.source_snapshot_id(source_version) is None:
             raise ValueError('Unknown source version in this release')
-        graph, _, _ = self.registry.source_graph(source_version, self.release)
+        graph, _, _ = self.registry.source_graph_from_state(self.state, source_version, self.release)
         return graph
 
     def list_resources(self, cursor=None):
-        check_machine_tree(self.machine)
         if cursor is None:
             offset = 0
         elif isinstance(cursor, str) and len(cursor) <= 10 and cursor.isascii() and cursor.isdecimal():
@@ -181,7 +180,6 @@ class WorkspaceSession:
         return result
 
     def read_resource(self, uri):
-        check_machine_tree(self.machine)
         if uri in self._paper_resources:
             data = self.knowledge.card(self.knowledge.nodes[self._paper_resources[uri]])
             result = {'contents': [{'uri': uri, 'mimeType': 'application/json', 'text': canonical(data),
@@ -283,7 +281,7 @@ class WorkspaceSession:
     def _operational(self):
         path = _managed(self.machine, 'operational/status.json')
         try:
-            data = read_json(path)
+            data = strict_json_loads(read_regular(path, 1 << 20).decode('utf-8'), source=str(path))
         except (FileNotFoundError, IsADirectoryError, ValueError):
             return None
         if not isinstance(data, dict) or not isinstance(counts := data.get('counts', {}), dict):
@@ -616,7 +614,6 @@ class WorkspaceSession:
             if args.pop('release_id', self.release) != self.release:
                 raise ToolError('SNAPSHOT_UNAVAILABLE', 'This session is pinned to a different release')
             maximum = args.pop('max_chars', self.graph.max_chars)
-            check_machine_tree(self.machine)
             if name in {'search', 'fetch'}:
                 data = self.knowledge.compatible(name, args)
                 if len(canonical(data)) > maximum:

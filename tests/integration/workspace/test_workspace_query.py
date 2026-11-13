@@ -280,6 +280,17 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.assertFalse(failure['ok'])
         self.assertNotIn('private-only-name', str(failure))
 
+    def test_pinned_queries_do_not_rescan_or_reproject_the_machine(self):
+        from unittest.mock import patch
+
+        with patch('qecgraph.workspace_query.check_machine_tree', side_effect=AssertionError('tree scan')), \
+             patch.object(self.session.graph, '_refresh', side_effect=AssertionError('graph reload')):
+            self.assertTrue(self.session.list_resources()['resources'])
+            for _ in range(2):
+                response = self.session.invoke('qecgraph_show', {'identifier': next(iter(self.session._source_nodes))})
+                self.assertTrue(response['ok'], response)
+                self.assertEqual(response['data']['scope']['release_id'], self.release)
+
     def test_source_reported_upper_bound_is_not_a_lower_bound(self):
         from qecgraph.domain.research import make_record
         state, fixed = self.ws.registry.read()
