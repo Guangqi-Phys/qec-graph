@@ -567,7 +567,7 @@ class KnowledgeView:
             if args.get('source_version_id') and unit.get('source_version_id') != args['source_version_id']:
                 continue
             allowed[unit_key(unit)] = unit
-        mode = args.get('mode', 'hybrid')
+        mode = args.get('mode', 'keyword')
         fallback = None
         from .core.search import normalized
         lexical, matches = self.lexical.rank(args['query'], set(allowed))
@@ -580,11 +580,11 @@ class KnowledgeView:
             ranked, status, method = lexical, self.retrieval.status(), 'BM25; all terms before partial matches'
         elif self.retrieval.current:
             try:
-                ranked, status = self.retrieval.rank(args['query'], allowed, mode)
+                ranked, status = self.retrieval.rank(args['query'], allowed)
             except ToolError as exc:
                 if mode != 'hybrid' or exc.code != 'EMBEDDING_UNAVAILABLE':
                     raise
-                ranked, status = self.retrieval.rank(args['query'], allowed, 'keyword')
+                ranked, status = ([], self.retrieval.status())
                 fallback = 'Embedding unavailable; returned keyword candidates'
             if mode == 'hybrid':
                 fused = Counter()
@@ -592,7 +592,9 @@ class KnowledgeView:
                     for position, key in enumerate(ranking, 1):
                         fused[key] += 1 / (60 + position)
                 ranked = sorted(fused, key=lambda k: (matches.get(k) != 'all_terms', -fused[k], k))
-            method = 'BM25 / cosine vectors with reciprocal-rank fusion'
+            method = ('cosine vector similarity' if mode == 'vector' else
+                      'BM25; all terms before partial matches' if fallback else
+                      'BM25 / cosine vectors with reciprocal-rank fusion')
         else:
             if mode == 'vector':
                 raise ToolError('INDEX_UNAVAILABLE', 'Build a current index with sync/rebuild; keyword source search remains available')

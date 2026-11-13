@@ -371,8 +371,9 @@ Pass `unit: "section"` to `qec_search` to group source hits under their nearest 
 
 Enable the local projection in `qecgraph.toml`, then run sync or rebuild. The
 local model hashes lexical features; it is an offline retrieval baseline, not a
-pretrained semantic model. The index contains BM25 term counts and chunk vectors,
-never private notes. Source text remains searchable without an index.
+pretrained semantic model. The optional index stores chunk vectors as content-addressed float32 files. Unchanged
+chunks reuse their vectors across releases. BM25 reads registered text and stays
+available independently of the optional index. Private notes are excluded.
 
 ```toml
 [retrieval]
@@ -391,14 +392,14 @@ For semantic embeddings, use an OpenAI-compatible endpoint. Set `provider` to
 Never put a key in this table. The model/revision must identify the same embedding
 space during ingestion and queries; dimensions alone are insufficient.
 
-`qec_search` accepts `mode: "keyword"`, `"vector"` or `"hybrid"` (default).
+`qec_search` accepts `mode: "keyword"` (the BM25 default), `"vector"` or `"hybrid"`.
 `kind` and exact `source_version_id` restrict candidates before ranking. Results
 include index identity and coverage. Hybrid mode reports keyword fallback when
 embeddings are unavailable; vector-only mode returns an explicit error. Source
 and record results are discovery candidates, never proof of a hard condition.
 After explicit research-record imports, refresh the projection with sync.
 The writer checks `max_chunks` and `max_total_chars` before publishing; failures
-keep the previous release. Rebuild can restore a damaged derived index.
+leave source publication available. Run rebuild to regenerate an older-format or damaged index.
 
 ### Research context and exact conditions
 

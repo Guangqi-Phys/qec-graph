@@ -323,8 +323,9 @@ Workspace MCP 默认使用八个 `research` 工具。`qec_fetch` 接受精确 `i
 ### 可选混合检索
 
 在 `qecgraph.toml` 启用本地投影，然后 sync 或 rebuild。本地模型对词法特征做哈希，
-是离线检索基线，不是预训练语义模型。索引含 BM25 词频和分块向量，不包含私人笔记。
-没有索引仍能检索原文。
+作为离线词法检索基线。可选索引将分块向量保存为按内容寻址的 float32 文件，
+跨发布复用内容不变的分块。BM25 从登记原文建立词项，可独立于向量索引使用。
+私人笔记不进入索引。
 
 ```toml
 [retrieval]
@@ -342,11 +343,11 @@ allow_source_upload = false
 `base_url`、支持的 `dimensions`、`api_key_env` 和 `allow_source_upload = true`。
 表内不存 key。入库与查询必须使用同一个模型/版本空间，仅维度相同不够。
 
-`qec_search` 支持 `mode: "keyword"`、`"vector"` 或 `"hybrid"`（默认）。
+`qec_search` 支持 `mode: "keyword"`（默认使用 BM25）、`"vector"` 或 `"hybrid"`。
 `kind` 和精确 `source_version_id` 在排序前过滤。结果报告索引身份与覆盖。
 embedding 不可用时 hybrid 明确报告关键词回退，纯向量模式返回错误。
 原文和记录搜索结果都是发现候选，不证明硬条件成立。显式导入研究记录后用 sync 刷新投影。
-写事务发布前检查 `max_chunks` 与 `max_total_chars`，失败保留旧 release；rebuild 能恢复损坏的派生索引。
+写事务发布前检查 `max_chunks` 与 `max_total_chars`，失败时仍可发布来源。运行 rebuild 可重新生成旧格式或损坏的派生索引。
 
 ### 研究上下文与精确条件
 

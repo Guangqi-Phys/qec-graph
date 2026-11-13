@@ -9,6 +9,7 @@ from qecgraph.llm.providers.base import HttpResult
 from qecgraph.workspace import Workspace
 from qecgraph.workspace_query import WorkspaceSession
 from qecgraph.retrieval import configuration
+from qecgraph.retrieval_vectors import vector_path
 
 
 class RetrievalTests(unittest.TestCase):
@@ -29,6 +30,11 @@ class RetrievalTests(unittest.TestCase):
     def test_local_modes_filters_paging_pin_and_incremental_reuse(self):
         self.ws.sync()
         first = self.session()
+        args = {'query': 'quantum protecting', 'kind': 'paragraph'}
+        self.assertEqual(first.invoke('qec_search', args),
+                         first.invoke('qec_search', {**args, 'mode': 'keyword'}))
+        old_vectors = {chunk['vector_sha256'] for chunk in first.knowledge.retrieval.data['chunks']}
+        mtimes = {digest: vector_path(first.machine, digest).stat().st_mtime_ns for digest in old_vectors}
         for mode in ('keyword', 'vector', 'hybrid'):
             result = first.invoke('qec_search', {'detail': 'full', 'query': 'quantum protecting', 'mode': mode,
                                                'kind': 'paragraph', 'limit': 1})
@@ -45,6 +51,8 @@ class RetrievalTests(unittest.TestCase):
         (self.root / 'inputs/b.tex').write_text('\\documentclass{article}\n\\begin{document}\nUnique decoder decoding.\n\\end{document}')
         self.ws.sync()
         new = self.session()
+        self.assertTrue(old_vectors <= {chunk['vector_sha256'] for chunk in new.knowledge.retrieval.data['chunks']})
+        self.assertEqual(mtimes, {digest: vector_path(new.machine, digest).stat().st_mtime_ns for digest in old_vectors})
         self.assertNotEqual(old_binding, new.state['retrieval_index'])
         self.assertEqual(first.invoke('qec_search', {'detail': 'full', 'query': 'Unique decoder', 'mode': 'keyword'})['data']['results'], [])
         version = next(iter(first.state['versions']))
@@ -136,4 +144,16 @@ class RetrievalTests(unittest.TestCase):
         self.assertFalse(self.session().invoke('qec_search', {'detail': 'full', 'query': 'memory'})['ok'])
         self.ws.rebuild()
         self.assertEqual(path.read_bytes(), original)
+        self.assertTrue(self.ws.validate()['passed'])
+
+    def test_corrupt_vector_leaves_keyword_search_available(self):
+        self.ws.sync()
+        session = self.session()
+        for chunk in session.knowledge.retrieval.data['chunks']:
+            vector_path(session.machine, chunk['vector_sha256']).write_bytes(b'corrupt')
+        self.assertFalse(self.ws.validate()['passed'])
+        self.assertTrue(session.invoke('qec_search', {'query': 'memory'})['ok'])
+        result = session.invoke('qec_search', {'query': 'memory', 'mode': 'vector'})
+        self.assertEqual(result['error']['code'], 'EMBEDDING_UNAVAILABLE')
+        self.ws.rebuild()
         self.assertTrue(self.ws.validate()['passed'])

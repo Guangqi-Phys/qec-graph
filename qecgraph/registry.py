@@ -248,7 +248,7 @@ class Registry:
         if state.get('retrieval_index', {}).get('sha256'):
             try:
                 from .retrieval import read_index
-                read_index(self.root, state['retrieval_index'])
+                read_index(self.root, state['retrieval_index'], verify_vectors=True)
             except (OSError, ValueError, KeyError, TypeError):
                 issues.append({'code': 'retrieval_index_invalid', 'severity': 'error',
                                'message': 'Retrieval projection failed integrity validation; rebuild it'})
