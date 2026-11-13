@@ -453,6 +453,7 @@ class PrepareTests(unittest.TestCase):
             out = Path(temporary)
             manifest = write_outputs(prepared, out, parser_version="test")
             self.assertEqual(manifest["schema"], "qecgraph.prepare/2")
+            self.assertTrue(manifest["prepare_version"].startswith("prepare-rules-"))
             self.assertEqual(json.loads((out / "document.json").read_text())["schema"],
                              "qecgraph.document/2")
             for name in ("entry.tex", "source-map.json", "document.json",

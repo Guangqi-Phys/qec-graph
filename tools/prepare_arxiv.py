@@ -19,6 +19,7 @@ if str(ROOT) not in sys.path:
 
 from qecgraph import PARSER_VERSION  # noqa: E402
 from qecgraph.source.prepare import (  # noqa: E402
+    PREPARE_RULE_VERSION,
     load_source,
     prepare_source,
     recover_output,
@@ -61,6 +62,7 @@ def main(argv: list[str] | None = None) -> int:
         write_outputs(
             prepared, args.out, source=args.source,
             parser_version=PARSER_VERSION,
+            prepare_version=PREPARE_RULE_VERSION,
             parse_options={
                 "recover_parse_errors": not args.no_parser_recovery,
                 "transparent_containers": not args.no_transparent_containers,

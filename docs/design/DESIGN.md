@@ -415,7 +415,9 @@ backup is removed. A normal failure restores the old directory. A process
 killed between the two renames leaves the target absent until the next write or
 `--recover` restores the journaled backup and removes staged leftovers. A
 non-empty directory without a prepare manifest is refused unless the caller
-explicitly overwrites it. This path is not connected to workspace
+explicitly overwrites it. The manifest records `parser_version` and a separate
+`prepare_version`, so an offline conversion-rule change is traceable without
+treating it as a parser change that would rebuild workspace snapshots. This path is not connected to workspace
 stage/validate/publish. Parser errors leave structure partial rather than being
 silently accepted; when one malformed region breaks the structural walk, the
 entry is re-parsed in chunks split at resolved top-level includes so a broken

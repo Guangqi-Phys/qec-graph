@@ -45,6 +45,8 @@ _BINARY_SUFFIXES = frozenset({
     ".pdf", ".ps", ".eps", ".png", ".jpg", ".jpeg", ".gif",
     ".bbl", ".bib", ".sty", ".cls", ".bst", ".zip", ".gz", ".tar",
 })
+PREPARE_RULE_VERSION = "prepare-rules-v2"
+
 _DEPENDENCY_CODES = frozenset({
     "missing_include", "missing_resource", "unsupported_include_type",
     "path_outside_project",
@@ -774,7 +776,8 @@ def _write_artifacts(directory: Path, artifacts: Mapping[str, bytes]) -> None:
 
 def write_outputs(prepared: PreparedSource, out: Path, *, source: Path | None = None,
                   parser_version: str = "", parse_options: Mapping | None = None,
-                  overwrite: bool = False) -> dict:
+                  overwrite: bool = False,
+                  prepare_version: str = PREPARE_RULE_VERSION) -> dict:
     """Write the prepare artifacts, replacing a managed output directory whole.
 
     A non-empty directory without a prepare manifest is refused unless
@@ -797,6 +800,7 @@ def write_outputs(prepared: PreparedSource, out: Path, *, source: Path | None = 
         "blocks": len(prepared.document["blocks"]),
         "sections": len(prepared.document["sections"]),
         "parser_version": parser_version,
+        "prepare_version": prepare_version,
         "parse_options": dict(parse_options or {}),
     }
     manifest["manifest_sha256"] = hashlib.sha256(
