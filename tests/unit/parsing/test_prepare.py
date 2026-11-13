@@ -230,6 +230,28 @@ class PrepareTests(unittest.TestCase):
         self.assertNotIn("WRONG_TWO.", texts)
         self.assertTrue(prepared.coverage["document_complete"])
 
+    def test_condition_after_a_spliced_comment_is_still_analysed(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\\begin{document}\n"
+                         b"\\section{Intro}\n\\input{a}\\ifdefined\\flag\n"
+                         b"FIRST_BRANCH.\n\\else\nSECOND_BRANCH.\n\\fi\n"
+                         b"\\end{document}\n"),
+            "a.tex": b"PRECEDING_BODY.% trailing comment",
+        })
+        prepared = prepare_source(tree, "main.tex")
+        self.assertFalse(prepared.coverage["document_complete"])
+        self.assertIn("conditional_body", prepared.coverage["reasons"])
+        ranges = prepared.coverage["conditional_ranges"]
+        self.assertTrue(ranges)
+        self.assertIn("main.tex",
+                      {span["path"] for span in ranges[0]["source_spans"]})
+        conditional = [block for block in prepared.document["blocks"]
+                       if block.get("conditional")]
+        self.assertTrue(conditional)
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertTrue(any("FIRST_BRANCH." in text for text in texts))
+        self.assertTrue(any("SECOND_BRANCH." in text for text in texts))
+
     def test_unknown_body_branches_are_marked_conditional(self):
         tree = SourceTree("directory", {
             "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"

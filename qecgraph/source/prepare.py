@@ -335,7 +335,8 @@ diagnostic: dict, assembly: AssemblyResult, name: str,
 
 
 def _parse_entry(tree: SourceTree, assembly: AssemblyResult, selected: str,
-                 root: Path, *, recover: bool, transparent: bool
+                 root: Path, coords: EntryCoordinates, *,
+                 recover: bool, transparent: bool
                  ) -> tuple[list[dict], list[dict], list[dict]]:
     """Parse the assembled entry once and project diagnostics back to source.
 
@@ -347,7 +348,6 @@ def _parse_entry(tree: SourceTree, assembly: AssemblyResult, selected: str,
     """
     name = _entry_name(tree.files)
     path = root / name
-    coords = EntryCoordinates(assembly)
     parse_text = coords.copy_text()
     try:
         parsed = _run_parse(path, root, parse_text.encode("utf-8"),
@@ -522,12 +522,16 @@ def _subtract_intervals(intervals: list[tuple[int, int]],
 
 
 def _uncovered_entry_prose(text: str, blocks: list[dict],
-                           inactive: list[tuple[int, int]] | None = None) -> int:
+                           inactive: list[tuple[int, int]] | None = None,
+                           body_bounds: tuple[int, int] | None = None) -> int:
     """Count body letters that no block covers and no condition disables."""
-    _, body_start, end_start = document_bounds(text)
-    if body_start is None:
-        body_start = 0
-    body_end = end_start if end_start is not None else len(text)
+    if body_bounds is None:
+        _, body_start, end_start = document_bounds(text)
+        if body_start is None:
+            body_start = 0
+        body_end = end_start if end_start is not None else len(text)
+    else:
+        body_start, body_end = body_bounds
     spans = sorted((int(block["entry"]["char_start"]),
                     int(block["entry"]["char_end"])) for block in blocks)
     gaps: list[tuple[int, int]] = []
@@ -620,27 +624,34 @@ def prepare_source(tree: SourceTree, entry: str | None = None, *,
     problems = assembly.validate(tree.files)
     if problems:
         raise ValueError(f"assembly source map is invalid: {problems[:1]}")
+    coords = EntryCoordinates(assembly)
     with TemporaryDirectory(prefix="prepare-") as temporary:
         materialized = Path(temporary) / "tree"
         tree.materialize(materialized)
         blocks, parser_errors, dependencies = _parse_entry(
-            tree, assembly, selected, materialized,
+            tree, assembly, selected, materialized, coords,
             recover=recover_parse_errors,
             transparent=transparent_containers)
     document = merge_blocks(assembly, blocks, source_tree_hash=tree.digest,
                             files=tree.files)
-    _, body_start, end_start = document_bounds(assembly.text)
-    body_start = body_start or 0
-    body_end = end_start if end_start is not None else len(assembly.text)
-    inactive, uncertain = condition_regions(assembly.text)
-    uncovered = _uncovered_entry_prose(assembly.text, document["blocks"], inactive)
+    parse_text = coords.copy_text()
+    _, body_start_parse, end_parse = document_bounds(parse_text)
+    body_start_parse = body_start_parse or 0
+    body_end_parse = (end_parse if end_parse is not None else len(parse_text))
+    inactive_parse, uncertain_parse = condition_regions(parse_text)
+    body_bounds = (coords.to_entry(body_start_parse),
+                   coords.to_entry(body_end_parse))
+    inactive = [(coords.to_entry(low), coords.to_entry(high))
+                for low, high in inactive_parse]
+    uncovered = _uncovered_entry_prose(
+        assembly.text, document["blocks"], inactive, body_bounds)
     conditional_body = _conditional_body_prose(
-        assembly.text, uncertain, body_start, body_end)
+        parse_text, uncertain_parse, body_start_parse, body_end_parse)
     coverage = _coverage(assembly, document, parser_errors, dependencies,
                          uncovered, conditional_body)
-    body_uncertain = [(max(low, body_start), min(high, body_end))
-                      for low, high in uncertain
-                      if low < body_end and high > body_start]
+    body_uncertain = [(coords.to_entry(low), coords.to_entry(high))
+                      for low, high in uncertain_parse
+                      if low < body_end_parse and high > body_start_parse]
     for block in document["blocks"]:
         start = int(block["entry"]["char_start"])
         end = int(block["entry"]["char_end"])
