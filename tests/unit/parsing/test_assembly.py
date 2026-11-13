@@ -198,6 +198,31 @@ class AssembleTests(unittest.TestCase):
             self.assertFalse(block["entry"]["char_start"] < section_b["entry"]["char_start"]
                              < block["entry"]["char_end"])
 
+    def test_literal_document_end_does_not_truncate_included_tail(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\input{supp}\n\\end{document}\n"),
+            "supp.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\section{First}\nBefore.\n"
+                         b"\\verb|\\end{document}|\n"
+                         b"\\begin{verbatim}\n\\end{document}\n\\end{verbatim}\n"
+                         b"\\section{Second}\nACTUAL_TAIL.\n\\end{document}\n"),
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertIn(b"\\section{Second}", result.data)
+        self.assertIn(b"ACTUAL_TAIL.", result.data)
+        self.assertIn(b"\\verb|\\end{document}|", result.data)
+        self.assertEqual(result.data.count(b"\\begin{document}"), 1)
+        event, = result.events
+        self.assertEqual(event.outcome, "resolved")
+        self.assertTrue(event.stripped_document)
+        second = result.data.index(b"\\section{Second}")
+        tail = result.data.index(b"ACTUAL_TAIL.")
+        self.assertLess(result.data.index(b"\\end{verbatim}"), second)
+        self.assertLess(second, tail)
+        self.assertEqual(result.validate(source), [])
+
+
 if __name__ == "__main__":
     unittest.main()
 

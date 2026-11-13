@@ -58,6 +58,22 @@ class PrepareTests(unittest.TestCase):
         self.assertEqual(prepared.coverage["preamble_missing"], 1)
         self.assertIn("Text.", [block["text"] for block in prepared.document["blocks"]])
 
+    def test_literal_document_end_does_not_truncate_included_tail(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\input{supp}\n\\end{document}\n"),
+            "supp.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\section{First}\nBefore.\n"
+                         b"\\begin{verbatim}\n\\end{document}\n\\end{verbatim}\n"
+                         b"\\section{Second}\nACTUAL_TAIL.\n\\end{document}\n"),
+        })
+        prepared = prepare_source(tree, "main.tex")
+        titles = [section["title"] for section in prepared.document["sections"]]
+        self.assertEqual(titles, ["First", "Second"])
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertIn("ACTUAL_TAIL.", texts)
+        self.assertTrue(prepared.coverage["document_complete"])
+
     def test_write_outputs_matches_the_document_schema(self):
         tree = SourceTree("directory", {
             "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"

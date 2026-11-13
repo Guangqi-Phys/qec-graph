@@ -41,8 +41,6 @@ _LITERAL_MACRO = re.compile(
     r"\\(?:newcommand|renewcommand|providecommand)\*?\s*\{\s*\\([A-Za-z@]+)\s*\}"
     r"\s*\{\s*([^{}\\\r\n]*?)\s*\}"
     r"|\\(?:def|gdef|edef|xdef)\s*\\([A-Za-z@]+)\s*\{\s*([^{}\\\r\n]*?)\s*\}")
-_DOCUMENT_BEGIN = re.compile(r"\\begin\s*\{document\}")
-_DOCUMENT_END = re.compile(r"\\end\s*\{document\}")
 _SECTION = re.compile(r"\\(part|chapter|section|subsection|subsubsection|paragraph|subparagraph)"
                       r"\s*(\*)?")
 _SECTION_NAMES = {-1: "part", 0: "chapter", 1: "section", 2: "subsection",
@@ -450,19 +448,73 @@ def _parse_group(text: str, index: int) -> tuple[str, int]:
     return "", index
 
 
+def _document_bounds(text: str) -> tuple[int | None, int | None, int | None]:
+    """Locate ``\\begin{document}``/``\\end{document}`` outside literal content.
+
+    Returns ``(begin_start, body_start, end_start)`` as character offsets.
+    ``body_start`` is the offset just after ``\\begin{document}`` and
+    ``end_start`` the offset of the first real ``\\end{document}``; both are
+    ``None`` when the document markers are absent or unmatched. Comments,
+    ``\\verb``-like constructs and literal environments are skipped, so an
+    ``\\end{document}`` shown inside ``verbatim`` does not end the body.
+    """
+    index = 0
+    begin_start: int | None = None
+    body_start: int | None = None
+    while index < len(text):
+        char = text[index]
+        if char == "%":
+            end = text.find("\n", index)
+            index = len(text) if end < 0 else end + 1
+            continue
+        if char != "\\":
+            index += 1
+            continue
+        match = _CONTROL.match(text, index)
+        if not match:
+            index += 2
+            continue
+        name = match.group(1)
+        after = match.end()
+        if name in {"verb", "verb*", "lstinline"}:
+            if after < len(text):
+                delimiter = text[after]
+                end = text.find(delimiter, after + 1)
+                index = len(text) if end < 0 else end + 1
+            else:
+                index = after
+            continue
+        if name in {"begin", "end"}:
+            environment, group_end = _parse_group(text, after)
+            environment = environment.strip()
+            if name == "begin" and environment in _LITERAL_ENVIRONMENTS:
+                end = text.find("\\end{" + environment + "}", group_end)
+                index = (len(text) if end < 0
+                         else end + len("\\end{" + environment + "}"))
+                continue
+            if name == "begin" and environment == "document" and begin_start is None:
+                begin_start, body_start = index, group_end
+                index = group_end
+                continue
+            if name == "end" and environment == "document" and begin_start is not None:
+                return begin_start, body_start, index
+            index = group_end
+            continue
+        index = after
+    return begin_start, body_start, None
+
+
 def _document_body(raw: bytes) -> tuple[int, int, bool, bool]:
     """Return body byte range, has-document flag, and preamble-dropped flag."""
     text = raw.decode("utf-8")
-    masked = _mask_comments(text)
-    begin = _DOCUMENT_BEGIN.search(masked)
-    if begin is None:
+    begin_start, body_start, end_start = _document_bounds(text)
+    if begin_start is None or body_start is None:
         return 0, len(raw), False, False
-    end = _DOCUMENT_END.search(masked[begin.end():])
-    char_start = begin.end()
-    char_end = begin.end() + end.start() if end else len(text)
-    byte_start = len(text[:char_start].encode("utf-8"))
+    char_end = end_start if end_start is not None else len(text)
+    char_end = max(body_start, char_end)
+    byte_start = len(text[:body_start].encode("utf-8"))
     byte_end = len(text[:char_end].encode("utf-8"))
-    preamble = masked[:begin.start()]
+    preamble = _mask_comments(text[:begin_start])
     preamble = re.sub(r"\\documentclass\s*(?:\[[^\]]*\])?\s*\{[^{}]*\}", "", preamble)
     dropped = bool(re.sub(r"\s", "", preamble))
     return byte_start, byte_end, True, dropped
@@ -522,8 +574,8 @@ class Assembler:
                     [], [{"code": "unsupported_encoding", "path": rel}])
         base_char = len(raw[:base].decode("utf-8"))
         self._learn_literal_macros(text)
-        document_begin = _DOCUMENT_BEGIN.search(_mask_comments(text))
-        preamble_end = document_begin.end() if document_begin else None
+        _, body_start, _ = _document_bounds(text)
+        preamble_end = body_start
         directives, diagnostics = _scan(text)
         for diagnostic in diagnostics:
             diagnostic["path"] = rel
