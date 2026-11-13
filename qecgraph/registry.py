@@ -90,8 +90,15 @@ class Registry:
         if pointer.is_symlink():
             raise ValueError('The registry pointer cannot be a symlink')
         if not pointer.exists():
-            if any(p.name != '.writer.lock' for p in self.root.iterdir()):
+            marker = self.root / '.qecgraph-workspace.json'
+            identity = {'workspace_id': workspace_id, 'format_version': 2}
+            if marker.exists():
+                if read_json(regular_managed_path(self.root, marker.name)) != identity:
+                    raise ValueError('Unpublished machine belongs to another workspace')
+            elif any(p.name != '.writer.lock' for p in self.root.iterdir()):
                 raise ValueError('Initialize the workspace with an empty machine directory')
+            else:
+                immutable_json(marker, identity, compact=True)
             return empty_state(workspace_id), None
         state, fixed = self.read()
         if state['workspace_id'] != workspace_id:
