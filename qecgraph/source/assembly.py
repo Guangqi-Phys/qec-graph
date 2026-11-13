@@ -70,12 +70,12 @@ _DECLARATIONS = frozenset({
 })
 _CONTROL = re.compile(r"\\([A-Za-z@]+)\*?")
 _LITERAL_MACRO = re.compile(
-    r"\\(?:newcommand|renewcommand|providecommand)\*?\s*\{\s*\\([A-Za-z@]+)\s*\}"
-    r"\s*\{\s*([^{}\\\r\n]*?)\s*\}"
+    r"\\(?:newcommand|renewcommand|providecommand)\*?\s*\{?\s*"
+    r"\\([A-Za-z@]+)\s*\}?\s*\{\s*([^{}\\\r\n]*?)\s*\}"
     r"|\\(?:def|gdef|edef|xdef)\s*\\([A-Za-z@]+)\s*\{\s*([^{}\\\r\n]*?)\s*\}")
 _NEWCOMMAND_NAME = re.compile(
     r"\\(?:newcommand|renewcommand|providecommand|DeclareRobustCommand)\*?\s*"
-    r"\{\s*\\([A-Za-z@]+)\s*\}")
+    r"\{?\s*\\([A-Za-z@]+)\s*\}?")
 _DEF_NAME = re.compile(r"\\(?:def|gdef|edef|xdef)\s*\\([A-Za-z@]+)")
 _LET_NAME = re.compile(r"\\let\s*\\([A-Za-z@]+)")
 _SECTION = re.compile(r"\\(part|chapter|section|subsection|subsubsection|paragraph|subparagraph)"
@@ -401,6 +401,9 @@ def _skip_definition(text: str, index: int, name: str) -> int:
         index = _skip_space(text, index)
         if index < len(text) and text[index] == "{":
             _, index = _read_group(text, index)
+        elif index < len(text) and text[index] == "\\":
+            match = _CONTROL.match(text, index)
+            index = match.end() if match else index + 1
         for _ in range(2):
             index = _skip_space(text, index)
             if index < len(text) and text[index] == "[":

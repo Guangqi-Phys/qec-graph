@@ -28,6 +28,9 @@ import uuid
 from .assembly import (
     LITERAL_ENVIRONMENTS,
     AssemblyResult,
+    _DECLARATIONS,
+    _is_conditional,
+    _skip_definition,
     EntryCoordinates,
     SourceLineIndex,
     assemble_files,
@@ -554,6 +557,149 @@ def _uncovered_entry_prose(text: str, blocks: list[dict],
     return sum(_prose_chars(text[low:high]) for low, high in gaps)
 
 
+_LAYOUT_COMMANDS = frozenset({
+    "vspace", "hspace", "vskip", "hskip", "kern", "mkern", "mskip",
+    "setlength", "addtolength", "settowidth", "setcounter", "addtocounter",
+    "stepcounter", "refstepcounter", "pagestyle", "thispagestyle",
+    "pagenumbering", "linespread", "fontsize", "color", "pagecolor",
+    "definecolor", "vfill", "hfill", "vfil", "hfil", "vss", "hss",
+    "smallskip", "medskip", "bigskip", "hrule", "vrule", "newpage",
+    "clearpage", "cleardoublepage", "pagebreak", "nopagebreak", "label",
+})
+
+_FORMATTING_SWITCHES = frozenset({
+    "bfseries", "mdseries", "itshape", "slshape", "scshape", "upshape",
+    "rmfamily", "sffamily", "ttfamily", "normalfont", "em", "small",
+    "footnotesize", "scriptsize", "tiny", "large", "Large", "LARGE",
+    "huge", "Huge", "normalsize", "protect", "relax", "null", "selectfont",
+})
+
+_SPACING_SYMBOLS = frozenset({",", ";", ":", "!", "/"})
+
+
+def _skip_whitespace(text: str, index: int) -> int:
+    while index < len(text) and text[index].isspace():
+        index += 1
+    return index
+
+
+def _skip_command_arguments(text: str, index: int) -> int:
+    index = _skip_whitespace(text, index)
+    if index < len(text) and text[index] == "*":
+        index += 1
+    while True:
+        probe = _skip_whitespace(text, index)
+        if probe < len(text) and text[probe] in "{[":
+            index = _skip_braced(text, probe)
+            continue
+        return probe
+
+
+_CONDITIONAL_TEST_TOKENS = frozenset({
+    "if", "ifx", "ifcat", "ifnum", "ifdim", "ifodd", "ifcase", "ifdefined",
+    "ifcsname", "ifvoid", "ifhbox", "ifvbox", "ifeof",
+})
+
+
+def _one_token(text: str, index: int) -> int:
+    index = _skip_whitespace(text, index)
+    if index < len(text) and text[index] == "{":
+        return _skip_braced(text, index)
+    match = _CONTROL_WORD.match(text, index)
+    if match:
+        if match.group(1) == "csname":
+            end = text.find("\\endcsname", match.end())
+            return len(text) if end < 0 else end + len("\\endcsname")
+        return match.end()
+    return index + 1 if index < len(text) else index
+
+
+def _skip_conditional_test(text: str, index: int, name: str) -> int:
+    """Skip the test tokens of a conditional so they do not count as content."""
+    if name not in _CONDITIONAL_TEST_TOKENS:
+        return index
+    if name == "ifcsname":
+        end = text.find("\\endcsname", index)
+        return len(text) if end < 0 else end + len("\\endcsname")
+    if name in {"ifx", "ifcat"}:
+        return _one_token(text, _one_token(text, index))
+    if name in {"ifnum", "ifdim"}:
+        position = _one_token(text, index)
+        position = _skip_whitespace(text, position)
+        while position < len(text) and text[position] in "<=>":
+            position += 1
+        return _one_token(text, position)
+    return _one_token(text, index)
+
+
+def _conditional_has_content(text: str) -> bool:
+    """Say whether a conditional region contains anything visible.
+
+    Layout commands with their arguments, formatting switches, declarations and
+    comments are not content. Math, text, arguments of a text command, Unicode
+    and any unknown command are content, so an unrecognised construct cannot
+    silently count as a typesetting-only branch.
+    """
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if char == "%":
+            newline = text.find("\n", index)
+            index = len(text) if newline < 0 else newline + 1
+            continue
+        if char == "\\":
+            match = _CONTROL_WORD.match(text, index)
+            if not match:
+                if text[index + 1:index + 2] in _SPACING_SYMBOLS:
+                    index += 2
+                    continue
+                return True
+            name = match.group(1)
+            after = match.end()
+            if name == "let":
+                probe = _skip_whitespace(text, after)
+                if probe < len(text) and text[probe] == "=":
+                    probe = _skip_whitespace(text, probe + 1)
+                target = _CONTROL_WORD.match(text, probe)
+                index = target.end() if target else probe + 1
+                continue
+            if name == "newif":
+                probe = _skip_whitespace(text, after)
+                target = _CONTROL_WORD.match(text, probe)
+                index = target.end() if target else probe
+                continue
+            if name in {"else", "fi", "or"}:
+                index = after
+                continue
+            if _is_conditional(name, text, after, frozenset()):
+                index = _skip_conditional_test(text, after, name)
+                continue
+            if name in _DECLARATIONS:
+                index = _skip_definition(text, after, name)
+                continue
+            if name in _LAYOUT_COMMANDS or name in _FORMATTING_SWITCHES:
+                index = _skip_command_arguments(text, after)
+                continue
+            return True
+        if char.isspace() or char in "{}[]":
+            index += 1
+            continue
+        return True
+    return False
+
+
+def _conditional_content_count(text: str, uncertain: list[tuple[int, int]],
+                               body_start: int, body_end: int) -> int:
+    """Count body conditional regions that contain visible content."""
+    count = 0
+    for low, high in uncertain:
+        low = max(low, body_start)
+        high = min(high, body_end)
+        if low < high and _conditional_has_content(text[low:high]):
+            count += 1
+    return count
+
+
 def _conditional_body_prose(text: str, uncertain: list[tuple[int, int]],
                             body_start: int, body_end: int) -> int:
     """Count body letters inside conditionals whose branch is undecidable."""
@@ -568,7 +714,8 @@ def _conditional_body_prose(text: str, uncertain: list[tuple[int, int]],
 
 def _coverage(assembly: AssemblyResult, document: dict,
               parser_errors: list[dict], dependencies: list[dict],
-              uncovered: int = 0, conditional_body: int = 0) -> dict:
+              uncovered: int = 0, conditional_body: int = 0,
+              conditional_content: int = 0) -> dict:
     coverage = assembly.coverage()
     coverage["content_complete"] = coverage["complete"]
     reasons = set(coverage.get("reasons", []))
@@ -598,12 +745,13 @@ def _coverage(assembly: AssemblyResult, document: dict,
     if unclosed:
         structure = False
         reasons.add("unclosed_conditional")
-    if conditional_body:
+    if conditional_body or conditional_content:
         structure = False
         reasons.add("conditional_body")
     coverage["structure_complete"] = structure
     coverage["uncovered_entry_chars"] = uncovered
     coverage["conditional_body_chars"] = conditional_body
+    coverage["conditional_content_regions"] = conditional_content
     coverage["conditional_directives"] = conditional
     coverage["parser_errors"] = len(parser_errors)
     coverage["parser_error_codes"] = sorted({item.get("code") for item in parser_errors})
@@ -647,8 +795,10 @@ def prepare_source(tree: SourceTree, entry: str | None = None, *,
         assembly.text, document["blocks"], inactive, body_bounds)
     conditional_body = _conditional_body_prose(
         parse_text, uncertain_parse, body_start_parse, body_end_parse)
+    conditional_content = _conditional_content_count(
+        parse_text, uncertain_parse, body_start_parse, body_end_parse)
     coverage = _coverage(assembly, document, parser_errors, dependencies,
-                         uncovered, conditional_body)
+                         uncovered, conditional_body, conditional_content)
     body_uncertain = [(coords.to_entry(low), coords.to_entry(high))
                       for low, high in uncertain_parse
                       if low < body_end_parse and high > body_start_parse]

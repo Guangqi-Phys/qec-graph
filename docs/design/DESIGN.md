@@ -397,10 +397,12 @@ The document model is `qecgraph.document/2`:
   resolved and no body content was read from outside the assembled entry
   (`include_outside_entry`); `structure_complete` states that the model
   represents the body: no parser errors, at least one block, no substantive
-  body text outside every block (`uncovered_entry_chars`), no body prose or
-  include inside an undecidable conditional (`conditional_body`,
-  `conditional_directives`), and no condition without a matching `\fi`
-  (`unclosed_conditional`). `reasons` names each failure and
+  body text outside every block (`uncovered_entry_chars`), no visible body
+  content or include inside an undecidable conditional (`conditional_body`:
+  math, text, text-command arguments, Unicode and unrecognised commands count
+  as content, while layout-only branches do not; `conditional_content_regions`
+  and `conditional_body_chars` report the regions), and no condition without a
+  matching `\fi` (`unclosed_conditional`). `reasons` names each failure and
   `conditional_ranges` locates the uncertain body regions by entry and source
   span. Branches of a statically decidable conditional are either followed or
   excluded from the uncovered count. `document_complete` requires both.
