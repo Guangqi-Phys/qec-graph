@@ -1,18 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://qecgraph.local/schema/registry",
-  "description": "Registry v1. Missing format_version is the explicitly supported legacy v0 read format.",
+  "description": "Current workspace release format.",
   "type": "object",
   "properties": {
     "schema": {
       "const": "qecgraph.registry"
     },
     "format_version": {
-      "const": 1
-    },
-    "corpus_id": {
-      "type": "string",
-      "minLength": 1
+      "const": 2
     },
     "workspace_id": {
       "type": "string",
@@ -92,55 +88,6 @@
           "upstream_version"
         ],
         "additionalProperties": false
-      }
-    },
-    "records": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "type": "string",
-            "minLength": 1
-          },
-          "revisions": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "required": [
-                "path",
-                "content_sha256"
-              ],
-              "additionalProperties": false,
-              "properties": {
-                "path": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "content_sha256": {
-                  "type": "string",
-                  "pattern": "^[0-9a-f]{64}$"
-                }
-              }
-            }
-          },
-          "current_revision": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "required": [
-          "kind",
-          "revisions",
-          "current_revision"
-        ],
-        "additionalProperties": false
-      }
-    },
-    "links": {
-      "type": "array",
-      "items": {
-        "type": "object"
       }
     },
     "materials": {
@@ -335,12 +282,6 @@
         "type": "object"
       }
     },
-    "semantic_decisions": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "object"
-      }
-    },
     "applications": {
       "type": "object",
       "additionalProperties": {
@@ -351,13 +292,6 @@
       "type": "object",
       "additionalProperties": {
         "type": "object"
-      }
-    },
-    "ai_reviews": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "string",
-        "pattern": "^[0-9a-f]{64}$"
       }
     },
     "retrieval_index": {
@@ -439,10 +373,10 @@
   },
   "required": [
     "schema",
+    "format_version",
+    "workspace_id",
     "works",
-    "versions",
-    "records",
-    "links"
+    "versions"
   ],
   "additionalProperties": false
 }

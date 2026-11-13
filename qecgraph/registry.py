@@ -1,4 +1,4 @@
-"""Versioned corpus registry: explicit identities, immutable source snapshots."""
+"""Workspace release registry: explicit identities, immutable source snapshots."""
 from __future__ import annotations
 
 from .core.progress import phase, task
@@ -7,34 +7,26 @@ import hashlib
 import shutil
 import stat
 import tempfile
-import uuid
 from pathlib import Path
 
 from .core.graph import canonical, hash_text, read_json
 from .store import current_snapshot, load_validated_snapshot, safe_relative
-from .core.transactions import ManagedDataError, atomic_bytes, atomic_json, immutable_json, publish_pointer, read_pointer
+from .core.transactions import ManagedDataError, atomic_bytes, immutable_json, publish_pointer, read_pointer
 
 FORMAT = 'qecgraph.registry'
 CURRENT_FORMAT = 'qecgraph.registry.current'
 
 
-def empty_state():
-    return {'schema': FORMAT, 'format_version': 1, 'works': {}, 'versions': {}, 'records': {}, 'links': []}
+def empty_state(workspace_id):
+    return {'schema': FORMAT, 'format_version': 2, 'workspace_id': workspace_id, 'works': {}, 'versions': {}}
 
 
 def validate_state_format(state, path):
-    """Validate legacy v0 or explicit v1 without altering the hashed read bytes."""
     from .validators import packaged_validator
     error = next(packaged_validator('registry', check_formats=False).iter_errors(state), None)
     if error is not None:
         location = '/'.join(str(part) for part in error.absolute_path) or '<root>'
         raise ManagedDataError(path, 'Registry state schema violation at ' + location)
-
-
-def upgrade_state(state):
-    """The v0 -> v1 migration adds only a format marker on the next publication."""
-    validate_state_format(state, 'registry')
-    return {**state, 'format_version': 1}
 
 
 def _check_source_binding(graph, version):
@@ -52,6 +44,12 @@ def _verify_state_binding(state, revision, path):
     if hash_text(canonical(state)) != revision:
         raise ManagedDataError(path, 'Registry state hash mismatch')
     validate_state_format(state, path)
+
+
+def _is_workspace_state(state):
+    return (isinstance(state, dict) and state.get('schema') == FORMAT and state.get('format_version') == 2
+            and isinstance(state.get('workspace_id'), str)
+            and not {'corpus_id', 'records', 'links', 'ai_reviews', 'semantic_decisions'} & state.keys())
 
 
 class Registry:
@@ -79,39 +77,29 @@ class Registry:
             state = read_json(state_path)
         except ValueError as exc:
             raise ManagedDataError(state_path, 'Registry state contains invalid JSON') from exc
-        if not isinstance(state, dict) or state.get('schema') != FORMAT:
+        if not _is_workspace_state(state):
             raise ManagedDataError(state_path, 'Registry state schema mismatch')
         if verify:
             _verify_state_binding(state, revision, state_path)
         return state, revision
 
-    def _state_and_revision(self):
+    def _state_and_revision(self, workspace_id):
         pointer = self.root / 'CURRENT.json'
         if pointer.is_symlink():
             raise ValueError('The registry pointer cannot be a symlink')
-        existing = pointer.exists()
-        state, fixed = self.read() if existing else (empty_state(), None)
-        marker = self.root / '.qecgraph-registry.json'
-        if marker.exists():
-            identity = read_json(marker)
-            if identity.get('format') != FORMAT:
-                raise ValueError('Incompatible registry marker')
-        else:
-            if not existing and any(p.name != '.writer.lock' for p in self.root.iterdir()):
-                raise ValueError('Registry must be initialized in an empty directory')
-            identity = {'format': FORMAT}
-        if not identity.get('corpus_id'):
-            identity['corpus_id'] = 'corpus:' + str(uuid.uuid4())
-            atomic_json(marker, identity)
-        if state.get('corpus_id', identity['corpus_id']) != identity['corpus_id']:
-            raise ValueError('Corpus identity differs from its marker')
-        state['corpus_id'] = identity['corpus_id']
+        if not pointer.exists():
+            if any(p.name != '.writer.lock' for p in self.root.iterdir()):
+                raise ValueError('Initialize the workspace with an empty machine directory')
+            return empty_state(workspace_id), None
+        state, fixed = self.read()
+        if state['workspace_id'] != workspace_id:
+            raise ValueError('Machine release belongs to another workspace')
         return state, fixed
 
     def prepare_publication(self, state):
-        state = upgrade_state(state)
+        validate_state_format(state, 'registry')
         revision = hash_text(canonical(state))
-        immutable_json(self.root / 'states' / (revision + '.json'), state, compact=bool(state.get('workspace_id')))
+        immutable_json(self.root / 'states' / (revision + '.json'), state, compact=True)
         return revision
 
     def publish_prepared(self, revision):

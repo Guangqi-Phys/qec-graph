@@ -178,13 +178,9 @@ workspace/
 │   ├── operational/status.json   # sanitized operational projection
 │   ├── source_snapshots/         # 受管理 store：来源、graph、views、SQLite
 │   ├── research/                 # 带修订的 research JSON
-│   ├── records/                  # 兼容的 corpus 记录修订
-│   ├── proposals/                # corpus 交接提案
-│   ├── reviews/                  # corpus 审核证据
 │   ├── ai/proposals/             # 四类 skill 输出，仅 proposed
-│   ├── ai/reviews/               # state 登记的哈希绑定决定
 │   ├── derived/normalizations/   # 原字节投影及来源映射
-│   ├── retrieval/indexes/        # 可选 JSON 向量/块投影
+│   ├── retrieval/        # 可选 JSON 向量/块投影
 │   ├── assets/                   # 登记的数据和证据资产
 │   └── .writer.lock              # single-writer lock
 ├── human/
@@ -193,8 +189,7 @@ workspace/
 └── .qecgraph/                    # claim/rotation/staging internals
 ```
 
-Store 和 corpus 有各自受管理根目录。不要合并它们的 pointer 格式或手工编辑状态。
-迁移复制到新位置，并在复制前以原子方式保留目标名，不原地改写旧 store。
+查询和 MCP 只接受当前工作区发布。已有旧发布时，用新的工作区和归档副本重新构建，原始归档保持不动。
 
 ### 3.3 身份不是哈希、标题或参数元组
 
@@ -221,10 +216,9 @@ Store 和 corpus 有各自受管理根目录。不要合并它们的 pointer 格
 | Schema | 用途 | 位置 |
 |---|---|---|
 | `qecgraph.research` | 当前 workspace 研究记录（27 kinds、47 typed relations） | `qecgraph/validators/schemas/research.schema.json` |
-| `qecgraph.record` | corpus 记录（当前格式） | `qecgraph/validators/schemas/record.schema.json` |
+| `qecgraph.record` | 独立切割的类型记录 schema | `qecgraph/validators/schemas/record.schema.json` |
 | `qecgraph.graph` | 抽取图及 SourceGraph/LemmaGraph/DataGraph 投影 | `qecgraph/validators/schemas/graph.schema.json` |
 | `qecgraph.annotations` | 对抽取 store 的人工/AI 增补 | packaged schema |
-| `qecgraph.proposal`、`qecgraph.review` | 审核信封 | packaged schemas |
 
 未知 schema 版本被拒绝或作为不透明历史输入保留；绝不用最新字段重新解释。
 包版本和数据 schema 版本独立演进。规范 schema 是打包资源；不要在仓库根创建
@@ -328,12 +322,11 @@ parser diagnostic，不是数学环。
 
 | 产物 | 必需身份和主要字段 | 校验器 / 边界 |
 |---|---|---|
-| `states/<release>.json` | `schema`、`format_version=1`、`works`、`versions`、`records`、`links`；可选 `materials`、`research_records`、`ai_reviews`、`retrieval_index` | [Registry schema](../../qecgraph/validators/schemas/registry.schema.json)；先按原始 state 核对哈希，再适配无版本标记的旧格式 |
+| `states/<release>.json` | `schema`、`format_version=2`、`workspace_id`、`works`、`versions` | [Registry schema](../../qecgraph/validators/schemas/registry.schema.json)；只接受当前工作区格式 |
 | `materials[archive_sha256]` | `archive_sha256`、`status`、`processing_completed`；完成项还绑定 source version、snapshot、tree、entrypoint、work；`original_names`、配置指纹及诊断保留来源 | Registry schema 与 workspace 校验；AI/诊断深层信封仍用各自校验器 |
-| `research/`、`records/` | `id`、`revision`、`kind`、`data`、证据；state 保存登记的修订哈希 | [Research schema](../../qecgraph/validators/schemas/research.schema.json)、[record schema](../../qecgraph/validators/schemas/record.schema.json) 与来源/引用校验 |
-| `proposals/`、`reviews/` | 修改提案及预期修订/哈希；决定、actor 与精确 proposal 绑定 | [Proposal schema](../../qecgraph/validators/schemas/proposal.schema.json)、[review schema](../../qecgraph/validators/schemas/review.schema.json) |
-| `ai/proposals/`、`ai/reviews/` | Skill/版本、来源快照、输出及请求来源；决定将内容哈希登记到 state | `qecgraph/llm/skills/` 各 skill 的 `output.schema.json`、引文校验及 `llm/review.py`；本地审核身份是自声明，未认证 |
-| `retrieval/indexes/<hash>.json` | `format`、`identity`、`configuration`、`corpus_sha256`、`unit_count`、`chunks`、`coverage`；chunk 含 unit key、派生文本范围/哈希、terms、vector | `retrieval.read_index`；JSON 加语义/哈希校验，无独立索引 schema；不可用投影用 `stale` state 绑定 |
+| `research/` | `id`、`revision`、`kind`、`data`、证据；state 保存登记的修订哈希 | [Research schema](../../qecgraph/validators/schemas/research.schema.json) |
+| `ai/proposals/` | Skill 与版本、来源快照、输出及请求来源 | Skill schema 和引文校验 |
+| `retrieval/` | JSON 描述向量块的模型和范围，向量使用按哈希寻址的 float32 文件 | BM25 独立检索原文。可选索引不可用时标记 `stale` |
 | `source_snapshots/` | Store manifest、原始字节、graph 及派生 views | [Graph schema](../../qecgraph/validators/schemas/graph.schema.json) 与 store 完整性检查；完整 store 和单体 JSON 仍限制规模 |
 
 新快照身份使用来源/配置和显式 `PARSER_VERSION` / `RULE_VERSION`；包字节身份仅作来源记录。可能改变解析的依赖升级必须提升语义版本并回放来源。不得只为消除 stale 而刷新审核绑定。单材料指纹排除无关论文及 AI 凭据/模型配置。
@@ -359,7 +352,7 @@ parser diagnostic，不是数学环。
 带花括号的 `\href`、`\url` 和 `\nolinkurl` 目标保留 URL 中的百分号编码。
 链接的可见文本仍按常规 TeX 解析。
 
-解析类型还包含 abstract、algorithm、assumption、claim、notation、acknowledgments、statement_other、title、author_block 及字面 bib_entry。唯一的本地参考文献键解析到精确条目，重复键保持歧义。BibTeX/.bbl 和跨论文身份解析仍未完成。片段读取附带有界字面宏定义和引用预览，不展开宏、不推断证明依赖。非 UTF-8 输入明确报告不支持编码，归档保留原字节。
+解析类型还包含 abstract、algorithm、assumption、claim、notation、acknowledgments、statement_other、title、author_block 及字面 bib_entry。唯一的本地参考文献键解析到精确条目，重复键保持歧义。读取字面的 BibTeX 条目及显式引入的传统 .bbl。跨论文边要求精确匹配唯一登记的 DOI 或 arXiv 编号。片段读取附带有界字面宏定义和引用预览，不展开宏、不推断证明依赖。非 UTF-8 输入明确报告不支持编码，归档保留原字节。
 
 ### 5.2 来源块与规范化 claim
 

@@ -166,13 +166,9 @@ workspace/
 │   ├── operational/status.json   # sanitized operational projection
 │   ├── source_snapshots/         # managed stores: sources, graph, views, SQLite
 │   ├── research/                 # revisioned research JSON
-│   ├── records/                  # compatible corpus record revisions
-│   ├── proposals/                # corpus handoff proposals
-│   ├── reviews/                  # corpus review evidence
 │   ├── ai/proposals/             # four skill outputs, proposed only
-│   ├── ai/reviews/               # hash-bound decisions registered in state
 │   ├── derived/normalizations/   # original-byte projections and source maps
-│   ├── retrieval/indexes/        # optional JSON vector/chunk projections
+│   ├── retrieval/        # optional JSON vector/chunk projections
 │   ├── assets/                   # registered data and evidence assets
 │   └── .writer.lock              # single-writer lock
 ├── human/
@@ -181,7 +177,7 @@ workspace/
 └── .qecgraph/                    # claim/rotation/staging internals
 ```
 
-Store and corpus have their own managed roots. Do not merge their pointer formats or edit their state by hand. Migrations copy into a new location and reserve the destination name before copying; they do not rewrite the old store in place.
+Queries and MCP accept current workspace releases. Replay archived packages in a fresh workspace when replacing an older release format. Keep the original archive in place.
 
 ### 3.3 Identity is not a hash, title, or parameter tuple
 
@@ -207,10 +203,9 @@ Duplicate labels are ambiguous and must be resolved with an exact ID. Missing re
 | Schema | Use | Location |
 |---|---|---|
 | `qecgraph.research` | Current workspace research records (27 kinds, 47 typed relations) | `qecgraph/validators/schemas/research.schema.json` |
-| `qecgraph.record` | Corpus records (current format) | `qecgraph/validators/schemas/record.schema.json` |
+| `qecgraph.record` | Typed records for standalone source splitting | `qecgraph/validators/schemas/record.schema.json` |
 | `qecgraph.graph` | Extraction graph and SourceGraph/LemmaGraph/DataGraph projections | `qecgraph/validators/schemas/graph.schema.json` |
 | `qecgraph.annotations` | Human/AI additions to an extraction store | packaged schema |
-| `qecgraph.proposal`, `qecgraph.review` | Review envelopes | packaged schemas |
 
 Unknown schemas are rejected; no older format is reinterpreted with the current fields. Package version and data format move independently. The canonical schemas are packaged resources; do not create a second editable copy at the repository root.
 
@@ -306,12 +301,11 @@ Paths below are relative to `machine/`. The linked packaged schemas are authorit
 
 | Artifact | Required identity and principal fields | Validator / boundary |
 |---|---|---|
-| `states/<release>.json` | `schema`, `format_version=1`, `works`, `versions`, `records`, `links`; optional `materials`, `research_records`, `ai_reviews`, `retrieval_index` | [Registry schema](../../qecgraph/validators/schemas/registry.schema.json); original state hash checked before adapting the legacy version without a marker |
+| `states/<release>.json` | `schema`, `format_version=2`, `workspace_id`, `works`, `versions` | [Registry schema](../../qecgraph/validators/schemas/registry.schema.json); accepts the current workspace format |
 | `materials[archive_sha256]` | `archive_sha256`, `status`, `processing_completed`; completed entries additionally bind source version, snapshot, tree, entrypoint and work; `original_names`, config fingerprint and diagnostics retain provenance | Registry schema plus workspace validation; nested AI/diagnostic envelopes still use their own validators |
-| `research/`, `records/` | `id`, `revision`, `kind`, `data`, evidence; state holds registered revision hashes | [Research schema](../../qecgraph/validators/schemas/research.schema.json), [record schema](../../qecgraph/validators/schemas/record.schema.json) and source/reference validation |
-| `proposals/`, `reviews/` | Proposed changes and expected revisions/hashes; decision, actor and exact proposal binding | [Proposal schema](../../qecgraph/validators/schemas/proposal.schema.json), [review schema](../../qecgraph/validators/schemas/review.schema.json) |
-| `ai/proposals/`, `ai/reviews/` | Skill/version, source snapshot, output and request provenance; decisions register their content hash in state | Each skill's `output.schema.json` under `qecgraph/llm/skills/`, quotation validation and `llm/review.py`; local reviewer identity is self-asserted, not authenticated |
-| `retrieval/indexes/<hash>.json` | `format`, `identity`, `configuration`, `corpus_sha256`, `unit_count`, `chunks`, `coverage`; chunks hold unit key, derived-text range/hash, terms and vector | `retrieval.read_index`; JSON plus semantic/hash checks, no standalone index schema; unavailable projection is a `stale` state binding |
+| `research/` | `id`, `revision`, `kind`, `data`, evidence; state holds registered revision hashes | [Research schema](../../qecgraph/validators/schemas/research.schema.json) |
+| `ai/proposals/` | Skill and version, source snapshot, output and request provenance | Skill schema and quotation validation |
+| `retrieval/` | JSON binds chunk models and ranges to content-addressed float32 files | BM25 searches source independently. An unavailable optional index is marked `stale` |
 | `source_snapshots/` | Store manifest, original source bytes, graph and derived views | [Graph schema](../../qecgraph/validators/schemas/graph.schema.json) plus store integrity checks; full stores and monolithic JSON remain a scale limitation |
 
 New snapshot identity uses source/configuration and explicit `PARSER_VERSION` / `RULE_VERSION`; package-byte identity remains provenance. Dependency upgrades that can change parsing require a semantic version bump and source replay. Review bindings are never refreshed merely to remove staleness. Per-material fingerprints exclude unrelated paper and AI credential/model settings.
@@ -343,7 +337,7 @@ A parser theorem/lemma is a **source block**: what the document says at a fixed 
 
 The offline extractor performs two passes: locate notation/structures, then apply local wording/column rules. It produces `code_parameters_mention` proposals with exact locators and a rule version; it does not promote a table parameter into a verified quantum code, infer a distance bound, or guess code class from bracket shape.
 
-The compatible corpus handoff exports bounded excerpts for an explicit external workflow and never calls a model itself. The separate workspace AI pipeline (§15) can call a configured provider during sync only when source upload is explicitly enabled. Neither path approves its own draft or converts it automatically to research records. Decisions bind exact proposal/source hashes in the published state; changed inputs make them stale.
+The workspace AI pipeline (§15) can call a configured provider during sync when source upload is explicitly enabled. Validated outputs enter research as AI-extracted records with exact source bindings.
 
 ---
 

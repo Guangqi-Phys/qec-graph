@@ -949,11 +949,8 @@ class Workspace:
         update(1, f'{package_stage} 0/{package_count}' if package_count else 'Preparing workspace')
         with writer_lock(self.registry.root):
             check_machine_tree(self.registry.root)
-            state, old = self.registry._state_and_revision()
+            state, old = self.registry._state_and_revision(cfg['workspace_id'])
             materials = state.setdefault('materials', {})
-            state['workspace_id'] = cfg['workspace_id']
-            state.pop('ai_reviews', None)
-            state.pop('semantic_decisions', None)
             tool_identity = extraction_tool_identity() if digests else None
             def fingerprint(material):
                 tree = material.get('source_tree_hash')
@@ -1096,9 +1093,7 @@ class Workspace:
         return result
 
     def _publish_structure(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress, ai_client):
-        if not self.path('machine/CURRENT.json').is_file() and (
-                self.path('machine/operational/status.json').exists()
-                or self.path('.qecgraph/migration.json').exists()):
+        if not self.path('machine/CURRENT.json').is_file() and self.path('machine/operational/status.json').exists():
             raise ValueError('Published workspace is missing its release pointer')
         limits = Limits(**cfg.get('limits', {}))
         for path in ('inputs/.processing', 'archive/blobs/sha256', 'archive/receipts', 'sources', 'machine'):

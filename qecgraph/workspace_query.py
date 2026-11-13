@@ -47,8 +47,6 @@ class WorkspaceSession:
         else:
             self.state = copy.deepcopy(_candidate_state)
             self.release = hash_text(canonical(self.state))
-        if not isinstance(self.state.get('workspace_id'), str) or self.state.get('records') or self.state.get('links'):
-            raise ValueError('A QEC workspace machine release is required')
         self.graph = WorkspaceGraph(self.registry, self.state, self.release, **budgets)
         self.records = {key(ref(record)): record for record in load_records(self.registry, self.state, verify=False)}
         generated = {r['id']: r['revision'] for v in self.state.get('generated_research', {}).values()
