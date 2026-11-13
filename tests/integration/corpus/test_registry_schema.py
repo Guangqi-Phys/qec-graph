@@ -35,3 +35,19 @@ class RegistrySchemaTests(unittest.TestCase):
             new_digest = registry.prepare_publication(state)
             self.assertEqual(registry.read(new_digest)[0]['format_version'], 1)
             self.assertEqual(path.read_bytes(), before)
+
+    def test_nested_ai_artifacts_have_a_publishable_shape(self):
+        digest = 'a' * 64
+        with tempfile.TemporaryDirectory() as directory:
+            registry = Registry(directory)
+            for malformed in (
+                {'status': 'complete', 'written': ['not a binding'], 'errors': []},
+                {'status': 'pending', 'written': [], 'errors': [{'skill': 'extract_data'}]},
+            ):
+                with self.subTest(malformed=malformed):
+                    state = {**empty_state(), 'materials': {digest: {
+                        'archive_sha256': digest, 'status': 'archived_only', 'processing_completed': False,
+                        'ai_extraction': malformed,
+                    }}}
+                    with self.assertRaises(ManagedDataError):
+                        registry.prepare_publication(state)

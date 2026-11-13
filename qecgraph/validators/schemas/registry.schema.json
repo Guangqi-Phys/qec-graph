@@ -244,7 +244,41 @@
             }
           },
           "ai_extraction": {
-            "type": "object"
+            "type": "object",
+            "required": ["status", "written", "errors"],
+            "properties": {
+              "status": {"enum": ["complete", "pending"]},
+              "written": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["skill", "path", "run_id"],
+                  "properties": {
+                    "skill": {"enum": ["extract_theorems", "extract_assumptions", "extract_data", "extract_thoughts"]},
+                    "path": {"type": "string", "minLength": 1},
+                    "run_id": {"type": "string", "minLength": 1},
+                    "proposal_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {"type": "string"},
+                    "skill": {"type": "string", "minLength": 1},
+                    "path": {"type": "string", "minLength": 1},
+                    "char_start": {"type": "integer", "minimum": 0},
+                    "char_end": {"type": "integer", "minimum": 1}
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
           },
           "structure_recovery": {
             "type": "object"
