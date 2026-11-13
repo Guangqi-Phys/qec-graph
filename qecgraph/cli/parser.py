@@ -23,9 +23,11 @@ Run qec-graph --help for all commands or qec-graph help <command> for options.""
 
 
 class _ArgumentParser(argparse.ArgumentParser):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, global_options=True, **kwargs):
         kwargs.setdefault('formatter_class', argparse.RawDescriptionHelpFormatter)
         super().__init__(*args, **kwargs)
+        if not global_options:
+            return
         self.add_argument('--json', action='store_true', default=argparse.SUPPRESS,
                           help='Print detailed reports and structured errors')
         self.add_argument('--debug', action='store_true', default=argparse.SUPPRESS,
@@ -310,7 +312,7 @@ def _build_parser(entrypoint=None):
     def add(name, *, help):
         # Build options once. The public parents API reuses those definitions
         # for the grouped command and any existing flat entry point.
-        options = _ArgumentParser(prog=f'qec-graph {name}', add_help=False)
+        options = _ArgumentParser(prog=f'qec-graph {name}', add_help=False, global_options=False)
         definitions[name] = options, help
         return options
 
