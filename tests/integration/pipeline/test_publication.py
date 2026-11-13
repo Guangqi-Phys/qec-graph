@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from qecgraph.store import current_snapshot, ingest, recover_store, validate_snapshot
+from qecgraph.store import current_snapshot, ingest, validate_snapshot
 from qecgraph.core.transactions import ManagedDataError, writer_lock
 from qecgraph.workspace import Workspace
 
@@ -66,33 +66,6 @@ class PublicationTests(unittest.TestCase):
         current.symlink_to(outside, target_is_directory=True)
         with self.assertRaisesRegex(ManagedDataError, 'Snapshot paths must be local directories'):
             current_snapshot(self.store)
-
-    def test_recovery_only_removes_marked_tool_builds(self):
-        ingest(self.entry, 'publish', self.store)
-        owned = self.store / 'snapshots/.building-owned'
-        owned.mkdir()
-        (owned / '.qecgraph-building.json').write_text(json.dumps({'format': 'qecgraph.building', 'snapshot_id': 'f' * 64}))
-        unrelated = self.store / 'snapshots/.building-user-files'
-        unrelated.mkdir()
-        (unrelated / 'important.txt').write_text('keep')
-        external_marker = self.root / 'not-a-store-marker.json'
-        external_marker.write_bytes((owned / '.qecgraph-building.json').read_bytes())
-        copies = []
-        for name, marker in (('symlink', lambda p: p.symlink_to(external_marker)),
-                             ('hardlink', lambda p: p.hardlink_to(external_marker)),
-                             ('malformed', lambda p: p.write_text('[]', encoding='utf-8'))):
-            directory = self.store / 'snapshots' / ('.building-' + name)
-            directory.mkdir()
-            (directory / 'important.txt').write_text('keep', encoding='utf-8')
-            marker(directory / '.qecgraph-building.json')
-            copies.append(directory)
-        report = recover_store(self.store, remove_abandoned=True)
-        self.assertIn(str(owned), report['removed'])
-        self.assertEqual(set(report['unrecognized']), {str(path) for path in (unrelated, *copies)})
-        for path in (unrelated, *copies):
-            self.assertEqual((path / 'important.txt').read_text(), 'keep')
-        self.assertTrue(external_marker.exists())
-        self.assertTrue(report['current']['passed'])
 
     def test_publication_retry_after_failed_current_replace(self):
         ingest(self.entry, 'publish', self.store)

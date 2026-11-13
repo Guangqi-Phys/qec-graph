@@ -94,7 +94,7 @@ class SnapshotChanged(ValueError):
 
 @dataclass(frozen=True)
 class GraphInput:
-    """An already fixed, read-only corpus projection for the shared query layer."""
+    """An already fixed graph projection for the shared query layer."""
     graph: dict
     snapshot: Path | None = None
 
@@ -105,25 +105,6 @@ def _stored_snapshot_path(store, snapshot_id):
     if snapshots.is_symlink() or snapshot.is_symlink():
         raise ManagedDataError(snapshot, 'Snapshot paths must be local directories')
     return snapshot
-
-
-def snapshot_reference(store, snapshot_id=None):
-    """Resolve the snapshot location before a caller validates or loads its graph."""
-    if snapshot_id is None:
-        snapshot = current_snapshot(store)
-    else:
-        if not _is_snapshot_id(snapshot_id):
-            raise ValueError('Invalid snapshot ID')
-        snapshot = _stored_snapshot_path(store, snapshot_id)
-    return SnapshotReference(snapshot, snapshot.name)
-
-
-def pin_snapshot(store, snapshot_id=None):
-    reference = snapshot_reference(store, snapshot_id)
-    graph = read_json(reference.path / 'graph.json')
-    if graph['snapshot_id'] != reference.snapshot_id:
-        raise ValueError('Snapshot identity mismatch')
-    return reference
 
 
 def current_snapshot(store):
@@ -443,53 +424,6 @@ def _ingest_locked(entry, project_id, out, project_root=None, config_path=None, 
         result['incremental'] = {**node_cache.stats, 'elapsed_seconds': time.perf_counter() - started,
                                  'semantic_rebuild': 'full discovery, resolution, graph, reviews and projections'}
     return result
-
-
-def _recoverable_build(path):
-    marker = path / '.qecgraph-building.json'
-    try:
-        with _open_regular_snapshot_file(marker) as stream:
-            if os.fstat(stream.fileno()).st_nlink != 1:
-                return False
-            raw = stream.read(4097)
-        if len(raw) > 4096:
-            return False
-        binding = strict_json_loads(raw.decode('utf-8'), source=str(marker))
-        return (isinstance(binding, dict) and binding.get('format') == 'qecgraph.building'
-                and _is_snapshot_id(binding.get('snapshot_id')))
-    except FileNotFoundError:
-        if not (path / 'manifest.json').is_file():
-            return False
-        graph_path = path / 'graph.json'
-        graph = strict_json_loads(_read_snapshot_file(graph_path, None, 'graph.json').decode('utf-8'), source=str(graph_path))
-        return _is_snapshot_id(graph['snapshot_id']) and validate_snapshot(path, graph['snapshot_id'])['passed']
-
-
-def recover_store(store, *, remove_abandoned=False):
-    store = check_output_directory(store)
-    if not (store / '.qecgraph-store.json').exists():
-        raise ValueError('Recovery requires a managed store')
-    with writer_lock(store):
-        result = {'store': str(store), 'abandoned': [], 'removed': [], 'unrecognized': [], 'current': None}
-        if (store / 'CURRENT.json').exists():
-            result['current'] = validate_snapshot(current_snapshot(store))
-        for parent in ('snapshots', 'staging'):
-            for path in sorted((store / parent).glob('.building-*')):
-                if path.is_symlink() or not path.is_dir():
-                    result['unrecognized'].append(str(path))
-                    continue
-                try:
-                    owned = _recoverable_build(path)
-                except (OSError, ValueError, KeyError, TypeError, sqlite3.Error):
-                    owned = False
-                if not owned:
-                    result['unrecognized'].append(str(path))
-                    continue
-                result['abandoned'].append(str(path))
-                if remove_abandoned:
-                    shutil.rmtree(path)
-                    result['removed'].append(str(path))
-        return result
 
 
 def validate_snapshot(snapshot, expected_snapshot_id=None):
