@@ -6,17 +6,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from qecgraph.validators import DOMAIN_FIELDS
 from qecgraph.validators.qec import basis, check_css, check_experiment, comparable_experiments, matrix_rows
 
 
 
 def record(identifier, kind, data):
-    fields = {key: None for key in DOMAIN_FIELDS[kind]}
-    fields.update(data)
-    fields['unknown_reason'] = 'Synthetic contract fixture: unspecified fields remain unknown'
-    return {'schema': 'qecgraph.record', 'id': identifier, 'kind': kind, 'revision': '1',
-            'title': identifier, 'data': fields}
+    return {'id': identifier, 'kind': kind, 'revision': '1', 'data': data}
+
 
 
 def matrix(rows, columns, ones):

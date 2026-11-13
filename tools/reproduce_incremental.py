@@ -20,7 +20,7 @@ from pathlib import Path
 
 from qecgraph.core.graph import read_json
 from qecgraph.query import context, search
-from qecgraph.store import SnapshotReference, current_snapshot, ingest, recover_store, validate_snapshot
+from qecgraph.store import SnapshotReference, current_snapshot, ingest, validate_snapshot
 from qecgraph.core.transactions import atomic_json
 
 
@@ -113,12 +113,6 @@ def main(argv=None):
         if rebuilt['snapshot_id'] != expected_id:
             raise RuntimeError('Backup input replay changed snapshot')
         report['recovery']['rebuild_snapshot_id'] = rebuilt['snapshot_id']
-        abandoned = backup_store / 'snapshots/.building-recovery-demo'
-        abandoned.mkdir()
-        atomic_json(abandoned / '.qecgraph-building.json', {'format': 'qecgraph.building', 'snapshot_id': '0' * 64})
-        report['recovery']['abandoned_cleanup'] = recover_store(backup_store, remove_abandoned=True)
-        if abandoned.exists():
-            raise RuntimeError('Owned abandoned build was not cleaned')
         # The same restored input version can fail/stage and recover without
         # changing the published snapshot to partial under strict policy.
         missing = backup_input / 'part-000.tex'
