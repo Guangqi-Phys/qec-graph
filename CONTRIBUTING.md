@@ -40,7 +40,7 @@ the [changelog](CHANGELOG.md) for compatibility changes, and the
   and executable code blocks. Pages with more than one `##` section include a
   table of contents whose anchors match the headings. Root contributor and
   security policies are English-only.
-- `docs/review/` holds Chinese review records, decisions and the retained requirements
+- `docs/reviews/` holds Chinese review records, decisions and the retained requirements
   note. These records are exempt from translation. Use English for implementation,
   generated metadata, extraction, diagnostics and reading notes. Preserve verbatim
   quotations and original source bytes in their original language.

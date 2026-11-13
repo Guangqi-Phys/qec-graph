@@ -15,6 +15,6 @@ globs:
   - "AGENTS.md"
 ignores:
   # Preserve the supplied, dated review as evidence; lint replies and new docs.
-  - "docs/review/REVIEW-2026-11-12.zh-CN.md"
+  - "docs/reviews/review-2026-11-12/REVIEW-2026-11-12.zh-CN.md"
   - "legacy/**"
   - "validation/**"

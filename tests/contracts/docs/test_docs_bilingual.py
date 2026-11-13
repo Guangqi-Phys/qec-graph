@@ -83,8 +83,8 @@ class BilingualDocumentationTests(unittest.TestCase):
         paired_paths = {path for pair in PAIRS for path in pair}
         for path in (ROOT / 'docs').rglob('*.md'):
             relative = path.relative_to(ROOT)
-            if relative.parts[1] == 'review':
-                self.assertTrue(path.name.endswith('.zh-CN.md'), str(relative))
+            if relative.parts[1] == 'reviews':
+                self.assertTrue(path.name.endswith('.zh-CN.md') or re.fullmatch(r'DECISIONS-\d{4}-\d{2}-\d{2}\.md', path.name), str(relative))
             else:
                 self.assertIn(relative.as_posix(), paired_paths)
 
