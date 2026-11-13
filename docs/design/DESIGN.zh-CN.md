@@ -378,9 +378,11 @@ TeX、不要求工程可编译的前提下识别并转换来源树。入口识�
 
 组装只复制原始字节。它解析字面 `\input`/`\include`/`\subfile`/`\import`/
 `\subimport`，剥掉 subfile 的 preamble，以及从另一个入口引入的完整文档的
-preamble，并从来源中的 `\newcommand`/`\def` 学习零参数字面路径宏。动态路径
-和缺失的正文依赖保留在 entry 中并报告；缺失的 preamble 依赖只算依赖警告，
-不算正文缺失。entry 和 source map 使用 §4.5 的半开区间约定。
+preamble，并从来源中的 `\newcommand`/`\def` 学习零参数字面路径宏。多参数
+引入指令会成为其内容内引用的搜索目录，因此被 `\import` 的章节先解析自己的
+同级文件，而不是根目录同名文件。动态路径和缺失的正文依赖保留在 entry 中并
+报告；缺失的 preamble 依赖只算依赖警告，不算正文缺失。entry 和 source map 使用
+§4.5 的半开区间约定。
 
 文档模型是 `qecgraph.document/2`：
 

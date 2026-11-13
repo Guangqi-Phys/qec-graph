@@ -198,6 +198,38 @@ class AssembleTests(unittest.TestCase):
             self.assertFalse(block["entry"]["char_start"] < section_b["entry"]["char_start"]
                              < block["entry"]["char_end"])
 
+    def test_import_context_applies_to_nested_inputs(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\import{chap/}{main.tex}\n"
+                         b"\\input{section.tex}\n\\end{document}\n"),
+            "chap/main.tex": b"\\input{section.tex}\n",
+            "chap/section.tex": b"CORRECT_CHAPTER.\n",
+            "section.tex": b"UNRELATED_ROOT.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertIn(b"CORRECT_CHAPTER.", result.data)
+        self.assertIn(b"UNRELATED_ROOT.", result.data)
+        nested = [event for event in result.events
+                  if event.path == "chap/main.tex"]
+        self.assertEqual([event.target for event in nested], ["chap/section.tex"])
+        root = [event for event in result.events if event.path == "main.tex"]
+        self.assertEqual([event.kind for event in root], ["import", "input"])
+        self.assertEqual([event.target for event in root], ["chap/main.tex", "section.tex"])
+        self.assertEqual(result.validate(source), [])
+
+    def test_subimport_resolves_relative_to_the_imported_directory(self):
+        source = {
+            "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\import{chap/}{main}\n\\end{document}\n"),
+            "chap/main.tex": b"\\subimport{sec/}{section}\n",
+            "chap/sec/section.tex": b"SUBIMPORTED.\n",
+        }
+        result = assemble_files(source, "main.tex")
+        self.assertIn(b"SUBIMPORTED.", result.data)
+        self.assertEqual([event.outcome for event in result.events],
+                         ["resolved", "resolved"])
+
     def test_literal_document_end_does_not_truncate_included_tail(self):
         source = {
             "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"

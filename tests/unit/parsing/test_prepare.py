@@ -74,6 +74,19 @@ class PrepareTests(unittest.TestCase):
         self.assertIn("ACTUAL_TAIL.", texts)
         self.assertTrue(prepared.coverage["document_complete"])
 
+    def test_import_keeps_the_imported_directory_context(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\import{chap/}{main.tex}\n\\end{document}\n"),
+            "chap/main.tex": b"\\input{section.tex}\n",
+            "chap/section.tex": b"CORRECT_CHAPTER.\n",
+            "section.tex": b"UNRELATED_ROOT.\n",
+        })
+        prepared = prepare_source(tree, "main.tex")
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertEqual(texts, ["CORRECT_CHAPTER."])
+        self.assertTrue(prepared.coverage["document_complete"])
+
     def test_write_outputs_matches_the_document_schema(self):
         tree = SourceTree("directory", {
             "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"

@@ -544,6 +544,15 @@ def _with_suffix(value: str) -> list[str]:
     return [value, value + ".tex"]
 
 
+def _unique_dirs(values: list[str]) -> list[str]:
+    """Return search directories once each, preserving first-seen order."""
+    unique: list[str] = []
+    for value in values:
+        if value not in unique:
+            unique.append(value)
+    return unique
+
+
 class Assembler:
     def __init__(self, files: Mapping[str, bytes]):
         self.files = dict(files)
@@ -556,13 +565,14 @@ class Assembler:
         if clean_entry is None or clean_entry not in self.files:
             raise ValueError(f"entry is not a regular source file: {entry!r}")
         data, segments, events, local_diagnostics = self._assemble_range(
-            clean_entry, 0, len(self.files[clean_entry]), (), whole=True)
+            clean_entry, 0, len(self.files[clean_entry]), (), whole=True,
+            context="")
         result = AssemblyResult(clean_entry, data, segments, events,
                                 [*local_diagnostics, *(diagnostics or [])])
         return result
 
     def _assemble_range(self, rel: str, base: int, end: int,
-                        stack: tuple[str, ...], *, whole: bool
+                        stack: tuple[str, ...], *, whole: bool, context: str = ""
                         ) -> tuple[bytes, list[Segment], list[DirectiveEvent], list[dict]]:
         raw = self.files[rel]
         try:
@@ -621,7 +631,7 @@ class Assembler:
                                   for argument in directive.args)
             if expanded_args != directive.args:
                 event = _replace(event, expanded_args=expanded_args)
-            resolution = self._resolve(rel, directive, expanded_args)
+            resolution = self._resolve(rel, directive, expanded_args, context)
             if resolution is None:
                 add_original(start, stop)
                 event = _replace(event, outcome="dynamic_path",
@@ -629,7 +639,8 @@ class Assembler:
                 events.append(event)
                 cursor = stop
                 continue
-            target, target_range, stripped, preamble_dropped, outcome, candidates = resolution
+            (target, target_range, stripped, preamble_dropped, outcome, candidates,
+             child_context) = resolution
             if outcome != "resolved":
                 add_original(start, stop)
                 event = _replace(event, outcome=outcome, out_byte_end=len(output),
@@ -646,7 +657,8 @@ class Assembler:
                 continue
             target_base, target_end = target_range
             child_data, child_segments, child_events, child_diagnostics = self._assemble_range(
-                target, target_base, target_end, stack + (rel,), whole=stripped is False)
+                target, target_base, target_end, stack + (rel,),
+                whole=stripped is False, context=child_context)
             offset_bytes = len(output)
             offset_chars = out_chars
             for segment in child_segments:
@@ -669,22 +681,24 @@ class Assembler:
         add_original(cursor, len(text))
         return bytes(output), segments, events, diagnostics
 
-    def _resolve(self, rel: str, directive: _Directive, args: tuple[str, ...]
-                 ) -> tuple[str, tuple[int, int], bool, bool, str, list[str] | None] | None:
+    def _resolve(self, rel: str, directive: _Directive, args: tuple[str, ...],
+                 context: str = ""
+                 ) -> tuple[str, tuple[int, int], bool, bool, str, list[str] | None,
+                          str] | None:
         name = directive.name
         if any(not argument or any(char in argument for char in "\\#{}$%")
                for argument in args):
             return None
         if any(_escapes_tree(argument) for argument in args):
-            return ("", (0, 0), False, False, "outside_root", None)
+            return ("", (0, 0), False, False, "outside_root", None, "")
         current = rel.rsplit("/", 1)[0] if "/" in rel else ""
         candidates: list[str] = []
         if name in ONE_ARG:
             literal = _safe_literal(args[0])
             if literal is None:
                 return None
-            bases = [""] if name == "subfile" else ["", current]
-            for base in bases:
+            bases = [context, "", current]
+            for base in _unique_dirs(bases):
                 joined = self._join(base, literal)
                 for candidate in _with_suffix(joined):
                     if candidate not in candidates:
@@ -694,8 +708,8 @@ class Assembler:
             filename = _safe_literal(args[1])
             if directory is None or filename is None:
                 return None
-            roots = ([current, ""] if name in {"subimport", "subincludefrom", "subinputfrom"}
-                     else ["", current])
+            sub = name in {"subimport", "subincludefrom", "subinputfrom"}
+            roots = _unique_dirs([context, current, ""] if sub else ["", current])
             for root in roots:
                 joined = self._join(root, self._join(directory, filename))
                 for candidate in _with_suffix(joined):
@@ -705,12 +719,12 @@ class Assembler:
         for candidate in candidates:
             normalized = _safe_literal(candidate)
             if normalized is None:
-                return ("", (0, 0), False, False, "outside_root", None)
+                return ("", (0, 0), False, False, "outside_root", None, "")
             if normalized not in unique:
                 unique.append(normalized)
         existing = [candidate for candidate in unique if candidate in self.files]
         if not existing:
-            return ("", (0, 0), False, False, "missing", None)
+            return ("", (0, 0), False, False, "missing", None, "")
         chosen = existing[0]
         raw = self.files[chosen]
         body_start, body_end, has_document, preamble_dropped = _document_body(raw)
@@ -723,8 +737,12 @@ class Assembler:
             target_range = (0, len(raw))
             stripped = False
             preamble_dropped = False
+        if name in {"input", "include"}:
+            child_context = context
+        else:
+            child_context = chosen.rsplit("/", 1)[0] if "/" in chosen else ""
         return (chosen, target_range, stripped, preamble_dropped, "resolved",
-                existing[1:] or None)
+                existing[1:] or None, child_context)
 
     def _learn_literal_macros(self, text: str) -> None:
         masked = _mask_comments(text)
