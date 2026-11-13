@@ -376,6 +376,8 @@ invented for local sources; they remain available in the research profile.
 Large generic fetches fail with `BUDGET_TOO_SMALL`; use research ranges or a
 larger session budget. `qec_status` reports full-text and metadata-only coverage.
 
+Pass `unit: "section"` to `qec_search` to group source hits under their nearest authored section or subsection. Unsectioned text uses the paper as its group. Each group retains its strongest evidence hit and the exact occurrence ID. The default evidence search continues to return individual source blocks and records.
+
 ### Optional hybrid retrieval
 
 Enable the local projection in `qecgraph.toml`, then run sync or rebuild. The

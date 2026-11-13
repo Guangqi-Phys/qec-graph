@@ -3,7 +3,7 @@
 DESCRIPTIONS = {
     'qec_list_papers': 'Locate papers by title, author, topic or year. Returns a paginated library inventory; use qec_fetch(view=card) to inspect a paper.',
     'qec_search': 'Discover ranked source passages, records and proposed extractions. Use natural keywords before exact reading; similarity does not satisfy numeric code conditions. Returns handles, excerpts and locations.',
-    'qec_fetch': 'Read an exact paper, file, section, node, proposal or record by ID or handle. Use card/outline for navigation, raw/reading for evidence; explicit ranges paginate long text.',
+    'qec_fetch': 'Read an exact paper, file, section, node, proposal or record by ID or handle. Use card, outline or graph for navigation and raw or reading for evidence.',
     'qec_get_context': 'Expand one source or record with bounded structural and evidence context. Select a purpose for missing-component reporting. Proximity and references are not proof dependencies.',
     'qec_query_codes': 'Enumerate registered quantum codes with exact parameter and evidence filters. Does not search prose: when empty, use qec_search. Returns parameters, evidence states and source bindings.',
     'qec_query_performance': 'Enumerate explicitly registered performance points with experiment, decoder, noise and metric bindings. No interpolation or cross-experiment ranking. Empty results require source search.',
@@ -39,6 +39,7 @@ PARAMETERS = {
     'include_candidates': 'Opt into candidate/proposed relationships; never promotes them to verified dependencies.',
     'purpose': 'Select theorem, performance, construction, thought or Lean preparation context; missing evidence stays explicit.',
     'mode': 'keyword uses BM25; hybrid adds optional vectors; vector requires an index; literal normalizes whitespace only.',
+    'unit': 'evidence returns individual hits. section returns one representative source hit per closest TeX section, falling back to the paper for unsectioned text.',
     'relations': 'Exact relation names to traverse; citations and references are not proof dependencies.',
     'direction': 'outgoing follows source to target; incoming finds predecessors; both traverses either direction.',
     'evidence_policy': 'verified requires qualifying computational/certificate evidence; source_reported accepts located paper claims.',

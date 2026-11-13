@@ -147,6 +147,17 @@ class KnowledgeTests(unittest.TestCase):
                 self.assertEqual(TEXT[source['char_start']:source['char_end']], row['excerpt'])
                 self.assertTrue(row['section_path'])
 
+    def test_search_can_aggregate_source_matches_at_the_authored_section(self):
+        result = self.invoke('qec_search', {'query': 'memory', 'unit': 'section', 'detail': 'full',
+                                            'source_version_id': self.version, 'mode': 'keyword'})
+        rows = result['results']
+        method = next(row for row in rows if row['title'] == 'Method')
+        self.assertEqual(method['kind'], 'section')
+        self.assertEqual(method['section_path'], ['Introduction', 'Method'])
+        match = self.invoke('qec_fetch', {'identifier': method['matched_occurrence_id']})
+        self.assertIn('The memory survives.', match['text'])
+        self.assertEqual(len({row['id'] for row in rows}), len(rows))
+
     def test_paper_title_does_not_make_unrelated_short_passages_match(self):
         (self.root / 'inputs/rank.tex').write_text(r'''\documentclass{article}
 \title{Decoder study}

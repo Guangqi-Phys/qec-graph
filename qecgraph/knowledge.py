@@ -90,7 +90,7 @@ class KnowledgeView:
                 if source := row.get('excerpt_source'):
                     item.update(path=source['path'], lines=[source['line_start'], source['line_start'] + SourceLines(row['excerpt'][:120]).line_at(max(0, len(row['excerpt'][:120]) - 1)) - 1],
                                 char_range=[source['char_start'], source['char_start'] + min(120, len(row['excerpt']))])
-            for field in ('review_status', 'match', 'authors', 'year', 'topics', 'arxiv_id',
+            for field in ('review_status', 'match', 'authors', 'year', 'topics', 'arxiv_id', 'matched_occurrence_id',
                           'arxiv_id_source', 'arxiv_candidates'):
                 if field in row:
                     item[field] = row[field]
@@ -460,6 +460,23 @@ class KnowledgeView:
             identifier = self.parents.get(identifier)
         return list(reversed(sections))
 
+    def section_hits(self, rows):
+        """Group ranked source hits by their closest section, retaining exact evidence."""
+        grouped = {}
+        for row in rows:
+            identifier = row['id']
+            while identifier in self.nodes and self.nodes[identifier]['kind'] != 'section':
+                identifier = self.parents.get(identifier)
+            if identifier is None and row.get('source_version_id') in self.documents:
+                identifier = self.documents[row['source_version_id']]['id']
+            if identifier not in self.nodes:
+                continue
+            grouped.setdefault(identifier, {
+                **row, **self.summary(self.nodes[identifier]), 'matched_occurrence_id': row['id'],
+                'source': row.get('source'), 'section_path': self.section_path(identifier),
+            })
+        return list(grouped.values())
+
     def snippet(self, unit, query):
         from .core.search import terms
         node = self.nodes.get(unit['id'])
@@ -576,6 +593,8 @@ class KnowledgeView:
             method = 'BM25; all terms before partial matches'
             fallback = 'No current vector index; searched complete registered source text'
         rows = self._search_rows(allowed, ranked, matches, args, mode)
+        if args.get('unit') == 'section':
+            rows = self.section_hits(rows)
         return {**self.session._paginate(rows, args, min(20, self.session.graph.max_results)),
                 'query_semantics': 'discovery', 'method': method, 'retrieval': status, 'fallback': fallback,
                 'absence': 'No match in this release does not establish nonexistence'}
@@ -687,6 +706,7 @@ def descriptors(session, legacy):
          ['identifier'], 'Trace typed source, evidence or research relations with a bounded depth. Citations are not proof dependencies.'),
         ('qec_fetch', properties, ['identifier'], 'Read a registered document, file, section or record. Outlines and paper graphs are paginated; raw text preserves source bytes.'),
         ('qec_search', {'query': _string(4096), 'kind': _string(), 'source_version_id': _string(4096),
+                        'unit': {'enum': ['evidence', 'section']},
                         'include_proposals': {'type': 'boolean', 'default': True},
                         'mode': {'enum': ['keyword', 'vector', 'hybrid', 'literal']},
                         'offset': _integer(), 'limit': _integer(1, session.graph.max_results)}, ['query'],

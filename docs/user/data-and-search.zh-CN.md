@@ -325,6 +325,8 @@ Workspace MCP 默认使用八个 `research` 工具。指定 `--profile legacy` �
 通用 fetch 超预算返回 `BUDGET_TOO_SMALL`，可改用研究范围读取或增加会话预算。
 `qec_status` 报告全文与仅元数据的覆盖情况。
 
+对 `qec_search` 传入 `unit: "section"`，按原文最近的章节或子章节聚合来源命中。无章节的文字归在论文下。每组保留排名最高的证据及其准确出现位置 ID。默认的证据检索继续返回单独的来源块和记录。
+
 ### 可选混合检索
 
 在 `qecgraph.toml` 启用本地投影，然后 sync 或 rebuild。本地模型对词法特征做哈希，
