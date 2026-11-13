@@ -138,8 +138,7 @@ ThoughtsGraph 使用带原文引用的 `research_thought` 记录和类型化关�
 release 保持可读。人类笔记永不作为知识输入。
 
 > [!NOTE]
-> QEC Graph 不是 TeX 引擎、PDF/OCR 流水线、大规模码距求解器或 Lean 验证器。
-> Lean 是**延期/实验性**能力；数据库、查询和 MCP 路径不导入也不调用它。
+> QEC Graph 不是 TeX 引擎、PDF/OCR 流水线、大规模码距求解器或形式化验证器。
 
 ## 一览
 

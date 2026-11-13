@@ -11,7 +11,7 @@ from .domain.status import eligible
 from .core.errors import ToolError
 from .query import answer_node
 
-PURPOSES = ('theorem', 'performance', 'construction', 'thought', 'lean')
+PURPOSES = ('theorem', 'performance', 'construction', 'thought')
 
 
 def _identity(node):
@@ -181,7 +181,7 @@ def context(session, args, maximum, metadata):
         data['nodes'].append({**projected, 'context_role': reason})
         selected.add(identity)
 
-    if purpose in {'theorem', 'lean'} and root.get('source'):
+    if purpose == 'theorem' and root.get('source'):
         graph = session.graph.source.graph
         lookup = {n['id']: n for n in graph['nodes']}
         for edge in graph['edges']:
@@ -216,8 +216,6 @@ def context(session, args, maximum, metadata):
     kinds = {n['kind'] for n in data['nodes']}
     requirements = {
         'theorem': {'definitions': {'definition'}, 'explicit_assumptions': {'assumption'}, 'proof': {'proof'}},
-        'lean': {'definitions': {'definition'}, 'explicit_assumptions': {'assumption'},
-                 'formalization_mapping': {'formalization', 'lean_declaration'}},
         'performance': {'metric': {'metric'}, 'experiment': {'experiment'}, 'code': {'quantum_code'},
                         'check_matrix': {'check_matrix'}, 'circuit': {'syndrome_measurement_circuit'},
                         'noise_instance': {'noise_model_instance'}, 'noise_model': {'noise_model'}, 'decoder': {'decoder'}},
@@ -235,8 +233,6 @@ def context(session, args, maximum, metadata):
                 omitted_node_count_at_least=omitted, truncated=bool(omitted), continuation=None)
     if root['id'] in session.knowledge.nodes:
         data['fragment_context'] = session.knowledge.fragment_context(session.knowledge.nodes[root['id']], root.get('latex', ''))
-    if purpose == 'lean':
-        data['formalization_status'] = 'Preparation only; no Lean build or semantic equivalence claim'
     # Preserve the root whole, trimming only complete supporting records/blocks.
     if len(canonical({**data, **metadata})) > maximum and 'fragment_context' in data:
         data.pop('fragment_context')

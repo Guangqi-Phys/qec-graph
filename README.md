@@ -150,8 +150,7 @@ validation leaves the previous release readable. Human notes are never knowledge
 
 > [!NOTE]
 > QEC Graph is not a TeX engine, a PDF/OCR pipeline, a large-code distance
-> solver, or a Lean verifier. Lean is **deferred/experimental**; the database,
-> query and MCP paths do not import or invoke it.
+> solver, or a formal verifier.
 
 ## At a glance
 

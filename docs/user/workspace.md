@@ -6,8 +6,8 @@
 
 `0.6.3` is the published release described by this guide. The existing `qecgraph`,
 `qec-latex-split` and `qecgraph-mcp` commands and the SourceGraph, LemmaGraph and
-DataGraph views remain available; Lean is a deferred experimental capability,
-see [the system design](../design/DESIGN.md#10-lean-deferred-not-supported).
+DataGraph views remain available; Lean execution has been removed,
+see [the system design](../design/DESIGN.md#10-lean-integration-removed).
 This guide describes the supported workflow; [the system design](../design/DESIGN.md)
 defines the contract. The [validation index](../../validation/README.md) lists the
 current executable checks; historical run artifacts remain in Git history.

@@ -59,7 +59,7 @@ flowchart TD
 
 | Page | Status | Type | What it covers |
 |---|---|---|---|
-| [QEC Graph — System Design](design/DESIGN.md) | Current | Explanation / reference | The only design document: architecture, data/evidence, workspace publication, CLI/MCP, human view and deferred Lean |
+| [QEC Graph — System Design](design/DESIGN.md) | Current | Explanation / reference | The only design document: architecture, data/evidence, workspace publication, CLI/MCP, human view  |
 | [Operations](operations/README.md) | Current | How-to / reference | Store/corpus maintenance, corpus/review workflows and validation pointers |
 | [Validation evidence](../validation/README.md) | Evidence | Evidence | Current executable checks and how to run them; historical run artifacts are not shipped |
 | [Changelog](../CHANGELOG.md) | Current | Reference | Compatibility and behavior changes |

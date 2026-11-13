@@ -1,6 +1,6 @@
 """Dispatch parsed command names to the corresponding workflow."""
 
-from . import ai, lean, query, records, source, workspace
+from . import ai, query, records, source, workspace
 
 
 HANDLERS = {
@@ -34,9 +34,6 @@ HANDLERS = {
     'mcp-config': query.mcp_config,
     'serve-mcp': query.mcp_serve,
     'query-tool': query.query_tool,
-    'lean-build': lean.build,
-    'lean-import': lean.import_report,
-    'lean-status': lean.status,
     'watch': source.watch,
     'recover-store': source.recover,
     'validate-staged': source.validate_staged,

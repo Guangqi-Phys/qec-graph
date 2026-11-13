@@ -54,8 +54,8 @@ PYINSTALLER_CONFIG_DIR="$PWD/build/standalone-cache" \
 直接运行 `dist/standalone/qec-graph`，或把它安装到 `PATH` 中的用户目录。
 
 > [!NOTE]
-> Lean 在 0.6.x 中延期。实验性的 `lean` 命令组和 Lean fixtures 不属于受支持流程；
-> 见[设计说明](../design/DESIGN.zh-CN.md#10-lean延期不支持)。
+> 实验性 Lean 命令与 fixtures 已移除。
+> 见[设计说明](../design/DESIGN.zh-CN.md#10-lean-路线已移除)。
 
 ## 试运行自带论文
 

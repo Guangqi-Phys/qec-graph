@@ -8,10 +8,10 @@
 |---|---|
 | **Status** | Current authoritative design (0.6.x) |
 | **Reviewed** | 2026-11-12 |
-| **Supersedes** | The earlier architecture, graph-contract, data-formats, incremental, MCP and CodeGraph design pages. Lean is deferred; see §10. |
+| **Supersedes** | The earlier architecture, graph-contract, data-formats, incremental, MCP and CodeGraph design pages. Lean integration was removed; see §10. |
 | **Implementation** | `qecgraph/`, `tests/`, `tools/`, `validation/` |
 
-This document is the single source of truth for the system's architecture, data contracts, evidence semantics, publication protocol, query/MCP surface, human view, and the deferred Lean boundary. If code, tests, and this document disagree, the executable behavior and its verification are the current state; update this document in the same change that alters the design. Do not create a second design page for a new idea: extend this document or record a superseding decision here.
+This document is the single source of truth for the system's architecture, data contracts, evidence semantics, publication protocol, query/MCP surface, human view, and the product boundary. If code, tests, and this document disagree, the executable behavior and its verification are the current state; update this document in the same change that alters the design. Do not create a second design page for a new idea: extend this document or record a superseding decision here.
 
 | Status | Meaning |
 |---|---|
@@ -34,7 +34,7 @@ This document is the single source of truth for the system's architecture, data 
 - [7. Workspace transaction and publication protocol](#7-workspace-transaction-and-publication-protocol)
 - [8. Query, CLI, and MCP contract](#8-query-cli-and-mcp-contract)
 - [9. Human view](#9-human-view)
-- [10. Lean: deferred, not supported](#10-lean-deferred-not-supported)
+- [10. Lean integration removed](#10-lean-integration-removed)
 - [11. CodeGraph reference and third-party attribution](#11-codegraph-reference-and-third-party-attribution)
 - [12. Invariants and failure cases](#12-invariants-and-failure-cases)
 - [13. Current limits and non-goals](#13-current-limits-and-non-goals)
@@ -62,7 +62,7 @@ QEC Graph turns LaTeX papers and explicit QEC research records into a provenance
 - a multi-writer or distributed database; or
 - a service that executes source code, TeX, or Lean on read.
 
-The executable scope is the Python package, CLI, local MCP server, Obsidian renderer, and the store/corpus surfaces. Lean code and fixtures exist only as deferred experimental material and are not part of the supported 0.6.x workflow.
+The executable scope is the Python package, CLI, local MCP server, Obsidian renderer, and the store/corpus surfaces.
 
 ---
 
@@ -107,7 +107,7 @@ Three storage/query generations exist, deliberately:
 | **Corpus** (`qecgraph/registry.py`, `corpus.py`) | Multi-document identity, review/apply, corpus queries, corpus MCP | Supported corpus surface |
 | **Store** (`qecgraph/store.py`, `query.py`) | Single-paper immutable extraction snapshot and SQLite/FTS5 queries | Supported store surface |
 
-New work should target the workspace surface. Store and corpus remain available for existing commands, migrations, Lean imports, and tests. When a feature exists in more than one surface, the workspace implementation defines current semantics; the older surfaces must not silently diverge on evidence or state filtering.
+New work should target the workspace surface. Store and corpus remain available for existing commands, migrations and tests. When a feature exists in more than one surface, the workspace implementation defines current semantics; the older surfaces must not silently diverge on evidence or state filtering.
 
 ### 2.4 Runtime and deployment
 
@@ -115,7 +115,7 @@ New work should target the workspace surface. Store and corpus remain available 
 - `pylatexenc==2.10` and `jsonschema==4.26.0` are runtime dependencies.
 - Installation: standalone executable from GitHub Releases, local wheel/sdist, or `pip install -e .` from a checkout.
 - The research Compose profile and the macOS read-only MCP isolation profile are release checks; re-run them with the commands in `validation/README.md`. The Linux profile uses an alternate local Ubuntu base because the default Docker Hub lookup timed out. Do not claim a generic Docker Hub build or Windows support without a new verification.
-- The package is versioned independently from graph/record schemas and the Lean toolchain. `qec-graph --version` is authoritative for the installed package version.
+- The package is versioned independently from graph/record schemas. `qec-graph --version` is authoritative for the installed package version.
 
 ### 2.5 Module boundaries
 
@@ -125,7 +125,6 @@ flowchart TB
     MCP["read-only MCP"] --> APP
     APP --> CORE["parser, graph, query, validators, coordinates"]
     APP --> OUTPUT["human renderer, SQLite/FTS5, machine release"]
-    LEAN["lean (deferred, experimental)"] -. "must not be required by reads" .-> APP
 ```
 
 | Layer | Modules | Rule |
@@ -134,10 +133,9 @@ flowchart TB
 | Application | `store.py`, `workspace.py`, `workspace_*.py`, `corpus.py`, `registry.py`, `review.py`, `query.py`, `domain/*` | Own transactions and policy; do not import development layers |
 | Kernel | `core/graph.py`, `core/transactions.py`, `core/coordinates.py`, `source/*`, `validators/*` | Pure or local side effects; no tests/tools/validation imports |
 | Output | `render/human.py`, `domain/status.py`, `domain/software.py`, `mcp/*` | Render/read from a pinned release; never write back through `human/` |
-| Deferred | `lean/*` | Experimental only; never required by database, query or MCP reads |
 
 The architecture test in `tests/contracts/tooling/test_architecture.py` enforces the import boundary.
-Implementation now lives under `core/`, `source/`, `domain/`, `render/`, `mcp/` and `lean/`;
+Implementation now lives under `core/`, `source/`, `domain/`, `render/`, and `mcp/`;
 `store.py`, `workspace.py` and `corpus.py` remain cohesive service modules pending a later
 split. `qecgraph/splitter.py` and `qecgraph/mcp_server.py` are thin compatibility shims for
 the documented module entry points.
@@ -221,7 +219,6 @@ Duplicate labels are ambiguous and must be resolved with an exact ID. Missing re
 | `qecgraph.graph` | Extraction graph and SourceGraph/LemmaGraph/DataGraph projections | `qecgraph/validators/schemas/graph.schema.json` |
 | `qecgraph.annotations` | Human/AI additions to an extraction store | packaged schema |
 | `qecgraph.proposal`, `qecgraph.review` | Review envelopes | packaged schemas |
-| `qecgraph.lean-export` | Experimental/deferred Lean export envelope | packaged schema |
 
 Unknown schemas are rejected; no older format is reinterpreted with the current fields. Package version and data format move independently. The canonical schemas are packaged resources; do not create a second editable copy at the repository root.
 
@@ -370,7 +367,6 @@ Evidence policy:
 - An upper bound alone never satisfies `distance >= d`.
 - Source-reported results are selected only in an explicit policy; they are not silently treated as mathematically verified.
 - An `execution_run` may support a locally performed result; it does not overwrite a paper-reported value.
-- Lean is deferred; if experimental Lean evidence is ever evaluated, it is not semantic equivalence and is not part of default filters.
 - Missing/no-result means no match in the fixed scope; it is not proof of nonexistence.
 
 Default query behavior excludes inactive edges (`stale`, `unbound_review`, `unresolved`) and candidate/proposed/`needs_review` edge or annotation information unless explicitly requested. Research record rows are not hidden merely because they are proposed; each row carries `review_status`, and hard filters use the evidence policy rather than silently promoting a draft. `show` is the audit view and keeps all states. Any truncation is explicit; source statements/hypotheses are not silently shortened.
@@ -438,7 +434,7 @@ Returned results include the scope identity, source/evidence status, and truncat
 
 ### 8.2 CLI
 
-The CLI is grouped by noun (`workspace`, `query`, `review`, `mcp`, `human`, `software`, `maintain`, `snapshot`, `inputs`, `doctor`, `version`, `help`, plus an experimental/deferred `lean` group). Flat legacy names remain available with deprecation notices. Global options include `--json`, `--quiet`, `--verbose`, `--debug`, `--color`, `--progress`, and `--version`.
+The CLI is grouped by noun (`workspace`, `query`, `review`, `mcp`, `human`, `software`, `maintain`, `snapshot`, `inputs`, `doctor`, `version`, `help`). Flat legacy names remain available with deprecation notices. Global options include `--json`, `--quiet`, `--verbose`, `--debug`, `--color`, `--progress`, and `--version`.
 
 Human output is concise and stateful: workspace/release, indexed/pending/failed/quarantined counts, human-view state, and a next action. `--json` is the only machine-output switch; TTY detection affects styling, not the data model. Errors are actionable and never raw Python/OS/TOML tracebacks unless `--debug` is requested.
 
@@ -516,49 +512,9 @@ This layout ships in **v0.6.3**; v0.6.2 used the earlier vault.
 
 ---
 
-## 10. Lean: deferred, not supported
+## 10. Lean integration removed
 
-> [!WARNING]
-> **Lean is deferred in 0.6.x.** It is not part of the supported database,
-> query, or MCP workflow. The `lean` CLI group, `qecgraph/lean/`, `lean/`
-> project, and `tests/fixtures/lean/` remain only as experimental regression
-> material. They are not a verification claim and must not be presented as a
-> finished product capability.
-
-**Current status:** deferred. The previous Lean experiments answered some
-engineering questions (toolchain pinning, export shape, axiom visibility), but
-they are not a supported semantic contract. They are intentionally excluded
-from the supported release scope until a new design is written and approved.
-
-### What exists today, and what it means
-
-| Artifact | Status |
-|---|---|
-| `qecgraph/lean/core.py`, `qecgraph/lean/integration.py`, `qecgraph/cli/commands/lean.py` | Experimental code retained so historical regressions remain testable; not covered by the support contract |
-| `lean/` project and `lean/axiom-policy.json` | Pinned experimental fixture; no toolchain is installed in the normal Python environment |
-| `tests/fixtures/lean/` | Recorded experimental Lean artifacts; not a current verification claim |
-| Query/MCP path | Does not import, execute, or require Lean; database construction and MCP are unaffected |
-
-### What is explicitly not claimed
-
-- no “Lean verified” status for any paper theorem;
-- no semantic equivalence between prose and a Lean type;
-- no general CSS/HGP distance formalization or certificate bridge;
-- no support for third-party package manifests, custom axioms, `sorry`, or
-  `native_decide` trust beyond explicit experimental checks;
-- no reproducible Lean acceptance in the current release.
-
-### Before Lean is implemented again, a new design must specify
-
-1. the exact source statement → normalized claim → Lean declaration mapping,
-   including quantifiers, hypotheses, definitions, and scope;
-2. declaration/type/proof-dependency export and the proof-term trust model;
-3. an explicit axiom/`sorry`/native-computation policy, with failure evidence;
-4. a reproducible toolchain, project commit, dependency lock, build command,
-   and log/export format;
-5. independent semantic review, freshness/invalidations, and query exposure;
-6. the boundary with the database and MCP: read tools must never execute Lean,
-   and Lean absence must not break workspace or MCP operation.
+The workspace focuses on paper sources and knowledge queries. Lean commands, build integration, the experimental project and its execution fixtures were removed. Formalization markers in paper sources remain in the original text.
 
 ---
 
@@ -611,7 +567,6 @@ Mapping summary:
 - A package is permanently unsupported: retain it, report it, and allow quarantine; never delete it or fake an extraction.
 - `CURRENT` is corrupt or the writer lock is held: report the exact path/owner state and do not write.
 - A renderer fails after publication: keep the machine release, report `human_stale`, re-render.
-- A Lean build has `sorry`/an unlisted axiom or a changed type/toolchain: reject the evidence binding; keep the historical report.
 - An MCP request asks for a path/SQL/shell or a different scope: reject; do not reinterpret as a query.
 - A query has no result: state the fixed scope and absence semantics; do not say the theorem does not exist.
 
@@ -627,7 +582,7 @@ Mapping summary:
 | PDF/OCR | Not implemented; LaTeX source is the supported input |
 | Vector/semantic retrieval | Optional local lexical vectors or OpenAI-compatible embeddings; BM25/cosine hybrid retrieval; quality requires corpus-specific evaluation |
 | Distance algorithms | Small-code enumeration/validation; no general large-code solver or certificate bridge |
-| Lean formalization | **Deferred.** Experimental code/fixtures only; no supported verification claim; DB/MCP unaffected |
+| Lean formalization | Removed |
 | Platforms | POSIX (macOS/Linux verified); Windows not supported/verified |
 | Distribution | Standalone GitHub Releases and local wheel/sdist; public PyPI publication is gated/manual and not assumed |
 | Concurrency | Single writer, local POSIX filesystem; no multi-writer/distributed transactions |
@@ -898,7 +853,7 @@ The CLI defaults to eight research tools. Explicit legacy workspace and store/co
 | `qec_list_papers` | Compact paper cards with metadata provenance and source versions |
 | `qec_search` | BM25 keyword/vector/hybrid discovery with kind and exact source filters |
 | `qec_fetch` | Read a paper outline, source file, section, occurrence or record |
-| `qec_get_context` | Assemble bounded context for theorem, performance, construction, thought or Lean preparation |
+| `qec_get_context` | Assemble bounded context for theorem, performance, construction, or thought |
 | `qec_query_codes` | Enumerate exact code/parameter/distance conditions |
 | `qec_query_performance` | Enumerate experiment-bound reported points |
 | `qec_trace` | Bounded typed relationships with evidence/state filters |
@@ -916,8 +871,7 @@ and validate successful tool results. Keep the deployed stdio protocol pinned to
 Context purposes identify missing components: theorem → definitions, assumptions,
 proof and dependencies; performance → metric and experiment bindings;
 construction → parameters, conventions, matrices/assets; thought → author
-statements and linked evidence; Lean → original statement, quantifiers,
-hypotheses and existing mappings. Context selection is structural and explicit,
+statements and linked evidence. Context selection is structural and explicit,
 not a claim that all mathematical prerequisites have been inferred.
 
 ### 16.5 Maintenance, isolation and scale
@@ -1014,7 +968,7 @@ Routine changes may merge to main independently of release tags. Proposed mainta
 | **D2 — Evidence is layered, not a score** | Source/claim/review/computation/build states remain separate; default filtering excludes inactive states. | Claims and evidence have different meanings. | One confidence/verified score. | A scalar hides unsupported assumptions and stale evidence. |
 | **D3 — Read-only agents** | Fixed-scope, budgeted CLI/Python/MCP reads; no path/SQL/shell access; stdout protocol only. | Agents need bounded, repeatable reads. | Arbitrary filesystem/SQL tools. | Fixed resources reduce scope errors; machine-only mounts enforce access. |
 | **D4 — Human view isolation** | One thoughts note per paper from a pinned release; no human content used as input; per-file atomic publication and legacy cleanup; `human_stale` recovery. | Private notes must never become machine evidence. | Bidirectional vault ingestion. | One-way rendering prevents contamination; the explicit legacy deletion exception remains. |
-| **D5 — Lean is deferred** | No supported verification claim in 0.6.x. Experimental fixtures remain for regression; a new design is required before implementation, and read paths never execute Lean. | Build success alone does not establish semantic equivalence. | Ship Lean as supported verification. | Retain historical readers; defer support until mapping and axiom audits exist. |
+| **D5 — Lean integration removed** | The workspace focuses on the paper knowledge base. | Original paper sources remain intact. | Keep experimental execution. | Remove build and toolchain dependencies. |
 | **D6 — CodeGraph is reference only** | Architecture comparison, no copied code, no imported performance claims; attribution retained. | Code intelligence offers architectural ideas. | Vendor the engine or adopt performance claims. | Its workload differs; preserve attribution and measure this project separately. |
 | **D7 — Compatibility over a rewrite** | Store/corpus remain supported; machine migrations preserve data. The human layout reset is explicitly documented in §9. | Existing records and review hashes must remain readable. | Immediate replacement of all APIs/formats. | Compatibility costs duplication; retire only with an approved migration. |
 | **D8 — Schema ownership is singular** | Packaged schemas are canonical; unknown schemas are rejected, not reinterpreted. | Editable duplicate schemas can diverge. | Maintain root and packaged copies. | Packaged resources own validation; reject unknown versions. |

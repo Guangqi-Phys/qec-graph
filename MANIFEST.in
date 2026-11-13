@@ -5,7 +5,6 @@ include AGENTS.md CHANGELOG.md CITATION.cff CONTRIBUTING.md \
     SECURITY.md README.zh-CN.md install.sh
 recursive-include docs *.md
 graft validation
-include lean/axiom-policy.json lean/targets.json
 prune build
 prune dist
 global-exclude *.py[cod] .DS_Store

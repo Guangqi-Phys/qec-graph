@@ -11,7 +11,6 @@
 | 发布 | `check_distribution.py`、`qec-graph.spec` | 分发包元数据检查和 PyInstaller spec |
 | 性能 | `bench.py` | 生成增量负载和固定来源基准 |
 | 知识证据 | `reproduce_knowledge.py` | 对比完整阅读、原文搜索和任务上下文；不执行 LLM |
-| Lean（延期） | `reproduce_lean.py`、`reproduce_lean_checks.py`、`reproduce_lean_mapping.py` | 仅历史/实验 Lean 证据；不是受支持流程 |
 
 标准门禁：
 

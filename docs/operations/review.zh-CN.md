@@ -23,9 +23,8 @@
 [`qecgraph/validators/schemas/`](../../qecgraph/validators/schemas)，直接使用打包路径。
 未知 Schema 被拒绝，绝不用当前字段重新解释。新写入始终产生当前格式。
 
-`qecgraph.record` 还包含实验性的 `lean_declaration` kind 与关系字段；Lean 在 0.6.x
-中延期，不属于受支持工作流，也不是验证结论。见
-[系统设计 §10](../design/DESIGN.zh-CN.md#10-lean延期不支持)。
+`qecgraph.record` 还包含实验性的 `lean_declaration` kind 与关系字段。Lean 构建和导入集成已移除。见
+[系统设计 §10](../design/DESIGN.zh-CN.md#10-lean-路线已移除)。
 
 `jsonschema==4.26.0` 从可选验证依赖提升为固定运行依赖，保证所有写入入口执行相同结构验证。
 JSON 输入拒绝重复 key、NaN、Infinity 和溢出为非有限数的十进制指数。

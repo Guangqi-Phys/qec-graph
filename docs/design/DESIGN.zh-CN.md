@@ -8,11 +8,11 @@
 |---|---|
 | **状态** | 当前权威设计（0.6.x） |
 | **评审日期** | 2026-11-12 |
-| **替代** | 此前的 architecture、graph-contract、data-formats、incremental、MCP 和 CodeGraph 设计页。Lean 延期；见 §10。 |
+| **替代** | 此前的 architecture、graph-contract、data-formats、incremental、MCP 和 CodeGraph 设计页。Lean 集成已移除；见 §10。 |
 | **实现** | `qecgraph/`、`tests/`、`tools/`、`validation/` |
 
 本文是系统架构、数据契约、证据语义、发布协议、查询/MCP 接口、人类视图和延期
-Lean 边界的唯一权威来源。如果代码、测试和本文不一致，以可执行行为及其验证为
+产品边界的唯一权威来源。如果代码、测试和本文不一致，以可执行行为及其验证为
 当前状态；修改设计的同一个变更必须更新本文。不要为新想法创建第二份设计页：
 扩展本文，或在这里记录替代决策。
 
@@ -37,7 +37,7 @@ Lean 边界的唯一权威来源。如果代码、测试和本文不一致，以
 - [7. 工作区事务与发布协议](#7-工作区事务与发布协议)
 - [8. 查询、CLI 和 MCP 契约](#8-查询cli-和-mcp-契约)
 - [9. 人类视图](#9-人类视图)
-- [10. Lean：延期，不支持](#10-lean延期不支持)
+- [10. Lean 路线已移除](#10-lean-路线已移除)
 - [11. CodeGraph 参考与第三方归属](#11-codegraph-参考与第三方归属)
 - [12. 不变量和失败案例](#12-不变量和失败案例)
 - [13. 当前限制和非目标](#13-当前限制和非目标)
@@ -66,7 +66,7 @@ QEC Graph 把 LaTeX 论文和显式 QEC 研究记录变成保留来源的本地�
 - 在读取时执行源码、TeX 或 Lean 的服务。
 
 可执行范围是 Python 包、CLI、本地 MCP 服务、Obsidian 渲染器和 store/corpus
-兼容层。Lean 代码和 fixtures 只作为延期实验材料存在，不属于受支持的 0.6.x 流程。
+兼容层。
 
 ---
 
@@ -114,7 +114,7 @@ release，绝不在会话中途读取移动的 `CURRENT`。
 | **Corpus**（`qecgraph/registry.py`、`corpus.py`） | 多文档身份、review/apply、corpus 查询、旧 MCP | 受支持兼容接口 |
 | **Store**（`qecgraph/store.py`、`query.py`） | 单篇不可变抽取快照和 SQLite/FTS5 查询 | 受支持兼容接口 |
 
-新工作应面向 workspace 接口。Store 和 corpus 继续支持既有命令、迁移、Lean 导入
+新工作应面向 workspace 接口。Store 和 corpus 继续支持既有命令、迁移
 和测试。当功能存在于多个接口时，workspace 实现定义当前语义；旧接口不得在证据
 或状态过滤上悄悄分叉。
 
@@ -127,7 +127,7 @@ release，绝不在会话中途读取移动的 `CURRENT`。
 - research Compose profile 和 macOS 只读 MCP 隔离 profile 是发布检查；用
   `validation/README.md` 中的命令重新运行。Linux profile 使用替代的本地 Ubuntu base，因为默认
   Docker Hub 查询超时。没有新验证时，不要声称通用 Docker Hub 构建或 Windows 支持。
-- 包版本与 graph/record schema、Lean toolchain 独立。`qec-graph --version` 是
+- 包版本与 graph/record schema 独立。`qec-graph --version` 是
   已安装包版本的权威来源。
 
 ### 2.5 模块边界
@@ -138,7 +138,6 @@ flowchart TB
     MCP["只读 MCP"] --> APP
     APP --> CORE["parser、graph、query、validators、coordinates"]
     APP --> OUTPUT["human 渲染、SQLite/FTS5、machine release"]
-    LEAN["lean（延期，实验性）"] -. "读取路径不得依赖" .-> APP
 ```
 
 | 层 | 模块 | 规则 |
@@ -147,10 +146,9 @@ flowchart TB
 | 应用 | `store.py`、`workspace.py`、`workspace_*.py`、`corpus.py`、`registry.py`、`review.py`、`query.py`、`domain/*` | 拥有事务和策略；不得导入开发层 |
 | 内核 | `core/graph.py`、`core/transactions.py`、`core/coordinates.py`、`source/*`、`validators/*` | 纯逻辑或本地副作用；不得导入 tests/tools/validation |
 | 输出 | `render/human.py`、`domain/status.py`、`domain/software.py`、`mcp/*` | 从固定 release 渲染/读取；不得通过 `human/` 写回 |
-| 延期 | `lean/*` | 仅实验；数据库、查询或 MCP 读取绝不依赖 |
 
 `tests/contracts/tooling/test_architecture.py` 强制执行导入边界。实现现在位于
-`core/`、`source/`、`domain/`、`render/`、`mcp/` 和 `lean/`；`store.py`、
+`core/`、`source/`、`domain/`、`render/`和 `mcp/`；`store.py`、
 `workspace.py`、`corpus.py` 继续保持为内聚服务模块，后续再拆。
 `qecgraph/splitter.py` 和 `qecgraph/mcp_server.py` 是文档化模块入口的薄兼容 shim。
 
@@ -237,7 +235,6 @@ Store 和 corpus 有各自受管理根目录。不要合并它们的 pointer 格
 | `qecgraph.graph` | 抽取图及 SourceGraph/LemmaGraph/DataGraph 投影 | `qecgraph/validators/schemas/graph.schema.json` |
 | `qecgraph.annotations` | 对抽取 store 的人工/AI 增补 | packaged schema |
 | `qecgraph.proposal`、`qecgraph.review` | 审核信封 | packaged schemas |
-| `qecgraph.lean-export` | 实验性/延期 Lean 导出信封 | packaged schema |
 
 未知 schema 版本被拒绝或作为不透明历史输入保留；绝不用最新字段重新解释。
 包版本和数据 schema 版本独立演进。规范 schema 是打包资源；不要在仓库根创建
@@ -410,7 +407,6 @@ classical code）是 warning，而不是静默消失。
 - 只有上界绝不满足 `distance >= d`。
 - 来源报告结果只在显式策略下选择；不被静默视为数学验证。
 - `execution_run` 可支持本地执行结果；不覆盖论文报告值。
-- Lean 延期；即使实验 Lean 证据被评估，也不是语义等价，不属于默认过滤。
 - 缺失/无结果表示固定范围内无匹配；不是不存在证明。
 
 默认查询排除非活动边（`stale`、`unbound_review`、`unresolved`）和 candidate/
@@ -489,8 +485,7 @@ release，重新连接/固定。
 ### 8.2 CLI
 
 CLI 按名词分组（`workspace`、`query`、`review`、`mcp`、`human`、`software`、
-`maintain`、`snapshot`、`inputs`、`doctor`、`version`、`help`，以及实验性/延期
-`lean` 组）。扁平旧名称仍可用，带弃用提示。全局选项包括 `--json`、`--quiet`、
+`maintain`、`snapshot`、`inputs`、`doctor`、`version`、`help`）。扁平旧名称仍可用，带弃用提示。全局选项包括 `--json`、`--quiet`、
 `--verbose`、`--debug`、`--color`、`--progress` 和 `--version`。
 
 人类输出简洁且有状态：workspace/release、indexed/pending/failed/quarantined
@@ -557,45 +552,9 @@ Python、CLI 和 MCP 共享。MCP protocol errors 和 business-query errors 保�
 
 ---
 
-## 10. Lean：延期，不支持
+## 10. Lean 路线已移除
 
-> [!WARNING]
-> **Lean 在 0.6.x 中延期。** 它不是受支持的数据库、查询或 MCP 流程的一部分。
-> `lean` CLI 组、`qecgraph/lean/`、`lean/` 项目和
-> `tests/fixtures/lean/` 只作为实验性回归材料保留。它们不是
-> 验证声明，不得被呈现为已完成的产品能力。
-
-**当前状态：** 延期。此前的 Lean 实验回答了一些工程问题（toolchain pinning、
-export shape、axiom visibility），但它们不是受支持的语义契约。在新设计被编写
-并批准之前，它们被有意排除在受支持 release scope 之外。
-
-### 今天存在什么，以及它意味着什么
-
-| 产物 | 状态 |
-|---|---|
-| `qecgraph/lean/core.py`、`qecgraph/lean/integration.py`、`qecgraph/cli/commands/lean.py` | 保留实验代码，使历史回归仍可测试；不在支持契约内 |
-| `lean/` 项目和 `lean/axiom-policy.json` | 固定实验 fixture；普通 Python 环境不安装 toolchain |
-| `tests/fixtures/lean/` | 记录下来的实验性 Lean 产物；不是当前验证声明 |
-| Query/MCP 路径 | 不导入、不执行、不要求 Lean；数据库构建和 MCP 不受影响 |
-
-### 明确不声称什么
-
-- 不为任何论文定理声称“Lean verified”状态；
-- 不声称 prose 与 Lean 类型语义等价；
-- 不声称通用 CSS/HGP 距离形式化或 certificate bridge；
-- 不支持第三方 package manifests、自定义 axioms、`sorry`，或超出显式实验检查的
-  `native_decide` trust；
-- 当前 release 没有可复现的 Lean acceptance。
-
-### 在重新实现 Lean 之前，新设计必须说明
-
-1. 精确的 source statement → normalized claim → Lean declaration 映射，包括
-   quantifiers、hypotheses、definitions 和 scope；
-2. declaration/type/proof-dependency export 和 proof-term trust model；
-3. 显式 axiom/`sorry`/native-computation 政策，以及失败证据；
-4. 可复现 toolchain、project commit、dependency lock、build command 和 log/export format；
-5. 独立语义审核、freshness/invalidations 和 query exposure；
-6. 与数据库和 MCP 的边界：read tools 绝不执行 Lean，Lean 缺失不得破坏 workspace 或 MCP 操作。
+数据库专注于论文来源与知识查询。Lean 命令、构建集成、实验项目和运行验证材料已移除。论文原文中出现的形式化标记仍按原文保留。
 
 ---
 
@@ -654,7 +613,6 @@ build evidence 或 semantic equivalence。
 - 包永久不受支持：保留、报告并允许 quarantine；绝不删除或伪造抽取。
 - `CURRENT` 损坏或 writer lock 被持有：报告精确路径/所有者状态，不写入。
 - 渲染器在发布后失败：保留 machine release，报告 `human_stale`，重新渲染。
-- Lean build 有 `sorry`/未列出的 axiom 或改变的 type/toolchain：拒绝 evidence binding；保留历史报告。
 - MCP 请求要求 path/SQL/shell 或不同 scope：拒绝；不要重新解释为 query。
 - 查询无结果：说明固定 scope 和 absence semantics；不要说定理不存在。
 
@@ -670,7 +628,7 @@ build evidence 或 semantic equivalence。
 | PDF/OCR | 未实现；LaTeX 源是受支持输入 |
 | Vector/semantic retrieval | 可选本地词法向量或 OpenAI-compatible embedding，BM25/cosine 混合检索；质量须按语料实测 |
 | Distance algorithms | 小码枚举/验证；没有通用大码 solver 或 certificate bridge |
-| Lean formalization | **延期。** 只有实验代码/fixtures；没有受支持验证声明；DB/MCP 不受影响 |
+| Lean formalization | 已移除 |
 | Platforms | POSIX（macOS/Linux 已验证）；Windows 不支持/未验证 |
 | Distribution | 独立 GitHub Releases 和本地 wheel/sdist；公开 PyPI 发布受门控/手动，不假设 |
 | Concurrency | 单 writer，本地 POSIX 文件系统；没有 multi-writer/distributed transactions |
@@ -877,7 +835,7 @@ CLI 默认八个 research 工具；显式 legacy workspace 与 store/corpus 接�
 | `qec_list_papers` | 紧凑论文卡片，包含元数据来源与来源版本 |
 | `qec_search` | 关键词/向量/混合发现，支持类型和精确来源过滤 |
 | `qec_fetch` | 读取论文目录、源文件、章节、occurrence 或记录 |
-| `qec_get_context` | 为定理、性能、构造、思路或 Lean 准备组装有界上下文 |
+| `qec_get_context` | 为定理、性能、构造、思路组装有界上下文 |
 | `qec_query_codes` | 枚举精确码/参数/距离条件 |
 | `qec_query_performance` | 枚举绑定实验的报告点 |
 | `qec_trace` | 按证据/状态过滤的有界类型化关系 |
@@ -892,7 +850,7 @@ CLI 默认八个 research 工具；显式 legacy workspace 与 store/corpus 接�
 
 上下文用途标明缺失组成：定理 → 定义、假设、证明、依赖；性能 → 指标和实验绑定；
 构造 → 参数、约定、矩阵/资产；思路 → 作者陈述和关联证据；
-Lean → 原始陈述、量词、假设和已有映射。上下文选择是结构化与显式的，
+上下文选择是结构化与显式的，
 不宣称推断出了全部数学前提。
 
 ### 16.5 维护、隔离与规模
@@ -977,7 +935,7 @@ python tools/eval_retrieval.py --machine /path/to/copied-machine --cases validat
 | **D2 — 证据分层，不是评分** | Source/claim/review/computation/build 状态保持分离；默认过滤排除非活动状态。 | 主张和证据含义不同。 | 单一 confidence/verified 分数。 | 单值会掩盖未支持假设和失效证据。 |
 | **D3 — 只读 agents** | 固定 scope、有预算的 CLI/Python/MCP reads；没有 path/SQL/shell 访问；只有 stdout protocol。 | Agent 需要有界可重放读取。 | 任意文件系统/SQL 工具。 | 固定资源减少范围错误，machine-only 挂载实现访问边界。 |
 | **D4 — 人类视图隔离** | 从固定 machine release 为每篇论文生成一份 thoughts；human 不作为输入；逐文件原子发布、旧布局清理与 `human_stale` 恢复。 | 私人笔记不能成为机器证据。 | 双向 vault 导入。 | 单向渲染防止混入；保留明确批准的旧 human 删除例外。 |
-| **D5 — Lean 延期** | 0.6.x 没有受支持验证声明。实验 fixtures 保留用于回归；实现前需要新设计，read paths 绝不执行 Lean。 | 构建成功不等于语义对应。 | 将 Lean 当作受支持验证。 | 保留历史读取，待映射和公理审计成立再支持。 |
+| **D5 — Lean 集成已移除** | 工作区专注论文知识库。 | 论文原文保持不变。 | 保留实验执行能力。 | 移除构建和工具链依赖。 |
 | **D6 — CodeGraph 仅供参考** | 架构比较，不复制代码，不导入性能声称；保留归属。 | 代码智能可提供架构参考。 | 引入引擎或继承性能承诺。 | 工作负载不同；保留归属并独立测量本项目。 |
 | **D7 — 兼容优先于重写** | Store/corpus 继续受支持；machine 迁移保留数据；human 布局重置在 §9 明确说明。 | 旧记录和审核哈希必须可读。 | 立即替换所有 API/格式。 | 兼容会保留重复；批准迁移后再退役。 |
 | **D8 — Schema 所有权单一** | Packaged schemas 是规范；未知版本不重新解释。 | 可编辑的重复 schema 会漂移。 | 同时维护根目录和打包副本。 | 打包资源负责校验；拒绝未知版本。 |

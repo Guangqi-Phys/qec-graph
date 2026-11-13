@@ -38,7 +38,7 @@ PARAMETERS = {
     'include_proposals': 'Include unreviewed AI proposals (default true); each retains proposed status.',
     'include_ai_extracted': 'Include published research records with AI extraction provenance (default true).',
     'include_candidates': 'Opt into candidate/proposed relationships; never promotes them to verified dependencies.',
-    'purpose': 'Select theorem, performance, construction, thought or Lean preparation context; missing evidence stays explicit.',
+    'purpose': 'Select theorem, performance, construction or thought context; missing evidence stays explicit.',
     'mode': 'keyword uses BM25; hybrid adds optional vectors; vector requires an index; literal normalizes whitespace only.',
     'unit': 'evidence returns individual hits. section returns one representative source hit per closest TeX section, falling back to the paper for unsectioned text.',
     'relations': 'Exact relation names to traverse; citations and references are not proof dependencies.',

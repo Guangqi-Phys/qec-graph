@@ -95,8 +95,7 @@ def lean_build_states(registry, state, records, reviews, *, check_live_inputs=Tr
             or record.get('kind') == 'evidence' and (record.get('data') or {}).get('evidence_kind') == 'lean_build'
             for record in records.values()):
         return {}
-    from ..lean.integration import lean_record_states
-    return lean_record_states(registry, state, records, reviews, check_live_inputs=check_live_inputs)
+    raise ValueError('Lean records are unsupported; rebuild the workspace from its sources')
 
 
 def reviewed_cycles(graph):

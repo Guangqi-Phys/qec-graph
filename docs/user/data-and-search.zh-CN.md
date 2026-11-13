@@ -179,8 +179,8 @@ construction 仍未知。
 `conflicting` 记录字段为何没有单一值。默认工作区查询过滤 synthetic 记录和
 过期 provider 批准；proposed/draft 记录仍可见并携带 `review_status`，但绝不当作已验证。
 旧 `qecgraph.record` 记录也可携带 claims、证据和实验性
-Lean 映射字段。Lean 延期，不属于受支持 0.6.x 流程；见
-[设计说明](../design/DESIGN.zh-CN.md#10-lean延期不支持)。
+Lean 历史映射字段。Lean 执行已移除。见
+[设计说明](../design/DESIGN.zh-CN.md#10-lean-路线已移除)。
 research schema 列出受支持 kinds、每种 kind 必填字段，以及可空 `{id, revision}`
 链接形状。`x-qec-target-kinds` 注解描述允许的目标 kind。JSON Schema 校验器还
 检查证据元数据、受管理资产 ID，以及矩阵 recipe、码参数、界方向、测量单位和

@@ -60,9 +60,8 @@ Run `dist/standalone/qec-graph` directly or install it in a user directory on
 `PATH`.
 
 > [!NOTE]
-> Lean is deferred in 0.6.x. The experimental `lean` command group and Lean
-> fixtures are not part of the supported workflow; see
-> [the design note](../design/DESIGN.md#10-lean-deferred-not-supported).
+> The experimental Lean commands and fixtures have been removed. See
+> [the design note](../design/DESIGN.md#10-lean-integration-removed).
 
 ## Try the bundled paper
 

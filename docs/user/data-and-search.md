@@ -201,8 +201,7 @@ and `conflicting` record why the field has no single value. Default workspace
 queries filter synthetic records and stale provider approvals. Proposed or draft
 records remain visible with their `review_status`; they are never treated as verified. Legacy
 `qecgraph.record` records can also carry claims and evidence, plus
-experimental Lean mapping fields. Lean is deferred and is not part of the
-supported 0.6.x workflow; see [the design note](../design/DESIGN.md#10-lean-deferred-not-supported).
+historical Lean mapping fields. Lean execution has been removed. See [the design note](../design/DESIGN.md#10-lean-integration-removed).
 The research schema lists the supported kinds, the fields that must be present
 for each kind, and the shape of nullable `{id, revision}` links. Its
 `x-qec-target-kinds` annotations describe the allowed target kinds. A JSON

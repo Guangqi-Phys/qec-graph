@@ -12,7 +12,6 @@ tooling, not part of the installed `qecgraph` package.
 | Release | `check_distribution.py`, `qec-graph.spec` | Distribution metadata checks and PyInstaller spec |
 | Performance | `bench.py` | Generated incremental workload and pinned-source benchmark |
 | Knowledge evidence | `reproduce_knowledge.py` | Compare complete reading, source search and task context; no LLM execution |
-| Lean (deferred) | `reproduce_lean.py`, `reproduce_lean_checks.py`, `reproduce_lean_mapping.py` | Historical/experimental Lean evidence only; not a supported workflow |
 
 The standard gates are:
 

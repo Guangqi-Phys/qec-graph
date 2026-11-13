@@ -5,7 +5,6 @@ __pycache__/
 build/
 dist/
 .tools/
-lean/.lake/
 .qecgraph/
 .codegraph/
 .DS_Store

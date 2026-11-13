@@ -26,9 +26,8 @@ packaged path directly. Unknown schemas are rejected and are never reinterpreted
 with the current fields. New writes always produce the current format.
 
 `qecgraph.record` also contains an experimental `lean_declaration` kind and
-relation fields; Lean is deferred in 0.6.x, is not part of the supported workflow
-and is not a verification conclusion. See
-[system design §10](../design/DESIGN.md#10-lean-deferred-not-supported).
+relation fields. The Lean build and import integration has been removed. See
+[system design §10](../design/DESIGN.md#10-lean-integration-removed).
 
 `jsonschema==4.26.0` is a pinned runtime dependency, not an optional validation
 extra, so every write entry point performs the same structural validation. JSON

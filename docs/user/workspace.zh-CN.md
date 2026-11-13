@@ -5,7 +5,7 @@
 > [English](workspace.md) · **中文**
 
 本说明对应已发布的 `0.6.3` 版本。已有的 `qecgraph`、`qec-latex-split`、
-`qecgraph-mcp` 及 SourceGraph、LemmaGraph、DataGraph 命令继续可用；Lean 为延期实验能力，见[系统设计](../design/DESIGN.zh-CN.md#10-lean延期不支持)。
+`qecgraph-mcp` 及 SourceGraph、LemmaGraph、DataGraph 命令继续可用；Lean 执行功能已移除，见[系统设计](../design/DESIGN.zh-CN.md#10-lean-路线已移除)。
 本说明描述受支持的工作流；[系统设计](../design/DESIGN.zh-CN.md)定义契约。
 [验证索引](../../validation/README.zh-CN.md)列出当前可执行检查；历史运行产物保留在
 Git history。
