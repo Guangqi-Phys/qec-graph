@@ -102,6 +102,22 @@ class RetrievalTests(unittest.TestCase):
             self.assertGreater(transport.call_count, 0)
         self.assertEqual(self.session().state['retrieval_index']['identity']['model_revision'], '2')
 
+    def test_external_embeddings_run_after_structure_and_outside_write_locks(self):
+        from qecgraph.core.transactions import writer_lock
+
+        self.external_config()
+
+        def embedding(*args, **kwargs):
+            with writer_lock(self.root / '.qecgraph'), writer_lock(self.ws.registry.root):
+                state, _ = self.ws.registry.read()
+                self.assertEqual(len(state['versions']), 1)
+            return self.fake_transport(*args, **kwargs)
+
+        with patch.dict('os.environ', {'QECGRAPH_EMBEDDING_API_KEY': 'TEST-SECRET'}), patch(
+                'qecgraph.llm.providers.http.UrllibTransport.request', side_effect=embedding):
+            result = self.ws.sync()
+        self.assertIn('sha256', result['retrieval'])
+
     def test_failed_optional_embedding_publishes_sources_and_visible_keyword_fallback(self):
         self.ws.sync()
         previous = self.session().release

@@ -1030,9 +1030,9 @@ class Workspace:
                 for material in materials.values():
                     pair = (material.get('work_id'), material.get('upstream_version'))
                     material['source_version_conflict'] = len(collisions.get(pair, ())) > 1
-                from .retrieval import stage_index
+                from .workspace_publication import stage_local_retrieval
                 phase('Building retrieval index')
-                stage_index(self.registry, state, cfg.get('retrieval', {}), repair=rebuild)
+                stage_local_retrieval(self.registry, state, cfg, repair=rebuild)
                 phase('Preparing candidate release')
                 candidate = self.registry.prepare_publication(state)
                 if cfg != self.config():
@@ -1111,6 +1111,8 @@ class Workspace:
         return old, release, materials, proposal_map, rows, digests, ai_results, limits
 
     def _run_impl(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None, ai_client=None, workspace_locked=False):
+        from .workspace_publication import external_retrieval, publish_external_retrieval, publish_semantic
+
         run_id = uuid.uuid4().hex
         with nullcontext() if workspace_locked else writer_lock(self.path('.qecgraph')):
             old, release, materials, proposal_map, rows, digests, ai_results, limits = self._publish_structure(
@@ -1118,8 +1120,6 @@ class Workspace:
                 progress=progress, ai_client=ai_client)
         ai_warning = None
         if ai_client is not None and ai_client.config.extract_proposals and digests:
-            from .workspace_publication import publish_semantic
-
             release, ai_warning = publish_semantic(
                 self, cfg, release, materials, digests, ai_results, limits, ai_client, rebuild=rebuild)
             if ai_warning is None:
@@ -1127,11 +1127,15 @@ class Workspace:
                     identity = row.get('source_version_id'), row.get('source_snapshot_id')
                     if row.get('processing_completed') and identity in ai_results:
                         row['ai_extraction'] = ai_results[identity]
+        retrieval_warning = None
+        if external_retrieval(cfg) and ai_warning is None:
+            release, retrieval_warning = publish_external_retrieval(
+                self, cfg, release, rebuild=rebuild, workspace_locked=workspace_locked)
         counts = {'registered': len(materials), 'processed': sum(x['processing_completed'] for x in materials.values()),
                   'conflicting': sum(x['source_version_conflict'] for x in materials.values()),
                   'code_mention_proposals': sum(p['code_parameters_mentions'] for p in proposal_map.values())}
-        warning = ai_warning or self._update_operational_status(release, counts)
-        partial = ai_warning is not None or any(not r.get('processing_completed') or r.get('cleanup_error') or r.get('retained_claim')
+        warning = ai_warning or retrieval_warning or self._update_operational_status(release, counts)
+        partial = bool(ai_warning or retrieval_warning) or any(not r.get('processing_completed') or r.get('cleanup_error') or r.get('retained_claim')
                       or r.get('source_version_conflict') or r.get('ai_extraction', {}).get('errors') for r in rows)
         retrieval = self.registry.read(release)[0].get('retrieval_index', {})
         partial = partial or retrieval.get('status') == 'stale'

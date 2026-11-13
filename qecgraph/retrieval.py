@@ -179,7 +179,7 @@ def _store_vectors(machine, cfg, pending, *, repair):
 
 @task('Preparing retrieval index')
 def _stage_index(registry, state, raw_config, *, repair=False):
-    """Called under the existing writer lock, before release validation/publication."""
+    """Prepare immutable objects and update the caller’s candidate binding."""
     cfg = configuration(raw_config)
     if not cfg['enabled']:
         state.pop('retrieval_index', None)
