@@ -68,6 +68,12 @@ class ReadOnlySession:
                                   manifest_hashes=self._manifest_hashes)
         return graph
 
+    def _refresh_published_query(self):
+        if not self._fixed_publication:
+            self._refresh()
+            return query.QuerySession(self.source)
+        return self._published_query
+
     def _refresh(self):
         if self.corpus:
             state, revision = self._registry.read(self.scope['registry_revision'])
@@ -199,10 +205,8 @@ class ReadOnlySession:
                 raise ToolError('INVALID_ARGUMENT', error.message)
             if name == 'qecgraph_search' and not arguments['query'].strip():
                 raise ToolError('INVALID_ARGUMENT', 'Search query must not be blank')
-            if not self._fixed_publication:
-                self._refresh()
+            session = self._refresh_published_query()
             action = name.removeprefix('qecgraph_')
-            session = self._published_query if self._fixed_publication else query.QuerySession(self.source)
             identifier = arguments.get('identifier')
             if action != 'search' and self.scope['kind'] == 'corpus':
                 identifier = session.corpus_identifier(identifier, self.scope['source_version_id'])

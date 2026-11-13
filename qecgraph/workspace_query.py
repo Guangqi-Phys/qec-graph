@@ -640,7 +640,7 @@ class WorkspaceSession:
             elif name == 'qec_list_papers':
                 data = self.knowledge.list_papers(args)
             elif name == 'qec_fetch':
-                data = self.knowledge.fetch(args)
+                data = self.knowledge.fetch_view(args)
             elif name == 'qec_search':
                 data = self.knowledge.search(args)
             elif name == 'qecgraph_search':

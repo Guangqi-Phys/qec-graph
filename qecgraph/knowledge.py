@@ -212,8 +212,6 @@ class KnowledgeView:
             arxiv_id, origin, candidates = arxiv_identity(version.get('canonical_url'), names)
             result['arxiv_id'] = arxiv_id
             result['arxiv_id_source'] = origin
-            if origin:
-                result['field_evidence']['arxiv_id'] = {'status': origin}
             result['arxiv_candidates'] = [{'id': item, 'url': 'https://arxiv.org/abs/' + item,
                                            'status': 'filename_candidate'} for item in candidates]
             result['title'] = result['title'] or (names[0] if names else document['title'])
@@ -354,15 +352,18 @@ class KnowledgeView:
                 'interpretation': 'Literal declarations and reference previews; no expansion, scope resolution or proof inference. '
                                   'Rebuild older snapshots to collect macro declarations.'}
 
+    def fetch_view(self, args):
+        if args.get('view') != 'graph':
+            return self.fetch(args)
+        if {'char_start', 'char_end', 'revision', 'depth'} & args.keys():
+            raise ToolError('INVALID_ARGUMENT', 'Paper graph accepts a document and row pagination')
+        document = self.resolve(args['identifier'], args.get('source_version_id'))
+        if document['kind'] != 'document':
+            raise ToolError('INVALID_ARGUMENT', 'Select a paper to read its graph')
+        return self.paper_graph(document, args)
+
     def fetch(self, args):
         identifier = args['identifier']
-        if args.get('view') == 'graph':
-            if {'char_start', 'char_end', 'revision', 'depth'} & args.keys():
-                raise ToolError('INVALID_ARGUMENT', 'Paper graph accepts a document and row pagination')
-            document = self.resolve(identifier, args.get('source_version_id'))
-            if document['kind'] != 'document':
-                raise ToolError('INVALID_ARGUMENT', 'Select a paper to read its graph')
-            return self.paper_graph(document, args)
         if identifier in self.proposal_items:
             proposal = self.proposal_items[identifier]
             if args.get('revision') and args['revision'] != proposal['revision']:
