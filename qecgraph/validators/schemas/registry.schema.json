@@ -3,6 +3,30 @@
   "$id": "https://qecgraph.local/schema/registry",
   "description": "Current workspace release format.",
   "type": "object",
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "source_range": {
+      "type": "object",
+      "required": ["path", "char_start", "char_end", "line_start", "line_end"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "char_start": {"type": "integer", "minimum": 0},
+        "char_end": {"type": "integer", "minimum": 0},
+        "line_start": {"type": "integer", "minimum": 1},
+        "line_end": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "structure_binding": {
+      "type": "object",
+      "required": ["status", "plan_sha256"],
+      "properties": {
+        "status": {"const": "proposed"},
+        "plan_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    }
+  },
   "properties": {
     "schema": {
       "const": "qecgraph.registry"
@@ -74,9 +98,7 @@
             "type": "string",
             "minLength": 1
           },
-          "structure_recovery": {
-            "type": "object"
-          }
+          "structure_recovery": {"$ref": "#/$defs/structure_binding"}
         },
         "required": [
           "id",
@@ -96,13 +118,10 @@
         "type": "object",
         "properties": {
           "status": {
-            "type": "string",
-            "minLength": 1
+            "enum": ["archived_only", "processing_completed", "needs_entrypoint", "ai_failed", "parse_failed",
+                     "damaged_archive", "limit_exceeded", "unsafe_archive", "unsupported_encoding", "unsupported_format"]
           },
-          "semantic_status": {
-            "type": "string",
-            "minLength": 1
-          },
+          "semantic_status": {"enum": ["not_extracted", "semantic_pending"]},
           "processor": {
             "type": "string",
             "minLength": 1
@@ -187,7 +206,27 @@
           "diagnostics": {
             "type": "array",
             "items": {
-              "type": "object"
+              "type": "object",
+              "required": ["severity", "code", "message", "source"],
+              "properties": {
+                "severity": {"enum": ["error", "warning", "info"]},
+                "code": {"type": "string", "minLength": 1},
+                "message": {"type": "string"},
+                "source": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/source_range"}]}
+              },
+              "additionalProperties": false
+            }
+          },
+          "encoding_mappings": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["encoding", "original_sha256"],
+              "properties": {
+                "encoding": {"enum": ["iso-8859-1", "iso-8859-15", "cp1252"]},
+                "original_sha256": {"$ref": "#/$defs/sha256"}
+              },
+              "additionalProperties": false
             }
           },
           "ai_extraction": {
@@ -199,7 +238,7 @@
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "required": ["skill", "path", "run_id"],
+                  "required": ["skill", "path", "run_id", "proposal_sha256"],
                   "properties": {
                     "skill": {"enum": ["extract_theorems", "extract_assumptions", "extract_data", "extract_thoughts"]},
                     "path": {"type": "string", "minLength": 1},
@@ -228,7 +267,18 @@
             "additionalProperties": false
           },
           "structure_recovery": {
-            "type": "object"
+            "oneOf": [
+              {"$ref": "#/$defs/structure_binding"},
+              {
+                "type": "object",
+                "required": ["status", "reason"],
+                "properties": {
+                  "status": {"enum": ["ineligible", "unavailable", "pending"]},
+                  "reason": {"type": "string", "minLength": 1}
+                },
+                "additionalProperties": false
+              }
+            ]
           }
         },
         "required": [
@@ -236,7 +286,7 @@
           "status",
           "processing_completed"
         ],
-        "additionalProperties": true,
+        "additionalProperties": false,
         "dependentRequired": {
           "normalization_id": ["normalization_sha256", "normalization_manifest_sha256"],
           "normalization_sha256": ["normalization_id", "normalization_manifest_sha256"],
@@ -245,9 +295,8 @@
         "oneOf": [
           {
             "properties": {
-              "processing_completed": {
-                "const": true
-              }
+              "processing_completed": {"const": true},
+              "status": {"const": "processing_completed"}
             },
             "required": [
               "source_version_id",
@@ -259,9 +308,8 @@
           },
           {
             "properties": {
-              "processing_completed": {
-                "const": false
-              }
+              "processing_completed": {"const": false},
+              "status": {"not": {"const": "processing_completed"}}
             }
           }
         ]
@@ -284,7 +332,26 @@
     "generated_research": {
       "type": "object",
       "additionalProperties": {
-        "type": "object"
+        "type": "object",
+        "required": ["source_snapshot_id", "processor", "bindings", "code_parameters_mentions"],
+        "properties": {
+          "source_snapshot_id": {"$ref": "#/$defs/sha256"},
+          "processor": {"type": "string", "minLength": 1},
+          "bindings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "revision"],
+              "properties": {
+                "id": {"type": "string", "minLength": 1},
+                "revision": {"type": "string", "minLength": 1}
+              },
+              "additionalProperties": false
+            }
+          },
+          "code_parameters_mentions": {"type": "integer", "minimum": 0}
+        },
+        "additionalProperties": false
       }
     },
     "retrieval_index": {

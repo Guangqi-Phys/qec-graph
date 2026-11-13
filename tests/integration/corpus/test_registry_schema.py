@@ -60,3 +60,16 @@ class RegistrySchemaTests(unittest.TestCase):
             }}}
             with self.assertRaises(ManagedDataError):
                 registry.prepare_publication(state)
+
+    def test_publication_rejects_malformed_material_diagnostics_and_generated_bindings(self):
+        digest = 'a' * 64
+        with tempfile.TemporaryDirectory() as directory:
+            registry = Registry(directory)
+            state = empty_state('workspace:test')
+            for invalid in (
+                {'materials': {digest: {'archive_sha256': digest, 'status': 'parse_failed',
+                                          'processing_completed': False, 'diagnostics': [{'severity': 'bad'}]}}},
+                {'generated_research': {'paper': {'source_snapshot_id': digest, 'bindings': [None]}}},
+            ):
+                with self.subTest(invalid=invalid), self.assertRaises(ManagedDataError):
+                    registry.prepare_publication({**state, **invalid})
