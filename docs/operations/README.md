@@ -19,13 +19,10 @@
 
 | Page | Surface | Type | Use when |
 |---|---|---|---|
-| [Store and corpus maintenance](maintenance.md) | Store/corpus | How-to | Ingest, validate or recover a single-paper store or corpus |
-| [Corpus](corpus.md) | Corpus | Reference | Register works/versions, map sources, run fixed-revision queries |
-| [Review](review.md) | Corpus | How-to / reference | Validate typed records, bind evidence, apply reviewed proposals |
+| [Workspace maintenance](maintenance.md) | Workspace | How-to | Validate, rebuild and recover a workspace |
 | [Workspace guide](../user/workspace.md) | Workspace | How-to | Current daily workflow (linked here for convenience) |
 | [Advanced usage](../user/advanced-usage.md) | Workspace/CLI | How-to / reference | Release checks, exit codes and grouped commands |
 
-AI artifacts live under `machine/ai/proposals` and `machine/ai/reviews`. They are workspace-local, not part of the corpus review/apply path; see the [workspace guide](../user/workspace.md#ai-configuration).
 
 ## Validation
 

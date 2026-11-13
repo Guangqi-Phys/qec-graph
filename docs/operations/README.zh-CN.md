@@ -20,12 +20,9 @@
 | 页面 | 接口 | 类型 | 适用场景 |
 |---|---|---|---|
 | [store 与 corpus 维护](maintenance.zh-CN.md) | store/corpus | How-to | 导入、验证或恢复单篇 store/corpus |
-| [Corpus](corpus.zh-CN.md) | corpus | Reference | 注册 work/version、映射来源、执行固定版本查询 |
-| [审核](review.zh-CN.md) | corpus | How-to / reference | 验证类型化记录、绑定证据、应用已审核提案 |
 | [工作区说明](../user/workspace.zh-CN.md) | 工作区 | How-to | 当前日常流程（方便链接） |
 | [进阶用法](../user/advanced-usage.zh-CN.md) | 工作区/CLI | How-to / reference | 发布检查、退出码和命令分组 |
 
-AI 产物位于 `machine/ai/proposals` 和 `machine/ai/reviews`。它们属于 workspace，不进入 corpus 的 review/apply 路径；见[工作区说明](../user/workspace.zh-CN.md#ai-配置)。
 
 ## 验证
 

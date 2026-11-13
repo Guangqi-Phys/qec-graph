@@ -218,19 +218,7 @@ automatically create a verified quantum code.
 
 ## 5. Query the graph after splitting
 
-Splitting already produces a standard graph store; there is no second import:
-
-```bash
-qecgraph show lem:css-commutation --store work/qec-demo
-qecgraph deps thm:hgp-css --store work/qec-demo
-qecgraph context thm:hgp-length --store work/qec-demo
-qecgraph validate --store work/qec-demo
-```
-
-Plain `ref` stays a citation relation; `uses` is an author-declared dependency;
-a proof association inferred only from proximity stays a candidate; `leanok`
-stays an author annotation. Splitting never raises the evidence level of these
-relations.
+Place the paper source package in workspace `inputs/` and run `qec-graph sync` to query the paper through the workspace.
 
 ## 6. Exact meaning of a fragment
 

@@ -13,7 +13,7 @@ from textwrap import dedent
 from unittest.mock import patch
 
 from qecgraph.cli import main
-from qecgraph.corpus import execute
+from qecgraph.workspace_query import WorkspaceSession
 from qecgraph.domain.research_store import stage_records
 from qecgraph.source.package import unpack
 from qecgraph.store import extraction_tool_identity, ingest
@@ -226,7 +226,7 @@ class WorkspaceTests(unittest.TestCase):
         self.assertTrue((self.inbox / 'broken').exists())
         self.assertEqual(self.ws.init()['status'], 'already_initialized')
         self.assertTrue(self.ws.validate()['valid'])
-        query = execute(self.ws.registry.root, 'search', text='Hello')
+        query = WorkspaceSession(self.ws.registry.root).invoke('qecgraph_search', {'query': 'Hello'})['data']
         self.assertTrue(query['results'])
         (self.inbox / 'broken').unlink()
         (self.inbox / 'renamed').write_bytes(TEX)

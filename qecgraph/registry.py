@@ -12,9 +12,7 @@ from pathlib import Path
 
 from .core.graph import canonical, hash_text, read_json
 from .store import current_snapshot, load_validated_snapshot, safe_relative
-from .core.transactions import ManagedDataError, atomic_bytes, atomic_json, immutable_json, publish_pointer, read_pointer, writer_lock
-from .domain.records import prepare_record
-from .query import resolve_node
+from .core.transactions import ManagedDataError, atomic_bytes, atomic_json, immutable_json, publish_pointer, read_pointer
 
 FORMAT = 'qecgraph.registry'
 CURRENT_FORMAT = 'qecgraph.registry.current'
@@ -87,10 +85,6 @@ class Registry:
             _verify_state_binding(state, revision, state_path)
         return state, revision
 
-    def _state_or_empty(self):
-        state, _ = self._state_and_revision()
-        return state
-
     def _state_and_revision(self):
         pointer = self.root / 'CURRENT.json'
         if pointer.is_symlink():
@@ -126,14 +120,6 @@ class Registry:
 
     def _publish(self, state):
         return self.publish_prepared(self.prepare_publication(state))
-
-    def register_source(self, work_id, source_version_id, store, *, title=None, upstream_version=None):
-        with writer_lock(self.root):
-            state = self._state_or_empty()
-            version = self.stage_source(state, work_id, source_version_id, store,
-                                        title=title, upstream_version=upstream_version)
-            revision = self._publish(state)
-        return {'registry_revision': revision, 'source_version': version}
 
     def stage_source(self, state, work_id, source_version_id, store, *, title=None, upstream_version=None,
                      replace_projection=False, captured=None, manifest_hashes=None, canonical_url=None):
@@ -209,101 +195,6 @@ class Registry:
         _check_source_binding(graph, version)
         return graph, snapshot, report
 
-    def _put_record(self, state, record, *, checked_reviews=None):
-        record = prepare_record(record)
-        from .review import verify_record_review
-        verify_record_review(self, record, checked_reviews=checked_reviews)
-        from .validators import validate_endpoint
-        for ref in record['refs']:
-            if ref['target'] in state['records']:
-                validate_endpoint(record['kind'], state['records'][ref['target']]['kind'], ref['relation'])
-        identifier, revision = record['id'], record['revision']
-        identity = state['records'].setdefault(identifier, {'kind': record['kind'], 'revisions': {}})
-        if identity['kind'] != record['kind']:
-            raise ValueError('An entity cannot change kind without explicit migration')
-        path = 'records/' + hash_text(identifier) + '/' + hash_text(revision) + '.json'
-        binding = {'path': path, 'content_sha256': record['content_sha256']}
-        if revision in identity['revisions'] and identity['revisions'][revision] != binding:
-            raise ValueError('Entity revision already binds different content')
-        immutable_json(self.root / path, record)
-        identity['revisions'][revision] = binding
-        identity['current_revision'] = revision
-        return record
-
-    def add_record(self, record):
-        with writer_lock(self.root):
-            state = self._state_or_empty()
-            record = self._put_record(state, record)
-            revision = self._publish(state)
-        return {'registry_revision': revision, 'record': record}
-
-    def record(self, identifier, record_revision=None, registry_revision=None):
-        state, _ = self.read(registry_revision)
-        return self.record_from_state(state, identifier, record_revision)
-
-    def records_from_state(self, state, identifiers=None, *, _checked_reviews=None):
-        if identifiers is None:
-            identifiers = state['records']
-        checked_reviews = {} if _checked_reviews is None else _checked_reviews
-        return {identifier: self.record_from_state(state, identifier, _checked_reviews=checked_reviews)
-                for identifier in identifiers}
-
-    def record_from_state(self, state, identifier, record_revision=None, *, _checked_reviews=None):
-        if identifier not in state['records']:
-            raise ValueError(f'Unknown entity: {identifier}')
-        identity = state['records'][identifier]
-        revision = record_revision or identity['current_revision']
-        if revision not in identity['revisions']:
-            raise ValueError(f'Unknown revision for {identifier}: {revision}')
-        binding = identity['revisions'][revision]
-        record = prepare_record(read_json(safe_relative(self.root, binding['path'])))
-        from .review import verify_record_review
-        verify_record_review(self, record, checked_reviews=_checked_reviews)
-        if record['id'] != identifier or record['revision'] != revision or record['content_sha256'] != binding['content_sha256']:
-            raise ValueError('Registered record identity/hash mismatch')
-        return record
-
-    def link_claim(self, link_id, source_version_id, source_selector, claim_id, *, claim_revision=None,
-                   assumptions=None, notation_scope=None):
-        if not isinstance(link_id, str) or not link_id.strip():
-            raise ValueError('Link requires explicit identity')
-        for field, value in (('source_version_id', source_version_id), ('source_selector', source_selector),
-                             ('claim_id', claim_id), ('claim_revision', claim_revision)):
-            if field == 'claim_revision' and value is None:
-                continue
-            if not isinstance(value, str) or not value.strip():
-                raise ValueError(f'Claim link {field} must be a nonempty string')
-        if assumptions is not None and not isinstance(assumptions, list):
-            raise ValueError('Claim link assumptions must be an array')
-        if notation_scope is not None and not isinstance(notation_scope, dict):
-            raise ValueError('Claim link notation_scope must be an object')
-        with writer_lock(self.root):
-            state, fixed = self.read()
-            graph, _, version = self.source_graph_from_state(state, source_version_id, fixed, verify=True)
-            node = resolve_node(graph, source_selector)
-            node_id = node['id']
-            if node['origin'] != 'parser' or not node.get('source'):
-                raise ValueError('Claim provenance requires an actual source block')
-            claim = self.record_from_state(state, claim_id, claim_revision)
-            if claim['kind'] != 'claim':
-                raise ValueError('Source normalization target must be a claim')
-            from .validators import validate_endpoint
-            validate_endpoint(node['kind'], claim['kind'], 'normalizes_to')
-            link = {'id': link_id, 'relation': 'normalizes_to', 'status': 'proposed',
-                    'source_version_id': source_version_id, 'source_snapshot_id': version['snapshot_id'],
-                    'source_node_id': node_id, 'source_content_sha256': node['content_sha256'],
-                    'claim_id': claim_id, 'claim_revision': claim['revision'],
-                    'claim_content_sha256': claim['content_sha256'],
-                    'assumptions': assumptions or [], 'notation_scope': notation_scope or {}}
-            prior = next((x for x in state['links'] if x['id'] == link_id), None)
-            if prior and prior != link:
-                raise ValueError('Provenance link identity already binds different content')
-            if not prior:
-                state['links'].append(link)
-                state['links'].sort(key=lambda x: x['id'])
-            revision = self._publish(state)
-        return {'registry_revision': revision, 'link': link}
-
     def asset_bytes(self, uri):
         prefix = 'qecasset:sha256:'
         digest = uri.removeprefix(prefix)
@@ -335,25 +226,14 @@ class Registry:
 
     @task('Validating record references and evidence')
     def _validate_state(self, state, fixed, *, check_live_lean=True, verified_spans=None, manifest_hashes=None):
-        from .validators import registry_issues, validate_graph_types
-        from .corpus import _project_state
+        from .validators import validate_graph_types
+        from .workspace_projection import project_sources
+
         verified_spans = {} if verified_spans is None else verified_spans
-        records = self.records_from_state(state)
-        issues = registry_issues(self, records)
-        phase('Verifying source snapshots and graph projections')
-        graph, _ = _project_state(self, state, fixed, check_live_lean=check_live_lean,
-                                  verify_sources=True, records=records, verified_spans=verified_spans,
-                                  manifest_hashes=manifest_hashes)
-        phase('Checking graph types and reviewed dependency cycles')
+        issues = []
+        graph = project_sources(self, state, fixed, verify_sources=True, verified_spans=verified_spans,
+                                manifest_hashes=manifest_hashes)
         validate_graph_types(graph.graph)
-        from .domain.status import reviewed_cycles
-        issues.extend(reviewed_cycles(graph.graph))
-        issues.extend({'code': 'review_stale', 'severity': 'warning', 'record_id': node['id'],
-                       'reasons': node['review_binding']['reasons']}
-                      for node in graph.graph['nodes'] if node.get('review_binding', {}).get('effective_status') == 'stale')
-        issues.extend({'code': 'lean_build_stale', 'severity': 'warning', 'record_id': node['id'],
-                       'reasons': node['build_binding']['reasons']}
-                      for node in graph.graph['nodes'] if node.get('build_binding', {}).get('effective_status') == 'stale')
         phase('Validating research records and source bindings')
         if state.get('research_records'):
             try:

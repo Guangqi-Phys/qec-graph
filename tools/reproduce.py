@@ -22,6 +22,8 @@ from pathlib import Path
 import platform
 import re
 import sqlite3
+import tempfile
+import tarfile
 import subprocess
 import sys
 
@@ -93,27 +95,26 @@ def main(argv=None) -> int:
         report["runtime"]["jsonschema"] = importlib.metadata.version("jsonschema") if has_schema else None
 
         run("unit_tests", ["-m", "unittest", "discover", "-s", "tests", "-v"], json_output=False)
-        base = ["examples/paper/main.tex", "--project-id", "qec-demo"]
-        split_store, graph_store = (out / name for name in ("split", "graph"))
-        split = run("split", ["-m", "qecgraph", "split", *base, "--out", str(split_store)])
-        run("split_validate", ["-m", "qecgraph", "validate", "--store", str(split_store)])
-        graph = run("graph_ingest", ["-m", "qecgraph", "ingest", *base, "--out", str(graph_store),
-                                    "--annotations", "examples/annotations.example.json"])
-        run("graph_validate", ["-m", "qecgraph", "validate", "--store", str(graph_store)])
-        shown = run("show", ["-m", "qecgraph", "show", "thm:hgp-css", "--store", str(graph_store)])
-        if shown["node"]["kind"] != "theorem" or "thm:hgp-css" not in shown["node"]["labels"]:
-            raise RuntimeError("The exact label query did not resolve to the expected theorem")
-        hits = run("search", ["-m", "qecgraph", "search", "HGP", "--store", str(graph_store)])
-        context = run("context", ["-m", "qecgraph", "context", "thm:hgp-length", "--store", str(graph_store)])
-        deps = run("dependencies", ["-m", "qecgraph", "deps", "thm:hgp-css", "--store", str(graph_store)])
-        impact = run("impact", ["-m", "qecgraph", "impact", "def:gf2", "--store", str(graph_store)])
-        if not hits["results"]:
-            raise RuntimeError("The demo HGP query returned no results")
-        if not any("proof:hgp-length" in node["labels"] for node in context["nodes"]):
-            raise RuntimeError("The explicitly linked whole proof was missing from context")
-        if any(edge["status"] in {"candidate", "stale", "unbound_review", "unresolved"}
-               for result in (deps, impact, context) for edge in result["edges"]):
-            raise RuntimeError("Default dependency/context queries exposed a filtered relation")
+        split = run("split", ["-m", "qecgraph", "split", "examples/paper/main.tex",
+                              "--project-id", "qec-demo", "--out", str(out / "split")])
+        with tempfile.TemporaryDirectory(prefix="qec-reproduce-", dir=out) as directory:
+            workspace = Path(directory)
+            scope = ["--workspace", directory]
+            run("workspace_init", ["-m", "qecgraph", "init", *scope, "--json"])
+            with tarfile.open(workspace / "inputs" / "demo.tar", "w") as bundle:
+                for item in sorted((ROOT / "examples/paper").rglob("*")):
+                    if item.is_file():
+                        bundle.add(item, arcname=item.relative_to(ROOT / "examples/paper"))
+            graph = run("workspace_sync", ["-m", "qecgraph", "sync", *scope, "--no-human", "--json"])
+            if graph["counts"]["processed"] != 1:
+                raise RuntimeError("The fixture paper did not publish")
+            validation = run("workspace_validate", ["-m", "qecgraph", "validate", *scope, "--json"])
+            if not validation["valid"]:
+                raise RuntimeError("Published fixture release failed validation")
+            hits = run("search", ["-m", "qecgraph", "search", "HGP", *scope])["data"]
+            context = run("context", ["-m", "qecgraph", "context", "thm:hgp-length", *scope])["data"]
+            if not hits["results"] or not any(n["kind"] == "proof" for n in context["nodes"]):
+                raise RuntimeError("Published source or linked proof was missing")
 
         report["schema_checks"] = {"status": "skipped_dependency_missing", "schemas": []}
         if has_schema:
@@ -123,7 +124,7 @@ def main(argv=None) -> int:
                 Draft202012Validator.check_schema(schema)
                 validator = Draft202012Validator(schema)
                 if filename.startswith("graph"):
-                    for generated in (split, graph):
+                    for generated in (split,):
                         validator.validate(json.loads((Path(generated["snapshot"]) / "graph.json").read_text(encoding="utf-8")))
                 else:
                     for filename2 in ("annotations.example.json", "catalog-links.example.json"):
@@ -133,7 +134,7 @@ def main(argv=None) -> int:
             "unit_tests": report["steps"][0]["test_count"],
             "source_files": len(split["sources"]), "source_fragments": split["fragment_count"],
             "source_only_graph": {"nodes": split["node_count"], "edges": split["edge_count"]},
-            "annotated_graph": {"nodes": graph["node_count"], "edges": graph["edge_count"], "snapshot_id": graph["snapshot_id"]},
+            "workspace_release": graph["release_id"],
             "search_hits": len(hits["results"]), "context_nodes": len(context["nodes"]),
             "mathematical_scope": "Supported-syntax extraction and read paths only; no Lean verification",
         }

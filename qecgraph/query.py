@@ -150,12 +150,16 @@ class QuerySession:
     def node_ids(self):
         return {node['id'] for node in self.projection[0]['nodes']}
 
-    def corpus_identifier(self, identifier, source_version_id):
+    def workspace_identifier(self, identifier):
         if identifier in self.node_ids or '::' in identifier:
             return identifier
-        if source_version_id:
-            return source_version_id + '::' + identifier
-        return None
+        suffix = '::' + identifier
+        matches = [node_id for label, ids in self.projection[0]['labels'].items() if label.endswith(suffix)
+                   for node_id in ids]
+        if len(matches) > 1:
+            raise SelectionError('AMBIGUOUS_SELECTOR', 'Select an exact occurrence ID',
+                                 {'candidate_ids': sorted(set(matches))[:20]})
+        return next(iter(matches), identifier)
 
     def execute(self, action, identifier=None, *, text=None, kind=None, limit=20, depth=2,
                 include_candidates=False, max_nodes=60):

@@ -104,19 +104,9 @@ release，绝不在会话中途读取移动的 `CURRENT`。
 
 写入者先发布结构，再完成符合条件的认领。可选语义抽取在写锁之外执行。待处理任务由已发布的来源绑定确定，可由 sync 重试。发布 AI 结果时重新取锁，并核对固定 release 和配置。解决入口或恢复来源结构所需的 AI 在结构事务中运行。
 
-### 2.3 兼容接口
+### 2.3 工作区接口
 
-有意保留三代存储/查询：
-
-| 接口 | 用途 | 状态 |
-|---|---|---|
-| **Workspace**（`qecgraph/workspace.py`、`machine/`、`archive/`） | 主产品：源包、研究记录、人类视图、工作区 MCP | Current |
-| **Corpus**（`qecgraph/registry.py`、`corpus.py`） | 多文档身份、review/apply、corpus 查询、旧 MCP | 受支持兼容接口 |
-| **Store**（`qecgraph/store.py`、`query.py`） | 单篇不可变抽取快照和 SQLite/FTS5 查询 | 受支持兼容接口 |
-
-新工作应面向 workspace 接口。Store 和 corpus 继续支持既有命令、迁移
-和测试。当功能存在于多个接口时，workspace 实现定义当前语义；旧接口不得在证据
-或状态过滤上悄悄分叉。
+知识库只接受工作区发布。独立切割器可以导出 LaTeX 片段。
 
 ### 2.4 运行时与部署
 
@@ -443,7 +433,6 @@ claim 仍可恢复，空 claim 目录在 writer lock 下清理。
 - 崩溃后可留下不可变对象；只有 pointer 发布使 release current。
 - store/workspace 发布可崩溃恢复：pointer switch 后的 claim cleanup 从精确 claim 重放；SIGKILL 测试覆盖该窗口。
 - 锁保护本地进程，不保护 NFS 或分布式 writer。不声称掉电持久性或 multi-writer 支持。
-- `recover-store`/`doctor` 验证 pointer，并盘点工具拥有的废弃 build；未知或用户目录不删除。删除是显式操作。
 - `human_stale` 是派生视图失败，不是机器 release 回滚。从固定 release 重新渲染。
 
 ### 7.3 增量和 watch
@@ -475,8 +464,6 @@ claim 仍可恢复，空 claim 目录在 writer lock 下清理。
 
 - `--workspace` + 可选 `--release`（workspace machine release）；
 - `--machine`（严格只读 machine mount，无 workspace/human 访问）；
-- `--store` + 可选 `--snapshot`；
-- `--corpus` + 可选 `--registry-revision` 和 source-version restriction。
 
 返回结果包含 scope identity、source/evidence status 和 truncation/absence notes。
 会话在启动时固定 release/snapshot；改变 `CURRENT` 不改变现有会话。要读取新
@@ -498,7 +485,6 @@ CLI 按名词分组（`workspace`、`query`、`review`、`mcp`、`human`、`soft
 
 - 本地 stdio，protocol `2025-06-18`；stdout 只承载 JSON-RPC，日志到 stderr。
 - Store/corpus 会话暴露五个旧 `qecgraph_*` read tools。
-- Workspace CLI 默认使用八工具 research profile（§16.4），显式 legacy/compatible 保留。Python `WorkspaceSession` 为兼容保留 legacy 默认值。
 - Research resources 枚举紧凑论文卡片；稳定 source URI 绑定版本、文件哈希、范围及类型。短标识限于固定 release。Search/list 默认精简输出，`detail="full"` 获取完整信封。
 - 会话固定一个 release；工具参数不能传任意 paths/SQL/shell 或改变 scope。
 - 预算：depth/nodes/results/characters；截断结果说明省略内容；预算过小返回显式错误，而不是部分根陈述。

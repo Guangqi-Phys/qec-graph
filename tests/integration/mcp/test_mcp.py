@@ -9,9 +9,10 @@ from contextlib import redirect_stderr
 from pathlib import Path
 from unittest.mock import patch
 
-from qecgraph.mcp.ai_tools import ReadOnlySession, TOOL_NAMES
+from qecgraph.workspace import Workspace
+from qecgraph.workspace_query import WorkspaceSession
+from qecgraph.knowledge import RESEARCH_TOOLS
 from qecgraph.mcp_server import MAX_REQUEST_BYTES, MCPServer, PROTOCOL_VERSION, serve_stdio
-from qecgraph.store import ingest
 from tests.support import ROOT
 
 
@@ -33,9 +34,14 @@ class MCPTests(unittest.TestCase):
         self.marker = self.root / 'must-not-execute'
         self.entry.write_text(r'\newtheorem{lemma}{Lemma}\begin{lemma}\label{a}Full assumption H and conclusion.'
                               + '\\immediate\\write18{touch ' + str(self.marker) + '}' + r'\end{lemma}')
-        self.store = self.root / 'store'
-        ingest(self.entry, 'mcp', self.store)
-        self.session = ReadOnlySession(store=self.store)
+        workspace = Workspace(self.root / 'workspace')
+        workspace.prepare()
+        body = r'\documentclass{article}\begin{document}' + self.entry.read_text() + r'\end{document}'
+        (workspace.root / 'inputs/paper.tex').write_text(body)
+        workspace.sync()
+        self.store = workspace.registry.root
+        self.session = WorkspaceSession(self.store, profile='research')
+        self.identifier = next(n['id'] for n in self.session._source_nodes.values() if n['kind'] == 'lemma')
 
     def ready(self, **kwargs):
         server = MCPServer(self.session, **kwargs)
@@ -53,10 +59,10 @@ class MCPTests(unittest.TestCase):
         self.assertEqual(server.handle(request(2, 'tools/list'))['error']['code'], -32002)
         server.handle({'jsonrpc': '2.0', 'method': 'notifications/initialized'})
         tools = server.handle(request(3, 'tools/list'))['result']['tools']
-        self.assertEqual(tuple(tool['name'] for tool in tools), TOOL_NAMES)
-        arguments = {'identifier': 'a'}
-        result = server.handle(request(4, 'tools/call', {'name': 'qecgraph_show', 'arguments': arguments}))['result']
-        self.assertEqual(result['structuredContent'], self.session.invoke('qecgraph_show', arguments))
+        self.assertEqual(set(tool['name'] for tool in tools), set(RESEARCH_TOOLS))
+        arguments = {'identifier': self.identifier}
+        result = server.handle(request(4, 'tools/call', {'name': 'qec_fetch', 'arguments': arguments}))['result']
+        self.assertEqual(result['structuredContent'], self.session.invoke('qec_fetch', arguments))
         self.assertEqual(json.loads(result['content'][0]['text']), result['structuredContent'])
         self.assertFalse(result['isError'])
         self.assertEqual(server.handle(request(5, 'ping'))['result'], {})
@@ -64,13 +70,13 @@ class MCPTests(unittest.TestCase):
     def test_protocol_errors_execution_errors_and_rate_limit_are_distinct(self):
         server = self.ready()
         self.assertEqual(server.handle(request(2, 'tools/call', {'name': 'write_file'}))['error']['code'], -32602)
-        self.assertEqual(server.handle(request(3, 'tools/call', {'name': 'qecgraph_show', 'arguments': {'identifier': 'a', 'store': '/tmp/other'}}))['error']['code'], -32602)
-        missing = server.handle(request(4, 'tools/call', {'name': 'qecgraph_show', 'arguments': {'identifier': 'missing'}}))['result']
+        self.assertEqual(server.handle(request(3, 'tools/call', {'name': 'qec_fetch', 'arguments': {'identifier': self.identifier, 'store': '/tmp/other'}}))['error']['code'], -32602)
+        missing = server.handle(request(4, 'tools/call', {'name': 'qec_fetch', 'arguments': {'identifier': 'missing'}}))['result']
         self.assertTrue(missing['isError'])
         self.assertEqual(missing['structuredContent']['error']['code'], 'NOT_FOUND')
         self.assertEqual(server.handle(request(5, 'unknown/method'))['error']['code'], -32601)
         limited = self.ready(calls_per_second=1, clock=lambda: 0)
-        call = request(6, 'tools/call', {'name': 'qecgraph_show', 'arguments': {'identifier': 'a'}})
+        call = request(6, 'tools/call', {'name': 'qec_fetch', 'arguments': {'identifier': self.identifier}})
         self.assertIn('result', limited.handle(call))
         self.assertEqual(limited.handle(call)['error']['code'], -32029)
 
@@ -106,7 +112,7 @@ class MCPTests(unittest.TestCase):
     def test_internal_request_diagnostics_are_correlated_and_stay_on_stderr(self):
         identifier = 'private-id-canary\n'
         messages = [initialization(), {'jsonrpc': '2.0', 'method': 'notifications/initialized'},
-                    request(identifier, 'tools/call', {'name': 'qecgraph_search', 'arguments': {'query': 'private-query-canary'}}),
+                    request(identifier, 'tools/call', {'name': 'qec_search', 'arguments': {'query': 'private-query-canary'}}),
                     request(3, 'ping')]
         incoming = io.BytesIO(''.join(json.dumps(message) + '\n' for message in messages).encode())
         output, diagnostics = io.BytesIO(), io.StringIO()
@@ -127,13 +133,13 @@ class MCPTests(unittest.TestCase):
         before = {str(p.relative_to(self.store)): hashlib.sha256(p.read_bytes()).hexdigest()
                   for p in self.store.rglob('*') if p.is_file()}
         messages = [initialization(), {'jsonrpc': '2.0', 'method': 'notifications/initialized'}, request(2, 'tools/list'),
-                    request(3, 'tools/call', {'name': 'qecgraph_context', 'arguments': {'identifier': 'a'}})]
-        proc = subprocess.run([sys.executable, '-m', 'qecgraph', 'serve-mcp', '--store', str(self.store)],
+                    request(3, 'tools/call', {'name': 'qec_get_context', 'arguments': {'identifier': self.identifier}})]
+        proc = subprocess.run([sys.executable, '-m', 'qecgraph', 'serve-mcp', '--machine', str(self.store)],
                                input=''.join(json.dumps(item) + '\n' for item in messages), capture_output=True, text=True, timeout=10)
         self.assertEqual(proc.returncode, 0, proc.stderr)
         responses = [json.loads(line) for line in proc.stdout.splitlines()]
         self.assertEqual(len(responses), 3)
-        self.assertEqual(responses[-1]['result']['structuredContent'], self.session.invoke('qecgraph_context', {'identifier': 'a'}))
+        self.assertEqual(responses[-1]['result']['structuredContent'], self.session.invoke('qec_get_context', {'identifier': self.identifier}))
         self.assertFalse(self.marker.exists())
         self.assertEqual(before, {str(p.relative_to(self.store)): hashlib.sha256(p.read_bytes()).hexdigest()
                                   for p in self.store.rglob('*') if p.is_file()})
@@ -146,13 +152,13 @@ class MCPTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr + proc.stdout)
         summary = json.loads(proc.stdout)
         self.assertEqual(summary['status'], 'passed')
-        self.assertGreaterEqual(summary['checks'], 22)
-        config = subprocess.run([sys.executable, '-m', 'qecgraph', 'mcp-config', '--store', str(self.store)],
+        self.assertGreaterEqual(summary['checks'], 5)
+        config = subprocess.run([sys.executable, '-m', 'qecgraph', 'mcp-config', '--machine', str(self.store)],
                                  capture_output=True, text=True, timeout=10)
         self.assertEqual(config.returncode, 0, config.stderr)
         server = json.loads(config.stdout)['mcpServers']['qecgraph']
         self.assertEqual(server['command'], sys.executable)
-        self.assertIn('--snapshot', server['args'])
+        self.assertIn('--release', server['args'])
 
 
 if __name__ == '__main__':

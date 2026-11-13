@@ -5,15 +5,13 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from contextlib import chdir, redirect_stderr, redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
 from qecgraph.cli import main
-from qecgraph.store import ingest
 from qecgraph.core.transactions import writer_lock
 from qecgraph.workspace import Workspace
-from tests.support import ROOT
 
 
 class CLIContractTests(unittest.TestCase):
@@ -47,24 +45,6 @@ class CLIContractTests(unittest.TestCase):
                     self.assertEqual(report['counts']['processed'], 1)
             self.assertFalse((workspace.root / 'inputs/paper.tex').exists())
 
-    def test_record_add_reports_wrong_json_shapes_as_input_errors(self):
-        with tempfile.TemporaryDirectory() as directory:
-            workspace = Workspace(directory)
-            workspace.init(no_ingest=True)
-            pointer = workspace.registry.root / 'CURRENT.json'
-            before = pointer.read_bytes()
-            source = workspace.root / 'record.json'
-            base = {'schema': 'qecgraph.record', 'id': 'record:example', 'revision': 'r1', 'title': 'Example'}
-            for payload, message in (([], 'Record must be a JSON object'),
-                                     ({**base, 'kind': []}, 'Unknown domain record kind')):
-                source.write_text(json.dumps(payload), encoding='utf-8')
-                stdout, stderr = io.StringIO(), io.StringIO()
-                with redirect_stdout(stdout), redirect_stderr(stderr):
-                    self.assertEqual(main(['record-add', str(source), '--corpus', str(workspace.registry.root), '--json']), 1)
-                self.assertEqual(stderr.getvalue(), '')
-                error = json.loads(stdout.getvalue())['error']
-                self.assertEqual((error['code'], error['message']), ('INVALID_INPUT', message))
-                self.assertEqual(pointer.read_bytes(), before)
 
     def test_unknown_commands_suggest_the_closest_help_topic(self):
         for command, expected in ((['serach'], 'search'), (['workspace', 'stauts'], 'workspace status'),
@@ -78,25 +58,6 @@ class CLIContractTests(unittest.TestCase):
                 self.assertEqual(error['code'], 'USAGE')
                 self.assertEqual(error['hint'], f'Run qec-graph {expected} --help for usage.')
 
-    def test_review_list_does_not_infer_a_write_from_the_corpus_option(self):
-        with tempfile.TemporaryDirectory() as directory, chdir(directory):
-            root = Path(directory).resolve()
-            corpus = root / 'corpus'
-            stdout, stderr = io.StringIO(), io.StringIO()
-            with redirect_stdout(stdout), redirect_stderr(stderr):
-                self.assertEqual(main(['review', 'list', '--corpus', str(corpus), '--json']), 64)
-            error = json.loads(stdout.getvalue())['error']
-            self.assertEqual(error['command'], 'review-list')
-            self.assertIn('--corpus', error['message'])
-            self.assertFalse(corpus.exists())
-
-            example = ROOT / 'examples/proposal.example.json'
-            (root / 'list').write_bytes(example.read_bytes())
-            stdout, stderr = io.StringIO(), io.StringIO()
-            with redirect_stdout(stdout), redirect_stderr(stderr):
-                self.assertEqual(main(['review', 'list', f'--corpus={corpus}', '--actor-id=fixture',
-                                       '--actor-kind=human', '--json']), 0)
-            self.assertTrue(json.loads(stdout.getvalue())['id'].startswith('proposal:'))
 
     def test_verbose_workspace_progress_keeps_stdout_json_and_quiet_suppresses_it(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -184,12 +145,6 @@ class CLIContractTests(unittest.TestCase):
             self.assertIn('serve', config['mcpServers']['qecgraph']['args'])
             self.assertIn('mcp-config', run('help', 'aliases').stdout)
 
-            (root / 'list').write_text('{}', encoding='utf-8')
-            stderr = io.StringIO()
-            with chdir(root), redirect_stderr(stderr):
-                self.assertEqual(main(['review', 'list', '--corpus', 'example', '--actor-id', 'fixture']), 1)
-            self.assertIn('changes, rationale', stderr.getvalue())
-            self.assertFalse((root / 'example').exists())
 
     def test_structured_cli_errors_keep_status_and_stream_contract(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -263,12 +218,6 @@ class CLIContractTests(unittest.TestCase):
             report(['snapshot', 'list', '--workspace', str(root)], 1, 'STORAGE_ERROR', pointer)
             self.assertEqual(pointer.read_text(), '[]')
 
-            store = root / 'store'
-            store.mkdir()
-            current = store / 'CURRENT.json'
-            current.write_text('{"format":"qecgraph.current","path":[]}', encoding='utf-8')
-            report(['validate', '--store', str(store)], 1, 'STORAGE_ERROR', current)
-
     def test_doctor_and_snapshot_list_distinguish_current_and_prepared_states(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
@@ -321,16 +270,6 @@ class CLIContractTests(unittest.TestCase):
             diagnosis = report('doctor', '--workspace', str(root), '--json', expected=1)
             self.assertEqual(diagnosis['checks']['machine/CURRENT.json']['status'], 'error')
             self.assertEqual(pointer.read_text(), '{')
-
-            entry = root / 'paper.tex'
-            entry.write_text(r'\section{First}', encoding='utf-8')
-            store = root / 'store'
-            first = ingest(entry, 'doctor-test', store)['snapshot_id']
-            entry.write_text(r'\section{Second}', encoding='utf-8')
-            second = ingest(entry, 'doctor-test', store)['snapshot_id']
-            rows = report('snapshot', 'list', '--store', str(store))
-            self.assertEqual(rows['current'], second)
-            self.assertEqual(set(rows['snapshots']), {first, second})
 
     def test_installed_entry_point_help_version_and_usage_status(self):
         from qecgraph import __version__
@@ -385,25 +324,12 @@ class CLIContractTests(unittest.TestCase):
                 self.assertEqual(error['code'], 'USAGE')
                 self.assertIn('help', error['hint'])
 
-    def test_bad_json_command_fields_report_input_errors_before_writing(self):
-        cases = [
-            (['review', '--actor-id', 'test'], {}, 'changes, rationale'),
-            (['review', '--actor-id', 'test'], {'changes': [None], 'rationale': 'test'}, 'record object'),
-            (['claim-link'], {'link_id': 'link:test'}, 'claim_id, source_selector, source_version_id'),
-            (['check-experiment'], {'record': [], 'metric': {}}, 'Experiment record needs a data object'),
-        ]
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            payload = root / 'input.json'
-            for command, body, expected in cases:
-                with self.subTest(command=command, body=body):
-                    payload.write_text(json.dumps(body), encoding='utf-8')
-                    args = [*command, str(payload)]
-                    if command[0] != 'check-experiment':
-                        args += ['--corpus', str(root / 'corpus')]
-                    stdout, stderr = io.StringIO(), io.StringIO()
-                    with redirect_stdout(stdout), redirect_stderr(stderr):
-                        self.assertEqual(main(args), 1)
-                    self.assertEqual(stdout.getvalue(), '')
-                    self.assertIn(expected, json.loads(stderr.getvalue())['error'])
-                    self.assertFalse((root / 'corpus').exists())
+    def test_retired_corpus_store_options_are_rejected(self):
+        retired = (['mcp', 'serve', '--store', '.'],
+                   ['query', 'codes', '--corpus', '.'],
+                   ['mcp', 'config', '--workspace', '.', '--profile', 'legacy'],
+                   ['review', 'decide', 'example'],
+                   ['register'], ['recover-store'], ['validate-corpus'])
+        for arguments in retired:
+            with self.subTest(arguments=arguments), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                self.assertEqual(main(arguments), 64)

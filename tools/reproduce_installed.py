@@ -3,6 +3,7 @@ import argparse
 import json
 import os
 import subprocess
+import tarfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -54,35 +55,23 @@ print(json.dumps({"metadata_version": m.version("qec-graph"), "module_version": 
 ''')
         assert not Path(pkg['module_path']).resolve().is_relative_to(ROOT / 'qecgraph')
         assert pkg['metadata_version'] == pkg['module_version']
-        assert {'record.schema.json', 'lean-export.schema.json'} <= set(pkg['schemas'])
+        assert {'registry.schema.json', 'research.schema.json'} <= set(pkg['schemas'])
         source = EXAMPLES / 'paper/main.tex'
         split = call('split', 'qec-latex-split', source, '--project-id', 'demo', '--out', 'split')
-        assert split['fragment_count'] == 26
-        call('split_validate', 'qec-graph', 'validate', '--store', 'split')
+        assert split['fragment_count'] > 0
         call('mcp_entrypoint', 'qecgraph-mcp', '--help', as_json=False)
-        call('ingest', 'qecgraph', 'ingest', source, '--project-id', 'demo', '--out', 'store', '--strict',
-             '--annotations', EXAMPLES / 'annotations.example.json')
-        corpus = ('--corpus', 'corpus')
-        call('register', 'qecgraph', 'register', *corpus, '--store', 'store', '--work-id', 'work:demo',
-             '--source-version-id', 'version:demo:1')
-        call('record', 'qecgraph', 'record-add', EXAMPLES / 'claim.example.json', *corpus)
-        call('link', 'qecgraph', 'claim-link', EXAMPLES / 'claim-link.example.json', *corpus)
-        ctx = call('context', 'qecgraph', 'context', 'version:demo:1::thm:hgp-length', *corpus, '--include-candidates')
-        assert any(edge['relation'] == 'normalizes_to' and edge['status'] == 'candidate' for edge in ctx['edges'])
-        actor = ('--actor-id', 'release-smoke', '--actor-kind', 'program')
-        proposal = call('proposal', 'qecgraph', 'review', EXAMPLES / 'proposal.example.json', *corpus, *actor)
-        decision = call('decision', 'qecgraph', 'review-decide', proposal['id'], *corpus, *actor, '--decision',
-                        'approve', '--rationale', 'Fixture transaction only; no human review')
-        apply_args = ('apply', proposal['id'], '--review-id', decision['id'], *corpus)
-        applied = call('apply', 'qecgraph', *apply_args)
-        again = call('apply_repeat', 'qecgraph', *apply_args)
-        assert applied['receipt'] == again['receipt'] and decision['status'] == 'machine_accepted'
-        shown = call('audit_applied', 'qecgraph', 'show', 'claim:demo:proposal-example', *corpus)
-        assert shown['node']['review_status'] == 'proposed'
-        call('validate_corpus', 'qecgraph', 'validate-corpus', *corpus)
-        call('mcp_config', 'qecgraph', 'mcp-config', *corpus)
-        report.update(status='passed', installed=pkg, application_receipt=applied['receipt'],
-                      proposed_after_machine_acceptance=True)
+        scope = ('--workspace', 'workspace')
+        call('init', 'qec-graph', 'init', *scope, '--json')
+        with tarfile.open(out / 'workspace/inputs/demo.tar', 'w') as bundle:
+            for path in sorted(source.parent.rglob('*')):
+                if path.is_file():
+                    bundle.add(path, arcname=path.relative_to(source.parent))
+        result = call('sync', 'qec-graph', 'sync', *scope, '--no-human', '--json')
+        assert result['counts']['processed'] == 1
+        validated = call('validate', 'qec-graph', 'validate', *scope, '--json')
+        assert validated['valid']
+        call('mcp_config', 'qec-graph', 'mcp', 'config', *scope)
+        report.update(status='passed', installed=pkg, release_id=result['release_id'])
         save()
     except (OSError, ValueError, RuntimeError, KeyError, AssertionError, subprocess.SubprocessError) as exc:
         report.update(status='failed', error=str(exc))

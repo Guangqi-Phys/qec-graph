@@ -97,17 +97,9 @@ A workspace is a local directory with a single writer. `init` creates the layout
 
 The writer first publishes the structure and completes eligible claims. Optional semantic extraction runs outside the writer locks. Pending work is derived from the published source bindings and can be retried by sync. Publication reacquires the locks and checks the pinned release and configuration before publishing AI results. AI needed to resolve an entry point or recover source structure runs during the structural transaction.
 
-### 2.3 Compatibility surfaces
+### 2.3 Workspace interface
 
-Three storage/query generations exist, deliberately:
-
-| Surface | Purpose | Status |
-|---|---|---|
-| **Workspace** (`qecgraph/workspace.py`, `machine/`, `archive/`) | Primary product: source packages, research records, human view, workspace MCP | Current |
-| **Corpus** (`qecgraph/registry.py`, `corpus.py`) | Multi-document identity, review/apply, corpus queries, corpus MCP | Supported corpus surface |
-| **Store** (`qecgraph/store.py`, `query.py`) | Single-paper immutable extraction snapshot and SQLite/FTS5 queries | Supported store surface |
-
-New work should target the workspace surface. Store and corpus remain available for existing commands, migrations and tests. When a feature exists in more than one surface, the workspace implementation defines current semantics; the older surfaces must not silently diverge on evidence or state filtering.
+The knowledge base reads workspace releases. The standalone splitter exports LaTeX fragments.
 
 ### 2.4 Runtime and deployment
 
@@ -395,7 +387,6 @@ Any failure must leave the old release readable, the original package recoverabl
 - Immutable objects may remain after a crash; only the pointer publication makes a release current.
 - The store/workspace publications are crash-recoverable: a pointer switch followed by claim cleanup is replayed from the exact claim; a SIGKILL test covers this window.
 - The lock protects local processes, not NFS or distributed writers. Do not claim power-loss durability or multi-writer support.
-- `recover-store`/`doctor` validate the pointer and inventory tool-owned abandoned builds; unknown or user-owned directories are not deleted. Removal is explicit.
 - `human_stale` is a derived-view failure, not a machine-release rollback. Re-render from the pinned release.
 
 ### 7.3 Incremental and watch
@@ -427,8 +418,6 @@ Every read is fixed to one scope:
 
 - `--workspace` + optional `--release` (workspace machine release);
 - `--machine` (strict read-only machine mount, no workspace/human access);
-- `--store` + optional `--snapshot`;
-- `--corpus` + optional `--registry-revision` and source-version restriction.
 
 Returned results include the scope identity, source/evidence status, and truncation/absence notes. A session pins its release/snapshot at startup; changing `CURRENT` does not change an existing session. Reconnect/re-pin to read a new release.
 
@@ -443,8 +432,6 @@ Progress events are independent of stdout data and exit status. The CLI renders 
 ### 8.3 MCP
 
 - Local stdio, protocol `2025-06-18`; stdout carries only JSON-RPC, logs go to stderr.
-- Store/corpus sessions expose the five `qecgraph_*` read tools.
-- Workspace CLI defaults to the eight-tool research profile (§16.4); explicit legacy/compatible profiles remain available. Python `WorkspaceSession` keeps its legacy default for compatibility.
 - Research resources enumerate compact paper cards; stable source URIs bind version, file hash, range and kind. Short handles are scoped to the pinned release. Search/list default to concise output; `detail="full"` requests the complete envelope.
 - A session is pinned to one fixed release; tool arguments cannot pass arbitrary paths/SQL/shell or change scope.
 - Budgets: depth/nodes/results/characters; truncated results state omitted content; a too-small budget returns an explicit error rather than a partial root statement.

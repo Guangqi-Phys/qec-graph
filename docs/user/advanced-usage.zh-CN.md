@@ -14,7 +14,6 @@
 - [退出码和脚本输出](#退出码和脚本输出)
 - [管理 Obsidian vault 和研究记录](#管理-obsidian-vault-和研究记录)
 - [从 CLI 查询工作区](#从-cli-查询工作区)
-- [处理单篇论文和旧 corpus](#处理单篇论文和旧-corpus)
 - [复现检查](#复现检查)
 - [进度展示](#进度展示)
 
@@ -170,7 +169,7 @@ qec-graph help progress
 用 `qec-graph doctor --json` 诊断配置、CURRENT 和收件箱问题，不做修改；它报告
 工作区元数据和计数。用 `validate` 校验归档和快照哈希。
 `qec-graph snapshot list` 显示当前工作区 release 和本地保存的 registry 状态，
-包括可能从未发布的候选。用 `--store` 或 `--corpus` 列出对应范围的快照或状态。
+包括可能从未发布的候选。
 
 ## 退出码和脚本输出
 
@@ -247,22 +246,6 @@ qec-graph context "$identifier" --workspace "$workspace" --depth 2
 `show` 和 `context` 使用精确结果 ID。`deps` 和 `impact` 遍历已登记的图依赖。
 传 `--release` 把查询固定到特定工作区 release。这些命令返回与工作区 MCP 工具
 相同的 JSON envelope 和证据范围。
-
-## 处理单篇论文和旧 corpus
-
-在仓库根目录运行这些示例。命令写入 `build/` 下你指定的路径。
-
-```sh
-qec-graph split examples/paper/main.tex --project-id qec-demo --out build/split
-qec-graph ingest examples/paper/main.tex --project-id qec-demo --out build/graph \
-  --annotations examples/annotations.example.json
-qec-graph validate --store build/graph
-qec-graph context thm:hgp-length --store build/graph
-```
-
-Python 安装还提供 `qec-latex-split`。`qecgraph` 和 `python -m qecgraph` 入口
-使用与 `qec-graph` 相同的 CLI。[切割参考](splitter.zh-CN.md) ·
-[Corpus 参考](../operations/corpus.zh-CN.md)
 
 ## 复现检查
 

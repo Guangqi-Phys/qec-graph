@@ -4,12 +4,9 @@ import platform
 import sqlite3
 import stat
 from contextlib import closing
-from pathlib import Path
 
 from . import __version__
 from .core.graph import read_json
-from .registry import Registry
-from .store import current_snapshot
 from .core.transactions import ManagedDataError
 from .workspace import HEX, JOB, Workspace
 from .workspace_query import check_machine_tree
@@ -89,21 +86,11 @@ def doctor(workspace):
             'scope': 'workspace metadata and inventory; use validate to verify archive and snapshot hashes'}
 
 
-def list_snapshots(*, store=None, corpus=None, workspace=None):
-    if store is not None:
-        root = Path(store).expanduser().resolve()
-        current = current_snapshot(root).name
-        directory = root / 'snapshots'
-        if directory.is_symlink() or not directory.is_dir():
-            raise ValueError('Expected a local snapshots directory')
-        rows = [path.name for path in directory.iterdir()
-                if HEX.fullmatch(path.name) and not path.is_symlink() and path.is_dir()]
-        return {'scope': 'store', 'current': current, 'snapshots': sorted(rows)}
-
-    registry = Registry(corpus) if corpus is not None else Workspace(workspace).registry
+def list_snapshots(*, workspace):
+    registry = Workspace(workspace).registry
     check_machine_tree(registry.root)
     _, current = registry.read()
     rows = [path.stem for path in (registry.root / 'states').iterdir()
             if path.suffix == '.json' and HEX.fullmatch(path.stem) and path.is_file()]
-    return {'scope': 'corpus' if corpus is not None else 'workspace', 'current': current,
-            'stored_states': sorted(rows), 'includes_unpublished_candidates': True}
+    return {'scope': 'workspace', 'current': current, 'stored_states': sorted(rows),
+            'includes_unpublished_candidates': True}

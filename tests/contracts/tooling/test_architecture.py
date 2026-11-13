@@ -73,29 +73,6 @@ class ArchitectureBoundaryTests(unittest.TestCase):
         ))
 
 
-    def test_read_projections_do_not_load_deferred_lean_modules(self):
-        code = """
-import sys, tempfile
-from pathlib import Path
-from qecgraph.registry import Registry, empty_state
-from qecgraph.core.transactions import writer_lock
-root = Path(tempfile.mkdtemp())
-registry = Registry(root)
-with writer_lock(registry.root):
-    revision = registry.prepare_publication(empty_state())
-    registry.publish_prepared(revision)
-from qecgraph.domain.domain_query import codes
-from qecgraph.corpus import project
-assert codes(root)["results"] == []
-graph_input, _ = project(root)
-assert graph_input.graph["nodes"] == []
-loaded = sorted(name for name in sys.modules if name == "qecgraph.lean" or name.startswith("qecgraph.lean."))
-assert not loaded, loaded
-"""
-        env = dict(os.environ, PYTHONPATH=str(ROOT))
-        result = subprocess.run([sys.executable, '-c', code], cwd=ROOT, env=env,
-                                text=True, capture_output=True, timeout=60)
-        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_test_suite_is_layered_by_scope(self):
         tests_root = ROOT / 'tests'

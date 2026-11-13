@@ -1,4 +1,3 @@
-import tempfile
 import unittest
 from importlib.resources import files
 
@@ -6,7 +5,6 @@ from jsonschema import Draft202012Validator
 
 from qecgraph.core.graph import read_json
 from qecgraph.domain.records import prepare_record
-from qecgraph.review import create_proposal
 from qecgraph.validators import packaged_validator
 
 
@@ -28,11 +26,6 @@ class SchemaTests(unittest.TestCase):
             with self.subTest(example=name):
                 packaged_validator('annotations').validate(read_json(EXAMPLES / name))
         packaged_validator('record').validate(prepare_record(read_json(EXAMPLES / 'claim.example.json')))
-        with tempfile.TemporaryDirectory() as directory:
-            proposal = create_proposal(directory, actor={'id': 'fixture:docs', 'kind': 'human'},
-                                       **read_json(EXAMPLES / 'proposal.example.json'))
-            packaged_validator('proposal').validate(proposal)
-
     def test_research_schema_dispatches_each_supported_kind(self):
         binding = {'id': 'record:fixture', 'revision': 'r1'}
         records = {

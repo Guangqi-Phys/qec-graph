@@ -9,8 +9,6 @@ import hashlib
 import json
 import os
 import shutil
-import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -164,10 +162,8 @@ class PipelineSemanticsTests(unittest.TestCase):
         graph_path = snapshot / "graph.json"
         graph_path.unlink()
         os.mkfifo(graph_path)
-        result = subprocess.run([sys.executable, "-m", "qecgraph", "validate", "--store", str(self.store)],
-                                capture_output=True, text=True, timeout=5)
-        self.assertEqual(result.returncode, 1, result.stderr)
-        self.assertIn("Expected a regular snapshot output", result.stderr)
+        with self.assertRaisesRegex(ValueError, "Expected a regular snapshot output"):
+            validate_snapshot(snapshot)
 
     def test_demo_has_exact_real_labels_and_ignores_comment_and_verbatim_ghosts(self):
         _, graph, _ = self._demo()

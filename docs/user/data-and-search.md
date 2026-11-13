@@ -349,9 +349,7 @@ also accepts `--release` to repeat a query against a particular release.
 
 ### Document reading profiles
 
-Workspace MCP defaults to `research` with eight task tools. Use `--profile legacy`
-for the original 13 tools. `mcp serve`, `mcp config` and `query-tool` include
-`qec_fetch` and `qec_search`. `qec_fetch` accepts an exact `identifier` and
+Workspace MCP defaults to the eight `research` tools. `qec_fetch` accepts an exact `identifier` and
 `view: "outline"`, `"raw"` or `"reading"`. Outlines use `limit`/`offset`;
 source ranges use original Unicode `char_start`/`char_end`. A document returns
 its registered source files separately, preserving include boundaries. A section

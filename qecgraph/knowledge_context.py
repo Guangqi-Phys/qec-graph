@@ -5,7 +5,7 @@ from collections import defaultdict, deque
 import re
 
 from .core.graph import canonical, hash_text
-from .corpus import occurrence_id
+from .workspace_projection import occurrence_id
 from .domain.research import RELATIONS, key
 from .domain.status import eligible
 from .core.errors import ToolError

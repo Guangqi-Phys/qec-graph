@@ -139,9 +139,8 @@ The pipeline is one writer; each stage leaves a named artifact for the next. Imp
 | `source tree` | Verify, unpack and select or normalize the entry point | [Workspace guide](docs/user/workspace.md), [Splitter](docs/user/splitter.md), [AI extraction](#ai-extraction) | archived blob | `sources/<tree-hash>/...`; optional derived `machine/derived/normalizations/.../main.tex` |
 | `parser` | Extract sections, environments, labels, refs and spans | [Splitter](docs/user/splitter.md), [System design](docs/design/DESIGN.md#5-source-extraction) | verified `.tex` tree | store: `snapshots/<snapshot-id>/`; workspace: `machine/source_snapshots/<snapshot-id>/`; both contain `graph.json`, `manifest.json`, `report.json`, `graph.sqlite`, `nodes/<kind>/` |
 | `research records` | Store typed QEC objects and field evidence | [Data and search](docs/user/data-and-search.md), [System design](docs/design/DESIGN.md#4-data-contracts) | source snapshot plus `research` JSON | `machine/research/<hash(id)>/<hash(revision)>.json` with `schema: qecgraph.research` |
-| `review` | Bind proposals and decisions to exact content | [Review](docs/operations/review.md), [System design](docs/design/DESIGN.md#6-review-evidence-and-query-eligibility) | proposal JSON and explicit decision | `machine/proposals/<hash>.json`, `machine/reviews/<hash>.json`, `machine/states/<revision>.json` |
 | `release` | Validate everything and publish one immutable release | [System design](docs/design/DESIGN.md#7-workspace-transaction-and-publication-protocol), [Maintenance](docs/operations/maintenance.md) | staged records and snapshots | `machine/CURRENT.json` with `format` and `revision`; `machine/states/<revision>.json` |
-| `CLI` | Read a fixed workspace, store or corpus scope | [Advanced usage](docs/user/advanced-usage.md), [Data and search](docs/user/data-and-search.md) | `--workspace`, `--machine`, `--store` or `--corpus`; JSON arguments for `query-tool` | terminal text or versioned JSON |
+| `CLI` | Read a fixed workspace release | [Advanced usage](docs/user/advanced-usage.md), [Data and search](docs/user/data-and-search.md) | `--workspace` or `--machine`; JSON arguments for `query-tool` | terminal text or versioned JSON |
 | `MCP` | Serve read-only tools over local stdio | [MCP setup](#mcp), [Data and search](docs/user/data-and-search.md) | JSON-RPC 2.0 over stdio; one pinned release; legacy/research/compatible profile | JSON-RPC frames, text/structured content, `qec://source/...` resources |
 | `human/` | Render an Obsidian view; never write back | [Workspace guide](docs/user/workspace.md), [System design](docs/design/DESIGN.md#9-human-view) | published machine release | `human/YYYY/MM/Surname_First_Two_thoughts.md`; renderer state in `.qecgraph/` |
 
@@ -212,22 +211,17 @@ strict deployment.
 ### Read tools
 
 Workspace MCP defaults to eight `research` tools, including `qec_list_papers`.
-Use `--profile legacy` for the compatibility tools below, or
-`--profile compatible` for generic `search`/`fetch` with registered
+Use `--profile compatible` for generic `search`/`fetch` with registered
 public citation URLs. See [knowledge queries](docs/user/data-and-search.md#document-reading-profiles)
 for full-source reading, vector configuration and task context examples.
 
 | Tool group | Available tools |
 |---|---|
-| Graph reads | `qecgraph_search`, `qecgraph_show`, `qecgraph_context`, `qecgraph_deps`, `qecgraph_impact` |
-| Workspace records and sources | `qec_workspace_status`, `qec_get_entity`, `qec_get_context`, `qec_get_source`, `qec_get_asset` |
-| Structured QEC queries | `qec_find_codes`, `qec_find_performance`, `qec_find_software` |
+| Papers and source text | `qec_list_papers`, `qec_search`, `qec_fetch` |
+| Context and relations | `qec_get_context`, `qec_trace` |
+| Exact filters and status | `qec_query_codes`, `qec_query_performance`, `qec_status` |
 
-All tools accept `max_chars` within the session budget. Search and the three
-`qec_find_*` tools also accept `limit`/`offset`. Source text uses half-open
-Unicode codepoint ranges; managed asset bytes use byte offsets. A result states
-its scope, evidence status and whether it was truncated. No result means no match
-in the pinned scope, not that a theorem or code does not exist.
+Results report scope, provenance, and truncation. Source locations use half-open Unicode codepoint ranges.
 
 ### Connect a client
 

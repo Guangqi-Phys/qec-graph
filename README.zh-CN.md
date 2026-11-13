@@ -128,9 +128,8 @@ ThoughtsGraph 使用带原文引用的 `research_thought` 记录和类型化关�
 | `source tree` | 验证、解包并选择或规范化入口点 | [工作区说明](docs/user/workspace.zh-CN.md)、[切割器](docs/user/splitter.zh-CN.md)、[AI 抽取](#ai-抽取) | 归档 blob | `sources/<tree-hash>/...`；可选派生 `machine/derived/normalizations/.../main.tex` |
 | `parser` | 抽取 sections、environments、labels、refs 和区间 | [切割器](docs/user/splitter.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#5-来源抽取) | 已验证的 `.tex` 树 | store：`snapshots/<snapshot-id>/`；workspace：`machine/source_snapshots/<snapshot-id>/`；两者都含 `graph.json`、`manifest.json`、`report.json`、`graph.sqlite`、`nodes/<kind>/` |
 | `research records` | 保存类型化 QEC 对象和字段证据 | [数据与检索](docs/user/data-and-search.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#4-数据契约) | 来源快照和 `research` JSON | `machine/research/<hash(id)>/<hash(revision)>.json`，含 `schema: qecgraph.research` |
-| `review` | 把提案和决定绑定到精确内容 | [审核](docs/operations/review.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#6-审核证据和查询资格) | proposal JSON 和显式决定 | `machine/proposals/<hash>.json`、`machine/reviews/<hash>.json`、`machine/states/<revision>.json` |
 | `release` | 验证全部内容并发布不可变 release | [系统设计](docs/design/DESIGN.zh-CN.md#7-工作区事务与发布协议)、[维护](docs/operations/maintenance.zh-CN.md) | staged records 和 snapshots | 含 `format`、`revision` 的 `machine/CURRENT.json`；`machine/states/<revision>.json` |
-| `CLI` | 读取固定 workspace、store 或 corpus 作用域 | [进阶用法](docs/user/advanced-usage.zh-CN.md)、[数据与检索](docs/user/data-and-search.zh-CN.md) | `--workspace`、`--machine`、`--store` 或 `--corpus`；`query-tool` 的 JSON 参数 | 终端文本或版本化 JSON |
+| `CLI` | 读取固定工作区发布 | [进阶用法](docs/user/advanced-usage.zh-CN.md)、[数据与检索](docs/user/data-and-search.zh-CN.md) | `--workspace` 或 `--machine`；`query-tool` 的 JSON 参数 | 终端文本或版本化 JSON |
 | `MCP` | 通过本地 stdio 提供只读工具 | [MCP 设置](#mcp)、[数据与检索](docs/user/data-and-search.zh-CN.md) | stdio 上的 JSON-RPC 2.0；固定一个 release；legacy/research/compatible profile | JSON-RPC 帧、text/structured content、`qec://source/...` resources |
 | `human/` | 渲染 Obsidian 视图，绝不回写 | [工作区说明](docs/user/workspace.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#9-人类视图) | 已发布机器 release | `human/YYYY/MM/一作姓_文章前两个词_thoughts.md`；管理状态在 `.qecgraph/` |
 
@@ -197,20 +196,16 @@ qec-graph mcp serve --machine "$PWD/machine"
 ### 读取工具
 
 Workspace MCP 默认提供八个 `research` 工具，包括 `qec_list_papers`。
-使用 `--profile legacy` 选择下列兼容工具；
 `--profile compatible` 提供通用 `search`/`fetch`，使用已登记的公开引用 URL。
 完整原文读取、向量配置和任务上下文示例见[知识查询](docs/user/data-and-search.zh-CN.md#文档阅读-profiles)。
 
 | 工具组 | 可用工具 |
 |---|---|
-| 图读取 | `qecgraph_search`、`qecgraph_show`、`qecgraph_context`、`qecgraph_deps`、`qecgraph_impact` |
-| Workspace 记录和来源 | `qec_workspace_status`、`qec_get_entity`、`qec_get_context`、`qec_get_source`、`qec_get_asset` |
-| 结构化 QEC 查询 | `qec_find_codes`、`qec_find_performance`、`qec_find_software` |
+| 论文与原文 | `qec_list_papers`、`qec_search`、`qec_fetch` |
+| 上下文和关系 | `qec_get_context`、`qec_trace` |
+| 精确查询和状态 | `qec_query_codes`、`qec_query_performance`、`qec_status` |
 
-所有工具都接受会话 budget 内的 `max_chars`。Search 和三个 `qec_find_*` 还接受
-`limit`/`offset`。来源文本使用半开 Unicode codepoint 区间；受管理资产字节使用
-byte offset。结果说明 scope、证据状态和是否截断。无结果只表示固定作用域内无匹配，
-不表示定理或码不存在。
+结果说明发布范围、来源及截断状态。原文位置使用 Unicode 代码点半开区间。
 
 ### 接入客户端
 

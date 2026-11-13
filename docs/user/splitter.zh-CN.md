@@ -196,16 +196,7 @@ qecgraph split path/to/main.tex \
 
 ## 5. 切完后直接查询图
 
-切割已经生成标准图存储，无须再导入一次：
-
-```bash
-qecgraph show lem:css-commutation --store work/qec-demo
-qecgraph deps thm:hgp-css --store work/qec-demo
-qecgraph context thm:hgp-length --store work/qec-demo
-qecgraph validate --store work/qec-demo
-```
-
-普通 `ref` 保持为引用关系；`uses` 是作者声明的依赖；仅由邻近位置推断的 proof 关联保持为候选；`leanok` 保持为作者标注。文件切割不会提升这些关系的证据等级。
+将论文 TeX 源包放入工作区的 `inputs/` 并运行 `qec-graph sync`。之后使用工作区的来源读取和检索。
 
 ## 6. 片段的准确含义
 

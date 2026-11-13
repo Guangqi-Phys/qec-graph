@@ -17,8 +17,6 @@ PAIRS = (
     ('docs/design/DESIGN.md', 'docs/design/DESIGN.zh-CN.md'),
     ('docs/operations/README.md', 'docs/operations/README.zh-CN.md'),
     ('docs/operations/maintenance.md', 'docs/operations/maintenance.zh-CN.md'),
-    ('docs/operations/corpus.md', 'docs/operations/corpus.zh-CN.md'),
-    ('docs/operations/review.md', 'docs/operations/review.zh-CN.md'),
     ('validation/README.md', 'validation/README.zh-CN.md'),
     ('tools/README.md', 'tools/README.zh-CN.md'),
     ('tests/README.md', 'tests/README.zh-CN.md'),

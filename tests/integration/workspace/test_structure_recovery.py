@@ -178,12 +178,12 @@ class WorkspaceStructureRecoveryTests(unittest.TestCase):
                              text=True, capture_output=True, check=True, timeout=15)
         self.assertEqual(json.loads(cli.stdout), response)
         messages = [initialization(), {'jsonrpc': '2.0', 'method': 'notifications/initialized'},
-                    request(2, 'tools/call', {'name': 'qecgraph_search', 'arguments': args})]
+                    request(2, 'tools/call', {'name': 'qec_fetch', 'arguments': {'identifier': row['id'], 'view': 'reading'}})]
         stdio = subprocess.run([sys.executable, '-m', 'qecgraph', 'mcp', 'serve', '--machine', str(machine),
-                                '--release', release, '--profile', 'legacy'], text=True, capture_output=True, check=True, timeout=15,
+                                '--release', release], text=True, capture_output=True, check=True, timeout=15,
                                input=''.join(json.dumps(message) + '\n' for message in messages))
         replies = [json.loads(line) for line in stdio.stdout.splitlines()]
-        self.assertEqual(replies[-1]['result']['structuredContent'], response)
+        self.assertIn('λ cites', replies[-1]['result']['structuredContent']['data']['text'])
 
         self.assertEqual(build_human(self.root)['status'], 'current')
         page, = (self.root / 'human').rglob('*_thoughts.md')

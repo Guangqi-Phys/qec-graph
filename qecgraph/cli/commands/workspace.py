@@ -7,7 +7,6 @@ import subprocess
 
 from ...core.graph import strict_json_loads
 from ...core.progress import task
-from ..errors import UsageError
 from ..process import cli_command
 from ..render import emit_report, print_doctor, workspace_summary
 
@@ -17,8 +16,7 @@ _WORKSPACE_WRITE_COMMANDS = {'init', 'sync', 'rebuild'}
 
 
 def uses_workspace(args):
-    return (args.command in _WORKSPACE_WRITE_COMMANDS | {'status'}
-            or args.command == 'validate' and not args.store)
+    return args.command in _WORKSPACE_WRITE_COMMANDS | {'status', 'validate'}
 
 
 def doctor(args):
@@ -36,8 +34,8 @@ def doctor(args):
 def snapshots(args):
     from ...maintenance import list_snapshots
     from ...workspace import locate
-    workspace = None if args.store or args.corpus else locate(args.workspace, default=os.environ.get('QECGRAPH_WORKSPACE'))
-    result = list_snapshots(store=args.store, corpus=args.corpus, workspace=workspace)
+    workspace = locate(args.workspace, default=os.environ.get('QECGRAPH_WORKSPACE'))
+    result = list_snapshots(workspace=workspace)
     return emit_report(result, quiet=args.quiet, exit_code=0)
 
 
@@ -79,8 +77,6 @@ def _render_release(workspace, release):
 
 def workspace_action(args, progress):
     from ...workspace import CONFIG, Workspace, locate
-    if getattr(args, 'snapshot', None):
-        raise UsageError('--snapshot requires --store')
     options = {key: getattr(args, key) for key in ('no_ingest', 'dry_run', 'include_inputs', 'keep_inputs')
                if hasattr(args, key)}
     if args.command == 'init':

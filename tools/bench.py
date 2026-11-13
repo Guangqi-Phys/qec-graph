@@ -17,7 +17,7 @@ import tempfile
 from time import perf_counter
 
 from qecgraph import __version__
-from qecgraph.corpus import occurrence_id
+from qecgraph.workspace_projection import occurrence_id
 from qecgraph.core.transactions import atomic_json
 from qecgraph.workspace import Workspace
 from qecgraph.workspace_query import WorkspaceSession

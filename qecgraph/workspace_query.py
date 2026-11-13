@@ -9,9 +9,8 @@ from functools import cached_property
 from math import isfinite
 from pathlib import Path
 
-from .mcp.ai_tools import ReadOnlySession, tool_validators
+from .mcp.ai_tools import WorkspaceGraph, tool_validators
 from .core.errors import ToolError
-from .domain.domain_query import codes
 from .core.graph import canonical, hash_text, strict_json_loads
 from .query import GraphTextIndex, search_node_summary
 from .source.reading import source_reading_text
@@ -33,8 +32,8 @@ def _integer(minimum=0, maximum=1000000000):
 
 
 class WorkspaceSession:
-    def __init__(self, machine, release_id=None, *, profile='legacy', _candidate_state=None, **budgets):
-        if profile not in {'legacy', 'research', 'compatible'}:
+    def __init__(self, machine, release_id=None, *, profile=None, _candidate_state=None, **budgets):
+        if profile not in {None, 'research', 'compatible'}:
             raise ValueError('Unknown workspace tool profile')
         self.profile = profile
         machine = Path(machine).absolute()
@@ -48,10 +47,9 @@ class WorkspaceSession:
         else:
             self.state = copy.deepcopy(_candidate_state)
             self.release = hash_text(canonical(self.state))
-        if not isinstance(self.state.get('workspace_id'), str):
+        if not isinstance(self.state.get('workspace_id'), str) or self.state.get('records') or self.state.get('links'):
             raise ValueError('A QEC workspace machine release is required')
-        self.graph = ReadOnlySession(corpus=self.machine, check_live_lean=False,
-                                     _fixed_registry=(self.registry, self.state, self.release), **budgets)
+        self.graph = WorkspaceGraph(self.registry, self.state, self.release, **budgets)
         self.records = {key(ref(record)): record for record in load_records(self.registry, self.state, verify=False)}
         generated = {r['id']: r['revision'] for v in self.state.get('generated_research', {}).values()
                      for r in v['bindings']}
@@ -72,7 +70,7 @@ class WorkspaceSession:
         self._resource_bindings = sorted(self.resources.items())
         self._paper_resources = {f'qec://paper/{hash_text(version)}': node['id']
                                  for version, node in self.knowledge.documents.items()}
-        if self.profile != 'legacy':
+        if self.profile is not None:
             self._resource_bindings = sorted(self._paper_resources.items())
         self._normalizations = {
             (material['source_version_id'], material['source_snapshot_id']): material
@@ -394,7 +392,6 @@ class WorkspaceSession:
                     row.update(reading_excerpt=text[:320], reading_excerpt_truncated=len(text) > 320)
                     rows.append(row)
             return {**self._paginate(rows, args, min(20, self.graph.max_results)), 'view': 'reading'}
-        # Page the combined space; legacy corpus search caps each call at 200.
         # Search the already validated fixed projection so there is no SQL or file input.
         rows = [search_node_summary(node) for node in self._search_nodes.matching(args['query'], kind)]
         for row, text in self._search_records:
@@ -611,7 +608,7 @@ class WorkspaceSession:
             from .knowledge import ALIASES
             name = ALIASES.get(name, name)
             metadata = {'scope': self.scope, 'knowledge_snapshot': self.release}
-            if self.profile == 'legacy' or requested_name in {'qec_status', 'qec_workspace_status'} or detail == 'full':
+            if self.profile is None or requested_name in {'qec_status', 'qec_workspace_status'} or detail == 'full':
                 metadata['coverage'] = self._coverage
             graph_metadata = {**metadata, 'continuation': None}
             source_query = args.pop('source_query', None)
@@ -691,15 +688,9 @@ class WorkspaceSession:
                     raise ToolError('INVALID_ARGUMENT', 'A distance hard condition needs an exact metric_id')
                 if 'metric_revision' in args and 'distance_at_least' not in args:
                     raise ToolError('INVALID_ARGUMENT', 'metric_revision requires a distance hard condition')
-                if policy == 'source_reported':
-                    if 'distance_at_least' in args and 'metric_revision' not in args:
-                        raise ToolError('INVALID_ARGUMENT', 'Source-reported hard bounds require exact metric ID and revision')
-                    legacy = {'results': [], 'truncated': False,
-                              'evidence_policy': 'Source-reported bound with a current source locator, metric and check matrix'}
-                else:
-                    legacy = codes(self.machine, registry_revision=self.release, check_live_lean=False,
-                                   limit=None, evidence_policy='verified', **args)
-                rows = legacy['results']
+                if policy == 'source_reported' and 'distance_at_least' in args and 'metric_revision' not in args:
+                    raise ToolError('INVALID_ARGUMENT', 'Source-reported hard bounds require exact metric ID and revision')
+                rows = []
                 for record in self.visible.values():
                     if record['kind'] != 'quantum_code':
                         continue
@@ -720,7 +711,6 @@ class WorkspaceSession:
                     from .knowledge_context import filter_codes
                     rows = filter_codes(self, rows, extended)
                 data = self._paginate(rows, {'offset': offset, 'limit': limit}, limit)
-                data['legacy_scan_truncated'] = legacy['truncated']
                 data['evidence_policy'] = policy
             elif name == 'qec_find_performance':
                 if args.get('source_version_id'):

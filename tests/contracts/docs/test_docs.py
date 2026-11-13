@@ -13,14 +13,13 @@ CURRENT_DOCS = ('docs/README.md', 'docs/user/README.md', 'docs/user/quickstart.m
                 'docs/user/advanced-usage.md', 'docs/user/data-and-search.md',
                 'docs/user/workspace.md', 'docs/user/splitter.md', 'docs/design/DESIGN.md',
                 'docs/operations/README.md', 'docs/operations/maintenance.md',
-                'docs/operations/corpus.md', 'docs/operations/review.md')
+                )
 USER_DOCS = ('README.md', 'README.zh-CN.md', *CURRENT_DOCS,
              'docs/README.zh-CN.md', 'docs/user/README.zh-CN.md',
              'docs/user/quickstart.zh-CN.md', 'docs/user/advanced-usage.zh-CN.md',
              'docs/user/data-and-search.zh-CN.md', 'docs/user/workspace.zh-CN.md',
              'docs/user/splitter.zh-CN.md', 'docs/design/DESIGN.zh-CN.md',
              'docs/operations/README.zh-CN.md', 'docs/operations/maintenance.zh-CN.md',
-             'docs/operations/corpus.zh-CN.md', 'docs/operations/review.zh-CN.md',
              'validation/README.md', 'validation/README.zh-CN.md',
              'CONTRIBUTING.md', 'SECURITY.md')
 LINK = re.compile(r'\[[^\]\n]+\]\(([^\s)]+)\)')

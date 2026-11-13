@@ -5,7 +5,7 @@ import sys
 import tempfile
 import unittest
 
-from qecgraph.corpus import occurrence_id
+from qecgraph.workspace_projection import occurrence_id
 from qecgraph.core.graph import canonical, read_json
 from qecgraph.domain.research import adapt_synthetic
 from qecgraph.domain.research_store import publish_records
@@ -255,17 +255,16 @@ class WorkspaceQueryTests(unittest.TestCase):
         publish_records(self.ws.registry, adapt_synthetic(read_json(FIXTURES / 'performance_context.synthetic.json')))
         lines = [initialization(), {'jsonrpc': '2.0', 'method': 'notifications/initialized'},
                  request(2, 'tools/list'),
-                 request(3, 'tools/call', {'name': 'qecgraph_search', 'arguments': {'query': 'PRIVATE-ONLY-468f'}}),
-                 request(4, 'tools/call', {'name': 'qec_get_source', 'arguments': {'identifier': '%2e%2e/human/notes/private-only-name.md'}}),
-                 request(5, 'tools/call', {'name': 'qec_find_performance', 'arguments': {}})]
-        process = subprocess.run([sys.executable, '-m', 'qecgraph', 'mcp', 'serve', '--machine', str(self.ws.registry.root),
-                                  '--profile', 'legacy'],
+                 request(3, 'tools/call', {'name': 'qec_search', 'arguments': {'query': 'PRIVATE-ONLY-468f'}}),
+                 request(4, 'tools/call', {'name': 'qec_fetch', 'arguments': {'identifier': '%2e%2e/human/notes/private-only-name.md'}}),
+                 request(5, 'tools/call', {'name': 'qec_query_performance', 'arguments': {}})]
+        process = subprocess.run([sys.executable, '-m', 'qecgraph', 'mcp', 'serve', '--machine', str(self.ws.registry.root)],
                                  input=''.join(json.dumps(line) + '\n' for line in lines), text=True,
                                  capture_output=True, timeout=15, check=True)
         self.assertNotIn('PRIVATE-ONLY-468f', process.stdout + process.stderr)
         self.assertNotIn('private-only-name', process.stdout + process.stderr)
         responses = {row['id']: row['result'] for row in map(json.loads, process.stdout.splitlines())}
-        self.assertIn('qec_find_software', {t['name'] for t in responses[2]['tools']})
+        self.assertIn('qec_list_papers', {t['name'] for t in responses[2]['tools']})
         self.assertEqual(responses[3]['structuredContent']['data']['results'], [])
         self.assertEqual(responses[4]['structuredContent']['error']['code'], 'NOT_FOUND')
         self.assertEqual(responses[5]['structuredContent']['data']['results'], [])
@@ -284,7 +283,7 @@ class WorkspaceQueryTests(unittest.TestCase):
         from unittest.mock import patch
 
         with patch('qecgraph.workspace_query.check_machine_tree', side_effect=AssertionError('tree scan')), \
-             patch.object(self.session.graph, '_refresh', side_effect=AssertionError('graph reload')):
+             patch('qecgraph.mcp.ai_tools.project_sources', side_effect=AssertionError('graph reload')):
             self.assertTrue(self.session.list_resources()['resources'])
             for _ in range(2):
                 response = self.session.invoke('qecgraph_show', {'identifier': next(iter(self.session._source_nodes))})
@@ -385,29 +384,6 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.assertTrue(old.invoke('qec_find_codes', filters)['data']['results'])
         self.assertTrue(current.invoke('qec_get_entity', {'identifier': lower['id']})['ok'])
 
-    def test_workspace_codes_pages_past_the_legacy_cli_limit(self):
-        from qecgraph.domain.domain_query import codes
-        from qecgraph.core.transactions import writer_lock
-        from tests.unit.domain.test_qec_validation import record
-
-        registry = self.ws.registry
-        with writer_lock(registry.root):
-            state, _ = registry.read()
-            for i in range(201):
-                registry._put_record(state, record(f'legacy:code-{i:03d}', 'quantum_code',
-                                                   {'parameters': {'n': i + 1, 'k': 1}}))
-            release = registry._publish(state)
-        legacy = codes(registry.root, registry_revision=release, limit=200)
-        self.assertTrue(legacy['truncated'])
-        self.assertEqual(len(legacy['results']), 200)
-        session = WorkspaceSession(registry.root, release)
-        response = session.invoke('qec_find_codes', {'offset': 199, 'limit': 2})
-        self.assertTrue(response['ok'], response)
-        data = response['data']
-        self.assertEqual(data['total_matches'], 201)
-        self.assertEqual([row['id'] for row in data['results']], ['legacy:code-199', 'legacy:code-200'])
-        self.assertFalse(data['truncated'])
-        self.assertFalse(data['legacy_scan_truncated'])
 
     def test_nearest_point_reports_actual_coordinate_and_never_fakes_exact_match(self):
         from qecgraph.domain.research import make_record, ref

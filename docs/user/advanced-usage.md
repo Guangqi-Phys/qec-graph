@@ -14,7 +14,6 @@ For the install command, daily workflow, and MCP setup, start with the [README](
 - [Exit codes and script output](#exit-codes-and-script-output)
 - [Manage the Obsidian vault and research records](#manage-the-obsidian-vault-and-research-records)
 - [Query a workspace from the CLI](#query-a-workspace-from-the-cli)
-- [Work with individual papers and older corpora](#work-with-individual-papers-and-older-corpora)
 - [Reproduce the checks](#reproduce-the-checks)
 - [Progress presentation](#progress-presentation)
 
@@ -194,7 +193,6 @@ problems without making changes. It reports workspace metadata and counts.
 Use `validate` to verify archive and snapshot hashes.
 `qec-graph snapshot list` shows the current workspace release and locally stored
 registry states, including candidates that may never have been published.
-Use `--store` or `--corpus` to list snapshots or states for those scopes.
 
 ## Exit codes and script output
 
@@ -287,23 +285,6 @@ Use an exact result ID for `show` and `context`. `deps` and `impact` traverse
 registered graph dependencies. Pass `--release` to pin the query to a particular
 workspace release. These commands return the same JSON envelope and evidence
 scope as the workspace MCP tools.
-
-## Work with individual papers and older corpora
-
-Run these examples from the repository root. The commands write to the paths
-you specify under `build/`.
-
-```sh
-qec-graph split examples/paper/main.tex --project-id qec-demo --out build/split
-qec-graph ingest examples/paper/main.tex --project-id qec-demo --out build/graph \
-  --annotations examples/annotations.example.json
-qec-graph validate --store build/graph
-qec-graph context thm:hgp-length --store build/graph
-```
-
-A Python installation also provides `qec-latex-split`. The `qecgraph` and
-`python -m qecgraph` entry points use the same main CLI as `qec-graph`.
-[Splitter reference](splitter.md) · [Corpus reference](../operations/corpus.md)
 
 ## Reproduce the checks
 
