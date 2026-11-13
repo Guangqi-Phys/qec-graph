@@ -139,6 +139,23 @@ class PrepareTests(unittest.TestCase):
         self.assertTrue(prepared.coverage["document_complete"])
         self.assertEqual(prepared.coverage["missing_dependencies"], 0)
 
+    def test_child_comment_without_final_newline_keeps_parent_text(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\\begin{document}\\section{Intro}\n"
+                         b"\\input{a}MUST_SURVIVE.\\end{document}"),
+            "a.tex": b"PRECEDING_BODY.% trailing comment",
+        })
+        prepared = prepare_source(tree, "main.tex")
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertTrue(any("MUST_SURVIVE." in text for text in texts))
+        block = next(block for block in prepared.document["blocks"]
+                     if "MUST_SURVIVE." in block["text"])
+        self.assertEqual({span["path"] for span in block["source_spans"]},
+                         {"a.tex", "main.tex"})
+        self.assertTrue(prepared.coverage["document_complete"])
+        self.assertIn(b"commentMUST_SURVIVE.", prepared.assembly.data)
+        self.assertEqual(prepared.assembly.validate(tree.files), [])
+
     def test_iffalse_with_a_comment_keeps_the_else_branch(self):
         tree = SourceTree("directory", {
             "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"

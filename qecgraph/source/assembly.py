@@ -200,20 +200,39 @@ def _is_control_word_char(char: str) -> bool:
     return ("a" <= char <= "z") or ("A" <= char <= "Z") or char == "@"
 
 
+def _comment_open(text: str, offset: int) -> bool:
+    """Return true when an unescaped ``%`` on the current line precedes offset."""
+    start = text.rfind("\n", 0, offset) + 1
+    index = start
+    while index < offset:
+        if text[index] == "%":
+            backslashes = 0
+            probe = index - 1
+            while probe >= start and text[probe] == "\\":
+                backslashes += 1
+                probe -= 1
+            if backslashes % 2 == 0:
+                return True
+        index += 1
+    return False
+
+
 class EntryCoordinates:
     """Map between the assembled entry and a parse copy with separators.
 
-    Splicing an include can join the last letter of a preceding control word to
-    the first letter of the included content, turning two tokens into one
-    (``\\fi`` + ``ACTIVE`` becomes ``\\fiACTIVE``). The parse copy inserts one
-    space at those joints; coordinates map back to the untouched entry, so the
-    entry bytes and the source map stay exact.
+    Splicing an include can join two tokens that the source kept apart. Joining
+    the last letter of a control word to the first letter of included content
+    turns ``\\fi`` + ``ACTIVE`` into ``\\fiACTIVE``; a child file that ends in a
+    ``%`` comment would swallow the parent text that follows it. The parse copy
+    inserts one space or newline at those joints, and coordinates map back to
+    the untouched entry, so entry bytes and the source map stay exact.
     """
 
     def __init__(self, result: AssemblyResult):
         text = result.text
         self.text = text
         self.separators: list[int] = []
+        self.separator_text: list[str] = []
         self.parse_separators: list[int] = []
         for segment in result.segments:
             offset = segment.out_char_end
@@ -221,10 +240,21 @@ class EntryCoordinates:
                 continue
             if self.separators and self.separators[-1] == offset:
                 continue
-            if (_is_control_word_char(text[offset - 1])
-                    and _is_control_word_char(text[offset])):
-                self.parse_separators.append(offset + len(self.separators))
-                self.separators.append(offset)
+            separator = self._separator_at(text, offset)
+            if separator is None:
+                continue
+            self.parse_separators.append(offset + len(self.separators))
+            self.separators.append(offset)
+            self.separator_text.append(separator)
+
+    @staticmethod
+    def _separator_at(text: str, offset: int) -> str | None:
+        if _comment_open(text, offset) and text[offset] != "\n":
+            return "\n"
+        if (_is_control_word_char(text[offset - 1])
+                and _is_control_word_char(text[offset])):
+            return " "
+        return None
 
     def to_parse(self, entry_offset: int) -> int:
         """Return the parse-copy offset of an entry character offset."""
@@ -239,9 +269,9 @@ class EntryCoordinates:
             return self.text
         parts: list[str] = []
         cursor = 0
-        for offset in self.separators:
+        for offset, separator in zip(self.separators, self.separator_text):
             parts.append(self.text[cursor:offset])
-            parts.append(" ")
+            parts.append(separator)
             cursor = offset
         parts.append(self.text[cursor:])
         return "".join(parts)
@@ -1092,13 +1122,15 @@ def merge_blocks(result: AssemblyResult, blocks: list[dict], *,
         if not spans:
             raise ValueError("block does not map to the source tree: "
                              f"{source.get('path')!r} [{start}, {end})")
-        anchor = 0
-        for index, char in enumerate(block_text):
-            if not char.isspace():
-                anchor = index
-                break
-        anchor_spans = entry_source_spans(result, start + anchor,
-                                          start + anchor + 1)
+        anchor_entry = block.get("anchor_entry")
+        if not isinstance(anchor_entry, int):
+            anchor_entry = start
+            for index, char in enumerate(block_text):
+                if not char.isspace():
+                    anchor_entry = start + index
+                    break
+        anchor_entry = max(start, min(anchor_entry, max(start, end - 1)))
+        anchor_spans = entry_source_spans(result, anchor_entry, end)
         first = anchor_spans[0] if anchor_spans else spans[0]
         record = {
             "kind": kind,

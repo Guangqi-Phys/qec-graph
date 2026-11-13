@@ -345,8 +345,9 @@ def _parse_entry(tree: SourceTree, assembly: AssemblyResult, selected: str,
     name = _entry_name(tree.files)
     path = root / name
     coords = EntryCoordinates(assembly)
+    parse_text = coords.copy_text()
     try:
-        parsed = _run_parse(path, root, coords.copy_text().encode("utf-8"),
+        parsed = _run_parse(path, root, parse_text.encode("utf-8"),
                             recover=recover, transparent=transparent)
         blocks = list(parsed.get("blocks", []))
         diagnostics = list(parsed.get("diagnostics", []))
@@ -362,16 +363,25 @@ def _parse_entry(tree: SourceTree, assembly: AssemblyResult, selected: str,
     lines = SourceLineIndex(tree.files)
     mapped_blocks: list[dict] = []
     for block in blocks:
-        if (block.get("source") or {}).get("path") != name:
+        source = block.get("source") or {}
+        if source.get("path") != name:
             mapped_blocks.append(block)
             continue
-        source = block["source"]
-        start = coords.to_entry(int(source.get("char_start", 0)))
-        end = max(start, coords.to_entry(int(source.get("char_end", 0))))
+        parse_start = int(source.get("char_start", 0))
+        parse_end = max(parse_start, int(source.get("char_end", parse_start)))
+        start = coords.to_entry(parse_start)
+        end = max(start, coords.to_entry(parse_end))
+        block_latex = parse_text[parse_start:parse_end]
+        anchor = start
+        for index, char in enumerate(block_latex):
+            if not char.isspace():
+                anchor = coords.to_entry(parse_start + index)
+                break
         mapped_blocks.append({
             **block,
             "source": {**source, "char_start": start, "char_end": end},
-            "latex": assembly.text[start:end],
+            "latex": block_latex,
+            "anchor_entry": anchor,
         })
     blocks = mapped_blocks
     outside = sorted({

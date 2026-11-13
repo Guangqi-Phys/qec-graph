@@ -354,6 +354,10 @@ preamble of subfiles and of complete documents included from another entry, and
 learns literal zero-argument path macros from source (`\newcommand`/`\def`).
 A multi-argument include becomes the search context of the files it includes, so
 an `\import`ed chapter resolves its own sibling inputs before root-level ones.
+The structural parse reads a copy of the entry with one space or newline
+inserted where splicing would merge two tokens or extend a child's trailing
+comment into the parent; block text is projected from that parse view while
+coordinates still map to the untouched entry bytes.
 Path macros are learned in source order and follow brace-group scope: a use
 before its definition, after a closed group, or inside an inactive conditional
 stays dynamic and is reported. A statically decidable `\iffalse`/`\iftrue`
