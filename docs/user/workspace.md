@@ -23,7 +23,6 @@ For non-UTF-8 TeX, QEC Graph supports explicit Latin-1, Latin-9 and Windows-1252
 - [Create and operate a workspace](#create-and-operate-a-workspace)
 - [Research queries and review](#research-queries-and-review)
 - [Obsidian and machine isolation](#obsidian-and-machine-isolation)
-- [Import an existing corpus](#import-an-existing-corpus)
 
 ## Create and operate a workspace
 
@@ -266,19 +265,3 @@ directory read-only. The Linux profile was verified with an alternate local
 Ubuntu base; the [validation index](../../validation/README.md) lists the current
 isolation check commands. That is not a claim of a generic Docker Hub build. Do not treat MCP roots or a
 plain `--workspace` argument as operating-system isolation.
-
-## Import an existing corpus
-
-```bash
-qec-graph validate-corpus --corpus /path/to/legacy-corpus
-qec-graph workspace migrate --corpus /path/to/legacy-corpus --workspace /path/to/new-workspace
-qec-graph rebuild --workspace /path/to/new-workspace
-```
-
-The target must be a separate new directory. Migration preserves old revisions,
-source snapshots, assets and review bindings, and reports records missing exact
-bound types, noise, counting definitions or experiment context. The old corpus
-remains usable; keep using it if migration is unsuitable. It never fabricates
-download packages the old corpus did not contain. Upgrading the program and
-moving data are separate operations; public PyPI publication has not been
-performed.

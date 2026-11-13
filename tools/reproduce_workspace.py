@@ -17,7 +17,7 @@ TEX = b'\\documentclass{article}\n\\begin{document}\nA CSS code has $[[13,1,3]]$
 SUBSYSTEM_SHA = '103a027e1258298afbc5de782625eb3a30efd86c68c981adfc2b0b96821ce52f'
 
 
-def verify(binary, workspace, real_source=None, legacy_binary=None):
+def verify(binary, workspace, real_source=None):
     env = dict(os.environ)
     env.pop('PYTHONPATH', None)
     env.pop('PYTHONHOME', None)
@@ -147,49 +147,6 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
     assert all(expected_release in page.read_text(encoding='utf-8') for page in notes)
     assert all(page.read_text(encoding='utf-8').startswith('---\ntags:') for page in notes)
     assert not (workspace / 'human/Index.md').exists()
-    upgrade = None
-    if legacy_binary:
-        def legacy(label, args):
-            return run('legacy_' + label, args, executable=legacy_binary)
-        def put(name, value):
-            (workspace / name).write_text(json.dumps(value), encoding='utf-8')
-        (workspace / 'legacy.tex').write_bytes(TEX)
-        legacy('ingest', ['ingest', 'legacy.tex', '--project-id', 'legacy-demo', '--out', 'legacy-store'])
-        legacy('register', ['register', '--corpus', 'legacy-corpus', '--store', 'legacy-store',
-                            '--work-id', 'work:legacy', '--source-version-id', 'source:legacy'])
-        base = {'schema': 'qecgraph.record', 'id': 'claim:legacy', 'kind': 'claim',
-                'title': 'Legacy claim', 'revision': 'original',
-                'data': {'statement': 'Legacy draft wording', 'hypotheses': [], 'quantifiers': []}}
-        put('legacy-claim.json', base)
-        before = legacy('record', ['record-add', 'legacy-claim.json', '--corpus', 'legacy-corpus'])
-        revised = {**base, 'revision': 'human-revision',
-                   'data': {**base['data'], 'statement': 'Legacy human-reviewed wording'}}
-        put('legacy-proposal.json', {'changes': [{'record': revised, 'expected_revision': base['revision'],
-                                                'expected_content_sha256': before['record']['content_sha256']}],
-                                     'rationale': 'Release upgrade fixture'})
-        proposal = legacy('review', ['review', 'legacy-proposal.json', '--corpus', 'legacy-corpus',
-                                     '--actor-id', 'fixture:ai', '--actor-kind', 'ai'])
-        decision = legacy('decision', ['review-decide', proposal['id'], '--corpus', 'legacy-corpus',
-                                       '--actor-id', 'fixture:human', '--actor-kind', 'human',
-                                       '--decision', 'approve', '--rationale', 'Checked fixture wording',
-                                       '--checked-scope', 'statement', '--checked-scope', 'hypotheses', '--checked-scope', 'dependencies'])
-        applied = legacy('apply', ['apply', proposal['id'], '--review-id', decision['id'], '--corpus', 'legacy-corpus'])
-        legacy_fixed = applied['receipt']['registry_revision']
-        unchanged = (workspace / 'legacy-corpus/CURRENT.json').read_bytes()
-        migrated = run('migrate_0_3_0', ['workspace-migrate', '--corpus', 'legacy-corpus', '--workspace', 'upgraded'])
-        assert migrated['legacy_registry_revision'] == legacy_fixed
-        migrated_fixed = migrated['release_id']
-        rebuilt = run('rebuild_migrated_workspace', ['rebuild', '--workspace', 'upgraded', '--json'])
-        assert rebuilt['release_id'] == migrated_fixed
-        after = run('read_migrated_claim', ['show', 'claim:legacy', '--corpus', 'upgraded/machine'])
-        assert after['node']['record']['review']['status'] == 'reviewed'
-        assert after['node']['record']['revision'] == 'human-revision'
-        old = run('read_preserved_history', ['show', 'claim:legacy', '--corpus', 'upgraded/machine',
-                                             '--registry-revision', before['registry_revision']])
-        assert old['node']['record']['data']['statement'] == 'Legacy draft wording'
-        assert (workspace / 'legacy-corpus/CURRENT.json').read_bytes() == unchanged
-        upgrade = {'from_version': '0.3.0', 'legacy_release': legacy_fixed, 'migrated_release': migrated_fixed,
-                   'review_and_history_preserved': True, 'legacy_pointer_unchanged': True}
     return {'passed': True, 'platform': platform.platform(), 'package_version': package_version,
             'release_id': expected_release, 'protocol_version': protocol, 'checks': checks,
             'source_count': first['counts']['registered'], 'software_projects': coverage['projects'],
@@ -197,7 +154,7 @@ def verify(binary, workspace, real_source=None, legacy_binary=None):
             'real_source': ({'url': 'https://arxiv.org/src/quant-ph/0610153v1', 'sha256': SUBSYSTEM_SHA,
                              'entrypoint': 'subsys.tex', 'scope': 'structural and three notation golden checks, not mathematical verification'}
                             if real_source else None),
-            'upgrade': upgrade, 'human_pages': rebuild['human']['generated_pages'], 'note_canary_preserved': True,
+            'human_pages': rebuild['human']['generated_pages'], 'note_canary_preserved': True,
             'observed_at': datetime.now(timezone.utc).isoformat()}
 
 
@@ -206,13 +163,11 @@ def main():
     parser.add_argument('--bin-dir', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--real-source', type=Path)
-    parser.add_argument('--legacy-bin-dir', type=Path)
     args = parser.parse_args()
     binary = (args.bin_dir / 'qec-graph').resolve(strict=True)
     real_source = args.real_source.resolve(strict=True) if args.real_source else None
-    legacy = (args.legacy_bin_dir / 'qec-graph').resolve(strict=True) if args.legacy_bin_dir else None
     with tempfile.TemporaryDirectory(prefix='qecgraph-installed-') as directory:
-        report = verify(binary, Path(directory), real_source, legacy)
+        report = verify(binary, Path(directory), real_source)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(report, ensure_ascii=False, indent=2))

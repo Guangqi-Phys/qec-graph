@@ -269,10 +269,6 @@ Python 安装还提供 `qec-latex-split`。`qecgraph` 和 `python -m qecgraph` �
 使用与 `qec-graph` 相同的 CLI。[切割参考](splitter.zh-CN.md) ·
 [Corpus 参考](../operations/corpus.zh-CN.md)
 
-把已有 corpus 复制到新工作区，使用
-`qec-graph workspace-migrate --corpus /path/to/corpus --workspace /path/to/new-workspace`。
-迁移保留来源快照、记录修订和审核绑定。[迁移指南](workspace.zh-CN.md#导入现有-corpus)
-
 ## 复现检查
 
 维护者可用版本 tag 构建单文件可执行程序，并在发布 GitHub Release 资产前检查

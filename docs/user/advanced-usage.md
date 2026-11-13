@@ -313,11 +313,6 @@ A Python installation also provides `qec-latex-split`. The `qecgraph` and
 `python -m qecgraph` entry points use the same main CLI as `qec-graph`.
 [Splitter reference](splitter.md) · [Corpus reference](../operations/corpus.md)
 
-To copy an existing corpus into a new workspace, use
-`qec-graph workspace-migrate --corpus /path/to/corpus --workspace /path/to/new-workspace`.
-The migration preserves source snapshots, record revisions, and review bindings.
-[Migration guide](workspace.md#import-an-existing-corpus)
-
 ## Reproduce the checks
 
 For maintainers, a version tag builds standalone executables and checks the

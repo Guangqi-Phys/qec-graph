@@ -23,7 +23,6 @@ EXAMPLES = {
     'extract-request': 'SOURCE_VERSION_ID --workspace ./qec --max-chars 12000',
     'extract-submit': 'REQUEST_ID response.json --workspace ./qec',
     'extract-review': 'PROPOSAL_ID --reviewer ada --decision reject --rationale "Missing source binding"',
-    'workspace-migrate': '--corpus ./corpus --workspace ./qec-new',
     'software-import-seed': '--workspace ./qec',
     'software-coverage': '--workspace ./qec',
     'software-refresh': '--workspace ./qec --limit 3',

@@ -13,7 +13,6 @@ HANDLERS = {
     'inputs': workspace.inputs,
     'human-build': workspace.human_build,
     'asset-add': workspace.asset_add,
-    'workspace-migrate': workspace.migrate,
     'extract-request': workspace.extract,
     'extract-submit': workspace.extract,
     'extract-review': workspace.extract,

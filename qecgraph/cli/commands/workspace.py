@@ -133,9 +133,3 @@ def extract(args):
         result = semantic.review_extraction(args.workspace, args.proposal_id, reviewer=args.reviewer,
                                             decision=args.decision, rationale=args.rationale)
     return emit_report(result, quiet=args.quiet, exit_code=0)
-
-
-def migrate(args):
-    from ...workspace_migration import migrate_corpus
-    result = migrate_corpus(args.corpus, args.workspace, args.registry_revision)
-    return emit_report(result, quiet=args.quiet, exit_code=0)

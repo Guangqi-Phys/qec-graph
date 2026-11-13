@@ -20,7 +20,6 @@ ACTIVITIES = {
     'validate': 'Checking source and release integrity', 'doctor': 'Checking workspace health',
     'snapshot': 'Listing stored snapshots', 'inputs': 'Inspecting inbox packages',
     'human-build': 'Opening the published release', 'asset-add': 'Verifying and registering asset',
-    'workspace-migrate': 'Migrating corpus into workspace',
     'extract-request': 'Preparing source evidence', 'extract-submit': 'Validating extraction response',
     'extract-review': 'Recording extraction review', 'research-import': 'Validating research records',
     'review-list': 'Reading the review queue', 'review-show': 'Loading proposal and review bindings',

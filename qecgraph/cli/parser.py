@@ -104,7 +104,7 @@ def _add_source_arguments(parser):
 _GROUPS = {
     'workspace': ('Manage a local QEC workspace', {
         'init': 'init', 'sync': 'sync', 'rebuild': 'rebuild', 'status': 'status',
-        'validate': 'validate', 'migrate': 'workspace-migrate',
+        'validate': 'validate',
     }),
     'query': ('Search and trace evidence in a fixed scope', {
         'search': 'search', 'show': 'show', 'deps': 'deps', 'impact': 'impact',
@@ -241,11 +241,6 @@ def _register_commands(add):
     cmd.add_argument('--decision', choices=['approve', 'reject'], required=True,
         help='Decision to bind to the exact proposal')
     cmd.add_argument('--rationale', required=True, help='Explain the review decision')
-    cmd = add('workspace-migrate', help='Copy a legacy corpus into a new workspace; retain all exact revisions')
-    cmd.add_argument('--corpus', required=True, help='Path to a legacy multi-document corpus')
-    cmd.add_argument('--workspace', required=True,
-        help='Path to the QEC workspace; omit to use local discovery where supported')
-    cmd.add_argument('--registry-revision', help='Exact corpus state ID; omit to use CURRENT')
     for name, description in (('software-import-seed', 'Import the bundled software catalogue'),
                               ('software-coverage', 'Report the software records indexed in the workspace'),
                               ('software-refresh', 'Refresh metadata for selected software projects')):

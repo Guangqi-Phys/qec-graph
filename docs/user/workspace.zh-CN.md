@@ -20,7 +20,6 @@ Git history。
 - [建库和日常操作](#建库和日常操作)
 - [研究查询和审核](#研究查询和审核)
 - [Obsidian 和机器访问隔离](#obsidian-和机器访问隔离)
-- [从旧库迁移](#导入现有-corpus)
 
 ## 建库和日常操作
 
@@ -217,16 +216,3 @@ python tools/mcp_isolated_macos.py --python /path/to/installed-venv/bin/python -
 替代 Ubuntu 基础镜像验证；[验证索引](../../validation/README.zh-CN.md)列出当前隔离
 检查命令。这不构成通用 Docker Hub 构建的声明。不要把 MCP roots 或普通的 `--workspace` 参数
 当作操作系统隔离。
-
-## 导入现有 corpus
-
-```bash
-qec-graph validate-corpus --corpus /path/to/legacy-corpus
-qec-graph workspace migrate --corpus /path/to/legacy-corpus --workspace /path/to/new-workspace
-qec-graph rebuild --workspace /path/to/new-workspace
-```
-
-目标必须是独立的新目录。迁移保存旧修订、来源快照、资产和审核绑定，
-报告缺少准确界类型、噪声、计数定义或实验上下文的旧记录。
-原库保持可用；不合适时继续用原目录。旧库不含原始下载包时不会伪造这些资产。
-升级程序与切换数据位置是独立操作；公开 PyPI 发行未执行。
