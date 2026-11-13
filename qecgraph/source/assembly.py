@@ -859,6 +859,105 @@ def document_bounds(text: str) -> tuple[int | None, int | None, int | None]:
     return begin_start, body_start, end_start
 
 
+def condition_regions(text: str) -> tuple[list[tuple[int, int]],
+                                            list[tuple[int, int]]]:
+    """Return inactive and uncertain character ranges for conditional content.
+
+    ``inactive`` lists branches of statically decidable ``\\iffalse``/``\\iftrue``
+    that are not part of the active document. ``uncertain`` lists regions of
+    conditionals whose branch cannot be decided; both branches are kept there,
+    so content inside one is not confirmed prose.
+    """
+    inactive: list[tuple[int, int]] = []
+    uncertain: list[tuple[int, int]] = []
+    defined: set[str] = set()
+
+    def walk(start: int, stop: int) -> None:
+        index = start
+        while index < stop:
+            char = text[index]
+            if char == "%":
+                newline = text.find("\n", index)
+                index = stop if newline < 0 else newline + 1
+                continue
+            if char != "\\":
+                index += 1
+                continue
+            match = _CONTROL.match(text, index)
+            if not match:
+                index += 2
+                continue
+            name = match.group(1)
+            after = match.end()
+            if name in {"verb", "verb*", "lstinline"}:
+                if after < stop:
+                    delimiter = text[after]
+                    newline = text.find(delimiter, after + 1, stop)
+                    index = stop if newline < 0 else newline + 1
+                else:
+                    index = after
+                continue
+            if name == "begin":
+                environment, group_end = _parse_group(text, after)
+                if environment in LITERAL_ENVIRONMENTS:
+                    closing = "\\end{" + environment + "}"
+                    end = text.find(closing, group_end, stop)
+                    index = stop if end < 0 else end + len(closing)
+                    continue
+                index = group_end
+                continue
+            if name == "newif":
+                probe = _skip_space(text, after)
+                flag = _CONTROL.match(text, probe)
+                if flag:
+                    defined.update({flag.group(1) + "true",
+                                    flag.group(1) + "false"})
+                    index = flag.end()
+                else:
+                    index = probe
+                continue
+            if name in _DECLARATIONS:
+                definition = _definition_event(text, index, name)
+                if definition is not None:
+                    defined.add(definition.name)
+                index = _skip_definition(text, after, name)
+                continue
+            if name in {"iffalse", "iftrue"}:
+                else_start, fi_start, fi_end = _conditional_bounds(
+                    text, after, defined)
+                if fi_start >= stop:
+                    uncertain.append((index, stop))
+                    return
+                fi_start = min(fi_start, stop)
+                fi_end = min(fi_end, stop)
+                else_start = (min(else_start, stop)
+                              if else_start is not None else None)
+                if name == "iffalse":
+                    if else_start is None:
+                        inactive.append((after, fi_start))
+                    else:
+                        inactive.append((after, else_start))
+                        walk(else_start, fi_start)
+                else:
+                    walk(after, else_start if else_start is not None else fi_start)
+                    if else_start is not None:
+                        inactive.append((else_start, fi_start))
+                index = fi_end
+                continue
+            if _is_conditional(name, text, after, defined):
+                _, fi_start, fi_end = _conditional_bounds(text, after, defined)
+                if fi_start >= stop:
+                    uncertain.append((index, stop))
+                    return
+                uncertain.append((index, min(fi_end, stop)))
+                index = min(fi_end, stop)
+                continue
+            index = after
+
+    walk(0, len(text))
+    return inactive, uncertain
+
+
 def _document_body(raw: bytes) -> tuple[int, int, bool, bool]:
     """Return body byte range, has-document flag, and preamble-dropped flag."""
     text = raw.decode("utf-8")

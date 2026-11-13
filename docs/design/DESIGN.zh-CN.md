@@ -399,16 +399,18 @@ token 或让子文件末尾注释吞掉父文件内容的位置插入一个空�
   `source_level`、`command`、`numbered`、`appendix`、`title`、`title_tex`、
   `source`、`entry`、`block_ids`；
 - `blocks[]`：`key`、`document_id`、`section_id`、`kind`、纯文本 `text`、
-  labels、references、`source`、`source_spans`、`entry`；
+  labels、references、`source`、`source_spans`、`conditional`、`entry`；
 - `text_projection: reading-v1`：纯文本去掉命令、注释和 label，保留数学、
   形如 `[key]` 的引用键，以及 theorem/proof 正文；
 - `coverage`：`content_complete` 表示正文中的 include 指令都已解析，并且没有从
   entry 之外读入正文内容（`include_outside_entry`）；
   `structure_complete` 表示模型确实表达了正文：没有 parser 错误、至少一个 block、
-  每个 block 之外没有实质正文文本（`uncovered_entry_chars`），没有从无法判定的
-  条件分支中解析 include（`conditional_directives`），也没有缺少匹配 `\fi` 的条件
-  （`unclosed_conditional`）。`document_complete` 要求两者都成立，`reasons` 列出
-  每个失败原因。不检查编译，编译不是完成条件。
+  每个 block 之外没有实质正文文本（`uncovered_entry_chars`），无法判定的条件分支
+  中没有正文或 include（`conditional_body`、`conditional_directives`），也没有
+  缺少匹配 `\fi` 的条件（`unclosed_conditional`）。`reasons` 列出每个失败原因，
+  `conditional_ranges` 用 entry 与来源区间定位不确定的正文区域；静态可判定的条件
+  分支要么被跟随，要么从覆盖计数中排除。`document_complete` 要求两者都成立。
+  不检查编译，编译不是完成条件。
 
 模型来自对组装后 entry 的一次解析，因此 entry preamble 中的声明——定理环境、
 宏——会作用于所有被引入片段，block 边界跟随 entry 而不是各个文件。block 再通过

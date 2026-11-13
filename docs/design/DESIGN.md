@@ -381,19 +381,22 @@ The document model is `qecgraph.document/2`:
   present becomes 1), `source_level`, `command`, `numbered`, `appendix`,
   `title`, `title_tex`, `source`, `entry`, `block_ids`;
 - `blocks[]`: `key`, `document_id`, `section_id`, `kind`, plain `text`, labels,
-  references, `source`, `source_spans`, `entry`;
+  references, `source`, `source_spans`, `conditional`, `entry`;
 - `text_projection: reading-v1`: plain text strips commands, comments and
   labels, preserves mathematics, citation keys as `[key]`, and theorem/proof
   bodies;
 - `coverage`: `content_complete` states that every body include directive was
   resolved and no body content was read from outside the assembled entry
-  (`include_outside_entry`); `structure_complete` states that the model represents the body: no
-  parser errors, at least one block, no substantive body text outside every
-  block (`uncovered_entry_chars`), no include resolved from inside an
-  undecidable conditional (`conditional_directives`), and no condition without
-  a matching `\fi` (`unclosed_conditional`). `document_complete` requires both
-  and `reasons` names each failure. Compilation is not checked and is not a
-  completion condition.
+  (`include_outside_entry`); `structure_complete` states that the model
+  represents the body: no parser errors, at least one block, no substantive
+  body text outside every block (`uncovered_entry_chars`), no body prose or
+  include inside an undecidable conditional (`conditional_body`,
+  `conditional_directives`), and no condition without a matching `\fi`
+  (`unclosed_conditional`). `reasons` names each failure and
+  `conditional_ranges` locates the uncertain body regions by entry and source
+  span. Branches of a statically decidable conditional are either followed or
+  excluded from the uncovered count. `document_complete` requires both.
+  Compilation is not checked and is not a completion condition.
 
 The model comes from one parse of the assembled entry, so declarations in the
 entry preamble — theorem environments, macros — apply to every included

@@ -31,6 +31,7 @@ from .assembly import (
     EntryCoordinates,
     SourceLineIndex,
     assemble_files,
+    condition_regions,
     document_bounds,
     entry_source_spans,
     merge_blocks,
@@ -461,6 +462,11 @@ def _prose_chars(text: str) -> int:
                 index += 2
                 continue
             index = match.end()
+            if match.group(1) == "csname":
+                end = text.find("\\endcsname", index)
+                index = (len(text) if end < 0
+                         else end + len("\\endcsname"))
+                continue
             if match.group(1) == "begin":
                 probe = index
                 while probe < len(text) and text[probe].isspace():
@@ -496,15 +502,33 @@ def _prose_chars(text: str) -> int:
     return count
 
 
-def _uncovered_entry_prose(text: str, blocks: list[dict]) -> int:
-    """Count body letters that no block's entry span covers."""
+def _subtract_intervals(intervals: list[tuple[int, int]],
+                        holes: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    pieces = list(intervals)
+    for hole_low, hole_high in holes:
+        remaining: list[tuple[int, int]] = []
+        for low, high in pieces:
+            if hole_high <= low or hole_low >= high:
+                remaining.append((low, high))
+                continue
+            if low < hole_low:
+                remaining.append((low, hole_low))
+            if hole_high < high:
+                remaining.append((hole_high, high))
+        pieces = remaining
+    return [piece for piece in pieces if piece[1] > piece[0]]
+
+
+def _uncovered_entry_prose(text: str, blocks: list[dict],
+                           inactive: list[tuple[int, int]] | None = None) -> int:
+    """Count body letters that no block covers and no condition disables."""
     _, body_start, end_start = document_bounds(text)
     if body_start is None:
         body_start = 0
     body_end = end_start if end_start is not None else len(text)
     spans = sorted((int(block["entry"]["char_start"]),
                     int(block["entry"]["char_end"])) for block in blocks)
-    total = 0
+    gaps: list[tuple[int, int]] = []
     cursor = body_start
     for low, high in spans:
         if high <= cursor:
@@ -514,18 +538,31 @@ def _uncovered_entry_prose(text: str, blocks: list[dict]) -> int:
         if low >= high:
             continue
         if low > cursor:
-            total += _prose_chars(text[cursor:low])
+            gaps.append((cursor, low))
         cursor = max(cursor, high)
         if cursor >= body_end:
             break
     if cursor < body_end:
-        total += _prose_chars(text[cursor:body_end])
+        gaps.append((cursor, body_end))
+    gaps = _subtract_intervals(gaps, inactive or [])
+    return sum(_prose_chars(text[low:high]) for low, high in gaps)
+
+
+def _conditional_body_prose(text: str, uncertain: list[tuple[int, int]],
+                            body_start: int, body_end: int) -> int:
+    """Count body letters inside conditionals whose branch is undecidable."""
+    total = 0
+    for low, high in uncertain:
+        low = max(low, body_start)
+        high = min(high, body_end)
+        if low < high:
+            total += _prose_chars(text[low:high])
     return total
 
 
 def _coverage(assembly: AssemblyResult, document: dict,
               parser_errors: list[dict], dependencies: list[dict],
-              uncovered: int = 0) -> dict:
+              uncovered: int = 0, conditional_body: int = 0) -> dict:
     coverage = assembly.coverage()
     coverage["content_complete"] = coverage["complete"]
     reasons = set(coverage.get("reasons", []))
@@ -555,8 +592,12 @@ def _coverage(assembly: AssemblyResult, document: dict,
     if unclosed:
         structure = False
         reasons.add("unclosed_conditional")
+    if conditional_body:
+        structure = False
+        reasons.add("conditional_body")
     coverage["structure_complete"] = structure
     coverage["uncovered_entry_chars"] = uncovered
+    coverage["conditional_body_chars"] = conditional_body
     coverage["conditional_directives"] = conditional
     coverage["parser_errors"] = len(parser_errors)
     coverage["parser_error_codes"] = sorted({item.get("code") for item in parser_errors})
@@ -586,8 +627,30 @@ def prepare_source(tree: SourceTree, entry: str | None = None, *,
             transparent=transparent_containers)
     document = merge_blocks(assembly, blocks, source_tree_hash=tree.digest,
                             files=tree.files)
-    uncovered = _uncovered_entry_prose(assembly.text, document["blocks"])
-    coverage = _coverage(assembly, document, parser_errors, dependencies, uncovered)
+    _, body_start, end_start = document_bounds(assembly.text)
+    body_start = body_start or 0
+    body_end = end_start if end_start is not None else len(assembly.text)
+    inactive, uncertain = condition_regions(assembly.text)
+    uncovered = _uncovered_entry_prose(assembly.text, document["blocks"], inactive)
+    conditional_body = _conditional_body_prose(
+        assembly.text, uncertain, body_start, body_end)
+    coverage = _coverage(assembly, document, parser_errors, dependencies,
+                         uncovered, conditional_body)
+    body_uncertain = [(max(low, body_start), min(high, body_end))
+                      for low, high in uncertain
+                      if low < body_end and high > body_start]
+    for block in document["blocks"]:
+        start = int(block["entry"]["char_start"])
+        end = int(block["entry"]["char_end"])
+        block["conditional"] = any(low < end and high > start
+                                   for low, high in body_uncertain)
+    coverage["conditional_ranges"] = [
+        {"entry": {"char_start": low, "char_end": high},
+         "source_spans": [{"path": path, "char_start": span_start,
+                           "char_end": span_end}
+                          for path, span_start, span_end
+                          in entry_source_spans(assembly, low, high)]}
+        for low, high in body_uncertain]
     document["coverage"] = coverage
     document["diagnostics"] = [*assembly.diagnostics, *parser_errors, *dependencies]
     return PreparedSource(

@@ -10,6 +10,7 @@ from qecgraph.source.package import SourceTree
 from qecgraph.source.prepare import (
     _coverage,
     _outside_dependencies,
+    _prose_chars,
     _uncovered_entry_prose,
     entry_candidates,
     prepare_source,
@@ -169,6 +170,54 @@ class PrepareTests(unittest.TestCase):
         self.assertTrue(prepared.coverage["content_complete"])
         self.assertTrue(prepared.coverage["document_complete"])
         self.assertEqual(prepared.coverage["missing_dependencies"], 0)
+
+    def test_unknown_body_branches_are_marked_conditional(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\section{Intro}\n"
+                         b"\\ifdefined\\flag\nFIRST_BRANCH.\n\\else\n"
+                         b"SECOND_BRANCH.\n\\fi\n\\end{document}\n"),
+        })
+        prepared = prepare_source(tree)
+        self.assertFalse(prepared.coverage["structure_complete"])
+        self.assertIn("conditional_body", prepared.coverage["reasons"])
+        self.assertGreater(prepared.coverage["conditional_body_chars"], 0)
+        ranges = prepared.coverage["conditional_ranges"]
+        self.assertTrue(ranges)
+        self.assertTrue(ranges[0]["source_spans"])
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertTrue(any("FIRST_BRANCH." in text for text in texts))
+        self.assertTrue(any("SECOND_BRANCH." in text for text in texts))
+        conditional = [block for block in prepared.document["blocks"]
+                       if block.get("conditional")]
+        self.assertTrue(conditional)
+
+    def test_inactive_branch_prose_is_not_reported_uncovered(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\section{Intro}\n\\iffalse\n"
+                         b"NOT_ACTIVE_TEXT.\n\\else\nACTIVE_BODY.\n"
+                         b"\\fi\n\\end{document}\n"),
+        })
+        prepared = prepare_source(tree)
+        self.assertTrue(prepared.coverage["document_complete"])
+        self.assertEqual(prepared.coverage["uncovered_entry_chars"], 0)
+        self.assertNotIn("uncovered_entry_text", prepared.coverage["reasons"])
+
+    def test_typesetting_only_conditional_keeps_completeness(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\section{Intro}\n\\ifdefined\\flag\n"
+                         b"\\vspace{1em}\n\\else\n\\vspace{2em}\n\\fi\n"
+                         b"Text.\n\\end{document}\n"),
+        })
+        prepared = prepare_source(tree)
+        self.assertTrue(prepared.coverage["document_complete"])
+        self.assertEqual(prepared.coverage["conditional_body_chars"], 0)
+
+    def test_prose_counter_ignores_csname_names(self):
+        self.assertEqual(_prose_chars(r"\csname urlstyle\endcsname"), 0)
+        self.assertEqual(_prose_chars("Unrepresented words."), 18)
 
     def test_conditional_lookalikes_are_not_conditionals(self):
         tree = SourceTree("directory", {
