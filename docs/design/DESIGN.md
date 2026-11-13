@@ -352,6 +352,9 @@ Assembly copies original bytes only. It resolves literal
 `\input`/`\include`/`\subfile`/`\import`/`\subimport` directives, strips the
 preamble of subfiles and of complete documents included from another entry, and
 learns literal zero-argument path macros from source (`\newcommand`/`\def`).
+Document markers are located with the same lexical rules as directives:
+declaration bodies, literal environments and inactive conditional branches
+cannot end a document.
 A multi-argument include becomes the search context of the files it includes, so
 an `\import`ed chapter resolves its own sibling inputs before root-level ones.
 The structural parse reads a copy of the entry with one space or newline
@@ -386,10 +389,11 @@ The document model is `qecgraph.document/2`:
   resolved and no body content was read from outside the assembled entry
   (`include_outside_entry`); `structure_complete` states that the model represents the body: no
   parser errors, at least one block, no substantive body text outside every
-  block (`uncovered_entry_chars`), and no include resolved from inside an
-  undecidable conditional (`conditional_directives`). `document_complete`
-  requires both and `reasons` names each failure. Compilation is not checked
-  and is not a completion condition.
+  block (`uncovered_entry_chars`), no include resolved from inside an
+  undecidable conditional (`conditional_directives`), and no condition without
+  a matching `\fi` (`unclosed_conditional`). `document_complete` requires both
+  and `reasons` names each failure. Compilation is not checked and is not a
+  completion condition.
 
 The model comes from one parse of the assembled entry, so declarations in the
 entry preamble — theorem environments, macros — apply to every included

@@ -2,7 +2,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from qecgraph.source.assembly import assemble_files, merge_blocks
+from qecgraph.source.assembly import assemble_files, document_bounds, merge_blocks
 from qecgraph.source.parser import parse_project
 
 
@@ -369,6 +369,26 @@ class AssembleTests(unittest.TestCase):
         self.assertIn(b"SUBIMPORTED.", result.data)
         self.assertEqual([event.outcome for event in result.events],
                          ["resolved", "resolved"])
+
+    def test_math_iff_does_not_open_a_conditional(self):
+        text = ("\\documentclass{article}\n\\begin{document}\n"
+                "$A \\iff B$ and $C \\iff D$.\n\\end{document}\n")
+        begin, body, end = document_bounds(text)
+        self.assertIsNotNone(begin)
+        self.assertIsNotNone(body)
+        self.assertIsNotNone(end)
+        self.assertTrue(text[end:].startswith("\\end{document}"))
+
+    def test_document_bounds_ignore_declarations_and_inactive_branches(self):
+        text = ("\\documentclass{article}\n\\begin{document}\nA.\n"
+                "\\newcommand{\\finish}{\\end{document}}\n"
+                "\\iffalse\\end{document}\\fi\nB.\n\\end{document}\n")
+        begin, body, end = document_bounds(text)
+        self.assertIsNotNone(begin)
+        self.assertIsNotNone(body)
+        self.assertIsNotNone(end)
+        self.assertIn("B.", text[body:end])
+        self.assertTrue(text[end:].startswith("\\end{document}"))
 
     def test_literal_document_end_does_not_truncate_included_tail(self):
         source = {

@@ -170,6 +170,63 @@ class PrepareTests(unittest.TestCase):
         self.assertTrue(prepared.coverage["document_complete"])
         self.assertEqual(prepared.coverage["missing_dependencies"], 0)
 
+    def test_conditional_lookalikes_are_not_conditionals(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n"
+                         b"\\newcommand{\\ifff}{if and only if}\n"
+                         b"\\newif\\ifdraft\n\\begin{document}\n"
+                         b"\\section{Intro}\n"
+                         b"Text \\ifff{} and \\iftoggle{flag}{yes}{no}. "
+                         b"\\ifdraft\\vspace{1em}\\fi\n"
+                         b"\\end{document}\n"),
+        })
+        prepared = prepare_source(tree)
+        self.assertTrue(prepared.coverage["document_complete"])
+        self.assertNotIn("unclosed_conditional", prepared.coverage["reasons"])
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertTrue(any("Text" in text for text in texts))
+
+    def test_unclosed_conditional_is_partial(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\ifdefined\\flag\nText.\\end{document}\n"),
+        })
+        prepared = prepare_source(tree)
+        self.assertFalse(prepared.coverage["structure_complete"])
+        self.assertIn("unclosed_conditional", prepared.coverage["reasons"])
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertTrue(any("Text." in text for text in texts))
+
+    def test_document_end_in_a_definition_does_not_cut_the_child(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\\begin{document}"
+                         b"\\input{supp}\\end{document}\n"),
+            "supp.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\section{First}\nBefore.\n"
+                         b"\\newcommand{\\finish}{\\end{document}}\n"
+                         b"\\section{Second}\nACTUAL_TAIL.\n\\end{document}\n"),
+        })
+        prepared = prepare_source(tree, "main.tex")
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertIn("Second", texts)
+        self.assertIn("ACTUAL_TAIL.", texts)
+        self.assertTrue(prepared.coverage["document_complete"])
+
+    def test_document_end_in_an_inactive_branch_does_not_cut_the_child(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\\begin{document}"
+                         b"\\input{supp}\\end{document}\n"),
+            "supp.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\section{First}\nBefore.\n"
+                         b"\\iffalse\\end{document}\\fi\n"
+                         b"\\section{Second}\nACTUAL_TAIL.\n\\end{document}\n"),
+        })
+        prepared = prepare_source(tree, "main.tex")
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertIn("Second", texts)
+        self.assertIn("ACTUAL_TAIL.", texts)
+        self.assertTrue(prepared.coverage["document_complete"])
+
     def test_child_comment_without_final_newline_keeps_parent_text(self):
         tree = SourceTree("directory", {
             "main.tex": (b"\\documentclass{article}\\begin{document}\\section{Intro}\n"

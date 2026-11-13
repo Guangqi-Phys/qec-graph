@@ -550,6 +550,11 @@ def _coverage(assembly: AssemblyResult, document: dict,
     if conditional:
         structure = False
         reasons.add("conditional_directives")
+    unclosed = sum(1 for item in assembly.diagnostics
+                   if item.get("code") == "unclosed_conditional")
+    if unclosed:
+        structure = False
+        reasons.add("unclosed_conditional")
     coverage["structure_complete"] = structure
     coverage["uncovered_entry_chars"] = uncovered
     coverage["conditional_directives"] = conditional

@@ -28,6 +28,37 @@ TWO_ARG = frozenset({
     "subincludefrom", "subinputfrom",
 })
 DIRECTIVES = ONE_ARG | TWO_ARG
+_NOT_CONDITIONALS = frozenset({
+    "ifthenelse", "ifboolexpr", "iff", "iftoggle", "ifdef", "ifundef",
+    "ifdefmacro", "ifdefparam", "ifdefprotected", "ifdefltxprotect",
+    "ifdefstring", "ifdefempty", "ifdefvoid", "ifcsdef", "ifcsundef",
+    "ifcsmacro", "ifcsparam", "ifcsprotected", "ifcsltxprotect",
+    "ifcsstring", "ifcsvoid", "ifcsempty", "ifstrequal", "ifstrempty",
+    "ifblank", "ifnumcomp", "ifnumequal", "ifnumgreater", "ifnumless",
+    "ifdimcomp", "ifdimequal", "ifdimgreater", "ifdimless", "ifinlist",
+    "ifrmnum", "ifpatchable", "iffieldundef", "ifentrytype",
+})
+
+
+def _is_conditional(name: str, text: str, after: int,
+                    defined: frozenset[str] | set[str] = frozenset()) -> bool:
+    """Say whether a control word opens a fi-terminated conditional.
+
+    Math and argument-taking macros share the ``if`` prefix (``iff``,
+    ``iftoggle{...}{...}``), as do user macros such as ``ifff`` that a
+    declaration defines. Known macro names, a following brace argument, and
+    learned declarations mark a macro rather than a conditional primitive.
+    """
+    if name in _NOT_CONDITIONALS or name in defined:
+        return False
+    probe = after
+    while probe < len(text) and text[probe].isspace():
+        probe += 1
+    if probe < len(text) and text[probe] == "{":
+        return False
+    return name.startswith("if")
+
+
 LITERAL_ENVIRONMENTS = frozenset({
     "verbatim", "verbatim*", "Verbatim", "BVerbatim", "LVerbatim",
     "lstlisting", "minted", "comment", "filecontents", "filecontents*",
@@ -407,7 +438,9 @@ def _skip_definition(text: str, index: int, name: str) -> int:
     return index
 
 
-def _conditional_bounds(text: str, index: int) -> tuple[int | None, int, int]:
+def _conditional_bounds(text: str, index: int,
+                        defined: frozenset[str] | set[str] = frozenset(),
+                        ) -> tuple[int | None, int, int]:
     """Return ``(else_start, fi_start, fi_end)`` for a conditional body.
 
     ``index`` is the offset just after the opening ``\\if...`` control word.
@@ -432,7 +465,7 @@ def _conditional_bounds(text: str, index: int) -> tuple[int | None, int, int]:
             continue
         name = match.group(1)
         after = match.end()
-        if name.startswith("if") and name not in {"ifthenelse", "ifboolexpr"}:
+        if _is_conditional(name, text, after, defined):
             depth += 1
         elif name == "fi":
             depth -= 1
@@ -557,6 +590,7 @@ def _scan(text: str) -> tuple[list, list[dict]]:
     conditionals = 0
     uncertain_directives = 0
     conditional_names: list[set[str]] = []
+    defined_names: set[str] = set()
 
     def walk(start: int, stop: int, uncertain: int) -> None:
         nonlocal conditionals, uncertain_directives
@@ -602,7 +636,13 @@ def _scan(text: str) -> tuple[list, list[dict]]:
                 index = group_end
                 continue
             if name in {"iffalse", "iftrue"}:
-                else_start, fi_start, fi_end = _conditional_bounds(text, after)
+                else_start, fi_start, fi_end = _conditional_bounds(
+                    text, after, defined_names)
+                if fi_start >= stop:
+                    diagnostics.append({"code": "unclosed_conditional",
+                                        "name": name})
+                    index = after
+                    continue
                 fi_start = min(fi_start, stop)
                 fi_end = min(fi_end, stop)
                 if name == "iffalse":
@@ -622,8 +662,14 @@ def _scan(text: str) -> tuple[list, list[dict]]:
             if name == "endinput":
                 diagnostics.append({"code": "endinput"})
                 break
-            if name.startswith("if") and name not in {"ifthenelse", "ifboolexpr"}:
-                else_start, fi_start, fi_end = _conditional_bounds(text, after)
+            if _is_conditional(name, text, after, defined_names):
+                else_start, fi_start, fi_end = _conditional_bounds(
+                    text, after, defined_names)
+                if fi_start >= stop:
+                    diagnostics.append({"code": "unclosed_conditional",
+                                        "name": name})
+                    index = after
+                    continue
                 fi_start = min(fi_start, stop)
                 fi_end = min(fi_end, stop)
                 else_start = (min(else_start, stop)
@@ -656,10 +702,21 @@ def _scan(text: str) -> tuple[list, list[dict]]:
                 items.append(_ScopeEvent(False, index))
                 index = after
                 continue
+            if name == "newif":
+                probe = _skip_space(text, after)
+                flag = _CONTROL.match(text, probe)
+                if flag:
+                    defined_names.update({flag.group(1) + "true",
+                                          flag.group(1) + "false"})
+                    index = flag.end()
+                else:
+                    index = probe
+                continue
             if name in _DECLARATIONS:
                 definition = _definition_event(text, index, name)
                 if definition is not None:
                     items.append(definition)
+                    defined_names.add(definition.name)
                     for names in conditional_names:
                         names.add(definition.name)
                 index = _skip_definition(text, after, name)
@@ -701,53 +758,105 @@ def document_bounds(text: str) -> tuple[int | None, int | None, int | None]:
     ``body_start`` is the offset just after ``\\begin{document}`` and
     ``end_start`` the offset of the first real ``\\end{document}``; both are
     ``None`` when the document markers are absent or unmatched. Comments,
-    ``\\verb``-like constructs and literal environments are skipped, so an
-    ``\\end{document}`` shown inside ``verbatim`` does not end the body.
+    ``\\verb``-like constructs, literal environments, declaration bodies and
+    inactive branches of statically decidable conditionals are skipped, so a
+    marker shown in a definition or a disabled branch does not cut the body.
     """
-    index = 0
     begin_start: int | None = None
     body_start: int | None = None
-    while index < len(text):
-        char = text[index]
-        if char == "%":
-            end = text.find("\n", index)
-            index = len(text) if end < 0 else end + 1
-            continue
-        if char != "\\":
-            index += 1
-            continue
-        match = _CONTROL.match(text, index)
-        if not match:
-            index += 2
-            continue
-        name = match.group(1)
-        after = match.end()
-        if name in {"verb", "verb*", "lstinline"}:
-            if after < len(text):
-                delimiter = text[after]
-                end = text.find(delimiter, after + 1)
-                index = len(text) if end < 0 else end + 1
-            else:
-                index = after
-            continue
-        if name in {"begin", "end"}:
-            environment, group_end = _parse_group(text, after)
-            environment = environment.strip()
-            if name == "begin" and environment in LITERAL_ENVIRONMENTS:
-                end = text.find("\\end{" + environment + "}", group_end)
-                index = (len(text) if end < 0
-                         else end + len("\\end{" + environment + "}"))
+    end_start: int | None = None
+    defined_names: set[str] = set()
+
+    def walk(start: int, stop: int) -> None:
+        nonlocal begin_start, body_start, end_start
+        index = start
+        while index < stop and end_start is None:
+            char = text[index]
+            if char == "%":
+                newline = text.find("\n", index)
+                index = stop if newline < 0 else newline + 1
                 continue
-            if name == "begin" and environment == "document" and begin_start is None:
-                begin_start, body_start = index, group_end
+            if char != "\\":
+                index += 1
+                continue
+            match = _CONTROL.match(text, index)
+            if not match:
+                index += 2
+                continue
+            name = match.group(1)
+            after = match.end()
+            if name in {"verb", "verb*", "lstinline"}:
+                if after < stop:
+                    delimiter = text[after]
+                    newline = text.find(delimiter, after + 1, stop)
+                    index = stop if newline < 0 else newline + 1
+                else:
+                    index = after
+                continue
+            if name in {"begin", "end"}:
+                environment, group_end = _parse_group(text, after)
+                environment = environment.strip()
+                if name == "begin" and environment in LITERAL_ENVIRONMENTS:
+                    closing = "\\end{" + environment + "}"
+                    newline = text.find(closing, group_end, stop)
+                    index = stop if newline < 0 else newline + len(closing)
+                    continue
+                if (name == "begin" and environment == "document"
+                        and begin_start is None):
+                    begin_start, body_start = index, group_end
+                    index = group_end
+                    continue
+                if (name == "end" and environment == "document"
+                        and begin_start is not None):
+                    end_start = index
+                    return
                 index = group_end
                 continue
-            if name == "end" and environment == "document" and begin_start is not None:
-                return begin_start, body_start, index
-            index = group_end
-            continue
-        index = after
-    return begin_start, body_start, None
+            if name == "newif":
+                probe = _skip_space(text, after)
+                flag = _CONTROL.match(text, probe)
+                if flag:
+                    defined_names.update({flag.group(1) + "true",
+                                          flag.group(1) + "false"})
+                    index = flag.end()
+                else:
+                    index = probe
+                continue
+            if name in _DECLARATIONS:
+                definition = _definition_event(text, index, name)
+                if definition is not None:
+                    defined_names.add(definition.name)
+                index = _skip_definition(text, after, name)
+                continue
+            if name in {"iffalse", "iftrue"}:
+                else_start, fi_start, fi_end = _conditional_bounds(
+                    text, after, defined_names)
+                if fi_start >= stop:
+                    index = after
+                    continue
+                fi_start = min(fi_start, stop)
+                fi_end = min(fi_end, stop)
+                else_start = (min(else_start, stop)
+                              if else_start is not None else None)
+                if name == "iffalse":
+                    if else_start is not None:
+                        walk(else_start, fi_start)
+                else:
+                    walk(after, else_start if else_start is not None else fi_start)
+                index = fi_end
+                continue
+            if _is_conditional(name, text, after, defined_names):
+                _, fi_start, fi_end = _conditional_bounds(
+                    text, after, defined_names)
+                if fi_start >= stop:
+                    index = after
+                    continue
+                index = min(fi_end, stop)
+                continue
+            index = after
+
+    walk(0, len(text))
+    return begin_start, body_start, end_start
 
 
 def _document_body(raw: bytes) -> tuple[int, int, bool, bool]:

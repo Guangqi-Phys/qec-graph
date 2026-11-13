@@ -378,7 +378,8 @@ TeX、不要求工程可编译的前提下识别并转换来源树。入口识�
 
 组装只复制原始字节。它解析字面 `\input`/`\include`/`\subfile`/`\import`/
 `\subimport`，剥掉 subfile 的 preamble，以及从另一个入口引入的完整文档的
-preamble，并从来源中的 `\newcommand`/`\def` 学习零参数字面路径宏。多参数
+preamble，并从来源中的 `\newcommand`/`\def` 学习零参数字面路径宏。文档标记与
+指令使用同一套词法规则：声明体、字面环境和非活跃条件分支中的标记不能结束文档。多参数
 引入指令会成为其内容内引用的搜索目录，因此被 `\import` 的章节先解析自己的
 同级文件，而不是根目录同名文件。结构解析读取 entry 的副本，并在拼接会合并
 token 或让子文件末尾注释吞掉父文件内容的位置插入一个空格或换行；block 文本从
@@ -404,9 +405,10 @@ token 或让子文件末尾注释吞掉父文件内容的位置插入一个空�
 - `coverage`：`content_complete` 表示正文中的 include 指令都已解析，并且没有从
   entry 之外读入正文内容（`include_outside_entry`）；
   `structure_complete` 表示模型确实表达了正文：没有 parser 错误、至少一个 block、
-  每个 block 之外没有实质正文文本（`uncovered_entry_chars`），并且没有从无法判定
-  的条件分支中解析 include（`conditional_directives`）。`document_complete` 要求
-  两者都成立，`reasons` 列出每个失败原因。不检查编译，编译不是完成条件。
+  每个 block 之外没有实质正文文本（`uncovered_entry_chars`），没有从无法判定的
+  条件分支中解析 include（`conditional_directives`），也没有缺少匹配 `\fi` 的条件
+  （`unclosed_conditional`）。`document_complete` 要求两者都成立，`reasons` 列出
+  每个失败原因。不检查编译，编译不是完成条件。
 
 模型来自对组装后 entry 的一次解析，因此 entry preamble 中的声明——定理环境、
 宏——会作用于所有被引入片段，block 边界跟随 entry 而不是各个文件。block 再通过
