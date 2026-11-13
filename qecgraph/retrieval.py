@@ -71,7 +71,7 @@ def identity(cfg):
 
 def terms(text):
     tokens = re.findall(r'[^\W_]+', text.casefold())
-    result = []
+    result: list[str] = []
     for token in tokens:
         if re.search(r'[\u3400-\u9fff]', token):
             result.extend(token[i:i+2] for i in range(max(1, len(token)-1)))
@@ -82,7 +82,7 @@ def terms(text):
 
 def local_vector(text, dimension):
     counts = Counter(terms(text))
-    vector = {}
+    vector: dict[str, float] = {}
     for token, count in counts.items():
         features = [token, *('~'+token[i:i+3] for i in range(max(0, len(token)-2)))]
         for feature in features:
@@ -199,7 +199,9 @@ def _stage_index(registry, state, raw_config, *, repair=False):
         previous = None
     if previous and previous['corpus_sha256'] == binding and previous['configuration'] == cfg:
         return
-    chunks, pending, total_chars = [], {}, 0
+    chunks: list[dict[str, str | int]] = []
+    pending: dict[str, str] = {}
+    total_chars = 0
     reusable = {c['text_sha256']: c['vector_sha256'] for c in previous['chunks']} if previous and previous['identity'] == model else {}
     for unit in track(units, 'Indexing searchable source text', unit='passages'):
         text = unit['search_text']
@@ -217,7 +219,7 @@ def _stage_index(registry, state, raw_config, *, repair=False):
                            'text_sha256': digest})
     reusable.update(_store_vectors(registry.root, cfg, pending, repair=repair))
     for chunk in chunks:
-        chunk['vector_sha256'] = reusable[chunk['text_sha256']]
+        chunk['vector_sha256'] = reusable[str(chunk['text_sha256'])]
     phase('Writing retrieval index')
     projection = {'format': FORMAT, 'identity': model, 'configuration': cfg,
                   'corpus_sha256': binding, 'unit_count': len(units), 'chunks': chunks,
@@ -265,9 +267,10 @@ class RetrievalIndex:
             raise ToolError('EMBEDDING_UNAVAILABLE', 'Stored vector unavailable; rebuild or use mode=keyword') from None
 
     def rank(self, query, allowed):
-        if not self.current:
+        data = self.data
+        if not self.current or data is None:
             raise ToolError('INDEX_UNAVAILABLE', 'Build a current retrieval index with sync/rebuild; source search remains available')
-        cfg = configuration(self.data['configuration'])
+        cfg = configuration(data['configuration'])
         if len(query) > cfg['chunk_chars']:
             raise ToolError('INVALID_ARGUMENT', 'Query exceeds embedding character budget')
         try:
@@ -275,9 +278,9 @@ class RetrievalIndex:
                       else external_embeddings([query], cfg)[0])
         except ValueError:
             raise ToolError('EMBEDDING_UNAVAILABLE', 'Query embedding unavailable; retry with mode=keyword') from None
-        similarity = {}
+        similarity: dict[str, float] = {}
         vectors = {}
-        for chunk in self.data['chunks']:
+        for chunk in data['chunks']:
             key = chunk['unit_key']
             if not vector or key not in allowed:
                 continue

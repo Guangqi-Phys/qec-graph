@@ -194,7 +194,7 @@ class Workspace:
             target = self.path(CONFIG)
             configured = target.exists()
             cfg = self.config() if configured else None
-            if configured and self.path('machine/CURRENT.json').is_file():
+            if cfg is not None and self.path('machine/CURRENT.json').is_file():
                 return {'status': 'already_initialized', 'workspace_id': cfg['workspace_id'], 'next': 'qec-graph sync'}
             for path in ('inputs/.processing', 'archive/blobs/sha256', 'archive/receipts', 'sources', 'machine'):
                 self.path(path).mkdir(parents=True, exist_ok=True)
@@ -755,12 +755,12 @@ class Workspace:
             saved = self.path('sources/' + tree_hash)
             preserve = not saved.exists()
             if not preserve:
-                for path, original in sorted(tree.files.items()):
-                    if not _matches_regular(self.path('sources/' + tree_hash + '/' + path), limits.member_bytes, original):
+                for member, original in sorted(tree.files.items()):
+                    if not _matches_regular(self.path('sources/' + tree_hash + '/' + member), limits.member_bytes, original):
                         raise ValueError('Preserved source tree does not match archive')
             if preserve or version is None:
-                with tempfile.TemporaryDirectory(prefix='ingest-', dir=self.path('.qecgraph')) as temporary:
-                    temporary = Path(temporary)
+                with tempfile.TemporaryDirectory(prefix='ingest-', dir=self.path('.qecgraph')) as temporary_dir:
+                    temporary = Path(temporary_dir)
                     if preserve:
                         expanded = temporary / 'expanded'
                         tree.materialize(expanded)

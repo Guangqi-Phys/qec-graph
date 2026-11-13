@@ -21,7 +21,8 @@ def annotation_eligible(annotation, include_candidates=False):
 def reviewed_cycles(graph):
     """SCCs only in the active, reviewed logical subgraph; citation rings are legal."""
     edges = [edge for edge in graph['edges'] if edge['relation'] == 'depends_on_reviewed' and eligible(edge)]
-    adjacent, reverse = {}, {}
+    adjacent: dict[str, set[str]] = {}
+    reverse: dict[str, set[str]] = {}
     for edge in edges:
         source, target = edge['source'], edge['target']
         adjacent.setdefault(source, set()).add(target)

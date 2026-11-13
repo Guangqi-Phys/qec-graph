@@ -5,6 +5,7 @@ import hashlib
 import math
 import re
 import struct
+from collections.abc import Iterable
 
 from .core.fs import managed_path
 from .core.transactions import atomic_bytes
@@ -39,6 +40,7 @@ def read_vector(machine, digest, dimensions):
     if hashlib.sha256(raw).hexdigest() != digest:
         raise ValueError('Retrieval vector hash mismatch')
     header, data = raw[:1], raw[1:]
+    pairs: Iterable[tuple[int, float]]
     if header == b'D' and len(data) == dimensions * 4:
         pairs = enumerate(struct.unpack(f'<{dimensions}f', data))
     elif header == b'S' and len(data) % _SPARSE_VALUE.size == 0:

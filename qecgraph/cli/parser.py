@@ -296,7 +296,7 @@ def _build_parser(entrypoint=None):
                                     f'Legacy commands: qec-graph help aliases\nGuide: {GUIDE_URL}')
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     sub = parser.add_subparsers(dest='command', required=True, metavar='<command>')
-    topics = {}
+    topics: dict[tuple[str, ...], argparse.ArgumentParser] = {}
     groups = {}
     for name, (description, actions) in _GROUPS.items():
         action = next(iter(actions))
@@ -310,7 +310,7 @@ def _build_parser(entrypoint=None):
     def add(name, *, help):
         # Build options once. The public parents API reuses those definitions
         # for the grouped command and any existing flat entry point.
-        options = argparse.ArgumentParser(prog=f'qec-graph {name}', add_help=False)
+        options = _ArgumentParser(prog=f'qec-graph {name}', add_help=False)
         definitions[name] = options, help
         return options
 

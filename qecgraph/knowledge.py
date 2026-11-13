@@ -587,7 +587,7 @@ class KnowledgeView:
                 ranked, status = ([], self.retrieval.status())
                 fallback = 'Embedding unavailable; returned keyword candidates'
             if mode == 'hybrid':
-                fused = Counter()
+                fused: defaultdict[str, float] = defaultdict(float)
                 for ranking in (lexical, ranked):
                     for position, key in enumerate(ranking, 1):
                         fused[key] += 1 / (60 + position)

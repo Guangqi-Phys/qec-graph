@@ -41,7 +41,8 @@ def bibliography_edges(nodes, edges, versions):
 
 def project_sources(registry, state, fixed, *, verify_sources=False, verified_spans=None, manifest_hashes=None):
     selected = sorted(state['versions'])
-    nodes, edges, labels, versions = [], [], {}, {}
+    nodes, edges, versions = [], [], {}
+    labels: dict[str, list[str]] = {}
     partial = recovered = False
     normalized = {(m.get('source_version_id'), m.get('source_snapshot_id')): m
                   for m in state.get('materials', {}).values() if m.get('normalization_id')}
