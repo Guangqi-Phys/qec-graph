@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections import Counter
 from pathlib import Path
 from statistics import mean, median
 from time import perf_counter
@@ -21,6 +22,9 @@ def overlaps(source, expected):
 def evaluate(session, dataset):
     if not isinstance(dataset.get('cases'), list) or not dataset['cases']:
         raise ValueError('A nonempty explicit case list is required')
+    formal = dataset.get('format') == 'qecgraph.source-first-retrieval-cases.v1'
+    if formal:
+        validate_formal_dataset(session, dataset)
     measurements = []
     for case in dataset['cases']:
         expected = case['expected_sources']
@@ -44,6 +48,11 @@ def evaluate(session, dataset):
             compact = session.invoke('qec_search', {**args, 'limit': 5})
             outcomes[mode] = {'recall_at_5': sum(rank is not None and rank <= 5 for rank in ranks) / len(expected),
                               'recall_at_10': sum(rank is not None for rank in ranks) / len(expected),
+                              'hit_at_5': int(first is not None and first <= 5),
+                              'failure_type': ('tool_error' if not response['ok'] or not compact['ok'] else
+                                               'no_candidates' if not rows else
+                                               'evidence_outside_top_10' if first is None else
+                                               'evidence_outside_top_5' if first > 5 else None),
                               'reciprocal_rank_at_10': 0 if first is None else 1 / first,
                               'result_count': len(rows), 'seconds': elapsed,
                               'concise_5_chars': len(canonical(compact)), 'ok': response['ok'] and compact['ok'],
@@ -55,14 +64,30 @@ def evaluate(session, dataset):
     for mode in ('literal', 'keyword'):
         rows = [case['modes'][mode] for case in measurements]
         summary[mode] = {metric: mean(row[metric] for row in rows) for metric in
-                         ('recall_at_5', 'recall_at_10', 'reciprocal_rank_at_10')}
+                         ('hit_at_5', 'recall_at_5', 'recall_at_10', 'reciprocal_rank_at_10')}
         summary[mode].update(median_concise_5_chars=median(row['concise_5_chars'] for row in rows),
-                             median_seconds=median(row['seconds'] for row in rows), failures=sum(not row['ok'] for row in rows))
+                             median_seconds=median(row['seconds'] for row in rows),
+                             failures=sum(not row['ok'] for row in rows),
+                             failure_types=dict(Counter(row['failure_type'] for row in rows if row['failure_type'])))
     return {'format': 'qecgraph.retrieval-evaluation.v1', 'scope': session.scope,
             'dataset_sha256': hash_text(canonical(dataset)), 'label_status': dataset['label_status'],
             'comparison': 'Literal versus BM25 on the same current implementation, release and eligible units; not an old-code replay',
-            'interpretation': 'Source-block discovery only, excluding AI proposals. Labels are engineering smoke, not blinded scientific gold. No model calls.',
+            'interpretation': ('Source-first agent annotations for evidence discovery. Independent researcher review is pending.'
+                               if formal else 'Engineering smoke labels for source-block discovery.'),
+            'acceptance': ({'thresholds': dataset['thresholds'],
+                            'passed': (summary['keyword']['hit_at_5'] >= dataset['thresholds']['hit_at_5']
+                                       and not summary['keyword']['failures'])} if formal else None),
             'summary': summary, 'cases': measurements}
+
+
+def validate_formal_dataset(session, dataset):
+    if dataset['release'] != session.release:
+        raise ValueError('Source-first evaluation requires its pinned release')
+    cases = dataset['cases']
+    if len(cases) < 50 or len({case['id'] for case in cases}) != len(cases):
+        raise ValueError('Source-first evaluation requires at least 50 uniquely identified cases')
+    if not 0 < dataset['thresholds']['hit_at_5'] <= 1:
+        raise ValueError('Invalid hit-at-five threshold')
 
 
 def main():
@@ -70,13 +95,17 @@ def main():
     parser.add_argument('--machine', type=Path, required=True, help='Read-only machine copy; never read human or workspace config')
     parser.add_argument('--release', help='Fixed release, default CURRENT')
     parser.add_argument('--cases', type=Path, required=True, help='Explicit source-bound JSON questions')
+    parser.add_argument('--enforce', action='store_true', help='Return failure if the frozen threshold is missed')
     parser.add_argument('--out', type=Path, required=True, help='Local measurement report')
     args = parser.parse_args()
-    session = WorkspaceSession(args.machine, args.release, profile='research', max_chars=1000000)
-    report = evaluate(session, read_json(args.cases))
+    dataset = read_json(args.cases)
+    session = WorkspaceSession(args.machine, args.release or dataset.get('release'),
+                               profile='research', max_chars=1000000)
+    report = evaluate(session, dataset)
     atomic_json(args.out, report)
     print(json.dumps({'report': str(args.out.resolve()), 'summary': report['summary']}, indent=2))
-    return int(any(row['failures'] for row in report['summary'].values()))
+    missed = args.enforce and report['acceptance'] is not None and not report['acceptance']['passed']
+    return int(missed or any(row['failures'] for row in report['summary'].values()))
 
 
 if __name__ == '__main__':

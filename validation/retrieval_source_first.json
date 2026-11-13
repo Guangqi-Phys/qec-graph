@@ -1,0 +1,710 @@
+{
+  "format": "qecgraph.source-first-retrieval-cases.v1",
+  "release": "aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22",
+  "label_status": "source_first_agent_annotated",
+  "thresholds": {
+    "hit_at_5": 0.8
+  },
+  "cases": [
+    {
+      "id": "q01",
+      "question": "How do the authors estimate when error correction stops working without sampling the protocol?",
+      "query": "How do the authors estimate when error correction stops working without sampling the protocol?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e4a57d4e47c38446fb00f01440898e21d04dd7879b571b781015c0703647fccb",
+          "path": "draftv1.tex",
+          "file_sha256": "e954ebcd340abc104adb7fb64c54678064fce8ebace08a93e3cc231c38a21d25",
+          "char_start": 3585,
+          "char_end": 3719
+        }
+      ]
+    },
+    {
+      "id": "q02",
+      "question": "What benchmark for random codes is the surface code close to?",
+      "query": "What benchmark for random codes is the surface code close to?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e4a57d4e47c38446fb00f01440898e21d04dd7879b571b781015c0703647fccb",
+          "path": "draftv1.tex",
+          "file_sha256": "e954ebcd340abc104adb7fb64c54678064fce8ebace08a93e3cc231c38a21d25",
+          "char_start": 6825,
+          "char_end": 7019
+        }
+      ]
+    },
+    {
+      "id": "q03",
+      "question": "What uncertainty remains about the logical error once the syndrome is observed?",
+      "query": "What uncertainty remains about the logical error once the syndrome is observed?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e4a57d4e47c38446fb00f01440898e21d04dd7879b571b781015c0703647fccb",
+          "path": "draftv1.tex",
+          "file_sha256": "e954ebcd340abc104adb7fb64c54678064fce8ebace08a93e3cc231c38a21d25",
+          "char_start": 8237,
+          "char_end": 8469
+        }
+      ]
+    },
+    {
+      "id": "q04",
+      "question": "Why is computing the conditional entropy exactly impractical at scale?",
+      "query": "Why is computing the conditional entropy exactly impractical at scale?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e4a57d4e47c38446fb00f01440898e21d04dd7879b571b781015c0703647fccb",
+          "path": "draftv1.tex",
+          "file_sha256": "e954ebcd340abc104adb7fb64c54678064fce8ebace08a93e3cc231c38a21d25",
+          "char_start": 9864,
+          "char_end": 10010
+        }
+      ]
+    },
+    {
+      "id": "q05",
+      "question": "Does successful recovery have to reconstruct the exact physical fault?",
+      "query": "Does successful recovery have to reconstruct the exact physical fault?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e4a57d4e47c38446fb00f01440898e21d04dd7879b571b781015c0703647fccb",
+          "path": "draftv1.tex",
+          "file_sha256": "e954ebcd340abc104adb7fb64c54678064fce8ebace08a93e3cc231c38a21d25",
+          "char_start": 11385,
+          "char_end": 11515
+        }
+      ]
+    },
+    {
+      "id": "q06",
+      "question": "Which entropy terms require enumerating many possible outcomes even with independent faults?",
+      "query": "Which entropy terms require enumerating many possible outcomes even with independent faults?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e4a57d4e47c38446fb00f01440898e21d04dd7879b571b781015c0703647fccb",
+          "path": "draftv1.tex",
+          "file_sha256": "e954ebcd340abc104adb7fb64c54678064fce8ebace08a93e3cc231c38a21d25",
+          "char_start": 13266,
+          "char_end": 13506
+        }
+      ]
+    },
+    {
+      "id": "q07",
+      "question": "Why does infinite bias cut the surface-code syndrome entropy per cell in half?",
+      "query": "Why does infinite bias cut the surface-code syndrome entropy per cell in half?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e4a57d4e47c38446fb00f01440898e21d04dd7879b571b781015c0703647fccb",
+          "path": "draftv1.tex",
+          "file_sha256": "e954ebcd340abc104adb7fb64c54678064fce8ebace08a93e3cc231c38a21d25",
+          "char_start": 19412,
+          "char_end": 19595
+        }
+      ]
+    },
+    {
+      "id": "q08",
+      "question": "How many detector and fault variables does one phenomenological surface-code cell contribute?",
+      "query": "How many detector and fault variables does one phenomenological surface-code cell contribute?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e4a57d4e47c38446fb00f01440898e21d04dd7879b571b781015c0703647fccb",
+          "path": "draftv1.tex",
+          "file_sha256": "e954ebcd340abc104adb7fb64c54678064fce8ebace08a93e3cc231c38a21d25",
+          "char_start": 22520,
+          "char_end": 22666
+        }
+      ]
+    },
+    {
+      "id": "q09",
+      "question": "Why does the approximation based on low degeneracy break down for Bacon–Shor?",
+      "query": "Why does the approximation based on low degeneracy break down for Bacon–Shor?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e4a57d4e47c38446fb00f01440898e21d04dd7879b571b781015c0703647fccb",
+          "path": "draftv1.tex",
+          "file_sha256": "e954ebcd340abc104adb7fb64c54678064fce8ebace08a93e3cc231c38a21d25",
+          "char_start": 30468,
+          "char_end": 31105
+        }
+      ]
+    },
+    {
+      "id": "q10",
+      "question": "What does the soft-information decoder receive beyond binary detector values?",
+      "query": "What does the soft-information decoder receive beyond binary detector values?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e4a57d4e47c38446fb00f01440898e21d04dd7879b571b781015c0703647fccb",
+          "path": "draftv1.tex",
+          "file_sha256": "e954ebcd340abc104adb7fb64c54678064fce8ebace08a93e3cc231c38a21d25",
+          "char_start": 43078,
+          "char_end": 43242
+        }
+      ]
+    },
+    {
+      "id": "q11",
+      "question": "Which accepted trial does the syndrome-flip method return?",
+      "query": "Which accepted trial does the syndrome-flip method return?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:d6112310a9e22e168a11ba4d67f7b8b8d13cb60848d471553950559a7e7bedb1",
+          "path": "method.tex",
+          "file_sha256": "cae6b86e54eae80568995be419cffc9e80e595ac9183d2bcb131b2933715fcd0",
+          "char_start": 240,
+          "char_end": 408
+        }
+      ]
+    },
+    {
+      "id": "q12",
+      "question": "How is the set of unreliable BP variables selected for a retry?",
+      "query": "How is the set of unreliable BP variables selected for a retry?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:d6112310a9e22e168a11ba4d67f7b8b8d13cb60848d471553950559a7e7bedb1",
+          "path": "method.tex",
+          "file_sha256": "cae6b86e54eae80568995be419cffc9e80e595ac9183d2bcb131b2933715fcd0",
+          "char_start": 710,
+          "char_end": 1044
+        }
+      ]
+    },
+    {
+      "id": "q13",
+      "question": "What bounds the number of bits perturbed in one BP-SF trial?",
+      "query": "What bounds the number of bits perturbed in one BP-SF trial?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:d6112310a9e22e168a11ba4d67f7b8b8d13cb60848d471553950559a7e7bedb1",
+          "path": "method.tex",
+          "file_sha256": "cae6b86e54eae80568995be419cffc9e80e595ac9183d2bcb131b2933715fcd0",
+          "char_start": 979,
+          "char_end": 1249
+        }
+      ]
+    },
+    {
+      "id": "q14",
+      "question": "Why does reversing the trial flip leave the accepted correction consistent with the original measurements?",
+      "query": "Why does reversing the trial flip leave the accepted correction consistent with the original measurements?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:d6112310a9e22e168a11ba4d67f7b8b8d13cb60848d471553950559a7e7bedb1",
+          "path": "method.tex",
+          "file_sha256": "cae6b86e54eae80568995be419cffc9e80e595ac9183d2bcb131b2933715fcd0",
+          "char_start": 1302,
+          "char_end": 1563
+        }
+      ]
+    },
+    {
+      "id": "q15",
+      "question": "On the 144-qubit code, how much faster was BP-SF at the mean and the 99.9th percentile on matched hard shots?",
+      "query": "On the 144-qubit code, how much faster was BP-SF at the mean and the 99.9th percentile on matched hard shots?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:d6112310a9e22e168a11ba4d67f7b8b8d13cb60848d471553950559a7e7bedb1",
+          "path": "conclusion.tex",
+          "file_sha256": "91ebfad080f5b9168c7b19b00954945f196a0663e3226c603142b9af5f0366a4",
+          "char_start": 365,
+          "char_end": 685
+        }
+      ]
+    },
+    {
+      "id": "q16",
+      "question": "Which decoder kept an accuracy advantage on the larger bicycle code?",
+      "query": "Which decoder kept an accuracy advantage on the larger bicycle code?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:d6112310a9e22e168a11ba4d67f7b8b8d13cb60848d471553950559a7e7bedb1",
+          "path": "conclusion.tex",
+          "file_sha256": "91ebfad080f5b9168c7b19b00954945f196a0663e3226c603142b9af5f0366a4",
+          "char_start": 714,
+          "char_end": 851
+        }
+      ]
+    },
+    {
+      "id": "q17",
+      "question": "How did windowed decoding change per-round cost and failure rate up to 512 rounds?",
+      "query": "How did windowed decoding change per-round cost and failure rate up to 512 rounds?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:d6112310a9e22e168a11ba4d67f7b8b8d13cb60848d471553950559a7e7bedb1",
+          "path": "conclusion.tex",
+          "file_sha256": "91ebfad080f5b9168c7b19b00954945f196a0663e3226c603142b9af5f0366a4",
+          "char_start": 853,
+          "char_end": 1248
+        }
+      ]
+    },
+    {
+      "id": "q18",
+      "question": "How does the full-frame memory experiment differ from destructive readout?",
+      "query": "How does the full-frame memory experiment differ from destructive readout?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:d6112310a9e22e168a11ba4d67f7b8b8d13cb60848d471553950559a7e7bedb1",
+          "path": "simulation.tex",
+          "file_sha256": "6a49524f1c251da27f6d4e850efa9e1e0121744da5f9f1d999dfc2ee531f4066",
+          "char_start": 611,
+          "char_end": 937
+        }
+      ]
+    },
+    {
+      "id": "q19",
+      "question": "How are both incorrect convergence and failure to converge counted when normalizing logical errors per round?",
+      "query": "How are both incorrect convergence and failure to converge counted when normalizing logical errors per round?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:d6112310a9e22e168a11ba4d67f7b8b8d13cb60848d471553950559a7e7bedb1",
+          "path": "simulation.tex",
+          "file_sha256": "6a49524f1c251da27f6d4e850efa9e1e0121744da5f9f1d999dfc2ee531f4066",
+          "char_start": 1189,
+          "char_end": 1488
+        }
+      ]
+    },
+    {
+      "id": "q20",
+      "question": "What hardware produced the GPU timing measurements and what is the timing survival probability?",
+      "query": "What hardware produced the GPU timing measurements and what is the timing survival probability?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:d6112310a9e22e168a11ba4d67f7b8b8d13cb60848d471553950559a7e7bedb1",
+          "path": "simulation.tex",
+          "file_sha256": "6a49524f1c251da27f6d4e850efa9e1e0121744da5f9f1d999dfc2ee531f4066",
+          "char_start": 1539,
+          "char_end": 1769
+        }
+      ]
+    },
+    {
+      "id": "q21",
+      "question": "Which decoder is intended to combine hardware speed with software-like accuracy?",
+      "query": "Which decoder is intended to combine hardware speed with software-like accuracy?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:ab3ad0802922b13c0d024031b6aa4d33d7892919ff8747b5c5912b9de4430fb9",
+          "path": "main.tex",
+          "file_sha256": "cad94805c05e112bbb92d77c9978ddb9891a13d297db7a9a12a6e0402a9ee8c1",
+          "char_start": 6093,
+          "char_end": 6345
+        }
+      ]
+    },
+    {
+      "id": "q22",
+      "question": "How did adapting to leakage affect the code distance required in the simulation?",
+      "query": "How did adapting to leakage affect the code distance required in the simulation?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:ab3ad0802922b13c0d024031b6aa4d33d7892919ff8747b5c5912b9de4430fb9",
+          "path": "main.tex",
+          "file_sha256": "cad94805c05e112bbb92d77c9978ddb9891a13d297db7a9a12a6e0402a9ee8c1",
+          "char_start": 6979,
+          "char_end": 7976
+        }
+      ]
+    },
+    {
+      "id": "q23",
+      "question": "How does a weaker suppression factor change the number of qubits needed at fixed target logical error?",
+      "query": "How does a weaker suppression factor change the number of qubits needed at fixed target logical error?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:ab3ad0802922b13c0d024031b6aa4d33d7892919ff8747b5c5912b9de4430fb9",
+          "path": "main.tex",
+          "file_sha256": "cad94805c05e112bbb92d77c9978ddb9891a13d297db7a9a12a6e0402a9ee8c1",
+          "char_start": 9956,
+          "char_end": 10658
+        }
+      ]
+    },
+    {
+      "id": "q24",
+      "question": "How does the decoder use a leakage flag spanning a two-round lifetime?",
+      "query": "How does the decoder use a leakage flag spanning a two-round lifetime?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:ab3ad0802922b13c0d024031b6aa4d33d7892919ff8747b5c5912b9de4430fb9",
+          "path": "main.tex",
+          "file_sha256": "cad94805c05e112bbb92d77c9978ddb9891a13d297db7a9a12a6e0402a9ee8c1",
+          "char_start": 13640,
+          "char_end": 14544
+        }
+      ]
+    },
+    {
+      "id": "q25",
+      "question": "What resource and throughput tradeoff distinguishes assigning one graph vertex to a processing element from assigning several?",
+      "query": "What resource and throughput tradeoff distinguishes assigning one graph vertex to a processing element from assigning several?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:ab3ad0802922b13c0d024031b6aa4d33d7892919ff8747b5c5912b9de4430fb9",
+          "path": "main.tex",
+          "file_sha256": "cad94805c05e112bbb92d77c9978ddb9891a13d297db7a9a12a6e0402a9ee8c1",
+          "char_start": 17103,
+          "char_end": 17706
+        }
+      ]
+    },
+    {
+      "id": "q26",
+      "question": "What is allowed to change while the adaptive decoder is running?",
+      "query": "What is allowed to change while the adaptive decoder is running?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:ab3ad0802922b13c0d024031b6aa4d33d7892919ff8747b5c5912b9de4430fb9",
+          "path": "main.tex",
+          "file_sha256": "cad94805c05e112bbb92d77c9978ddb9891a13d297db7a9a12a6e0402a9ee8c1",
+          "char_start": 21107,
+          "char_end": 21333
+        }
+      ]
+    },
+    {
+      "id": "q27",
+      "question": "What two parameters set Pauli faults and leakage in the LCD benchmark?",
+      "query": "What two parameters set Pauli faults and leakage in the LCD benchmark?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:ab3ad0802922b13c0d024031b6aa4d33d7892919ff8747b5c5912b9de4430fb9",
+          "path": "main.tex",
+          "file_sha256": "cad94805c05e112bbb92d77c9978ddb9891a13d297db7a9a12a6e0402a9ee8c1",
+          "char_start": 24602,
+          "char_end": 25013
+        }
+      ]
+    },
+    {
+      "id": "q28",
+      "question": "Through what distance did the hardware report less than a microsecond per round?",
+      "query": "Through what distance did the hardware report less than a microsecond per round?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:ab3ad0802922b13c0d024031b6aa4d33d7892919ff8747b5c5912b9de4430fb9",
+          "path": "main.tex",
+          "file_sha256": "cad94805c05e112bbb92d77c9978ddb9891a13d297db7a9a12a6e0402a9ee8c1",
+          "char_start": 26910,
+          "char_end": 27491
+        }
+      ]
+    },
+    {
+      "id": "q29",
+      "question": "Under what conditions can a vertex access its neighbor in the clustering implementation?",
+      "query": "Under what conditions can a vertex access its neighbor in the clustering implementation?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:ab3ad0802922b13c0d024031b6aa4d33d7892919ff8747b5c5912b9de4430fb9",
+          "path": "main.tex",
+          "file_sha256": "cad94805c05e112bbb92d77c9978ddb9891a13d297db7a9a12a6e0402a9ee8c1",
+          "char_start": 38275,
+          "char_end": 39107
+        }
+      ]
+    },
+    {
+      "id": "q30",
+      "question": "What state did the modified simulator track for each qubit to model leakage?",
+      "query": "What state did the modified simulator track for each qubit to model leakage?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:ab3ad0802922b13c0d024031b6aa4d33d7892919ff8747b5c5912b9de4430fb9",
+          "path": "main.tex",
+          "file_sha256": "cad94805c05e112bbb92d77c9978ddb9891a13d297db7a9a12a6e0402a9ee8c1",
+          "char_start": 56386,
+          "char_end": 57009
+        }
+      ]
+    },
+    {
+      "id": "q31",
+      "question": "How does conditioning on the control turn branches with different proper times into an anomalous duration?",
+      "query": "How does conditioning on the control turn branches with different proper times into an anomalous duration?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e686c8f13e3dd2e0f83947e6ebc5908d6898533b0ac7e63d50d35c29c12f7a14",
+          "path": "Aharonov-Elitzur_time-backwards.tex",
+          "file_sha256": "d387843ff78549fe659b3f41b0605ef63c6a0720936635c0f37234a2ed363fa9",
+          "char_start": 1105,
+          "char_end": 3172
+        }
+      ]
+    },
+    {
+      "id": "q32",
+      "question": "Why can a weak value lie beyond an operator’s spectrum?",
+      "query": "Why can a weak value lie beyond an operator’s spectrum?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e686c8f13e3dd2e0f83947e6ebc5908d6898533b0ac7e63d50d35c29c12f7a14",
+          "path": "Aharonov-Elitzur_time-backwards.tex",
+          "file_sha256": "d387843ff78549fe659b3f41b0605ef63c6a0720936635c0f37234a2ed363fa9",
+          "char_start": 9650,
+          "char_end": 10007
+        }
+      ]
+    },
+    {
+      "id": "q33",
+      "question": "What costs accompany a locally superoscillatory wave?",
+      "query": "What costs accompany a locally superoscillatory wave?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e686c8f13e3dd2e0f83947e6ebc5908d6898533b0ac7e63d50d35c29c12f7a14",
+          "path": "Aharonov-Elitzur_time-backwards.tex",
+          "file_sha256": "d387843ff78549fe659b3f41b0605ef63c6a0720936635c0f37234a2ed363fa9",
+          "char_start": 10397,
+          "char_end": 10891
+        }
+      ]
+    },
+    {
+      "id": "q34",
+      "question": "What do the branch coefficients mean in the preselected and postselected experiment?",
+      "query": "What do the branch coefficients mean in the preselected and postselected experiment?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e686c8f13e3dd2e0f83947e6ebc5908d6898533b0ac7e63d50d35c29c12f7a14",
+          "path": "Aharonov-Elitzur_time-backwards.tex",
+          "file_sha256": "d387843ff78549fe659b3f41b0605ef63c6a0720936635c0f37234a2ed363fa9",
+          "char_start": 13418,
+          "char_end": 14413
+        }
+      ]
+    },
+    {
+      "id": "q35",
+      "question": "How does the number of branches affect the cost of deeper reversals?",
+      "query": "How does the number of branches affect the cost of deeper reversals?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e686c8f13e3dd2e0f83947e6ebc5908d6898533b0ac7e63d50d35c29c12f7a14",
+          "path": "Aharonov-Elitzur_time-backwards.tex",
+          "file_sha256": "d387843ff78549fe659b3f41b0605ef63c6a0720936635c0f37234a2ed363fa9",
+          "char_start": 15953,
+          "char_end": 16447
+        }
+      ]
+    },
+    {
+      "id": "q36",
+      "question": "What is inside the sealed cell used as the thought experiment’s test system?",
+      "query": "What is inside the sealed cell used as the thought experiment’s test system?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e686c8f13e3dd2e0f83947e6ebc5908d6898533b0ac7e63d50d35c29c12f7a14",
+          "path": "Aharonov-Elitzur_time-backwards.tex",
+          "file_sha256": "d387843ff78549fe659b3f41b0605ef63c6a0720936635c0f37234a2ed363fa9",
+          "char_start": 16888,
+          "char_end": 17341
+        }
+      ]
+    },
+    {
+      "id": "q37",
+      "question": "What lower bound holds for the excited fraction under any mixture of forward branches?",
+      "query": "What lower bound holds for the excited fraction under any mixture of forward branches?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e686c8f13e3dd2e0f83947e6ebc5908d6898533b0ac7e63d50d35c29c12f7a14",
+          "path": "Aharonov-Elitzur_time-backwards.tex",
+          "file_sha256": "d387843ff78549fe659b3f41b0605ef63c6a0720936635c0f37234a2ed363fa9",
+          "char_start": 20237,
+          "char_end": 20572
+        }
+      ]
+    },
+    {
+      "id": "q38",
+      "question": "Why does a long reversal require a number of branches that increases with the phase variation across the spectrum?",
+      "query": "Why does a long reversal require a number of branches that increases with the phase variation across the spectrum?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e686c8f13e3dd2e0f83947e6ebc5908d6898533b0ac7e63d50d35c29c12f7a14",
+          "path": "Aharonov-Elitzur_time-backwards.tex",
+          "file_sha256": "d387843ff78549fe659b3f41b0605ef63c6a0720936635c0f37234a2ed363fa9",
+          "char_start": 30451,
+          "char_end": 31161
+        }
+      ]
+    },
+    {
+      "id": "q39",
+      "question": "Under what energy and proper-time condition can the internal clock not distinguish branches?",
+      "query": "Under what energy and proper-time condition can the internal clock not distinguish branches?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e686c8f13e3dd2e0f83947e6ebc5908d6898533b0ac7e63d50d35c29c12f7a14",
+          "path": "Aharonov-Elitzur_time-backwards.tex",
+          "file_sha256": "d387843ff78549fe659b3f41b0605ef63c6a0720936635c0f37234a2ed363fa9",
+          "char_start": 41080,
+          "char_end": 41857
+        }
+      ]
+    },
+    {
+      "id": "q40",
+      "question": "What happens to the postselected populations above the branch-record threshold?",
+      "query": "What happens to the postselected populations above the branch-record threshold?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:e686c8f13e3dd2e0f83947e6ebc5908d6898533b0ac7e63d50d35c29c12f7a14",
+          "path": "Aharonov-Elitzur_time-backwards.tex",
+          "file_sha256": "d387843ff78549fe659b3f41b0605ef63c6a0720936635c0f37234a2ed363fa9",
+          "char_start": 45862,
+          "char_end": 46476
+        }
+      ]
+    },
+    {
+      "id": "q41",
+      "question": "How do Relay-BP and beam search get past stalled belief-propagation dynamics?",
+      "query": "How do Relay-BP and beam search get past stalled belief-propagation dynamics?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:55fd759352ef7de30c26cab69b0fb98178a987718613857368d0f527578dd548",
+          "path": "main.tex",
+          "file_sha256": "f0db0ea2e843182f98b50ed82980012a1a54b29efa684d2d1f37a390abdf4745",
+          "char_start": 3055,
+          "char_end": 3718
+        }
+      ]
+    },
+    {
+      "id": "q42",
+      "question": "Why were the original published settings used without tuning them for the correlated channel?",
+      "query": "Why were the original published settings used without tuning them for the correlated channel?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:55fd759352ef7de30c26cab69b0fb98178a987718613857368d0f527578dd548",
+          "path": "main.tex",
+          "file_sha256": "f0db0ea2e843182f98b50ed82980012a1a54b29efa684d2d1f37a390abdf4745",
+          "char_start": 7454,
+          "char_end": 7710
+        }
+      ]
+    },
+    {
+      "id": "q43",
+      "question": "Can a larger search budget recover the performance lost to correlated errors?",
+      "query": "Can a larger search budget recover the performance lost to correlated errors?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:55fd759352ef7de30c26cab69b0fb98178a987718613857368d0f527578dd548",
+          "path": "main.tex",
+          "file_sha256": "f0db0ea2e843182f98b50ed82980012a1a54b29efa684d2d1f37a390abdf4745",
+          "char_start": 8421,
+          "char_end": 9031
+        }
+      ]
+    },
+    {
+      "id": "q44",
+      "question": "What information from the hidden field can recover much of the performance loss?",
+      "query": "What information from the hidden field can recover much of the performance loss?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:55fd759352ef7de30c26cab69b0fb98178a987718613857368d0f527578dd548",
+          "path": "main.tex",
+          "file_sha256": "f0db0ea2e843182f98b50ed82980012a1a54b29efa684d2d1f37a390abdf4745",
+          "char_start": 9036,
+          "char_end": 9722
+        }
+      ]
+    },
+    {
+      "id": "q45",
+      "question": "How is a single fault affecting several detectors different from the correlations studied here?",
+      "query": "How is a single fault affecting several detectors different from the correlations studied here?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:55fd759352ef7de30c26cab69b0fb98178a987718613857368d0f527578dd548",
+          "path": "main.tex",
+          "file_sha256": "f0db0ea2e843182f98b50ed82980012a1a54b29efa684d2d1f37a390abdf4745",
+          "char_start": 10975,
+          "char_end": 11474
+        }
+      ]
+    },
+    {
+      "id": "q46",
+      "question": "What latent process makes it possible to vary spatial correlation at fixed marginal error probabilities?",
+      "query": "What latent process makes it possible to vary spatial correlation at fixed marginal error probabilities?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:55fd759352ef7de30c26cab69b0fb98178a987718613857368d0f527578dd548",
+          "path": "main.tex",
+          "file_sha256": "f0db0ea2e843182f98b50ed82980012a1a54b29efa684d2d1f37a390abdf4745",
+          "char_start": 12944,
+          "char_end": 13300
+        }
+      ]
+    },
+    {
+      "id": "q47",
+      "question": "Which statistics can change between the correlated and independent channels despite equal marginal rates?",
+      "query": "Which statistics can change between the correlated and independent channels despite equal marginal rates?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:55fd759352ef7de30c26cab69b0fb98178a987718613857368d0f527578dd548",
+          "path": "main.tex",
+          "file_sha256": "f0db0ea2e843182f98b50ed82980012a1a54b29efa684d2d1f37a390abdf4745",
+          "char_start": 14718,
+          "char_end": 14988
+        }
+      ]
+    },
+    {
+      "id": "q48",
+      "question": "How is the hidden field ordered when there is no hardware-specific geometry?",
+      "query": "How is the hidden field ordered when there is no hardware-specific geometry?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:55fd759352ef7de30c26cab69b0fb98178a987718613857368d0f527578dd548",
+          "path": "main.tex",
+          "file_sha256": "f0db0ea2e843182f98b50ed82980012a1a54b29efa684d2d1f37a390abdf4745",
+          "char_start": 16128,
+          "char_end": 16737
+        }
+      ]
+    },
+    {
+      "id": "q49",
+      "question": "What was the effect of randomizing the qubit-to-field assignment?",
+      "query": "What was the effect of randomizing the qubit-to-field assignment?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:55fd759352ef7de30c26cab69b0fb98178a987718613857368d0f527578dd548",
+          "path": "main.tex",
+          "file_sha256": "f0db0ea2e843182f98b50ed82980012a1a54b29efa684d2d1f37a390abdf4745",
+          "char_start": 16739,
+          "char_end": 17043
+        }
+      ]
+    },
+    {
+      "id": "q50",
+      "question": "What kind of events are consistent with the loss of the distance-related suppression exponent?",
+      "query": "What kind of events are consistent with the loss of the distance-related suppression exponent?",
+      "expected_sources": [
+        {
+          "source_version_id": "source:local:55fd759352ef7de30c26cab69b0fb98178a987718613857368d0f527578dd548",
+          "path": "main.tex",
+          "file_sha256": "f0db0ea2e843182f98b50ed82980012a1a54b29efa684d2d1f37a390abdf4745",
+          "char_start": 23990,
+          "char_end": 24238
+        }
+      ]
+    }
+  ]
+}
