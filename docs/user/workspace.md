@@ -16,6 +16,8 @@ current executable checks; historical run artifacts remain in Git history.
 > Human notes are never search inputs. The new thoughts-only layout deletes
 > the managed old `human/` tree without a backup; see the migration below.
 
+For non-UTF-8 TeX, QEC Graph supports explicit Latin-1, Latin-9 and Windows-1252 declarations. A workspace can also set `[encodings]` with the archive SHA-256 as the key and a supported encoding name as the value, then run `rebuild`. The original archive is preserved. Source reads identify the UTF-8 projection and give exact original byte ranges.
+
 ## On this page
 
 - [Create and operate a workspace](#create-and-operate-a-workspace)

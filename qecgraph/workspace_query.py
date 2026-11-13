@@ -113,6 +113,18 @@ class WorkspaceSession:
             (material['source_version_id'], material['source_snapshot_id']): material
             for material in self.state.get('materials', {}).values() if material.get('normalization_id')
         }
+        self._encodings = {
+            (material['source_version_id'], material['source_snapshot_id']): material['encoding_mappings']
+            for material in self.state.get('materials', {}).values()
+            if material.get('encoding_mappings') and material.get('processing_completed')
+        }
+
+    def original_encoding_range(self, span):
+        from .source.encoding import original_range
+
+        mappings = self._encodings.get((span['source_version_id'], span['snapshot_id']), {})
+        mapping = mappings.get(span['path'])
+        return original_range(mapping, span) if mapping else None
 
     def _resource_uri(self, occurrence):
         node = self._source_nodes[occurrence]
@@ -326,6 +338,7 @@ class WorkspaceSession:
                         line_end=span['line_start'] + node['latex'].count('\n', 0, max(start-original_start, end-original_start-1)))
         result = {'id': identifier, 'resource_uri': self._resource_uri(identifier), 'source': span,
                   'content_sha256': hash_text(latex), 'latex': latex}
+        self._annotate_encoding_range(span, result)
         if 'structure_classification' in node:
             result['structure_classification'] = node['structure_classification']
             result['structure_status'] = 'proposed'
@@ -340,6 +353,11 @@ class WorkspaceSession:
                 span['source_kind'] = 'normalized'
                 result['original_ranges'] = mapped_ranges(normalized.text, manifest['source_map'], start, end)
         return result
+
+    def _annotate_encoding_range(self, span, result):
+        if origin := self.original_encoding_range(span):
+            span['source_kind'] = 'transcoded_utf8'
+            result['original_ranges'] = [{'source': origin}]
 
     @staticmethod
     def _paginate(rows, args, default_limit):

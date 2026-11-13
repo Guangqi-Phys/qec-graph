@@ -145,6 +145,7 @@ class KnowledgeView:
                   'line_end': lines.line_at(max(start, end - 1)),
                   'coordinate_system': 'unicode_codepoints_half_open; lines_1based_inclusive'}
         result = {'source': source}
+        self.session._annotate_encoding_range(source, result)
         material = self.session._normalizations.get((source['source_version_id'], source['snapshot_id']))
         if material and source['path'] == 'main.tex':
             source['source_kind'] = 'normalized_unbound'

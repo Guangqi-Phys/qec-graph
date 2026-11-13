@@ -17,6 +17,7 @@ import zlib
 
 from ..core.errors import PackageError as PackageError
 from ..core.graph import canonical, hash_text
+from .encoding import project_encoding
 
 
 @dataclass(frozen=True)
@@ -224,7 +225,7 @@ def _check_zip_members(stream, maximum):
     raise PackageError('limit_exceeded', 'Too many archive members')
 
 
-def _unpack(stream, size, compressed, limits):
+def _unpack(stream, size, compressed, limits, encoding=None):
     prefix = stream.read(262)
     stream.seek(0)
     tree = _TreeBuilder(limits)
@@ -264,22 +265,20 @@ def _unpack(stream, size, compressed, limits):
     raw = stream.read()
     if _NON_TEX_PREFIX.match(raw) or b'\x00' in raw:
         raise PackageError('unsupported_format', 'Expected TeX source, not PDF, HTML or binary data')
-    try:
-        text = _tex_body(raw)
-    except UnicodeDecodeError as exc:
-        raise PackageError('unsupported_encoding', 'Standalone source is not UTF-8; an explicit encoding migration is required') from exc
+    projected, _ = project_encoding(raw, encoding)
+    text = _tex_body(projected)
     if not _TEX.search(text):
         raise PackageError('unsupported_format', 'No recognizable standalone TeX syntax')
     return SourceTree('gzip_tex' if compressed else 'tex', {'main.tex': raw})
 
 
-def unpack(raw, limits=Limits()):
+def unpack(raw, limits=Limits(), *, encoding=None):
     if len(raw) > limits.input_bytes:
         raise PackageError('limit_exceeded', 'Input package exceeds byte limit')
     try:
         with io.BytesIO(raw) as source:
             if not raw.startswith(b'\x1f\x8b'):
-                return _unpack(source, len(raw), False, limits)
+                return _unpack(source, len(raw), False, limits, encoding)
             # Bound headers and padding too. Spill large expanded streams to a
             # temporary file, then reuse that stream for format detection.
             maximum = limits.expanded_bytes + (4 << 20)
@@ -291,6 +290,6 @@ def unpack(raw, limits=Limits()):
                         raise PackageError('limit_exceeded', 'Source byte limit exceeded')
                     expanded.write(chunk)
                 expanded.seek(0)
-                return _unpack(expanded, size, True, limits)
+                return _unpack(expanded, size, True, limits, encoding)
     except (tarfile.TarError, zipfile.BadZipFile, EOFError, OSError, zlib.error, NotImplementedError) as exc:
         raise PackageError('damaged_archive', f'Could not read archive: {exc}') from exc

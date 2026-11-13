@@ -148,12 +148,13 @@ class Workspace:
             raise WorkspaceConfigError(path, 'The workspace configuration is not valid UTF-8') from exc
         if cfg.get('format') != FORMAT or not isinstance(cfg.get('workspace_id'), str):
             raise WorkspaceConfigError(path, 'Invalid workspace configuration')
-        if set(cfg) - {'format', 'workspace_id', 'limits', 'entrypoints', 'sources', 'ai', 'retrieval'}:
+        if set(cfg) - {'format', 'workspace_id', 'limits', 'entrypoints', 'sources', 'ai', 'retrieval', 'encodings'}:
             raise WorkspaceConfigError(path, 'Unsupported workspace settings')
-        for field in ('limits', 'entrypoints', 'sources', 'ai', 'retrieval'):
+        for field in ('limits', 'entrypoints', 'sources', 'ai', 'retrieval', 'encodings'):
             if not isinstance(cfg.get(field, {}), dict):
                 raise WorkspaceConfigError(path, f'{field} must be a table')
         from .retrieval import configuration
+        self._check_encoding_config(path, cfg.get('encodings', {}))
         try:
             configuration(cfg.get('retrieval', {}))
         except ValueError as exc:
@@ -178,6 +179,13 @@ class Workspace:
                 if not public_url(source['canonical_url']):
                     raise WorkspaceConfigError(path, 'canonical_url must be a public HTTP(S) citation URL')
         return cfg
+
+    @staticmethod
+    def _check_encoding_config(path, encodings):
+        from .source.encoding import supported_encoding
+        for digest, encoding in encodings.items():
+            if not HEX.fullmatch(digest) or not isinstance(encoding, str) or not supported_encoding(encoding):
+                raise WorkspaceConfigError(path, 'Encoding overrides use archive SHA-256 and a supported TeX encoding')
 
     def init(self, *, no_ingest=False, keep_inputs=False, progress=None):
         if progress:
@@ -293,7 +301,6 @@ class Workspace:
         from .llm.artifacts import load_normalization
         from .llm.client import LLMResult
         from .llm.extract import ExtractionResult, authored_sections, validate_extraction, validate_source_refs
-        from .llm.normalize import original_document
         from .llm.redact import redact
         from .llm.review import read_bound_proposal
 
@@ -302,13 +309,15 @@ class Workspace:
             raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
             if hashlib.sha256(raw).hexdigest() != digest:
                 raise ValueError('Archived source hash mismatch')
-            tree = unpack(raw, limits)
+            mappings = material.get('encoding_mappings', {})
+            entry_codec = mappings.get(material['entrypoint'], {}).get('encoding')
+            tree = unpack(raw, limits, encoding=entry_codec)
             if tree.digest != material['source_tree_hash']:
                 raise ValueError('Archived source tree mismatch')
             if material.get('normalization_id'):
                 normalized, _ = load_normalization(self.registry.root, material, tree=tree)
             else:
-                normalized = original_document(tree, material['entrypoint'])
+                normalized = self._ai_original(tree, material['entrypoint'], mappings)
             # Use the selected entry's registered file closure, not every .tex
             # in an archive: unrelated manuscripts must not enter the request.
             graph, _, _ = self.registry._load_verified_source(version)
@@ -317,7 +326,8 @@ class Workspace:
                 if node['kind'] != 'source_file':
                     continue
                 path = node['data']['path']
-                source = normalized if path == material['entrypoint'] else original_document(tree, path)
+                source = normalized if path == material['entrypoint'] else self._ai_original(
+                    tree, path, mappings)
                 if source.sha256 != node['data']['sha256']:
                     raise ValueError('AI evidence differs from its registered source')
                 if path != material['entrypoint']:
@@ -404,6 +414,18 @@ class Workspace:
         if errors:
             outcome('partial')
         return results, errors
+
+    @staticmethod
+    def _ai_original(tree, path, mappings):
+        from dataclasses import replace
+        from .llm.normalize import original_document
+        from .source.encoding import project_tex_files
+
+        if path not in mappings:
+            return original_document(tree, path)
+        files, _ = project_tex_files({path: tree.files[path]}, mappings[path]['encoding'])
+        source = original_document(SourceTree(tree.format, files), path)
+        return replace(source, source_tree_hash=tree.digest)
 
     def _partial_sections(self, material, previous, failed_skills):
         from .llm.review import read_bound_proposal
@@ -691,6 +713,7 @@ class Workspace:
         result = {'archive_sha256': digest, 'status': 'archived_only', 'processing_completed': False,
                   'semantic_status': 'not_extracted', 'processor': PROCESSOR}
         from .llm.normalize import NormalizationError
+        from .source.encoding import project_tex_files
 
         normalization = None
         try:
@@ -698,10 +721,13 @@ class Workspace:
             if hashlib.sha256(raw).hexdigest() != digest:
                 raise ValueError('Archived source hash mismatch')
             phase('Unpacking source package')
-            tree = unpack(raw, limits)
+            encoding = cfg.get('encodings', {}).get(digest)
+            tree = unpack(raw, limits, encoding=encoding)
             del raw
             tree_hash = tree.digest
-            extract_tree = tree
+            projected, mappings = project_tex_files(tree.files, encoding)
+            extract_tree = SourceTree(tree.format, projected)
+            result.update(self._encoding_binding(mappings))
             result.update(format=tree.format, source_tree_hash=tree_hash)
             metadata = cfg.get('sources', {}).get(tree_hash, {})
             work_id = metadata.get('work_id', 'work:local:' + tree_hash)
@@ -709,10 +735,10 @@ class Workspace:
             result.update(work_id=work_id, upstream_version=upstream)
             entry = cfg.get('entrypoints', {}).get(tree_hash)
             if entry not in tree.files:
-                candidates = tree.entrypoints()
+                candidates = extract_tree.entrypoints()
                 if entry is None and len(candidates) == 1:
                     entry = candidates[0]
-                elif entry is None and len(candidates) > 1 and (ai_client is not None or prior.get('normalization_id')):
+                elif entry is None and len(candidates) > 1 and not mappings and (ai_client is not None or prior.get('normalization_id')):
                     try:
                         phase('Resolving TeX entry point')
                         if progress:
@@ -749,7 +775,7 @@ class Workspace:
                         project = temporary / 'project'
                         extract_tree.materialize(project)
                         def recover(parsed):
-                            return self._recover_source(parsed, raw=tree.files[entry], entry=entry, state=state,
+                            return self._recover_source(parsed, raw=extract_tree.files[entry], entry=entry, state=state,
                                                         prior=prior, source_id=source_id, client=ai_client, report=result)
 
                         extraction = ingest(project / entry, 'source-' + source_id.rsplit(':', 1)[-1],
@@ -777,6 +803,10 @@ class Workspace:
         except (OSError, ValueError, RuntimeError) as exc:
             result.update(status='parse_failed', reason=str(exc).replace(str(self.root), '<workspace>'))
         return self._keep_prior(result, prior)
+
+    @staticmethod
+    def _encoding_binding(mappings):
+        return {'encoding_mappings': mappings} if mappings else {}
 
     @staticmethod
     def _keep_prior(result, prior):
@@ -933,6 +963,7 @@ class Workspace:
                     'processor': PROCESSOR, 'semantics': extraction_semantics(tool_identity or {}),
                     'limits': cfg.get('limits', {}),
                     'entrypoint': cfg.get('entrypoints', {}).get(tree),
+                    **({'encoding': codec} if (codec := cfg.get('encodings', {}).get(material.get('archive_sha256'))) else {}),
                     'source': cfg.get('sources', {}).get(tree, {}),
                 }))
             proposal_map = state.setdefault('generated_research', {})

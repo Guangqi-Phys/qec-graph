@@ -41,6 +41,37 @@ class AIWorkspaceTests(unittest.TestCase):
         self.assertEqual(result['ai']['status'], 'skipped')
         self.assertIn('allow_source_upload = true', result['ai']['reason'])
 
+    def test_declared_encoding_preserves_archive_and_maps_ai_and_mcp_evidence(self):
+        from hashlib import sha256
+        from qecgraph.workspace_query import WorkspaceSession
+
+        source = (r'\documentclass{article}' '\n' r'\usepackage[latin1]{inputenc}' '\n'
+                  r'\begin{document}' '\nCafé result.\n' r'\end{document}' '\n')
+        raw = source.encode('latin-1')
+        (self.root / 'inputs/latin1.tex').write_bytes(raw)
+        calls = []
+
+        def provider(messages, schema, **kwargs):
+            calls.append(messages)
+            self.assertIn('4 | Café result.', messages[1].content)
+            return answer({'items': [], 'unresolved': []})
+
+        with patch('qecgraph.llm.client.LLMClient.complete_json', side_effect=provider):
+            report = self.workspace.sync()
+        self.assertEqual(report['status'], 'published', report)
+        self.assertEqual(len(calls), 4)
+        digest = sha256(raw).hexdigest()
+        self.assertEqual((self.root / 'archive/blobs/sha256' / digest).read_bytes(), raw)
+        session = WorkspaceSession(self.root / 'machine', profile='research')
+        node = next(node for node in session._source_nodes.values() if 'Café result.' in node['latex'])
+        response = session.invoke('qec_fetch', {'identifier': node['id']})
+        self.assertTrue(response['ok'], response)
+        result = response['data']
+        origin = result['original_ranges'][0]['source']
+        self.assertEqual(result['source']['source_kind'], 'transcoded_utf8')
+        self.assertEqual(raw[origin['byte_start']:origin['byte_end']].decode(origin['encoding']), result['text'])
+        self.assertTrue(self.workspace.validate()['passed'])
+
     def test_independent_documents_stay_archived_and_unconsumed(self):
         package = self.root / 'inputs/papers.tar'
         package.write_bytes(tar_bytes({'a.tex': TEX, 'b.tex': TEX.replace(b'Hello', b'Independent paper')}))
