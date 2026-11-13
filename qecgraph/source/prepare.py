@@ -677,8 +677,11 @@ def _conditional_has_content(text: str) -> bool:
             if name in _DECLARATIONS:
                 index = _skip_definition(text, after, name)
                 continue
-            if name in _LAYOUT_COMMANDS or name in _FORMATTING_SWITCHES:
+            if name in _LAYOUT_COMMANDS:
                 index = _skip_command_arguments(text, after)
+                continue
+            if name in _FORMATTING_SWITCHES:
+                index = after
                 continue
             return True
         if char.isspace() or char in "{}[]":

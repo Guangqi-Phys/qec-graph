@@ -271,6 +271,7 @@ class PrepareTests(unittest.TestCase):
     def test_conditional_content_detection_covers_non_prose(self):
         self.assertFalse(_conditional_has_content(r"\vspace{1em}\vspace{2em}"))
         self.assertFalse(_conditional_has_content(r"\renewcommand{\X}{y}"))
+        self.assertTrue(_conditional_has_content(r"\bfseries{FIRST}"))
         self.assertTrue(_conditional_has_content(r"$d=3$"))
         self.assertTrue(_conditional_has_content(r"\textbf{FIRST}"))
         self.assertTrue(_conditional_has_content("第一分支。"))
@@ -288,6 +289,17 @@ class PrepareTests(unittest.TestCase):
         texts = [block["text"] for block in prepared.document["blocks"]]
         self.assertTrue(any("d=3" in text for text in texts))
         self.assertTrue(any("d=1" in text for text in texts))
+
+    def test_formatting_switch_with_a_body_group_makes_the_conditional_partial(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\section{Intro}\n\\ifdefined\\flag\n"
+                         b"\\bfseries{FIRST_BRANCH}\n\\else\n"
+                         b"\\bfseries{SECOND_BRANCH}\n\\fi\n\\end{document}\n"),
+        })
+        prepared = prepare_source(tree)
+        self.assertFalse(prepared.coverage["document_complete"])
+        self.assertIn("conditional_body", prepared.coverage["reasons"])
 
     def test_text_command_branches_make_the_conditional_partial(self):
         tree = SourceTree("directory", {
