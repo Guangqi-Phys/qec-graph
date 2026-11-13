@@ -1035,7 +1035,6 @@ class Workspace:
                 stage_index(self.registry, state, cfg.get('retrieval', {}), repair=rebuild)
                 phase('Preparing candidate release')
                 candidate = self.registry.prepare_publication(state)
-                self._validate_new_release(candidate, old, state, limits, manifest_hashes)
                 if cfg != self.config():
                     raise ValueError('Workspace configuration changed while preparing; retry')
                 if tool_identity is not None and tool_identity != extraction_tool_identity():
@@ -1043,18 +1042,6 @@ class Workspace:
                 phase('Publishing workspace')
                 release = old if candidate == old else self.registry.publish_prepared(candidate)
         return old, release, materials, proposal_map, ai_results
-
-    def _validate_new_release(self, candidate, old, state, limits, manifest_hashes):
-        from .llm.review import proposal_issues
-
-        if candidate == old:
-            return
-        phase('Validating candidate release')
-        validation = self.registry.validate(candidate, manifest_hashes=manifest_hashes)
-        if (not validation['passed'] or any(issue['severity'] == 'error'
-                                            for issue in self._normalization_issues(state, limits))
-                or next(proposal_issues(self.registry, state), None) is not None):
-            raise ValueError('Candidate machine release failed validation; CURRENT was retained')
 
     def _run(self, cfg, *, scan_inputs, rebuild, keep_inputs, progress=None, ai_client=None, workspace_locked=False):
         from .core.errors import failure_details

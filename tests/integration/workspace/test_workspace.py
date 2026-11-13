@@ -613,8 +613,8 @@ class WorkspaceTests(unittest.TestCase):
         self.ws.init(no_ingest=True)
         release = self.ws.status()['release_id']
         (self.inbox / 'first').write_bytes(TEX)
-        with patch.object(self.ws.registry, 'validate', return_value={'passed': False}):
-            with self.assertRaisesRegex(ValueError, 'Candidate machine release failed validation'):
+        with patch.object(self.ws.registry, 'prepare_publication', side_effect=ValueError('Invalid release state')):
+            with self.assertRaisesRegex(ValueError, 'Invalid release state'):
                 self.ws.sync()
         self.assertEqual(self.ws.status()['release_id'], release)
         self.assertEqual(self.ws.status()['pending_claims'], 1)
@@ -623,6 +623,12 @@ class WorkspaceTests(unittest.TestCase):
         self.assertTrue(result['inputs'][0]['input_consumed'])
         self.assertEqual(result['counts']['processed'], 1)
         self.assertEqual(len(list((self.root / 'archive/receipts').glob('*.json'))), 1)
+
+    def test_publication_does_not_deep_validate_existing_releases(self):
+        self.ws.init(no_ingest=True)
+        (self.inbox / 'new.tex').write_bytes(TEX)
+        with patch.object(self.ws.registry, '_validate_state', side_effect=AssertionError('full release scan')):
+            self.assertEqual(self.ws.sync()['counts']['processed'], 1)
 
     def test_archive_write_failure_leaves_the_claim_for_retry(self):
         self.ws.init(no_ingest=True)
