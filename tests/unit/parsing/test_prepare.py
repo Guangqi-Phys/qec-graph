@@ -89,6 +89,21 @@ class PrepareTests(unittest.TestCase):
         self.assertEqual(texts, ["CORRECT_CHAPTER."])
         self.assertTrue(prepared.coverage["document_complete"])
 
+    def test_theorem_body_group_is_not_stripped_as_an_environment_argument(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n"
+                         b"\\newtheorem{theorem}{Theorem}\n"
+                         b"\\begin{document}\n"
+                         b"\\begin{theorem}{IMPORTANT_ASSERTION} rest.\\end{theorem}\n"
+                         b"\\begin{theorem}[Named] Titled.\\end{theorem}\n"
+                         b"\\end{document}\n"),
+        })
+        prepared = prepare_source(tree)
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertTrue(any("IMPORTANT_ASSERTION" in text for text in texts))
+        self.assertIn("Titled.", texts)
+        self.assertFalse(any("Named" in text for text in texts))
+
     def test_write_outputs_matches_the_document_schema(self):
         tree = SourceTree("directory", {
             "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"

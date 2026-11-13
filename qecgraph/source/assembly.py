@@ -813,12 +813,27 @@ def _plain(value: str, *, kind: str = "paragraph") -> str:
     return reading_projection(marked, kind=kind)[0].strip()
 
 
+_OPTIONAL_ARGUMENT_KINDS = frozenset({
+    "theorem", "lemma", "proposition", "corollary", "conjecture", "definition",
+    "proof", "remark", "example", "claim", "assumption", "notation",
+    "statement_other", "table", "figure", "algorithm",
+})
+
+
 def _block_text(value: str, kind: str | None, environment: str | None) -> str:
+    """Strip an environment's own arguments and return plain reading text.
+
+    Only the optional title/placement argument of a known argument-taking
+    environment is removed. A brace group directly after ``\begin{...}`` is
+    body text, not an argument, and is kept.
+    """
     if kind == "equation":
         return value.strip()
     if environment:
+        optional = (r"(?:\[[^\]]*\])?"
+                    if kind in _OPTIONAL_ARGUMENT_KINDS else "")
         opening = re.compile(r"\s*\\begin\{" + re.escape(environment)
-                             + r"\}(?:\[[^\]]*\])?(?:\{[^{}]*\})?", re.S)
+                             + r"\}" + optional, re.S)
         value = opening.sub("", value, count=1)
         end = value.rfind("\\end{" + environment + "}")
         if end >= 0:
