@@ -1,6 +1,3 @@
-import json
-import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,12 +7,9 @@ from qecgraph import store, workspace_assets
 from qecgraph.core.graph import canonical, read_json
 from qecgraph.domain.research import make_record
 from qecgraph.domain.research_store import publish_records, validate_sources
-from qecgraph.domain.semantic import request_extraction, review_extraction, submit_extraction
 from qecgraph.domain.status import annotation_eligible
-from qecgraph.source.package import unpack
 from qecgraph.workspace import Workspace
-from qecgraph.workspace_query import WorkspaceSession
-from tests.unit.parsing.test_source_package import TEX, tar_bytes
+from tests.unit.parsing.test_source_package import TEX
 
 
 class SemanticTests(unittest.TestCase):
@@ -123,81 +117,3 @@ class SemanticTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'does not resolve to a verbatim registered span'):
                     validate_sources(ws.registry, state, [record])
             self.assertEqual(read_json(graph_path), replacement)
-
-    def test_provider_draft_is_bound_reviewed_and_stale_on_projection_change(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            ws = Workspace(root)
-            ws.init(no_ingest=True)
-            raw = tar_bytes({'one.tex': TEX, 'two.tex': TEX.replace(b'Hello', b'Later')})
-            (root / 'inputs/source').write_bytes(raw)
-            config = root / 'qecgraph.toml'
-            initial = config.read_text()
-            settings = f'\n[entrypoints]\n"{unpack(raw).digest}" = '
-            config.write_text(initial + settings + '"one.tex"\n')
-            ws.sync()
-            state, _ = ws.registry.read()
-            identifier, = state['versions']
-            req = request_extraction(root, identifier)
-            block = next(b for b in req['blocks'] if b['latex'] == 'Hello')
-            origin = req['source_ref']
-            locator = {k: block[k] for k in ('node_id', 'node_content_sha256', 'path', 'char_start', 'char_end')}
-            locator.update(source_version_id=origin['id'], snapshot_id=origin['revision'])
-            evidence = {'status': 'known', 'source_ref': origin, 'source_locator': locator, 'method': 'provider_fixture'}
-            record = make_record('noise_model', 'noise:proposal', 'one',
-                                 {'idle': None, 'loss': None, 'erasure': None, 'leakage': None,
-                                  'source_label': 'Hello', 'review_status': 'proposed'}, source=origin,
-                                 method='provider_fixture', evidence={'/data/source_label': evidence})
-            payload = {'provider': {'model_id': 'local-test', 'processor_version': '1', 'prompt_sha256': 'a' * 64},
-                       'records': [record]}
-            submitted_locator = record['field_evidence']['/data/source_label']['source_locator']
-            submitted_locator['path'] = '../human/notes/private'
-            with self.assertRaisesRegex(ValueError, 'cite a span'):
-                submit_extraction(root, req['id'], payload)
-            submitted_locator['path'] = block['path']
-            response = root / 'response.json'
-            response.write_text(canonical(payload), encoding='utf-8')
-            before_import = ws.registry.read()[1]
-            imported = subprocess.run([sys.executable, '-m', 'qecgraph', 'review', 'import', req['id'], str(response),
-                                       '--workspace', str(root)], text=True, capture_output=True, timeout=10)
-            self.assertEqual(imported.returncode, 0, imported.stderr)
-            queued = json.loads(imported.stdout)
-            self.assertEqual(queued['status'], 'proposed')
-            self.assertEqual(queued, submit_extraction(root, req['id'], payload))
-            self.assertEqual(ws.registry.read()[1], before_import)
-            show = [sys.executable, '-m', 'qecgraph', 'review', 'show', queued['proposal_id'], '--workspace', str(root)]
-            draft = json.loads(subprocess.check_output(show, text=True, timeout=10))
-            self.assertIsNone(draft['provider_draft']['decision'])
-            self.assertEqual(draft['provider_draft']['records'], [record])
-            query = {'identifier': record['id']}
-            self.assertFalse(WorkspaceSession(ws.registry.root).invoke('qec_get_entity', query)['ok'])
-            result = review_extraction(root, queued['proposal_id'], reviewer='human:test', decision='approve',
-                                       rationale='Checked fixture text')
-            reviewed = json.loads(subprocess.check_output(show, text=True, timeout=10))
-            self.assertEqual(reviewed['release_id'], result['release_id'])
-            self.assertEqual(reviewed['provider_draft']['decision']['decision'], 'approve')
-            session = WorkspaceSession(ws.registry.root, result['release_id'])
-            self.assertEqual(session.invoke('qec_get_entity', query)['data']['entity']['effective_review']['status'], 'reviewed')
-            config.write_text(initial + settings + '"two.tex"\n')
-            ws.rebuild()
-            after = WorkspaceSession(ws.registry.root)
-            self.assertFalse(after.invoke('qec_get_entity', query)['ok'])
-            self.assertEqual(after.invoke('qec_workspace_status', {})['data']['coverage']['excluded_stale_provider_reviews'], 1)
-            self.assertTrue(session.invoke('qec_get_entity', query)['ok'])
-            self.assertTrue(ws.validate()['passed'])
-            draft_path = root / '.qecgraph/extraction-proposals' / f"{queued['proposal_id']}.json"
-            fixed = ws.registry.read()[1]
-            draft_path.write_text('[]', encoding='utf-8')
-            invalid = subprocess.run([*show, '--json'], text=True, capture_output=True, timeout=10)
-            self.assertEqual(invalid.returncode, 1)
-            error = json.loads(invalid.stdout)['error']
-            self.assertEqual(error['code'], 'STORAGE_ERROR')
-            self.assertEqual(error['details']['path'], str(draft_path.resolve()))
-            self.assertEqual(ws.registry.read()[1], fixed)
-            old_graph = ws.registry.root / state['versions'][identifier]['snapshot_path'] / 'graph.json'
-            with old_graph.open('ab') as output:
-                output.write(b' ')
-            validation = ws.validate()
-            self.assertFalse(validation['valid'])
-            self.assertTrue(any('Snapshot file changed: graph.json' in issue.get('message', '')
-                                for issue in validation['issues']), validation['issues'])

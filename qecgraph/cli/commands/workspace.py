@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import subprocess
 
-from ...core.graph import read_json, strict_json_loads
+from ...core.graph import strict_json_loads
 from ...core.progress import task
 from ..errors import UsageError
 from ..process import cli_command
@@ -119,17 +119,4 @@ def human_build(args):
 def asset_add(args):
     from ...workspace_assets import add_asset
     result = add_asset(args.workspace, args.input, media_type=args.media_type)
-    return emit_report(result, quiet=args.quiet, exit_code=0)
-
-
-def extract(args):
-    from ...domain import semantic
-    if args.command == 'extract-request':
-        result = semantic.request_extraction(args.workspace, args.source_version, release=args.release,
-                                             max_chars=args.max_chars, offset=args.offset)
-    elif args.command == 'extract-submit':
-        result = semantic.submit_extraction(args.workspace, args.request_id, read_json(args.response))
-    else:
-        result = semantic.review_extraction(args.workspace, args.proposal_id, reviewer=args.reviewer,
-                                            decision=args.decision, rationale=args.rationale)
     return emit_report(result, quiet=args.quiet, exit_code=0)

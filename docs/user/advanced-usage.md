@@ -273,15 +273,7 @@ backup. There are no indexes, tombstones or other generated human files. Keep
 personal notes elsewhere. Publication/recovery state stays in `.qecgraph/`.
 [Layout, missing metadata and migration](workspace.md#obsidian-and-machine-isolation)
 
-Use `qec-graph review list` to find proposal IDs and `qec-graph review show PROPOSAL_ID`
-to read a provider draft and its recorded decision. Use `qec-graph software import-seed`
-to load the bundled software catalog and `qec-graph software coverage` to
-inspect its coverage. The workspace guide covers explicit asset registration,
-software metadata refresh, and extracting proposals. Use
-`qec-graph review import REQUEST_ID response.json` to validate and queue a
-provider response as a draft. The reviewer records a decision separately
-with `qec-graph extract-review`.
-[Research and review workflow](workspace.md#research-queries-and-review)
+Use `qec-graph software import-seed` to load the bundled software catalog and `qec-graph software coverage` to inspect it. [Research queries](workspace.md#research-queries-and-review)
 
 ## Query a workspace from the CLI
 

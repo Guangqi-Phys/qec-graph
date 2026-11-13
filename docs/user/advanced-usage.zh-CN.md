@@ -234,12 +234,7 @@ tags 是文章主要主题。文件名只取一作姓，目录优先取 arXiv �
 请放在别处。管理状态保存在 `.qecgraph/`。
 [布局、缺失元数据与迁移规则](workspace.zh-CN.md#obsidian-和机器访问隔离)
 
-用 `qec-graph review list` 查找 proposal ID，用 `qec-graph review show PROPOSAL_ID`
-读取 provider 草稿及已记录决定。用 `qec-graph software import-seed` 加载自带软件
-目录，用 `qec-graph software coverage` 查看覆盖。工作区说明覆盖显式资产登记、
-软件元数据刷新和提取提案。用 `qec-graph review import REQUEST_ID response.json`
-验证 provider 响应并作为草稿排队。审核者用 `qec-graph extract-review` 单独记录
-决定。[研究和审核流程](workspace.zh-CN.md#研究查询和审核)
+用 `qec-graph software import-seed` 加载自带软件目录，用 `qec-graph software coverage` 查看覆盖。[研究查询](workspace.zh-CN.md#研究查询和审核)
 
 ## 从 CLI 查询工作区
 

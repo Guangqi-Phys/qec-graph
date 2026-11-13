@@ -153,14 +153,7 @@ CLI 可用 `query-tool TOOL --workspace ~/qec --arguments request.json` 调用�
 研究记录只使用当前 `qecgraph.research` 格式。
 通过 `asset-add` 登记非 human 资产；只有被可见记录绑定的资产可按字节查询。
 
-`extract-request SOURCE_ID` 导出有预算的摘录及确切定位。
-可将该文件交给自行选定的 provider，按 `research` 输出
-`{"provider":{"model_id":"…","processor_version":"…","prompt_sha256":"…"},"records":[…]}`。
-`extract-submit REQUEST_ID response.json` 校验并暂存，
-`extract-review PROPOSAL_ID --reviewer NAME --decision approve --rationale "…"`
-才将确切草稿发布，并记录审核范围。拒绝或失效的草稿不进入默认结果。
-这条审核只作用于新增语义断言；原始材料无须批准即可发现。
-没有内置外部模型调用或曲线数字化，数据缺失会显示为待提取或未决。
+在 `qecgraph.toml` 配置 provider 后运行 `sync`，可发布 AI 抽取记录。
 
 ## Obsidian 和机器访问隔离
 

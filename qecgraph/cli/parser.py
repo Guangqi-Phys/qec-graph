@@ -113,7 +113,6 @@ _GROUPS = {
     }),
     'review': ('Create, inspect, or apply proposals', {
         'propose': 'review', 'list': 'review-list', 'show': 'review-show', 'decide': 'review-decide', 'apply': 'apply',
-        'import': 'extract-submit',
     }),
     'mcp': ('Configure or serve read-only MCP tools', {
         'serve': 'serve-mcp', 'config': 'mcp-config',
@@ -214,33 +213,9 @@ def _register_commands(add):
         help='Path to the QEC workspace; omit to use local discovery where supported')
     cmd.add_argument('--media-type', default='application/octet-stream',
         help='Media type for the archived file (default: %(default)s)')
-    cmd = add('extract-request', help='Export bounded, provenance-bound source excerpts for an optional provider')
-    cmd.add_argument('source_version', help='Exact source version ID in the selected release')
-    cmd.add_argument('--workspace',
-        help='Path to the QEC workspace; omit to use local discovery where supported')
-    cmd.add_argument('--release', help='Exact workspace release ID; omit to use CURRENT')
-    cmd.add_argument('--max-chars', type=int, default=24000,
-        help='Maximum source codepoints per request (default: %(default)s)')
-    cmd.add_argument('--offset', type=int, default=0,
-        help='Codepoint offset for the next excerpt (default: %(default)s)')
-    cmd = add('extract-submit', help='Validate a local provider response and queue a draft')
-    cmd.add_argument('request_id', help='ID of the saved extraction request')
-    cmd.add_argument('response', help='Path to the local provider response JSON')
-    cmd.add_argument('--workspace',
-        help='Path to the QEC workspace; omit to use local discovery where supported')
-    cmd = add('review-show', help='Read an exact provider draft or legacy corpus proposal')
+    cmd = add('review-show', help='Read an exact legacy corpus proposal')
     cmd.add_argument('proposal_id', help='Exact draft or proposal ID')
-    scope = cmd.add_mutually_exclusive_group()
-    scope.add_argument('--workspace', help='Path to the QEC workspace; omit to discover it locally')
-    scope.add_argument('--corpus', help='Path to a legacy corpus containing the proposal')
-    cmd = add('extract-review', help='Record an explicit human decision on an exact provider draft')
-    cmd.add_argument('proposal_id', help='Exact proposal ID')
-    cmd.add_argument('--workspace',
-        help='Path to the QEC workspace; omit to use local discovery where supported')
-    cmd.add_argument('--reviewer', required=True, help='Stable identifier of the person making the decision')
-    cmd.add_argument('--decision', choices=['approve', 'reject'], required=True,
-        help='Decision to bind to the exact proposal')
-    cmd.add_argument('--rationale', required=True, help='Explain the review decision')
+    cmd.add_argument('--corpus', required=True, help='Path to a legacy corpus containing the proposal')
     for name, description in (('software-import-seed', 'Import the bundled software catalogue'),
                               ('software-coverage', 'Report the software records indexed in the workspace'),
                               ('software-refresh', 'Refresh metadata for selected software projects')):

@@ -953,6 +953,7 @@ class Workspace:
             materials = state.setdefault('materials', {})
             state['workspace_id'] = cfg['workspace_id']
             state.pop('ai_reviews', None)
+            state.pop('semantic_decisions', None)
             tool_identity = extraction_tool_identity() if digests else None
             def fingerprint(material):
                 tree = material.get('source_tree_hash')

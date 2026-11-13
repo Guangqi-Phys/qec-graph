@@ -190,16 +190,7 @@ coordinates; they never rank across experiments. Research records use
 the single current `qecgraph.research` format. `asset-add` registers non-human
 assets; only assets bound to visible records can be read by bytes.
 
-`extract-request SOURCE_ID` exports bounded excerpts with exact locators. You may
-give that file to a provider of your choice and return `research` records as
-`{"provider":{"model_id":"…","processor_version":"…","prompt_sha256":"…"},"records":[…]}`.
-`extract-submit REQUEST_ID response.json` validates and stages the response;
-`extract-review PROPOSAL_ID --reviewer NAME --decision approve --rationale "…"`
-publishes that exact draft and records the review scope. Rejected or stale
-drafts do not appear in default results. This review applies only to new
-semantic assertions; raw materials are discoverable without approval. There is
-no built-in external model call or curve digitisation; missing data appears as
-pending extraction or unresolved.
+Configure a provider in `qecgraph.toml` and run `sync` to publish AI extraction records.
 
 ## Obsidian and machine isolation
 

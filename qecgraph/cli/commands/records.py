@@ -48,8 +48,7 @@ def workspace_records(args):
         state, release = ws.registry.read()
         rows = [row for row in load_records(ws.registry, state)
                 if not row['is_synthetic'] and row['data'].get('review_status') == 'proposed']
-        from ...domain.semantic import queued
-        result = {'release_id': release, 'proposals': rows, 'provider_drafts': queued(ws.root, state)}
+        result = {'release_id': release, 'proposals': rows}
     return emit_report(result, quiet=args.quiet, exit_code=2 if result.get('status') == 'partial' else 0)
 
 
@@ -67,16 +66,9 @@ def propose(args):
 
 
 def review_show(args):
-    if args.corpus:
-        from ...review import read_proposal
-        result = read_proposal(Registry(args.corpus), args.proposal_id)
-    else:
-        from ...domain.semantic import get_draft
-        from ...workspace import Workspace
-        ws = Workspace(args.workspace)
-        ws.config()
-        state, release = ws.registry.read()
-        result = {'release_id': release, 'provider_draft': get_draft(ws, state, args.proposal_id)}
+    from ...review import read_proposal
+
+    result = read_proposal(Registry(args.corpus), args.proposal_id)
     return emit_report(result, quiet=args.quiet)
 
 

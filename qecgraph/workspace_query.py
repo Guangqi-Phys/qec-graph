@@ -56,21 +56,9 @@ class WorkspaceSession:
         generated = {r['id']: r['revision'] for v in self.state.get('generated_research', {}).values()
                      for r in v['bindings']}
         active_ai = self.state.get('ai_research_records', {})
-        self.review_states = {}
-        for decision in self.state.get('semantic_decisions', {}).values():
-            if decision['decision'] != 'approve':
-                continue
-            source = decision['source_ref']
-            current = self.state['versions'].get(source['id'], {}).get('snapshot_id') == source['revision']
-            for binding in decision['record_refs']:
-                self.review_states[key(binding)] = {'status': 'reviewed' if current else 'stale',
-                                                   'proposal_id': decision['proposal_id'],
-                                                   'reviewer': decision['reviewer']}
-        self.visible = {identity: {**r, **({'effective_review': self.review_states[identity]} if identity in self.review_states else {})}
-                        for identity, r in self.records.items() if not r['is_synthetic']
+        self.visible = {identity: r for identity, r in self.records.items() if not r['is_synthetic']
                         and (r['id'] not in generated or generated[r['id']] == r['revision'])
-                        and (r.get('origin') != 'ai_extracted' or active_ai.get(r['id']) == r['revision'])
-                        and self.review_states.get(identity, {}).get('status') != 'stale'}
+                        and (r.get('origin') != 'ai_extracted' or active_ai.get(r['id']) == r['revision'])}
         self._research_ids = {identifier for identifier, _ in self.records}
         self._visible_by_id = {}
         for (identifier, _), record in self.visible.items():
@@ -266,8 +254,7 @@ class WorkspaceSession:
                 'semantic': 'pending',
                 'code_mention_proposals': sum(x['code_parameters_mentions'] for x in self.state.get('generated_research', {}).values()),
                 'source_version_conflicts': sum(bool(r['source_version_conflict']) for r in materials),
-                'excluded_synthetic': sum(r['is_synthetic'] for r in self.records.values()),
-                'excluded_stale_provider_reviews': sum(r['status'] == 'stale' for r in self.review_states.values())}
+                'excluded_synthetic': sum(r['is_synthetic'] for r in self.records.values())}
 
     def _operational(self):
         path = _managed(self.machine, 'operational/status.json')
