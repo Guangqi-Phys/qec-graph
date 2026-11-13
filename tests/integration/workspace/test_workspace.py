@@ -420,11 +420,13 @@ class WorkspaceTests(unittest.TestCase):
         path = self.inbox / 'rewrapped.tar'
         path.write_bytes(rewrapped)
 
-        with self.assertRaisesRegex(ValueError, 'Snapshot file changed: graph.json'):
-            self.ws.sync()
-        self.assertEqual(self.ws.registry.read()[1], fixed)
-        payload, = (self.inbox / '.processing').glob('*/payload')
-        self.assertEqual(payload.read_bytes(), rewrapped)
+        result = self.ws.sync()
+        self.assertEqual(result['status'], 'partial_batch')
+        self.assertIn('Snapshot file changed: graph.json', result['inputs'][0]['reason'])
+        self.assertIn(identifier, self.ws.registry.read()[0]['versions'])
+        self.assertEqual(WorkspaceSession(self.ws.registry.root, fixed).release, fixed)
+        self.assertEqual(path.read_bytes(), rewrapped)
+        self.assertFalse(result['inputs'][0]['input_consumed'])
 
     def test_rebuild_detects_a_changed_preserved_archive_member(self):
         raw = tar_bytes({'paper.tex': TEX, 'unused.bin': b'original'})

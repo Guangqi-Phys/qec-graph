@@ -702,6 +702,17 @@ class Workspace:
         report['structure_recovery'] = {'status': 'pending', 'reason': reason}
         return None
 
+    def _verify_reusable_projection(self, version, manifest_hashes):
+        if version is not None:
+            self.registry._load_verified_source(version, manifest_hashes=manifest_hashes)
+        return version
+
+    def _check_prepared_manifests(self, manifest_hashes):
+        for snapshot_id, digest in manifest_hashes.items():
+            manifest = self.path(f'machine/source_snapshots/{snapshot_id}/manifest.json')
+            if _hash_regular(manifest, 64 << 20) != digest:
+                raise ValueError('Snapshot manifest changed before publication')
+
     @task('Extracting source structure', retain=True)
     def _prepare(self, cfg, state, digest, prior, reused, limits, *, captured, manifest_hashes, tool_identity, ai_client=None, progress=None):
         result = {'archive_sha256': digest, 'status': 'archived_only', 'processing_completed': False,
@@ -750,7 +761,7 @@ class Workspace:
                     return self._keep_prior(result, prior)
             source_id = 'source:local:' + hash_text(canonical([tree_hash, work_id, upstream]))
             build_key = (source_id, entry, normalization and normalization['normalization_sha256'])
-            version = reused.get(build_key)
+            version = self._verify_reusable_projection(reused.get(build_key), manifest_hashes)
             result['entrypoint'] = entry
             saved = self.path('sources/' + tree_hash)
             preserve = not saved.exists()
@@ -1034,6 +1045,7 @@ class Workspace:
                 phase('Building retrieval index')
                 stage_local_retrieval(self.registry, state, cfg, repair=rebuild)
                 phase('Preparing candidate release')
+                self._check_prepared_manifests(manifest_hashes)
                 candidate = self.registry.prepare_publication(state)
                 if cfg != self.config():
                     raise ValueError('Workspace configuration changed while preparing; retry')

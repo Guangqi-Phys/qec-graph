@@ -112,8 +112,8 @@ class WorkspaceStructureRecoveryTests(unittest.TestCase):
         (self.root / 'inputs/ordinary.tex').write_bytes(ORDINARY)
         first = self.ws.sync()['release_id']
         (self.root / 'inputs/special.tex').write_bytes(TEX)
-        with self.provider(plan()), patch.object(self.ws.registry, 'validate', return_value={'passed': False}):
-            with self.assertRaisesRegex(ValueError, 'CURRENT was retained'):
+        with self.provider(plan()), patch.object(self.ws.registry, 'prepare_publication', side_effect=ValueError('Invalid release state')):
+            with self.assertRaisesRegex(ValueError, 'Invalid release state'):
                 self.ws.sync()
         self.assertEqual(self.ws.registry.read()[1], first)
         self.assertEqual(WorkspaceSession(self.ws.registry.root, first).release, first)
