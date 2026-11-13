@@ -671,8 +671,8 @@ class _ProjectParser:
         name = Path(literal)
         if kind == "include" and not name.suffix:
             name = name.with_suffix(".tex")
-        if kind == "include" and name.suffix.lower() != ".tex":
-            self.diagnostic("warning", "unsupported_include_type", f"Only .tex includes are read: {literal}", source)
+        if kind == "include" and name.suffix.lower() not in {".tex", ".bbl"}:
+            self.diagnostic("warning", "unsupported_include_type", f"Only .tex and .bbl includes are read: {literal}", source)
             return None
         if kind == "bibliography" and not name.suffix:
             name = name.with_suffix(".bib")
@@ -1105,12 +1105,33 @@ class _ProjectParser:
                            for node in nodes)
         self.process(nodes, path, owner, sections, body=False if has_document else body)
 
+    def emit_bib_resources(self):
+        from .bibliography import bib_entries
+
+        paths = {resource['path'] for resource in self.resources
+                 if resource['kind'] == 'bibliography' and resource.get('path')}
+        for path in sorted(paths):
+            if not path.lower().endswith('.bib'):
+                continue
+            raw = (self.root / path).read_bytes()
+            try:
+                text = raw.decode('utf-8')
+            except UnicodeDecodeError:
+                self.diagnostic('warning', 'bibliography_encoding', f'Expected UTF-8 bibliography: {path}')
+                continue
+            self.files[path] = {'path': path, 'sha256': sha256(raw).hexdigest(), 'text': text, 'encoding': 'utf-8'}
+            self.source_lines[path] = SourceLines(text)
+            for key, start, end in bib_entries(text):
+                block = self.make_block('bib_entry', path, start, end, title_tex=key)
+                block.update(source_role='bibliography', bibliography_key=key)
+
     def run(self):
         self.discover(self.entry)
         self.context = self._context()
         entry = self.relative(self.entry)
         if entry in self.files:
             self.emit_file(entry, None, [], body=True)
+            self.emit_bib_resources()
         if self.macro_specs:
             self.diagnostic("warning", "custom_macros_not_expanded",
                             "Literal environment aliases and macro argument shapes are recognized; arbitrary macro bodies are not expanded.")

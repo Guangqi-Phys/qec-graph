@@ -20,7 +20,7 @@ LEAN_DEPENDENCIES = {'lean_type_depends_on', 'lean_proof_depends_on',
 DEPENDENCIES = {"depends_on_declared", "depends_on_reviewed"} | LEAN_DEPENDENCIES
 CANDIDATES = {"depends_on_candidate"}
 KNOWN_RELATIONS = {
-    "contains", "defined_in", "includes", "references", "cites", "uses_resource",
+    "contains", "defined_in", "includes", "references", "cites", "cites_paper", "uses_resource",
     "depends_on_declared", "depends_on_candidate", "depends_on_reviewed",
     "proof_of", "proof_of_candidate", "formalizes", "describes", "about",
     "has_matrix", "has_check_matrix", "generated_by", "uses_circuit", "uses_noise",
@@ -143,6 +143,8 @@ class _GraphBuilder:
         return identifier
 
     def add_source_nodes(self) -> None:
+        from ..source.bibliography import citation_identifiers
+
         source_hash = {path: file["sha256"] for path, file in self.files.items()}
         occurrences: Counter[str] = Counter()
         label_counts = Counter(label for block in self.blocks for label in set(block.get("labels", [])))
@@ -180,7 +182,9 @@ class _GraphBuilder:
                       "labels": owned_labels, "source": span, "latex": block["latex"],
                       "content_sha256": hash_text(block["latex"]),
                       "data": {"environment": block.get("environment"), "heading": block.get("heading"), "order": block.get("order", 0),
-                               **({'bibliography_key': block['bibliography_key']} if 'bibliography_key' in block else {}),
+                               **({'bibliography_key': block['bibliography_key'],
+                                   'bibliography_ids': citation_identifiers(block['latex'])}
+                                  if 'bibliography_key' in block else {}),
                                "author_claims_formalized": bool(block.get("leanok_declared", False)),
                                "identity_basis": "label" if owned_labels else "content_and_occurrence",
                                "semantic_context_sha256": self.project_source_hash}})
@@ -190,6 +194,18 @@ class _GraphBuilder:
         for label, ids in self.labels.items():
             if len(ids) > 1:
                 self.diag("duplicate_label", f"Label {label!r} has {len(ids)} owners; references stay unresolved")
+
+    def add_citation(self, identifier, label, entries, evidence):
+        if len(entries) == 1:
+            self.edge(identifier, entries[0], 'cites', evidence=evidence)
+            return
+        target = 'citation:' + self.project_id + ':' + quote(label, safe=':._-')
+        if target not in self.nodes:
+            self.add_node({'id': target, 'kind': 'citation_key', 'title': label, 'origin': 'parser',
+                           'data': {'bibliography_key': label,
+                                    'metadata_status': 'ambiguous' if entries else 'not_resolved',
+                                    'candidate_ids': entries}})
+        self.edge(identifier, target, 'cites', evidence=evidence)
 
     def add_source_relations(self) -> None:
         for block in self.blocks:
@@ -201,6 +217,11 @@ class _GraphBuilder:
             if inclusion.get("to") in self.files and inclusion["from"] in self.files:
                 self.edge(self.file_id(inclusion["from"]), self.file_id(inclusion["to"]), "includes", evidence=inclusion)
 
+        bibliography_entries = defaultdict(list)
+        for block in self.blocks:
+            if 'bibliography_key' in block:
+                bibliography_entries[block['bibliography_key']].append(self.key_to_id[block['key']])
+
         # Preserve explicit syntax; ordinary references never become checked dependencies.
         for block in self.blocks:
             identifier = self.key_to_id[block["key"]]
@@ -209,18 +230,7 @@ class _GraphBuilder:
                 for label in reference["targets"]:
                     evidence = {"method": "latex_" + kind, "source": reference.get("source"), "label": label}
                     if kind == "cite":
-                        entries = [self.key_to_id[b['key']] for b in self.blocks
-                                   if b.get('bibliography_key') == label]
-                        if len(entries) == 1:
-                            self.edge(identifier, entries[0], 'cites', evidence=evidence)
-                            continue
-                        target = "citation:" + self.project_id + ":" + quote(label, safe=":._-")
-                        if target not in self.nodes:
-                            self.add_node({"id": target, "kind": "citation_key", "title": label, "origin": "parser",
-                                      "data": {"bibliography_key": label,
-                                               "metadata_status": "ambiguous" if entries else "not_resolved",
-                                               "candidate_ids": entries}})
-                        self.edge(identifier, target, "cites", evidence=evidence)
+                        self.add_citation(identifier, label, bibliography_entries.get(label, []), evidence)
                         continue
                     target = self.resolve_label(label, reference.get("source"))
                     unresolved = self.nodes[target]["kind"] == "unresolved_reference"

@@ -322,7 +322,7 @@ class Workspace:
             graph, _, _ = self.registry._load_verified_source(version)
             additional = {}
             for node in graph['nodes']:
-                if node['kind'] != 'source_file':
+                if node['kind'] != 'source_file' or Path(node['data']['path']).suffix.lower() != '.tex':
                     continue
                 path = node['data']['path']
                 source = normalized if path == material['entrypoint'] else self._ai_original(

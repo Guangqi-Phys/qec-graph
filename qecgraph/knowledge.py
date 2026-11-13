@@ -300,10 +300,10 @@ class KnowledgeView:
                 rows.append({'type': 'record', 'id': record['id'], 'revision': record['revision'],
                              'kind': record['kind'], 'source_ref': binding})
         rows.extend({'type': 'edge', **edge} for edge in self.session.graph.source.graph['edges']
-                    if edge['source'] in ids and edge['target'] in ids and eligible(edge)
+                    if edge['source'] in ids and (edge['target'] in ids or edge['relation'] == 'cites_paper') and eligible(edge)
                     and edge['relation'] != 'contains')
         return {'view': 'graph', 'document_id': document['id'], 'source_version_id': version,
-                'snapshot_id': snapshot, 'relation_scope': 'Registered within-paper relations and source containment',
+                'snapshot_id': snapshot, 'relation_scope': 'Within-paper relations and explicit registered bibliography citations',
                 **self.session._paginate(rows, args, min(20, self.session.graph.max_results))}
 
     def _descendants(self, identifier):
@@ -341,7 +341,7 @@ class KnowledgeView:
             size += cost
         references = []
         for edge in self.session.graph.source.graph['edges']:
-            if edge['source'] != node['id'] or edge['relation'] not in {'references', 'cites'}:
+            if edge['source'] != node['id'] or edge['relation'] not in {'references', 'cites', 'cites_paper'}:
                 continue
             target = self.nodes.get(edge['target'])
             if target:

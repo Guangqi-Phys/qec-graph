@@ -356,7 +356,7 @@ its registered source files separately, preserving include boundaries. A section
 returns continuous text through the next section boundary, including subsections.
 Exact `source_version_id` requests never fall back to a different version.
 
-Pass `view: "graph"` to `qec_fetch` with a paper identifier. The paginated results give source nodes in paper order, their parent IDs, registered research record references, and explicit within-paper edges. Use returned IDs to fetch exact source and record evidence. Edge status retains the distinction between a textual reference and a declared dependency.
+Pass `view: "graph"` to `qec_fetch` with a paper identifier. The paginated results give source nodes in paper order, their parent IDs, registered research record references, and explicit within-paper edges. Use returned IDs to fetch exact source and record evidence. Edge status retains the distinction between a textual reference and a declared dependency. The graph also shows outgoing `cites_paper` edges when a TeX citation key has one local BibTeX or TeX bibliography entry and its explicit DOI or arXiv identifier matches one registered version. Matching is offline. Duplicate keys and competing identities remain unresolved.
 
 `--profile compatible` exposes just `search(query)` and `fetch(id)`, returning
 citable evidence units. Register a version-specific public `canonical_url` in

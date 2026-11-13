@@ -21,6 +21,7 @@ MATHEMATICS = STATEMENTS | {'definition', 'assumption', 'notation', 'proof', 'eq
 DOMAIN_FIELDS = {entry['if']['properties']['kind']['const']: entry['then']['properties']['data']['required']
                  for entry in _packaged_schema('record')['allOf'] if 'data' not in entry['if']['properties']}
 ENDPOINTS = {
+    'cites_paper': ({'bib_entry'}, {'document'}),
     'proof_of': ({'proof'}, STATEMENTS),
     'proof_of_candidate': ({'proof'}, STATEMENTS),
     'depends_on_declared': (MATHEMATICS, MATHEMATICS),
