@@ -2,6 +2,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import json
 import os
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -12,6 +13,7 @@ from qecgraph.source.assembly import EntryCoordinates, assemble_files
 from qecgraph.source.package import SourceTree
 from qecgraph.source.prepare import (
     _coverage,
+    _manifest_digest,
     _outside_dependencies,
     _prose_chars,
     _uncovered_entry_prose,
@@ -20,6 +22,10 @@ from qecgraph.source.prepare import (
     recover_output,
     write_outputs,
 )
+
+
+def _sha256_text(value: str) -> str:
+    return __import__("hashlib").sha256(value.encode("utf-8")).hexdigest()
 
 
 class PrepareTests(unittest.TestCase):
@@ -488,6 +494,47 @@ class PrepareTests(unittest.TestCase):
             self.assertFalse(journal.exists())
             self.assertFalse(staging.exists())
             self.assertFalse(backup.exists())
+
+    def test_recover_output_keeps_the_backup_on_a_target_conflict(self):
+        with TemporaryDirectory() as temporary:
+            out = Path(temporary) / "prepared"
+            write_outputs(self._prepared("First text."), out)
+            previous = _manifest_digest(out)
+            backup = out.parent / f".{out.name}.backup-test"
+            staging = out.parent / f".{out.name}.staging-test"
+            staging.mkdir()
+            (staging / "manifest.json").write_text("new", encoding="utf-8")
+            os.replace(out, backup)
+            journal = out.parent / f".{out.name}.transaction.json"
+            journal.write_text(json.dumps({
+                "out": out.name, "staging": staging.name,
+                "backup": backup.name, "phase": "backup",
+                "previous_manifest_sha256": previous,
+                "new_manifest_sha256": _sha256_text("new")}),
+                encoding="utf-8")
+            out.mkdir()
+            self.assertEqual(recover_output(out), "conflict")
+            self.assertTrue(out.is_dir())
+            self.assertTrue(backup.is_dir())
+            self.assertTrue(journal.is_file())
+            with self.assertRaises(ValueError):
+                write_outputs(self._prepared("Second text."), out)
+            self.assertTrue(backup.is_dir())
+            out.rmdir()
+            out.mkdir()
+            (out / "user.txt").write_text("unrelated", encoding="utf-8")
+            self.assertEqual(recover_output(out), "conflict")
+            self.assertTrue(backup.is_dir())
+            shutil.rmtree(out)
+            out.mkdir()
+            (out / "manifest.json").write_text("other version", encoding="utf-8")
+            self.assertEqual(recover_output(out), "conflict")
+            self.assertTrue(backup.is_dir())
+            shutil.rmtree(out)
+            self.assertEqual(recover_output(out), "restored")
+            self.assertEqual(_manifest_digest(out), previous)
+            self.assertFalse(backup.exists())
+            self.assertFalse(journal.exists())
 
     @unittest.skipUnless(os.name == "posix", "needs POSIX replace semantics")
     def test_interrupted_replacement_is_recovered_on_next_write(self):

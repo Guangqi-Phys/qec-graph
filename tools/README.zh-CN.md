@@ -54,7 +54,8 @@ python tools/prepare_arxiv.py /path/to/source-tree \
 失败会保留上一份完整产物；已存在但没有 prepare manifest 的目录会被拒绝。只有
 显式传 `--overwrite` 才会整体替换该目录，包括其中无关的文件。如果进程在两次
 目录 rename 之间被终止，目标路径会暂时消失，下一次写入或 `--recover` 会从 journal
-恢复上一份结果并清理遗留的暂存目录：
+恢复上一份结果并清理遗留的暂存目录。恢复会对比目标 manifest 与 journal 记录的
+版本；如果目标被别处重新创建，会报告冲突（退出码 `1`）并保留 backup 与 journal：
 
 ```bash
 python tools/prepare_arxiv.py --out build/prepared/paper --recover

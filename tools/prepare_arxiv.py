@@ -45,6 +45,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.recover:
         outcome = recover_output(args.out)
+        if outcome == "conflict":
+            print(
+                f"recovery conflict: {args.out} is neither the expected new "
+                f"result nor the recorded previous result; backup and journal "
+                f"are kept under {args.out.parent}", file=sys.stderr)
+            return 1
         if args.json:
             print(json.dumps({"out": str(args.out), "recovered": outcome},
                              indent=1))

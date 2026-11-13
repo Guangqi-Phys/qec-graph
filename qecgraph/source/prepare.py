@@ -728,14 +728,28 @@ def _sibling(out: Path, name: str, prefix: str) -> Path | None:
     return candidate if candidate.parent == out.parent else None
 
 
+def _manifest_digest(directory: Path) -> str | None:
+    manifest = directory / "manifest.json"
+    if not manifest.is_file():
+        return None
+    try:
+        return hashlib.sha256(manifest.read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
 def recover_output(out: Path) -> str | None:
     """Restore or clean up an interrupted publish described by the journal.
 
     Returns ``"restored"`` when the previous complete directory was put back,
-    ``"committed"`` when the new directory was already in place and leftovers
-    were removed, ``"cleaned"`` when only a staged directory remained, or None
-    when there is no journal. The target path is absent only between the two
-    renames of a replacement; recovery closes that window.
+    ``"committed"`` when the expected new directory is in place, ``"aborted"``
+    when the old directory was never moved, ``"cleaned"`` when only staged
+    leftovers were removed, ``"conflict"`` when the target is neither the
+    expected new version nor the recorded old one, or None when there is no
+    journal.
+
+    A conflict keeps the journal and the backup so the only copy of the old
+    result is never deleted because a directory merely exists.
     """
     journal = _journal_path(out)
     if not journal.is_file():
@@ -749,24 +763,37 @@ def recover_output(out: Path) -> str | None:
     backup = (_sibling(out, payload.get("backup", ""),
                        f".{out.name}.backup-")
               if payload.get("backup") else None)
+    expected = payload.get("new_manifest_sha256")
+    previous = payload.get("previous_manifest_sha256")
+
+    def clean_staging() -> None:
+        if staging is not None:
+            shutil.rmtree(staging, ignore_errors=True)
+
     if out.is_dir():
-        if staging is not None:
-            shutil.rmtree(staging, ignore_errors=True)
-        if backup is not None:
-            shutil.rmtree(backup, ignore_errors=True)
-        outcome = "committed"
-    elif backup is not None and backup.is_dir():
+        current = _manifest_digest(out)
+        if expected is not None and current == expected:
+            clean_staging()
+            if backup is not None:
+                shutil.rmtree(backup, ignore_errors=True)
+            _remove_journal(out)
+            return "committed"
+        if previous is not None and current == previous:
+            clean_staging()
+            _remove_journal(out)
+            return "aborted"
+        return "conflict"
+    if backup is not None and backup.is_dir():
         os.replace(backup, out)
-        if staging is not None:
-            shutil.rmtree(staging, ignore_errors=True)
-        outcome = "restored"
-    elif staging is not None and staging.is_dir():
+        clean_staging()
+        _remove_journal(out)
+        return "restored"
+    if staging is not None and staging.is_dir():
         os.replace(staging, out)
-        outcome = "cleaned"
-    else:
-        outcome = "cleaned"
+        _remove_journal(out)
+        return "cleaned"
     _remove_journal(out)
-    return outcome
+    return "cleaned"
 
 
 def _write_artifacts(directory: Path, artifacts: Mapping[str, bytes]) -> None:
@@ -786,7 +813,13 @@ def write_outputs(prepared: PreparedSource, out: Path, *, source: Path | None = 
     the previous complete result and an interrupted publish is recoverable with
     :func:`recover_output` (also called before the next write).
     """
-    recover_output(out)
+    recovered = recover_output(out)
+    if recovered == "conflict":
+        raise ValueError(
+            f"interrupted publish conflicts with the current contents of {out}; "
+            f"the previous result is kept at {out.parent} (see "
+            f"{_journal_path(out).name}); move the unexpected directory aside "
+            "and run --recover again")
     _check_output_root(out, source, overwrite)
     manifest = {
         "schema": "qecgraph.prepare/2",
@@ -820,9 +853,13 @@ def write_outputs(prepared: PreparedSource, out: Path, *, source: Path | None = 
             manifest, indent=1, ensure_ascii=False).encode("utf-8"),
     }
     out.parent.mkdir(parents=True, exist_ok=True)
+    previous_manifest = _manifest_digest(out) if out.is_dir() else None
     staging = Path(mkdtemp(dir=out.parent, prefix=f".{out.name}.staging-"))
     journal = {"out": out.name, "staging": staging.name, "backup": None,
-               "phase": "staged"}
+               "phase": "staged",
+               "new_manifest_sha256":
+                   hashlib.sha256(artifacts["manifest.json"]).hexdigest(),
+               "previous_manifest_sha256": previous_manifest}
     backup: Path | None = None
     try:
         _write_artifacts(staging, artifacts)

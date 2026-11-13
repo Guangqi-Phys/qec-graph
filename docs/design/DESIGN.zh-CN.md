@@ -424,7 +424,10 @@ source map 投影回原始文件：`source` 锚定 block 首个非空白字符�
 staging 目录，再通过带 journal 的事务发布：旧目录改名让位、staging 改名就位、
 删除 backup。普通失败会恢复旧目录；进程在两次改名之间被终止时，目标路径会暂时
 消失，下一次写入或 `--recover` 会恢复 journal 记录的 backup 并清理暂存遗留。
-非空但没有 prepare manifest 的目录会被拒绝，除非调用方显式覆盖。manifest 记录
+恢复会对比目标 manifest 与 journal 记录的新、旧摘要：只有预期的新版本按已发布
+清理，记录中的旧版本保持原地，其他目标（空目录、无关目录或另一份受管理产物）
+一律视为冲突，保留 journal 与 backup。非空但没有 prepare manifest 的目录会被
+拒绝，除非调用方显式覆盖。manifest 记录
 `parser_version` 和独立的 `prepare_version`，使离线转换规则的变化可追溯，又不必
 把它当成需要重建 workspace 快照的 parser 变化。本路径尚未接入 workspace 的
 stage/validate/publish。parser 错误会让结构保持 partial，而不是静默接受；

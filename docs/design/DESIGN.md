@@ -413,9 +413,13 @@ a sibling staging directory and published through a journaled transaction: the
 old managed directory is renamed aside, staging is renamed into place, and the
 backup is removed. A normal failure restores the old directory. A process
 killed between the two renames leaves the target absent until the next write or
-`--recover` restores the journaled backup and removes staged leftovers. A
-non-empty directory without a prepare manifest is refused unless the caller
-explicitly overwrites it. The manifest records `parser_version` and a separate
+`--recover` restores the journaled backup and removes staged leftovers.
+Recovery compares the target manifest with the recorded new and previous
+digests: only the expected new version is cleaned as committed, the recorded
+old version is left in place, and any other target (an empty or unrelated
+directory, or a different managed output) is a conflict that keeps the journal
+and backup. A non-empty directory without a prepare manifest is refused unless
+the caller explicitly overwrites it. The manifest records `parser_version` and a separate
 `prepare_version`, so an offline conversion-rule change is traceable without
 treating it as a parser change that would rebuild workspace snapshots. This path is not connected to workspace
 stage/validate/publish. Parser errors leave structure partial rather than being
