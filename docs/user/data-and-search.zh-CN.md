@@ -64,6 +64,8 @@ DataGraph 核对实验、噪声与度量，再通过 LemmaGraph 查看涉及的�
 
 ### 论文和码
 
+论文列表和卡片离线显示 `arxiv_id` 及其来源。已登记的 arXiv 摘要页 URL 优先于归档文件名中的唯一编号。文件名给出多个不同编号时，编号留空并列出候选项。文件名不会更改已登记的论文身份或引用 URL。
+
 | 记录 kind | 示例 |
 | --- | --- |
 | `paper_version` | 保存 `work_id`、`upstream_version` 和 `source_snapshot_id`。arXiv 论文的 `v2` 和 `v3` 可以在同一 work ID 下有不同来源快照。 |

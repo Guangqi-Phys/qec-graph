@@ -6,6 +6,23 @@ from .reading import _group
 from .contracts import PaperMetadata
 
 
+_ARXIV_ID = r'[0-9]{2}(?:0[1-9]|1[0-2])\.[0-9]{4,5}(?:v[1-9][0-9]*)?'
+_ARXIV_ABS = re.compile(r'https?://(?:www\.)?arxiv\.org/abs/(' + _ARXIV_ID
+                        + r'|[a-z][a-z.-]*/[0-9]{7}(?:v[1-9][0-9]*)?)/?', re.I)
+_ARXIV_FILENAME = re.compile(r'(?<![0-9])' + _ARXIV_ID + r'(?![0-9]|v[0-9])')
+
+
+def arxiv_identity(url: str | None, archive_names: list[str]) -> tuple[str | None, str | None, list[str]]:
+    """Resolve local evidence for display without fetching or changing paper identity."""
+    registered = _ARXIV_ABS.fullmatch(url) if url else None
+    candidates = sorted({m[0] for name in archive_names for m in _ARXIV_FILENAME.finditer(name)})
+    if registered:
+        return registered[1], 'registered_url', candidates
+    if len(candidates) == 1:
+        return candidates[0], 'archive_filename', candidates
+    return None, None, candidates
+
+
 def _plain(value: str) -> str:
     return ' '.join(LatexNodes2Text().latex_to_text(value).split())
 

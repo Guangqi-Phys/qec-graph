@@ -60,6 +60,28 @@ class KnowledgeTests(unittest.TestCase):
         self.assertEqual(papers[self.version]['link'], 'https://example.org/paper/v1')
         self.assertEqual(papers[self.version]['field_evidence']['link']['status'], 'user_confirmed')
 
+    def test_arxiv_number_is_searchable_without_changing_source_identity(self):
+        from qecgraph.source.metadata import arxiv_identity
+
+        names = ['2601.01234v2.tar.gz', '2601.01234v2.zip']
+        self.assertEqual(arxiv_identity(None, names),
+                         ('2601.01234v2', 'archive_filename', ['2601.01234v2']))
+        self.assertEqual(arxiv_identity(None, [*names, '2512.12345.zip'])[:2], (None, None))
+        self.assertEqual(arxiv_identity('https://arxiv.org/abs/quant-ph/9901001', names)[:2],
+                         ('quant-ph/9901001', 'registered_url'))
+
+        (self.root / 'inputs/2601.01234v2.tex').write_text(TEXT + '% A second paper\n')
+        self.ws.sync()
+        self.session = WorkspaceSession(self.ws.registry.root, profile='research')
+        [paper] = self.invoke('qec_list_papers', {'query': '2601.01234v2'})['results']
+        self.assertEqual(paper['arxiv_id'], '2601.01234v2')
+        self.assertEqual(paper['arxiv_id_source'], 'archive_filename')
+        self.assertNotEqual(paper['source_version_id'] if 'source_version_id' in paper else paper['id'],
+                            paper['arxiv_id'])
+        card = self.invoke('qec_fetch', {'identifier': paper['id'], 'view': 'card'})
+        self.assertEqual(card['arxiv_id'], paper['arxiv_id'])
+        self.assertIsNone(card['link'])
+
     def test_human_bytes_do_not_depend_on_unrelated_release_identity(self):
         from qecgraph.render.thoughts import QUESTIONS, render_pages
         original = render_pages(self.session)

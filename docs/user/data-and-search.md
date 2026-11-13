@@ -72,6 +72,8 @@ hypothetical settings and counts. [Bundled HGP example](../../examples/paper/sec
 
 ### Papers and codes
 
+Paper lists and cards expose an offline `arxiv_id` and its origin. A registered arXiv abstract URL takes precedence over a unique ID in an archive filename. Ambiguous filenames leave the ID unset and list the candidates. A filename does not change the registered paper identity or citation URL.
+
 | Record kind | Example |
 | --- | --- |
 | `paper_version` | Stores `work_id`, `upstream_version`, and `source_snapshot_id`. An arXiv paper's `v2` and `v3` can have distinct source snapshots under the same work ID. |

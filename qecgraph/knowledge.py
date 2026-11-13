@@ -90,7 +90,8 @@ class KnowledgeView:
                 if source := row.get('excerpt_source'):
                     item.update(path=source['path'], lines=[source['line_start'], source['line_start'] + SourceLines(row['excerpt'][:120]).line_at(max(0, len(row['excerpt'][:120]) - 1)) - 1],
                                 char_range=[source['char_start'], source['char_start'] + min(120, len(row['excerpt']))])
-            for field in ('review_status', 'match', 'authors', 'year', 'topics', 'arxiv_candidates'):
+            for field in ('review_status', 'match', 'authors', 'year', 'topics', 'arxiv_id',
+                          'arxiv_id_source', 'arxiv_candidates'):
                 if field in row:
                     item[field] = row[field]
             compact.append(item)
@@ -166,7 +167,7 @@ class KnowledgeView:
 
     @cached_property
     def papers(self):
-        from .source.metadata import literal_metadata
+        from .source.metadata import arxiv_identity, literal_metadata
         from .llm.review import proposal_bindings, read_bound_proposal
         proposals = defaultdict(list)
         for binding, material in proposal_bindings(self.session.state).values():
@@ -208,8 +209,11 @@ class KnowledgeView:
                     result['field_evidence'][field] = {'status': 'user_confirmed'}
             names = sorted({name for m in self.session.state.get('materials', {}).values()
                             if m.get('source_version_id') == version_id for name in m.get('original_names', [])})
-            candidates = sorted({m[0] for name in names for m in re.finditer(
-                r'(?<![0-9])[0-9]{2}(?:0[1-9]|1[0-2])\.[0-9]{4,5}(?:v[1-9][0-9]*)?', name)})
+            arxiv_id, origin, candidates = arxiv_identity(version.get('canonical_url'), names)
+            result['arxiv_id'] = arxiv_id
+            result['arxiv_id_source'] = origin
+            if origin:
+                result['field_evidence']['arxiv_id'] = {'status': origin}
             result['arxiv_candidates'] = [{'id': item, 'url': 'https://arxiv.org/abs/' + item,
                                            'status': 'filename_candidate'} for item in candidates]
             result['title'] = result['title'] or (names[0] if names else document['title'])
@@ -246,7 +250,8 @@ class KnowledgeView:
         wanted = set(terms(args.get('query', '')))
         rows = []
         for paper in self.papers.values():
-            text = ' '.join([paper['title'], *paper['authors'], *paper['topics']])
+            text = ' '.join([paper['title'], *paper['authors'], *paper['topics'],
+                             paper['arxiv_id'] or '', *(candidate['id'] for candidate in paper['arxiv_candidates'])])
             if wanted and not wanted <= set(terms(text)):
                 continue
             if args.get('year') is not None and paper['year'] != args['year']:
@@ -254,7 +259,7 @@ class KnowledgeView:
             if args.get('topic') and args['topic'].casefold() not in ' '.join(paper['topics']).casefold():
                 continue
             rows.append({k: paper[k] for k in ('id', 'source_version_id', 'title', 'authors', 'year',
-                                              'topics', 'arxiv_candidates')})
+                                              'topics', 'arxiv_id', 'arxiv_id_source', 'arxiv_candidates')})
         return self.session._paginate(rows, args, min(20, self.session.graph.max_results))
 
     def card(self, node):
@@ -263,7 +268,8 @@ class KnowledgeView:
         outline = self.outline(node, {'limit': 12})
         thoughts = [p for p in self.proposal_items.values() if p['source_version_id'] == version
                     and p['kind'] == 'research_thought_proposal']
-        result = {k: paper[k] for k in ('id', 'title', 'authors', 'year', 'topics', 'link', 'arxiv_candidates')}
+        result = {k: paper[k] for k in ('id', 'title', 'authors', 'year', 'topics', 'link', 'arxiv_id',
+                                       'arxiv_id_source', 'arxiv_candidates')}
         result.update(view='card', source_version_id=version, abstract=(paper['abstract'] or '')[:1000],
                       sections=[{'id': r['id'], 'title': r['title']} for r in outline['results']],
                       thoughts=[{'id': p['id'], 'category': p['data']['category'],
