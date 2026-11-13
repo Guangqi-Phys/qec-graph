@@ -7,6 +7,7 @@ from unittest import mock
 
 from qecgraph.source.package import SourceTree
 from qecgraph.source.prepare import (
+    _uncovered_entry_prose,
     entry_candidates,
     prepare_source,
     write_outputs,
@@ -121,6 +122,65 @@ class PrepareTests(unittest.TestCase):
         self.assertTrue(blocks[0]["spans_include"])
         self.assertEqual([span["path"] for span in blocks[0]["source_spans"]],
                          ["main.tex", "body.tex", "main.tex"])
+
+    def test_extensionless_fragment_reaches_the_document_model(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\\begin{document}"
+                         b"\\section{Intro}\\input{fragment}\\end{document}"),
+            "fragment": b"IMPORTANT_EXTENSIONLESS_BODY.\n",
+        })
+        prepared = prepare_source(tree, "main.tex")
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertIn("IMPORTANT_EXTENSIONLESS_BODY.", texts)
+        self.assertTrue(prepared.coverage["content_complete"])
+        self.assertTrue(prepared.coverage["document_complete"])
+        self.assertEqual(prepared.coverage["missing_dependencies"], 0)
+
+    def test_iffalse_else_branch_is_assembled(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\\begin{document}\n"
+                         b"\\section{Intro}\n"
+                         b"\\iffalse\\input{unused}\\else\\input{active}\\fi\n"
+                         b"\\end{document}\n"),
+            "unused.tex": b"NOT_ACTIVE.\n",
+            "active.tex": b"ACTIVE_BODY.\n",
+        })
+        prepared = prepare_source(tree, "main.tex")
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertTrue(any("ACTIVE_BODY." in text for text in texts))
+        self.assertNotIn(b"NOT_ACTIVE.", prepared.assembly.data)
+        self.assertTrue(prepared.coverage["content_complete"])
+
+    def test_include_inside_an_undecidable_conditional_is_partial(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\ifdefined\\flag\\input{yes}\\else\\input{no}\\fi\n"
+                         b"\\end{document}\n"),
+            "yes.tex": b"YES_BODY.\n",
+            "no.tex": b"NO_BODY.\n",
+        })
+        prepared = prepare_source(tree)
+        self.assertTrue(prepared.coverage["content_complete"])
+        self.assertFalse(prepared.coverage["structure_complete"])
+        self.assertIn("conditional_directives", prepared.coverage["reasons"])
+        self.assertEqual(prepared.coverage["conditional_directives"], 1)
+
+    def test_uncovered_body_prose_breaks_structure_completeness(self):
+        text = (r"\documentclass{article}\begin{document}\section{A}"
+                "Unrepresented prose."
+                r"\begin{comment}Not content.\end{comment}"
+                r"\vspace{1em}\label{x}\end{document}")
+        covered = [{"entry": {"char_start": 0, "char_end": len(text)}}]
+        self.assertEqual(_uncovered_entry_prose(text, covered), 0)
+        section_end = text.index("}") + 1
+        partial = [{"entry": {"char_start": 0, "char_end": section_end}}]
+        self.assertGreater(_uncovered_entry_prose(text, partial), 0)
+        only_literal = (r"\documentclass{article}\begin{document}\section{A}"
+                        r"\begin{comment}Hidden.\end{comment}\end{document}")
+        literal_blocks = [{"entry": {
+            "char_start": 0,
+            "char_end": only_literal.index(r"\begin{comment}")}}]
+        self.assertEqual(_uncovered_entry_prose(only_literal, literal_blocks), 0)
 
     def test_path_macro_redefinition_keeps_source_order(self):
         tree = SourceTree("directory", {

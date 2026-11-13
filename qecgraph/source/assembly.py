@@ -28,7 +28,7 @@ TWO_ARG = frozenset({
     "subincludefrom", "subinputfrom",
 })
 DIRECTIVES = ONE_ARG | TWO_ARG
-_LITERAL_ENVIRONMENTS = frozenset({
+LITERAL_ENVIRONMENTS = frozenset({
     "verbatim", "verbatim*", "Verbatim", "BVerbatim", "LVerbatim",
     "lstlisting", "minted", "comment", "filecontents", "filecontents*",
 })
@@ -196,6 +196,57 @@ class AssemblyResult:
         return problems
 
 
+def _is_control_word_char(char: str) -> bool:
+    return ("a" <= char <= "z") or ("A" <= char <= "Z") or char == "@"
+
+
+class EntryCoordinates:
+    """Map between the assembled entry and a parse copy with separators.
+
+    Splicing an include can join the last letter of a preceding control word to
+    the first letter of the included content, turning two tokens into one
+    (``\\fi`` + ``ACTIVE`` becomes ``\\fiACTIVE``). The parse copy inserts one
+    space at those joints; coordinates map back to the untouched entry, so the
+    entry bytes and the source map stay exact.
+    """
+
+    def __init__(self, result: AssemblyResult):
+        text = result.text
+        self.text = text
+        self.separators: list[int] = []
+        self.parse_separators: list[int] = []
+        for segment in result.segments:
+            offset = segment.out_char_end
+            if not 0 < offset < len(text):
+                continue
+            if self.separators and self.separators[-1] == offset:
+                continue
+            if (_is_control_word_char(text[offset - 1])
+                    and _is_control_word_char(text[offset])):
+                self.parse_separators.append(offset + len(self.separators))
+                self.separators.append(offset)
+
+    def to_parse(self, entry_offset: int) -> int:
+        """Return the parse-copy offset of an entry character offset."""
+        return entry_offset + bisect.bisect_right(self.separators, entry_offset)
+
+    def to_entry(self, parse_offset: int) -> int:
+        """Return the entry character offset of a parse-copy offset."""
+        return parse_offset - bisect.bisect_left(self.parse_separators, parse_offset)
+
+    def copy_text(self) -> str:
+        if not self.separators:
+            return self.text
+        parts: list[str] = []
+        cursor = 0
+        for offset in self.separators:
+            parts.append(self.text[cursor:offset])
+            parts.append(" ")
+            cursor = offset
+        parts.append(self.text[cursor:])
+        return "".join(parts)
+
+
 def _mask_comments(text: str) -> str:
     out = list(text)
     i = 0
@@ -321,14 +372,23 @@ def _skip_definition(text: str, index: int, name: str) -> int:
     return index
 
 
-def _skip_iffalse(text: str, index: int) -> int:
+def _conditional_bounds(text: str, index: int) -> tuple[int | None, int, int]:
+    """Return ``(else_start, fi_start, fi_end)`` for a conditional body.
+
+    ``index`` is the offset just after the opening ``\\if...`` control word.
+    ``else_start`` is the offset just after the matching ``\\else`` or None;
+    ``fi_start`` is the offset of the matching ``\\fi`` and ``fi_end`` the
+    offset just after it.
+    """
     depth = 1
+    else_start: int | None = None
     while index < len(text):
-        if text[index] == "%":
-            end = text.find("\n", index)
+        char = text[index]
+        if char == "%":
+            end = text.find("\\n", index)
             index = len(text) if end < 0 else end + 1
             continue
-        if text[index] != "\\":
+        if char != "\\":
             index += 1
             continue
         match = _CONTROL.match(text, index)
@@ -336,14 +396,17 @@ def _skip_iffalse(text: str, index: int) -> int:
             index += 2
             continue
         name = match.group(1)
-        index = match.end()
-        if name.startswith("if") and name != "ifthenelse":
+        after = match.end()
+        if name.startswith("if") and name not in {"ifthenelse", "ifboolexpr"}:
             depth += 1
         elif name == "fi":
             depth -= 1
             if depth == 0:
-                return index
-    return len(text)
+                return else_start, index, after
+        elif name == "else" and depth == 1 and else_start is None:
+            else_start = after
+        index = after
+    return else_start, len(text), len(text)
 
 
 @dataclass(frozen=True)
@@ -412,77 +475,117 @@ def _literal_definition(text: str, index: int, name: str) -> _MacroDef | None:
 
 
 def _scan(text: str) -> tuple[list, list[dict]]:
-    """Scan one file into ordered scope, definition and directive events."""
+    """Scan one file into ordered scope, definition and directive events.
+
+    Active branches of statically decidable ``\\iffalse``/``\\iftrue`` are
+    scanned; the other branch is skipped. Other conditionals are undecidable,
+    so both branches are kept and a directive inside one is marked uncertain.
+    """
     items: list = []
     diagnostics: list[dict] = []
-    index = 0
     conditionals = 0
-    while index < len(text):
-        char = text[index]
-        if char == "%":
-            end = text.find("\n", index)
-            index = len(text) if end < 0 else end + 1
-            continue
-        if char == "{":
-            items.append(_ScopeEvent(True, index))
-            index += 1
-            continue
-        if char == "}":
-            items.append(_ScopeEvent(False, index))
-            index += 1
-            continue
-        if char != "\\":
-            index += 1
-            continue
-        match = _CONTROL.match(text, index)
-        if not match:
-            index += 2
-            continue
-        name = match.group(1)
-        after = match.end()
-        if name in {"verb", "verb*", "lstinline"}:
-            if after < len(text):
-                delimiter = text[after]
-                end = text.find(delimiter, after + 1)
-                index = len(text) if end < 0 else end + 1
-            else:
+    uncertain_directives = 0
+
+    def walk(start: int, stop: int, uncertain: int) -> None:
+        nonlocal conditionals, uncertain_directives
+        index = start
+        depth = 0
+        while index < stop:
+            char = text[index]
+            if char == "%":
+                end = text.find("\n", index)
+                index = stop if end < 0 else end + 1
+                continue
+            if char == "{":
+                items.append(_ScopeEvent(True, index))
+                index += 1
+                continue
+            if char == "}":
+                items.append(_ScopeEvent(False, index))
+                index += 1
+                continue
+            if char != "\\":
+                index += 1
+                continue
+            match = _CONTROL.match(text, index)
+            if not match:
+                index += 2
+                continue
+            name = match.group(1)
+            after = match.end()
+            if name in {"verb", "verb*", "lstinline"}:
+                if after < stop:
+                    delimiter = text[after]
+                    end = text.find(delimiter, after + 1, stop)
+                    index = stop if end < 0 else end + 1
+                else:
+                    index = after
+                continue
+            if name == "begin":
+                environment, group_end = _parse_group(text, after)
+                if environment in LITERAL_ENVIRONMENTS:
+                    closing = "\\end{" + environment + "}"
+                    end = text.find(closing, group_end, stop)
+                    index = stop if end < 0 else end + len(closing)
+                    continue
+                index = group_end
+                continue
+            if name in {"iffalse", "iftrue"}:
+                else_start, fi_start, fi_end = _conditional_bounds(text, after)
+                fi_start = min(fi_start, stop)
+                fi_end = min(fi_end, stop)
+                if name == "iffalse":
+                    if else_start is None:
+                        diagnostics.append({"code": "iffalse_skipped"})
+                    else:
+                        diagnostics.append({"code": "iffalse_else_branch"})
+                        walk(min(else_start, stop), fi_start, uncertain + depth)
+                    index = fi_end
+                    continue
+                if else_start is None:
+                    index = after
+                else:
+                    walk(after, min(else_start, stop), uncertain + depth)
+                    index = fi_end
+                continue
+            if name == "endinput":
+                diagnostics.append({"code": "endinput"})
+                break
+            if name.startswith("if") and name not in {"ifthenelse", "ifboolexpr"}:
+                conditionals += 1
+                depth += 1
                 index = after
-            continue
-        if name == "begin":
-            environment, after = _parse_group(text, after)
-            if environment in _LITERAL_ENVIRONMENTS:
-                end = text.find("\\end{" + environment + "}", after)
-                index = len(text) if end < 0 else end + len("\\end{" + environment + "}")
+                continue
+            if name == "fi":
+                depth = max(0, depth - 1)
+                index = after
+                continue
+            if name in _DECLARATIONS:
+                definition = _literal_definition(text, index, name)
+                if definition is not None:
+                    items.append(definition)
+                index = _skip_definition(text, after, name)
+                continue
+            if name in DIRECTIVES:
+                arguments, after_args = _parse_args(text, after, name)
+                if len(arguments) == (1 if name in ONE_ARG else 2):
+                    if uncertain + depth > 0:
+                        uncertain_directives += 1
+                    items.append(_Directive(
+                        name, index, after_args, arguments,
+                        text.count("\n", 0, index) + 1))
+                else:
+                    diagnostics.append({"code": "unparsed_directive", "name": name})
+                index = after_args
                 continue
             index = after
-            continue
-        if name == "iffalse":
-            index = _skip_iffalse(text, after)
-            diagnostics.append({"code": "iffalse_skipped"})
-            continue
-        if name == "endinput":
-            diagnostics.append({"code": "endinput"})
-            break
-        if name.startswith("if"):
-            conditionals += 1
-        if name in _DECLARATIONS:
-            definition = _literal_definition(text, index, name)
-            if definition is not None:
-                items.append(definition)
-            index = _skip_definition(text, after, name)
-            continue
-        if name in DIRECTIVES:
-            arguments, after_args = _parse_args(text, after, name)
-            if len(arguments) == (1 if name in ONE_ARG else 2):
-                items.append(_Directive(name, index, after_args, arguments,
-                                        text.count("\n", 0, index) + 1))
-            else:
-                diagnostics.append({"code": "unparsed_directive", "name": name})
-            index = after_args
-            continue
-        index = after
+
+    walk(0, len(text), 0)
     if conditionals:
         diagnostics.append({"code": "conditionals_present", "count": conditionals})
+    if uncertain_directives:
+        diagnostics.append({"code": "directive_in_conditional",
+                            "count": uncertain_directives})
     return items, diagnostics
 
 
@@ -532,7 +635,7 @@ def document_bounds(text: str) -> tuple[int | None, int | None, int | None]:
         if name in {"begin", "end"}:
             environment, group_end = _parse_group(text, after)
             environment = environment.strip()
-            if name == "begin" and environment in _LITERAL_ENVIRONMENTS:
+            if name == "begin" and environment in LITERAL_ENVIRONMENTS:
                 end = text.find("\\end{" + environment + "}", group_end)
                 index = (len(text) if end < 0
                          else end + len("\\end{" + environment + "}"))

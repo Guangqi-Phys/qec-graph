@@ -356,8 +356,10 @@ A multi-argument include becomes the search context of the files it includes, so
 an `\import`ed chapter resolves its own sibling inputs before root-level ones.
 Path macros are learned in source order and follow brace-group scope: a use
 before its definition, after a closed group, or inside an inactive conditional
-stays dynamic and is reported. Dynamic paths and missing body dependencies stay
-in the entry and are reported.
+stays dynamic and is reported. A statically decidable `\iffalse`/`\iftrue`
+branch is followed; other conditionals keep both branches and mark an include
+inside one as uncertain. Dynamic paths and missing body dependencies stay in
+the entry and are reported.
 A missing preamble dependency is a dependency warning, not content loss. Entry
 and source-map coordinates use the half-open convention in §4.5.
 
@@ -371,8 +373,12 @@ The document model is `qecgraph.document/2`:
 - `text_projection: reading-v1`: plain text strips commands, comments and
   labels, preserves mathematics, citation keys as `[key]`, and theorem/proof
   bodies;
-- `coverage`: `content_complete`, `structure_complete` and `document_complete`,
-  plus `missing_dependencies` and `preamble_missing`. Compilation is not checked
+- `coverage`: `content_complete` states that every body include directive was
+  resolved; `structure_complete` states that the model represents the body: no
+  parser errors, at least one block, no substantive body text outside every
+  block (`uncovered_entry_chars`), and no include resolved from inside an
+  undecidable conditional (`conditional_directives`). `document_complete`
+  requires both and `reasons` names each failure. Compilation is not checked
   and is not a completion condition.
 
 The model comes from one parse of the assembled entry, so declarations in the

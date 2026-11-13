@@ -26,7 +26,9 @@ from typing import Mapping
 import uuid
 
 from .assembly import (
+    LITERAL_ENVIRONMENTS,
     AssemblyResult,
+    EntryCoordinates,
     SourceLineIndex,
     assemble_files,
     document_bounds,
@@ -178,8 +180,9 @@ def _run_parse(path: Path, root: Path, data: bytes, *, recover: bool,
 
 
 def _shift_parsed(parsed: dict, name: str, shift: int, prefix: str,
+                  parse_offset: int = 0,
                   ) -> tuple[list[dict], list[dict]]:
-    """Re-base one chunk parse onto entry coordinates and unique block keys."""
+    """Re-base one chunk parse onto parse-copy coordinates and unique keys."""
     blocks: list[dict] = []
     for block in parsed.get("blocks", []):
         source = block.get("source") or {}
@@ -190,8 +193,8 @@ def _shift_parsed(parsed: dict, name: str, shift: int, prefix: str,
         if start < shift:
             continue
         block = dict(block)
-        block["source"] = {**source, "char_start": start - shift,
-                           "char_end": max(start, end) - shift}
+        block["source"] = {**source, "char_start": start - shift + parse_offset,
+                           "char_end": max(start, end) - shift + parse_offset}
         key = block.get("key")
         parent = block.get("parent_key")
         block["key"] = f"{prefix}-{key}" if key else key
@@ -209,38 +212,42 @@ def _shift_parsed(parsed: dict, name: str, shift: int, prefix: str,
         if start < shift:
             continue
         diagnostic = dict(diagnostic)
-        diagnostic["source"] = {**source, "char_start": start - shift,
-                                "char_end": max(start, end) - shift}
+        diagnostic["source"] = {
+            **source, "char_start": start - shift + parse_offset,
+            "char_end": max(start, end) - shift + parse_offset}
         diagnostics.append(diagnostic)
     return blocks, diagnostics
 
 
 def _salvage_ranges(path: Path, root: Path, assembly: AssemblyResult, name: str,
-                    *, recover: bool, transparent: bool
+                    coords: EntryCoordinates, *, recover: bool, transparent: bool
                     ) -> tuple[list[dict], list[dict]] | None:
     """Parse the entry in chunks when one malformed region breaks the walk.
 
     Each chunk is parsed with the entry preamble prepended, so shared
-    declarations still apply, and its blocks are re-based onto entry
+    declarations still apply, and its blocks are re-based onto parse-copy
     coordinates. Chunks split at resolved top-level includes, which keeps a
     broken file from discarding the structure of every other file.
     """
-    text = assembly.text
-    _, body_start, end_start = document_bounds(text)
+    _, body_start, end_start = document_bounds(coords.text)
     if body_start is None:
         return None
-    body_end = end_start if end_start is not None else len(text)
-    preamble = text[:body_start]
+    body_end = end_start if end_start is not None else len(coords.text)
+    text = coords.copy_text()
+    body_parse_start = coords.to_parse(body_start)
+    body_parse_end = coords.to_parse(body_end)
+    preamble = text[:body_parse_start]
     shift = len(preamble)
     boundaries: list[tuple[int, int]] = []
     for event in assembly.events:
         if (event.outcome != "resolved" or event.path != assembly.entry
                 or event.out_char_start is None or event.out_char_end is None):
             continue
-        boundaries.append((event.out_char_start, event.out_char_end))
+        boundaries.append((coords.to_parse(event.out_char_start),
+                           coords.to_parse(event.out_char_end)))
     boundaries.sort()
     ranges: list[tuple[int, int]] = []
-    cursor = body_start
+    cursor = body_parse_start
     for low, high in boundaries:
         if low < cursor:
             continue
@@ -248,8 +255,8 @@ def _salvage_ranges(path: Path, root: Path, assembly: AssemblyResult, name: str,
             ranges.append((cursor, low))
         ranges.append((low, high))
         cursor = high
-    if cursor < body_end:
-        ranges.append((cursor, body_end))
+    if cursor < body_parse_end:
+        ranges.append((cursor, body_parse_end))
     if len(ranges) <= 1:
         return None
     blocks: list[dict] = []
@@ -259,20 +266,20 @@ def _salvage_ranges(path: Path, root: Path, assembly: AssemblyResult, name: str,
         parsed = _run_parse(path, root, chunk, recover=recover,
                             transparent=transparent)
         chunk_blocks, chunk_diagnostics = _shift_parsed(
-            parsed, name, shift, f"part{index}")
+            parsed, name, shift, f"part{index}", low - body_parse_start)
         blocks.extend(chunk_blocks)
         diagnostics.extend(chunk_diagnostics)
     return blocks, diagnostics
 
 
 def _map_diagnostic(diagnostic: dict, assembly: AssemblyResult, name: str,
-                    lines: SourceLineIndex) -> dict:
+                    lines: SourceLineIndex, coords: EntryCoordinates) -> dict:
     source = diagnostic.get("source")
     if not isinstance(source, dict) or source.get("path") != name:
         return diagnostic
     try:
-        start = int(source.get("char_start", 0))
-        end = max(start, int(source.get("char_end", start)))
+        start = coords.to_entry(int(source.get("char_start", 0)))
+        end = max(start, coords.to_entry(int(source.get("char_end", start))))
     except (TypeError, ValueError):
         return diagnostic
     spans = entry_source_spans(assembly, start, max(end, start + 1))
@@ -305,14 +312,15 @@ def _parse_entry(tree: SourceTree, assembly: AssemblyResult, selected: str,
     """
     name = _entry_name(tree.files)
     path = root / name
+    coords = EntryCoordinates(assembly)
     try:
-        parsed = _run_parse(path, root, assembly.data,
+        parsed = _run_parse(path, root, coords.copy_text().encode("utf-8"),
                             recover=recover, transparent=transparent)
         blocks = list(parsed.get("blocks", []))
         diagnostics = list(parsed.get("diagnostics", []))
         if recover and any(item.get("code") == "latex_parse_error"
                            for item in diagnostics):
-            salvaged = _salvage_ranges(path, root, assembly, name,
+            salvaged = _salvage_ranges(path, root, assembly, name, coords,
                                        recover=recover, transparent=transparent)
             if salvaged is not None and len(salvaged[0]) > len(blocks):
                 blocks, diagnostics = salvaged
@@ -320,6 +328,20 @@ def _parse_entry(tree: SourceTree, assembly: AssemblyResult, selected: str,
         return [], [{"code": "parse_failed", "path": selected,
                      "message": str(exc)}], []
     lines = SourceLineIndex(tree.files)
+    mapped_blocks: list[dict] = []
+    for block in blocks:
+        if (block.get("source") or {}).get("path") != name:
+            mapped_blocks.append(block)
+            continue
+        source = block["source"]
+        start = coords.to_entry(int(source.get("char_start", 0)))
+        end = max(start, coords.to_entry(int(source.get("char_end", 0))))
+        mapped_blocks.append({
+            **block,
+            "source": {**source, "char_start": start, "char_end": end},
+            "latex": assembly.text[start:end],
+        })
+    blocks = mapped_blocks
     outside = sorted({
         (block.get("source") or {}).get("path")
         for block in blocks
@@ -338,7 +360,7 @@ def _parse_entry(tree: SourceTree, assembly: AssemblyResult, selected: str,
             (event.source_char_start, event.source_char_end))
     fatal: list[dict] = []
     for diagnostic in diagnostics:
-        diagnostic = _map_diagnostic(diagnostic, assembly, name, lines)
+        diagnostic = _map_diagnostic(diagnostic, assembly, name, lines, coords)
         source = diagnostic.get("source") or {}
         position = source.get("char_start")
         if (diagnostic.get("code") in _DEPENDENCY_CODES
@@ -359,12 +381,129 @@ def _parse_entry(tree: SourceTree, assembly: AssemblyResult, selected: str,
     return blocks, fatal, dependencies
 
 
+_CONTROL_WORD = re.compile(r"\\([A-Za-z@]+)\*?")
+
+
+def _skip_braced(text: str, index: int) -> int:
+    opening = text[index]
+    closing = "}" if opening == "{" else "]"
+    depth = 0
+    while index < len(text):
+        char = text[index]
+        if char == "\\":
+            index += 2
+            continue
+        if char == opening:
+            depth += 1
+        elif char == closing:
+            depth -= 1
+            if depth == 0:
+                return index + 1
+        index += 1
+    return len(text)
+
+
+def _prose_chars(text: str) -> int:
+    """Count body letters, ignoring commands, arguments and literal content."""
+    count = 0
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if char == "%":
+            end = text.find("\n", index)
+            index = len(text) if end < 0 else end + 1
+            continue
+        if char == "\\":
+            match = _CONTROL_WORD.match(text, index)
+            if not match:
+                index += 2
+                continue
+            index = match.end()
+            if match.group(1) == "begin":
+                probe = index
+                while probe < len(text) and text[probe].isspace():
+                    probe += 1
+                if probe < len(text) and text[probe] == "{":
+                    closing = text.find("}", probe)
+                    environment = text[probe + 1:closing] if closing >= 0 else ""
+                    if environment in LITERAL_ENVIRONMENTS:
+                        closing = "\\end{" + environment + "}"
+                        end = text.find(closing, probe)
+                        index = len(text) if end < 0 else end + len(closing)
+                        continue
+            while True:
+                probe = index
+                while probe < len(text) and text[probe].isspace():
+                    probe += 1
+                if probe < len(text) and text[probe] in "{[":
+                    index = _skip_braced(text, probe)
+                else:
+                    index = probe
+                    break
+            continue
+        if char.isascii() and char.isalpha():
+            run = 0
+            while (index < len(text) and text[index].isascii()
+                   and text[index].isalpha()):
+                run += 1
+                index += 1
+            if run >= 2:
+                count += run
+            continue
+        index += 1
+    return count
+
+
+def _uncovered_entry_prose(text: str, blocks: list[dict]) -> int:
+    """Count body letters that no block's entry span covers."""
+    _, body_start, end_start = document_bounds(text)
+    if body_start is None:
+        body_start = 0
+    body_end = end_start if end_start is not None else len(text)
+    spans = sorted((int(block["entry"]["char_start"]),
+                    int(block["entry"]["char_end"])) for block in blocks)
+    total = 0
+    cursor = body_start
+    for low, high in spans:
+        if high <= cursor:
+            continue
+        low = max(low, body_start)
+        high = min(high, body_end)
+        if low >= high:
+            continue
+        if low > cursor:
+            total += _prose_chars(text[cursor:low])
+        cursor = max(cursor, high)
+        if cursor >= body_end:
+            break
+    if cursor < body_end:
+        total += _prose_chars(text[cursor:body_end])
+    return total
+
+
 def _coverage(assembly: AssemblyResult, document: dict,
-              parser_errors: list[dict], dependencies: list[dict]) -> dict:
+              parser_errors: list[dict], dependencies: list[dict],
+              uncovered: int = 0) -> dict:
     coverage = assembly.coverage()
     coverage["content_complete"] = coverage["complete"]
     coverage["assembly_complete"] = coverage["content_complete"]
-    coverage["structure_complete"] = not parser_errors and bool(document["blocks"])
+    reasons = set(coverage.get("reasons", []))
+    structure = not parser_errors and bool(document["blocks"])
+    if parser_errors:
+        reasons.add("parser_errors")
+    if not document["blocks"]:
+        reasons.add("no_blocks")
+    if uncovered:
+        structure = False
+        reasons.add("uncovered_entry_text")
+    conditional = sum(1 for item in assembly.diagnostics
+                      if item.get("code") == "directive_in_conditional")
+    if conditional:
+        structure = False
+        reasons.add("conditional_directives")
+    coverage["structure_complete"] = structure
+    coverage["uncovered_entry_chars"] = uncovered
+    coverage["conditional_directives"] = conditional
     coverage["parser_errors"] = len(parser_errors)
     coverage["parser_error_codes"] = sorted({item.get("code") for item in parser_errors})
     coverage["missing_dependencies"] = len(dependencies)
@@ -372,8 +511,7 @@ def _coverage(assembly: AssemblyResult, document: dict,
     coverage["document_complete"] = (
         coverage["content_complete"] and coverage["structure_complete"])
     coverage["complete"] = coverage["document_complete"]
-    if parser_errors:
-        coverage["reasons"] = sorted(set(coverage.get("reasons", [])) | {"parser_errors"})
+    coverage["reasons"] = sorted(reasons)
     return coverage
 
 
@@ -394,7 +532,8 @@ def prepare_source(tree: SourceTree, entry: str | None = None, *,
             transparent=transparent_containers)
     document = merge_blocks(assembly, blocks, source_tree_hash=tree.digest,
                             files=tree.files)
-    coverage = _coverage(assembly, document, parser_errors, dependencies)
+    uncovered = _uncovered_entry_prose(assembly.text, document["blocks"])
+    coverage = _coverage(assembly, document, parser_errors, dependencies, uncovered)
     document["coverage"] = coverage
     document["diagnostics"] = [*assembly.diagnostics, *parser_errors, *dependencies]
     return PreparedSource(

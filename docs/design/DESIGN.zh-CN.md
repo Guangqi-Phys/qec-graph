@@ -382,8 +382,10 @@ preamble，并从来源中的 `\newcommand`/`\def` 学习零参数字面路径�
 引入指令会成为其内容内引用的搜索目录，因此被 `\import` 的章节先解析自己的
 同级文件，而不是根目录同名文件。路径宏按来源顺序学习并遵守花括号作用域：在
 定义之前使用、在已关闭的分组里定义、或位于非活跃条件分支中的宏保持动态并报告。
-动态路径和缺失的正文依赖保留在 entry 中并报告；缺失的 preamble 依赖只算依赖
-警告，不算正文缺失。entry 和 source map 使用 §4.5 的半开区间约定。
+静态可判定的 `\iffalse`/`\iftrue` 分支会被跟随；其他条件保留两个分支，并把其中
+的 include 标为不确定。动态路径和缺失的正文依赖保留在 entry 中并报告；缺失的
+preamble 依赖只算依赖警告，不算正文缺失。entry 和 source map 使用 §4.5 的半开
+区间约定。
 
 文档模型是 `qecgraph.document/2`：
 
@@ -394,8 +396,11 @@ preamble，并从来源中的 `\newcommand`/`\def` 学习零参数字面路径�
   labels、references、`source`、`source_spans`、`entry`；
 - `text_projection: reading-v1`：纯文本去掉命令、注释和 label，保留数学、
   形如 `[key]` 的引用键，以及 theorem/proof 正文；
-- `coverage`：`content_complete`、`structure_complete`、`document_complete`，
-  以及 `missing_dependencies`、`preamble_missing`。不检查编译，编译不是完成条件。
+- `coverage`：`content_complete` 表示正文中的 include 指令都已解析；
+  `structure_complete` 表示模型确实表达了正文：没有 parser 错误、至少一个 block、
+  每个 block 之外没有实质正文文本（`uncovered_entry_chars`），并且没有从无法判定
+  的条件分支中解析 include（`conditional_directives`）。`document_complete` 要求
+  两者都成立，`reasons` 列出每个失败原因。不检查编译，编译不是完成条件。
 
 模型来自对组装后 entry 的一次解析，因此 entry preamble 中的声明——定理环境、
 宏——会作用于所有被引入片段，block 边界跟随 entry 而不是各个文件。block 再通过
