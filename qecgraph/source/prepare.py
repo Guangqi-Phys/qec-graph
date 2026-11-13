@@ -272,7 +272,39 @@ def _salvage_ranges(path: Path, root: Path, assembly: AssemblyResult, name: str,
     return blocks, diagnostics
 
 
-def _map_diagnostic(diagnostic: dict, assembly: AssemblyResult, name: str,
+def _outside_dependencies(parsed: dict, name: str, coords: EntryCoordinates,
+                          body_start: int | None, outside: list[str],
+                          selected: str) -> list[dict]:
+    """Describe parser includes whose content is not inside the entry."""
+    include_in_body: dict[str, bool] = {}
+    for record in parsed.get("includes", []):
+        target = record.get("to")
+        source = record.get("source") or {}
+        if not isinstance(target, str) or source.get("path") != name:
+            continue
+        try:
+            position = coords.to_entry(int(source.get("char_start", 0)))
+        except (TypeError, ValueError):
+            continue
+        in_body = body_start is None or position >= body_start
+        include_in_body[target] = include_in_body.get(target, False) or in_body
+    dependencies: list[dict] = []
+    for other in outside:
+        if not other or Path(other).suffix.lower() in {".bib", ".bbl"}:
+            continue
+        region = "body" if include_in_body.get(other, True) else "preamble"
+        dependencies.append({
+            "code": "include_not_in_entry",
+            "path": selected,
+            "target": other,
+            "region": region,
+            "message": f"parser read {other!r}, which the entry does not contain",
+        })
+    return dependencies
+
+
+def _map_diagnostic(
+diagnostic: dict, assembly: AssemblyResult, name: str,
                     lines: SourceLineIndex, coords: EntryCoordinates) -> dict:
     source = diagnostic.get("source")
     if not isinstance(source, dict) or source.get("path") != name:
@@ -349,9 +381,9 @@ def _parse_entry(tree: SourceTree, assembly: AssemblyResult, selected: str,
         and block.get("kind") != "bib_entry"})
     blocks = [block for block in blocks
               if (block.get("source") or {}).get("path") == name]
-    dependencies = [{"code": "include_not_in_entry", "path": selected,
-                     "message": f"parser read {other!r}, which the entry does not contain"}
-                    for other in outside if other]
+    _, body_start, _ = document_bounds(coords.text)
+    dependencies = _outside_dependencies(parsed, name, coords, body_start,
+                                         outside, selected)
     unresolved: dict[str, list[tuple[int, int]]] = {}
     for event in assembly.events:
         if event.outcome == "resolved":
@@ -486,8 +518,15 @@ def _coverage(assembly: AssemblyResult, document: dict,
               uncovered: int = 0) -> dict:
     coverage = assembly.coverage()
     coverage["content_complete"] = coverage["complete"]
-    coverage["assembly_complete"] = coverage["content_complete"]
     reasons = set(coverage.get("reasons", []))
+    outside_body = sum(1 for item in dependencies
+                       if item.get("code") == "include_not_in_entry"
+                       and item.get("region", "body") != "preamble")
+    if outside_body:
+        coverage["content_complete"] = False
+        reasons.add("include_outside_entry")
+    coverage["outside_entry_dependencies"] = outside_body
+    coverage["assembly_complete"] = coverage["content_complete"]
     structure = not parser_errors and bool(document["blocks"])
     if parser_errors:
         reasons.add("parser_errors")

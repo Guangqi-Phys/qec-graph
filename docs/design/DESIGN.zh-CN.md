@@ -396,7 +396,8 @@ preamble 依赖只算依赖警告，不算正文缺失。entry 和 source map �
   labels、references、`source`、`source_spans`、`entry`；
 - `text_projection: reading-v1`：纯文本去掉命令、注释和 label，保留数学、
   形如 `[key]` 的引用键，以及 theorem/proof 正文；
-- `coverage`：`content_complete` 表示正文中的 include 指令都已解析；
+- `coverage`：`content_complete` 表示正文中的 include 指令都已解析，并且没有从
+  entry 之外读入正文内容（`include_outside_entry`）；
   `structure_complete` 表示模型确实表达了正文：没有 parser 错误、至少一个 block、
   每个 block 之外没有实质正文文本（`uncovered_entry_chars`），并且没有从无法判定
   的条件分支中解析 include（`conditional_directives`）。`document_complete` 要求

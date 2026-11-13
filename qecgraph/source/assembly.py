@@ -385,7 +385,7 @@ def _conditional_bounds(text: str, index: int) -> tuple[int | None, int, int]:
     while index < len(text):
         char = text[index]
         if char == "%":
-            end = text.find("\\n", index)
+            end = text.find("\n", index)
             index = len(text) if end < 0 else end + 1
             continue
         if char != "\\":

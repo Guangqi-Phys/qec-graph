@@ -374,7 +374,8 @@ The document model is `qecgraph.document/2`:
   labels, preserves mathematics, citation keys as `[key]`, and theorem/proof
   bodies;
 - `coverage`: `content_complete` states that every body include directive was
-  resolved; `structure_complete` states that the model represents the body: no
+  resolved and no body content was read from outside the assembled entry
+  (`include_outside_entry`); `structure_complete` states that the model represents the body: no
   parser errors, at least one block, no substantive body text outside every
   block (`uncovered_entry_chars`), and no include resolved from inside an
   undecidable conditional (`conditional_directives`). `document_complete`

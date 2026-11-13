@@ -5,8 +5,11 @@ import os
 import unittest
 from unittest import mock
 
+from qecgraph.source.assembly import EntryCoordinates, assemble_files
 from qecgraph.source.package import SourceTree
 from qecgraph.source.prepare import (
+    _coverage,
+    _outside_dependencies,
     _uncovered_entry_prose,
     entry_candidates,
     prepare_source,
@@ -135,6 +138,53 @@ class PrepareTests(unittest.TestCase):
         self.assertTrue(prepared.coverage["content_complete"])
         self.assertTrue(prepared.coverage["document_complete"])
         self.assertEqual(prepared.coverage["missing_dependencies"], 0)
+
+    def test_iffalse_with_a_comment_keeps_the_else_branch(self):
+        tree = SourceTree("directory", {
+            "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
+                         b"\\section{Intro}\n"
+                         b"\\iffalse\n% disabled branch\n\\input{unused}\n"
+                         b"\\else\n\\input{active}\n\\fi\n"
+                         b"\\end{document}\n"),
+            "unused.tex": b"NOT_ACTIVE.\n",
+            "active.tex": b"ACTIVE_BODY.\n",
+        })
+        prepared = prepare_source(tree, "main.tex")
+        texts = [block["text"] for block in prepared.document["blocks"]]
+        self.assertTrue(any("ACTIVE_BODY." in text for text in texts))
+        self.assertNotIn(b"NOT_ACTIVE.", prepared.assembly.data)
+        self.assertTrue(prepared.coverage["document_complete"])
+
+    def test_body_include_outside_entry_breaks_content_completeness(self):
+        result = assemble_files({"main.tex": (
+            b"\\documentclass{article}\\begin{document}Text.\\end{document}")},
+            "main.tex")
+        document = {"blocks": [{"entry": {"char_start": 40, "char_end": 45}}]}
+        dependency = {"code": "include_not_in_entry", "path": "main.tex",
+                      "region": "body"}
+        body = _coverage(result, document, [], [dependency])
+        self.assertFalse(body["content_complete"])
+        self.assertIn("include_outside_entry", body["reasons"])
+        self.assertEqual(body["outside_entry_dependencies"], 1)
+        preamble = _coverage(result, document, [], [{**dependency,
+                                                    "region": "preamble"}])
+        self.assertTrue(preamble["content_complete"])
+        self.assertEqual(preamble["outside_entry_dependencies"], 0)
+
+    def test_outside_dependencies_record_body_or_preamble_region(self):
+        result = assemble_files({"entry.tex": b"0123456789"}, "entry.tex")
+        coords = EntryCoordinates(result)
+        parsed = {"includes": [{"to": "x.tex",
+                                "source": {"path": "entry.tex",
+                                           "char_start": 8}}]}
+        body = _outside_dependencies(parsed, "entry.tex", coords, 5,
+                                     ["x.tex"], "main.tex")
+        self.assertEqual([item["region"] for item in body], ["body"])
+        preamble = _outside_dependencies(parsed, "entry.tex", coords, 9,
+                                         ["x.tex"], "main.tex")
+        self.assertEqual([item["region"] for item in preamble], ["preamble"])
+        self.assertEqual(_outside_dependencies(
+            parsed, "entry.tex", coords, 5, ["refs.bib"], "main.tex"), [])
 
     def test_iffalse_else_branch_is_assembled(self):
         tree = SourceTree("directory", {
