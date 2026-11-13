@@ -492,7 +492,7 @@ Python、CLI 和 MCP 共享。MCP protocol errors 和 business-query errors 保�
 `human/YYYY/MM/一作姓_文章前两个词_thoughts.md`。
 本布局已随 **v0.6.3** 发布；v0.6.2 使用旧布局。
 
-- 正文固定包含 [Human.md](../reviews/review-2026-11-12/Human-2026-11-11.zh-CN.md) 的九个问题、AI 回答、逐字原文依据和版本/行号。
+- 正文固定包含 [Human.md](Human.md) 的九个问题、AI 回答、逐字原文依据和版本/行号。
   缺少答案时明确显示尚无可用回答；匹配来源修订的 `research_thought` 记录也会显示，
   保留实际审核状态。AI 提案始终是 `proposed`。
 - 文件最前面依次放 YAML 字段 `tags`、`link`、`title`、`author`。`tags` 只放论文主要
@@ -700,7 +700,7 @@ Provider 在 `qecgraph.toml` 中选择（OpenAI、Anthropic、OpenRouter 或本�
 ## 16. 可搜索知识体系与实施路线
 
 本节整合 2026-11-11 的 `QEC_KNOWLEDGE_MCP_SUMMARY.md` 和
-[Guangqi 保留的需求](../reviews/review-2026-11-12/Human-2026-11-11.zh-CN.md)。原始总结保存在 Git 历史中，它是工程输入，
+[Guangqi 保留的需求](Human.md)。原始总结保存在 Git 历史中，它是工程输入，
 不是功能已经实现的证据。沿用现有工作区、ID、Schema、审核流程和 CLI。
 
 ### 16.1 研究问题与四种图视图
