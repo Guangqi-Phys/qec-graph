@@ -12,6 +12,7 @@ tooling, not part of the installed `qecgraph` package.
 | Release | `check_distribution.py`, `qec-graph.spec` | Distribution metadata checks and PyInstaller spec |
 | Performance | `bench.py` | Generated incremental workload and pinned-source benchmark |
 | Knowledge evidence | `reproduce_knowledge.py` | Compare complete reading, source search and task context; no LLM execution |
+| Offline preparation | `prepare_arxiv.py` | Recognize an entry, assemble literal includes and write the `document/2` model; no AI or TeX execution |
 
 The standard gates are:
 
@@ -37,3 +38,14 @@ these are not curated scientific questions. Reports disclose retrieval coverage
 and fallback. `--include-payloads` retains the exact tool responses locally;
 omit it to save only hashes and measurements. A/B/C measure evidence retrieval,
 not model answer accuracy or mathematical correctness.
+
+## Offline preparation
+
+`tools/prepare_arxiv.py` recognizes a LaTeX entry by content, assembles literal includes into `entry.tex`, and writes the `document/2` model with section levels, block text and source spans. It does not call AI, run TeX, or require a compilable project.
+
+```bash
+python tools/prepare_arxiv.py /path/to/source-tree \
+  --entry main.tex --out build/prepared/paper --json
+```
+
+`--no-parser-recovery` and `--no-transparent-containers` disable the opt-in partial-structure fallbacks. Exit `0` means `document_complete`; `2` means content is complete but structure is partial, or content remains unresolved.

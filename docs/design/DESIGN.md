@@ -7,7 +7,7 @@
 | | |
 |---|---|
 | **Status** | Current authoritative design (0.6.x) |
-| **Reviewed** | 2026-11-12 |
+| **Reviewed** | 2026-11-13 |
 | **Supersedes** | The earlier architecture, graph-contract, data-formats, incremental, MCP and CodeGraph design pages. Lean integration was removed; see §10. |
 | **Implementation** | `qecgraph/`, `tests/`, `tools/`, `validation/` |
 
@@ -336,6 +336,50 @@ A parser theorem/lemma is a **source block**: what the document says at a fixed 
 The offline extractor performs two passes: locate notation/structures, then apply local wording/column rules. It produces `code_parameters_mention` proposals with exact locators and a rule version; it does not promote a table parameter into a verified quantum code, infer a distance bound, or guess code class from bracket shape.
 
 The workspace AI pipeline (§15) can call a configured provider during sync when source upload is explicitly enabled. Validated outputs enter research as AI-extracted records with exact source bindings.
+
+### 5.4 Offline source preparation
+
+**Status: Implemented in the offline tool; not part of workspace publication.**
+
+`qecgraph/source/prepare.py` and `tools/prepare_arxiv.py` recognize and convert
+a source tree without an AI provider, TeX execution or a compilable project.
+Entry recognition uses content (`\documentclass`/`\documentstyle` and
+`\begin{document}`), including extensionless files; `00README` top-level
+metadata and a unique candidate are also accepted. Multiple candidates remain
+an explicit error.
+
+Assembly copies original bytes only. It resolves literal
+`\input`/`\include`/`\subfile`/`\import`/`\subimport` directives, strips the
+preamble of subfiles and of complete documents included from another entry, and
+learns literal zero-argument path macros from source (`\newcommand`/`\def`).
+Dynamic paths and missing body dependencies stay in the entry and are reported.
+A missing preamble dependency is a dependency warning, not content loss. Entry
+and source-map coordinates use the half-open convention in §4.5.
+
+The document model is `qecgraph.document/2`:
+
+- `sections[]`: stable `id`, `parent_id`, normalized `level` (the highest level
+  present becomes 1), `source_level`, `command`, `numbered`, `appendix`,
+  `title`, `title_tex`, `source`, `entry`, `block_ids`;
+- `blocks[]`: `id`, `document_id`, `section_id`, `kind`, plain `text`, labels,
+  references, `source`, `entry`;
+- `text_projection: reading-v1`: plain text strips commands, comments and
+  labels, preserves mathematics, citation keys as `[key]`, and theorem/proof
+  bodies;
+- `coverage`: `content_complete`, `structure_complete` and `document_complete`,
+  plus `missing_dependencies` and `preamble_missing`. Compilation is not checked
+  and is not a completion condition.
+
+Outputs are `entry.tex`, `source-map.json`, `document.json`, `coverage.json`,
+`diagnostics.json` and `manifest.json` (`qecgraph.prepare/2`). This path is not
+connected to workspace stage/validate/publish. Parser errors leave structure
+partial rather than being silently accepted; bibliography and asset copying are
+outside this step.
+
+```bash
+python tools/prepare_arxiv.py /path/to/source-tree \
+  --entry main.tex --out build/prepared/paper --json
+```
 
 ---
 

@@ -11,6 +11,7 @@
 | 发布 | `check_distribution.py`、`qec-graph.spec` | 分发包元数据检查和 PyInstaller spec |
 | 性能 | `bench.py` | 生成增量负载和固定来源基准 |
 | 知识证据 | `reproduce_knowledge.py` | 对比完整阅读、原文搜索和任务上下文；不执行 LLM |
+| 离线准备 | `prepare_arxiv.py` | 识别入口、组装字面 include，写出 `document/2`；不调用 AI、不执行 TeX |
 
 标准门禁：
 
@@ -33,3 +34,18 @@ python tools/reproduce_knowledge.py --machine /path/to/machine --out build/knowl
 未提供题目时，从现有来源生成机械探针，不是经过整理的科学问题。报告披露检索覆盖和
 回退。`--include-payloads` 将精确工具返回保存在本地；省略时只保存哈希和测量。
 A/B/C 测量证据检索，不评定模型回答质量或数学正确性。
+
+## 离线准备
+
+`tools/prepare_arxiv.py` 按内容识别 LaTeX 入口，把字面 include 组装成
+`entry.tex`，并写出带 section 层级、block 文本和来源区间的 `document/2`。
+不调用 AI、不执行 TeX、不要求工程可编译。
+
+```bash
+python tools/prepare_arxiv.py /path/to/source-tree \
+  --entry main.tex --out build/prepared/paper --json
+```
+
+`--no-parser-recovery` 和 `--no-transparent-containers` 可关闭可选的 partial
+结构恢复。退出码 `0` 表示 `document_complete`；`2` 表示正文完整但结构 partial，
+或正文未解析完整。

@@ -7,7 +7,7 @@
 | | |
 |---|---|
 | **状态** | 当前权威设计（0.6.x） |
-| **评审日期** | 2026-11-12 |
+| **评审日期** | 2026-11-13 |
 | **替代** | 此前的 architecture、graph-contract、data-formats、incremental、MCP 和 CodeGraph 设计页。Lean 集成已移除；见 §10。 |
 | **实现** | `qecgraph/`、`tests/`、`tools/`、`validation/` |
 
@@ -365,6 +365,44 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 不根据括号形状猜码类。
 
 兼容的 corpus 交接只导出有界摘录供显式外部流程使用，本身不调用模型。独立的工作区 AI 管线（§15）可在显式启用来源上传后于 sync 调用已配置 provider。两条路径都不批准自己的草稿，也不自动转换为 research 记录。决定通过发布 state 绑定精确 proposal/source 哈希；输入变化使其 stale。
+
+### 5.4 离线来源准备
+
+**状态：已在离线工具中实现；尚未接入 workspace 发布。**
+
+`qecgraph/source/prepare.py` 和 `tools/prepare_arxiv.py` 在不调用 AI、不执行
+TeX、不要求工程可编译的前提下识别并转换来源树。入口识别按内容判断
+（`\documentclass`/`\documentstyle` 和 `\begin{document}`），包括没有
+`.tex` 后缀的文件；也接受 `00README` 顶层元数据和唯一候选。多个候选仍然
+明确报错。
+
+组装只复制原始字节。它解析字面 `\input`/`\include`/`\subfile`/`\import`/
+`\subimport`，剥掉 subfile 的 preamble，以及从另一个入口引入的完整文档的
+preamble，并从来源中的 `\newcommand`/`\def` 学习零参数字面路径宏。动态路径
+和缺失的正文依赖保留在 entry 中并报告；缺失的 preamble 依赖只算依赖警告，
+不算正文缺失。entry 和 source map 使用 §4.5 的半开区间约定。
+
+文档模型是 `qecgraph.document/2`：
+
+- `sections[]`：稳定 `id`、`parent_id`、归一化 `level`（当前文档最高层为 1）、
+  `source_level`、`command`、`numbered`、`appendix`、`title`、`title_tex`、
+  `source`、`entry`、`block_ids`；
+- `blocks[]`：`id`、`document_id`、`section_id`、`kind`、纯文本 `text`、
+  labels、references、`source`、`entry`；
+- `text_projection: reading-v1`：纯文本去掉命令、注释和 label，保留数学、
+  形如 `[key]` 的引用键，以及 theorem/proof 正文；
+- `coverage`：`content_complete`、`structure_complete`、`document_complete`，
+  以及 `missing_dependencies`、`preamble_missing`。不检查编译，编译不是完成条件。
+
+输出是 `entry.tex`、`source-map.json`、`document.json`、`coverage.json`、
+`diagnostics.json` 和 `manifest.json`（`qecgraph.prepare/2`）。本路径尚未
+接入 workspace 的 stage/validate/publish。parser 错误会让结构保持 partial，
+而不是静默接受；bibliography 和资产复制不属于本步骤。
+
+```bash
+python tools/prepare_arxiv.py /path/to/source-tree \
+  --entry main.tex --out build/prepared/paper --json
+```
 
 ---
 

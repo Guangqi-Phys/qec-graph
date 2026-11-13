@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add offline source preparation: content-based TeX entry recognition (including extensionless entries), byte-faithful include assembly and a `document/2` section/block/text model with exact source maps. The path does not call AI, run TeX, or require a compilable project.
 - Default workspace MCP to eight research tools; add paper cards, ordered outlines,
   compact handles, stable source resources and bounded traversal fallback. Keep
   explicit legacy/compatible profiles and existing store/corpus entry points.
