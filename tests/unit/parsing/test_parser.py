@@ -185,3 +185,54 @@ A remark with \lean{Foo.bar} and a use \uses{lem:x}.
         self.assertEqual(include['source']['char_end'], len(invocation))
         self.assertEqual(include['source']['line_end'], 2)
         self.assertEqual(parsed['blocks'][0]['labels'], ['sec:appendix'])
+
+    def test_optional_transparent_container_recovers_sections_inside_unknown_environment(self):
+        text = r'''\documentclass{article}
+\begin{document}
+\begin{bibunit}
+\section{Introduction}
+Text.
+\section{Methods}
+More.
+\end{bibunit}
+\end{document}
+'''
+        self.entry.write_text(text, encoding='utf-8')
+        strict = parse_project(self.entry)
+        self.assertEqual([b['title_tex'] for b in strict['blocks'] if b['kind'] == 'section'], [])
+        parsed = parse_project(self.entry, transparent_containers=True)
+        self.assertEqual([b['title_tex'] for b in parsed['blocks'] if b['kind'] == 'section'],
+                         ['Introduction', 'Methods'])
+        self.assertIn('transparent_environment', {d['code'] for d in parsed['diagnostics']})
+
+    def test_optional_tolerant_parse_recovers_after_unmatched_environment(self):
+        text = r'''\documentclass{article}
+\begin{document}
+\section{Before}
+%\begin{now}
+Text.
+\end{now}
+\section{After}
+\end{document}
+'''
+        self.entry.write_text(text, encoding='utf-8')
+        strict = parse_project(self.entry)
+        self.assertEqual([b['title_tex'] for b in strict['blocks'] if b['kind'] == 'section'], [])
+        recovered = parse_project(self.entry, recover_parse_errors=True)
+        self.assertEqual([b['title_tex'] for b in recovered['blocks'] if b['kind'] == 'section'],
+                         ['Before', 'After'])
+        codes = {d['code'] for d in recovered['diagnostics']}
+        self.assertIn('latex_parse_error', codes)
+        self.assertIn('latex_parse_recovered', codes)
+
+    def test_extensionless_tex_entry_requires_an_explicit_opt_in(self):
+        entry = self.root / 'tqecp'
+        entry.write_text(
+            '\\documentstyle[11pt]{article}\n\\begin{document}\n'
+            '\\section{Introduction}\nText.\n\\end{document}\n',
+            encoding='utf-8')
+        with self.assertRaises(ValueError):
+            parse_project(entry)
+        parsed = parse_project(entry, allow_non_tex_entry=True)
+        titles = [block['title_tex'] for block in parsed['blocks'] if block['kind'] == 'section']
+        self.assertEqual(titles, ['Introduction'])

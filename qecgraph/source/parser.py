@@ -531,13 +531,18 @@ def _scan_structure(text, inherited, context, known_conditionals):
 
 
 class _ProjectParser:
-    def __init__(self, entry: Path, project_root: Path, config: dict[str, Any], node_cache=None):
+    def __init__(self, entry: Path, project_root: Path, config: dict[str, Any], node_cache=None, *,
+                 recover_parse_errors: bool = False, transparent_containers: bool = False,
+                 allow_non_tex_entry: bool = False):
         self.node_cache = node_cache
         self.root = project_root.resolve()
         self.entry = entry.resolve()
+        self.recover_parse_errors = recover_parse_errors
+        self.transparent_containers = transparent_containers
+        self.allow_non_tex_entry = allow_non_tex_entry
         if not self.entry.is_relative_to(self.root):
             raise ValueError("Entry file must be inside project_root")
-        if self.entry.suffix.lower() != ".tex":
+        if self.entry.suffix.lower() != ".tex" and not self.allow_non_tex_entry:
             raise ValueError("Entry file must have a .tex suffix")
         self.config = config
         self.environment_map = dict(_ENVIRONMENTS)
@@ -661,7 +666,19 @@ class _ProjectParser:
         except (LatexWalkerParseError, IndexError) as exc:
             pos = max(0, min(getattr(exc, "pos", 0) or 0, len(text)))
             self.diagnostic("error", "latex_parse_error", str(exc), self.span(path, pos, pos))
-            return []
+            if not self.recover_parse_errors:
+                return []
+            try:
+                nodes, _, _ = _StructuralWalker(text, aliases, latex_context=self.context,
+                                                tolerant_parsing=True).get_latex_nodes()
+            except (LatexWalkerParseError, IndexError):
+                return []
+            self.diagnostic("warning", "latex_parse_recovered",
+                            "Recovered a tolerant structural parse after the strict walker failed.",
+                            self.span(path, pos, pos))
+            if self.node_cache:
+                self.node_cache.put(key, nodes)
+            return nodes
 
     def resolve(self, literal: str, current: str, *, kind: str, source):
         literal = literal.strip()
@@ -1065,6 +1082,16 @@ class _ProjectParser:
                 flush()
                 last_anchor = self.emit_environment(node, path, self.parent(owner, sections), sections)
                 continue
+            if (self.transparent_containers and isinstance(node, LatexEnvironmentNode)
+                    and node.environmentname not in _LITERAL_ENVIRONMENTS
+                    and node.environmentname != "comment"):
+                flush()
+                self.diagnostic("warning", "transparent_environment",
+                                f"Environment {node.environmentname!r} is traversed as a transparent container.",
+                                self.node_span(path, node))
+                self.process(node.nodelist or [], path, owner, sections, body=body)
+                last_anchor = self.parent(owner, sections)
+                continue
             if isinstance(node, LatexMathNode) and node.displaytype == "display":
                 flush()
                 last_anchor = self.emit_math(node, path, self.parent(owner, sections), sections)
@@ -1134,7 +1161,10 @@ class _ProjectParser:
 
 
 def parse_project(entry: str | Path, project_root: str | Path | None = None,
-                  config: dict | None = None, *, node_cache=None) -> dict:
+                  config: dict | None = None, *, node_cache=None,
+                  recover_parse_errors: bool = False,
+                  transparent_containers: bool = False,
+                  allow_non_tex_entry: bool = False) -> dict:
     """Parse a UTF-8 LaTeX project without executing it.
 
     ``environment_map`` in config can map custom environment names to supported
@@ -1143,9 +1173,18 @@ def parse_project(entry: str | Path, project_root: str | Path | None = None,
     Repeated included files are represented once and diagnosed.  Unsupported
     Macro expansion and conditional execution beyond static structural cases
     are reported rather than guessed.
+
+    ``recover_parse_errors`` retries a failed strict walk with pylatexenc's
+    tolerant walker and records ``latex_parse_recovered``.  ``transparent_containers``
+    traverses unrecognized, non-literal environments instead of treating their
+    entire body as one opaque fragment.  Both options are opt-in for callers
+    that need a partial structural view.
     """
     entry = Path(entry).expanduser().resolve()
     root = Path(project_root).expanduser().resolve() if project_root is not None else entry.parent
     if not entry.is_file():
         raise ValueError(f"LaTeX entry file does not exist: {entry}")
-    return _ProjectParser(entry, root, config or {}, node_cache=node_cache).run()
+    return _ProjectParser(entry, root, config or {}, node_cache=node_cache,
+                          recover_parse_errors=recover_parse_errors,
+                          transparent_containers=transparent_containers,
+                          allow_non_tex_entry=allow_non_tex_entry).run()
