@@ -19,12 +19,12 @@ def overlaps(source, expected):
                 and min(source['char_end'], expected['char_end']) > max(source['char_start'], expected['char_start']))
 
 
-def evaluate(session, dataset):
+def evaluate(session, dataset, *, allow_replayed_release=False):
     if not isinstance(dataset.get('cases'), list) or not dataset['cases']:
         raise ValueError('A nonempty explicit case list is required')
     formal = dataset.get('format') == 'qecgraph.source-first-retrieval-cases.v1'
     if formal:
-        validate_formal_dataset(session, dataset)
+        validate_formal_dataset(session, dataset, allow_replayed_release)
     measurements = []
     for case in dataset['cases']:
         expected = case['expected_sources']
@@ -70,6 +70,7 @@ def evaluate(session, dataset):
                              failures=sum(not row['ok'] for row in rows),
                              failure_types=dict(Counter(row['failure_type'] for row in rows if row['failure_type'])))
     return {'format': 'qecgraph.retrieval-evaluation.v1', 'scope': session.scope,
+            'label_release': dataset.get('release'),
             'dataset_sha256': hash_text(canonical(dataset)), 'label_status': dataset['label_status'],
             'comparison': 'Literal versus BM25 on the same current implementation, release and eligible units; not an old-code replay',
             'interpretation': ('Source-first agent annotations for evidence discovery. Independent researcher review is pending.'
@@ -80,8 +81,8 @@ def evaluate(session, dataset):
             'summary': summary, 'cases': measurements}
 
 
-def validate_formal_dataset(session, dataset):
-    if dataset['release'] != session.release:
+def validate_formal_dataset(session, dataset, allow_replayed_release):
+    if dataset['release'] != session.release and not allow_replayed_release:
         raise ValueError('Source-first evaluation requires its pinned release')
     cases = dataset['cases']
     if len(cases) < 50 or len({case['id'] for case in cases}) != len(cases):
@@ -95,13 +96,17 @@ def main():
     parser.add_argument('--machine', type=Path, required=True, help='Read-only machine copy; never read human or workspace config')
     parser.add_argument('--release', help='Fixed release, default CURRENT')
     parser.add_argument('--cases', type=Path, required=True, help='Explicit source-bound JSON questions')
+    parser.add_argument('--allow-replayed-release', action='store_true',
+                        help='Allow another explicitly pinned release when all labeled source versions and hashes match')
     parser.add_argument('--enforce', action='store_true', help='Return failure if the frozen threshold is missed')
     parser.add_argument('--out', type=Path, required=True, help='Local measurement report')
     args = parser.parse_args()
+    if args.allow_replayed_release and args.release is None:
+        parser.error('--allow-replayed-release requires an explicit --release')
     dataset = read_json(args.cases)
     session = WorkspaceSession(args.machine, args.release or dataset.get('release'),
                                profile='research', max_chars=1000000)
-    report = evaluate(session, dataset)
+    report = evaluate(session, dataset, allow_replayed_release=args.allow_replayed_release)
     atomic_json(args.out, report)
     print(json.dumps({'report': str(args.out.resolve()), 'summary': report['summary']}, indent=2))
     missed = args.enforce and report['acceptance'] is not None and not report['acceptance']['passed']
