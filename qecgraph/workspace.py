@@ -746,14 +746,11 @@ class Workspace:
                     result.update(status='needs_entrypoint', entrypoint_candidates=candidates,
                                   reason=f'Configured entry not found in source tree: {entry}')
                     return self._keep_prior(result, prior)
-                if entry is None and len(candidates) > 1:
-                    selected, _method = select_main_document(extract_tree.files, candidates)
-                    if selected is not None:
-                        entry = selected
                 if entry is None:
-                    if len(candidates) == 1:
-                        entry = candidates[0]
-                    elif len(candidates) > 1 and not mappings and (ai_client is not None or prior.get('normalization_id')):
+                    entry, _method = select_main_document(extract_tree.files, candidates)
+                if entry is None:
+                    normalization_available = any((ai_client is not None, prior.get('normalization_id')))
+                    if len(candidates) > 1 and not mappings and normalization_available:
                         try:
                             phase('Resolving TeX entry point')
                             if progress:
@@ -776,9 +773,7 @@ class Workspace:
             saved = self.path('sources/' + tree_hash)
             preserve = not saved.exists()
             if not preserve:
-                for member, original in sorted(tree.files.items()):
-                    if not _matches_regular(self.path('sources/' + tree_hash + '/' + member), limits.member_bytes, original):
-                        raise ValueError('Preserved source tree does not match archive')
+                self._check_preserved_tree(tree, tree_hash, limits)
             if preserve or version is None:
                 with tempfile.TemporaryDirectory(prefix='ingest-', dir=self.path('.qecgraph')) as temporary_dir:
                     temporary = Path(temporary_dir)
@@ -818,6 +813,11 @@ class Workspace:
         except (OSError, ValueError, RuntimeError) as exc:
             result.update(status='parse_failed', reason=str(exc).replace(str(self.root), '<workspace>'))
         return self._keep_prior(result, prior)
+
+    def _check_preserved_tree(self, tree, tree_hash, limits):
+        for member, original in sorted(tree.files.items()):
+            if not _matches_regular(self.path('sources/' + tree_hash + '/' + member), limits.member_bytes, original):
+                raise ValueError('Preserved source tree does not match archive')
 
     @staticmethod
     def _encoding_binding(mappings):

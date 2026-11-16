@@ -7,6 +7,10 @@ source.  File digests are SHA-256 of the original bytes, including CRLF/BOM.
 """
 from __future__ import annotations
 
+from .syntax import (
+    _next_token, _opaque_group, _OpaqueDeclarationParser, _PrimitiveDefinitionParser,
+)
+
 from ..core.progress import phase
 
 from hashlib import sha256
@@ -86,77 +90,6 @@ _CONTROL_WORD = re.compile(r"\\([A-Za-z@]+)")
 _END_DOCUMENT_MARKER = re.compile(r"\\end\s*\{document\}")
 _ENVIRONMENT_ALIAS = re.compile(r"\\(begin|end)\s*\{([A-Za-z0-9* ._-]+)\}")
 _STRUCTURAL_TOKEN = re.compile(r"[\\%{}]")
-
-
-def _next_token(w, pos, parsing_state):
-    while True:
-        try:
-            token = w.get_token(pos, parsing_state=parsing_state, environments=False)
-        except LatexWalkerEndOfStream:
-            return None
-        if token.tok != "comment":
-            return token
-        pos = token.pos + token.len
-
-
-def _opaque_group(w, pos, opening, closing, parsing_state):
-    """Read balanced tokens while leaving declaration replacement text opaque."""
-    stack = [opening]
-    current = pos + 1
-    while stack:
-        token = _next_token(w, current, parsing_state)
-        if token is None:
-            raise LatexWalkerParseError(s=w.s, pos=pos, msg="Unclosed declaration argument")
-        character = token.arg if token.tok in {"char", "brace_open", "brace_close"} else None
-        if character == "{":
-            stack.append("{")
-        elif opening == "[" and character == "[" and stack[-1] == "[":
-            stack.append("[")
-        elif character == "}" and stack[-1] == "{":
-            stack.pop()
-        elif character == "]" and stack[-1] == "[":
-            stack.pop()
-        current = token.pos + token.len
-    content = w.make_node(LatexCharsNode, parsing_state=parsing_state,
-                          pos=pos + 1, len=token.pos - pos - 1,
-                          chars=w.s[pos + 1:token.pos])
-    return w.make_node(LatexGroupNode, parsing_state=parsing_state, pos=pos,
-                       len=current - pos, nodelist=[content], delimiters=(opening, closing)), current
-
-
-class _OpaqueDeclarationParser(MacroStandardArgsParser):
-    """Parse declaration arguments without treating their bodies as a document."""
-
-    def parse_args(self, w, pos, parsing_state=None):
-        original = pos
-        args = []
-        for expected in self.argspec:
-            token = _next_token(w, pos, parsing_state)
-            if expected == "*":
-                if token is not None and token.tok == "char" and token.arg == "*":
-                    args.append(w.make_node(LatexCharsNode, parsing_state=parsing_state,
-                                            pos=token.pos, len=token.len, chars="*"))
-                    pos = token.pos + token.len
-                else:
-                    args.append(None)
-            elif expected == "[":
-                if token is not None and token.tok == "char" and token.arg == "[":
-                    group, pos = _opaque_group(w, token.pos, "[", "]", parsing_state)
-                    args.append(group)
-                else:
-                    args.append(None)
-            else:
-                if token is None:
-                    raise LatexWalkerParseError(s=w.s, pos=pos, msg="Missing declaration argument")
-                if token.tok == "brace_open":
-                    group, pos = _opaque_group(w, token.pos, "{", "}", parsing_state)
-                    args.append(group)
-                else:
-                    node, start, length = w.get_latex_expression(token.pos, parsing_state=parsing_state,
-                                                                strict_braces=True)
-                    args.append(node)
-                    pos = start + length
-        return ParsedMacroArgs(argspec=self.argspec, argnlist=args), original, pos - original
 
 
 _LINK_TARGET_TOKEN = re.compile(r"\\[\\{}]|[{}]")
@@ -289,24 +222,6 @@ class _InputParser(MacroStandardArgsParser):
         node = w.make_node(LatexCharsNode, parsing_state=parsing_state,
                            pos=pos, len=end - pos, chars=w.s[pos:end])
         return ParsedMacroArgs(argspec="{", argnlist=[node]), original, end - original
-
-
-class _PrimitiveDefinitionParser(MacroStandardArgsParser):
-    """Keep a primitive macro definition opaque; do not interpret its body."""
-
-    def __init__(self):
-        super().__init__(argspec="{")
-
-    def parse_args(self, w, pos, parsing_state=None):
-        start = pos
-        # The parameter preamble is intentionally not interpreted or executed.
-        while pos < len(w.s):
-            tok = w.get_token(pos, parsing_state=parsing_state, environments=False)
-            if tok.tok == "brace_open":
-                node, end = _opaque_group(w, tok.pos, "{", "}", parsing_state)
-                return ParsedMacroArgs(argspec="{", argnlist=[node]), start, end - start
-            pos = tok.pos + tok.len
-        raise LatexWalkerParseError(s=w.s, pos=start, msg="Missing primitive macro definition body")
 
 
 def _args(node):
@@ -755,6 +670,15 @@ class _ProjectParser:
                             f"Include resolved relative to its containing file: {self.relative(chosen)}", source)
         return self.relative(chosen)
 
+    def _record_macro_definition(self, node, rel, text):
+        if node.macroname not in _COMMAND_DECLARATIONS | _PRIMITIVE_DEFINITIONS | {'DeclareMathOperator'}:
+            return
+        literal = text[node.pos:node.pos + node.len]
+        defined = re.match(r'\\[A-Za-z]+\*?\s*\{?\s*\\([A-Za-z@]+)', literal)
+        if defined:
+            self.macro_definitions.append({'name': defined[1], 'latex': literal,
+                                           'source': self.node_span(rel, node)})
+
     def discover(self, path: Path, source=None, *, inherited=None):
         rel = self.relative(path)
         if rel in self.discovery_stack:
@@ -800,12 +724,7 @@ class _ProjectParser:
             for node in values:
                 if isinstance(node, LatexMacroNode):
                     name = node.macroname
-                    if name in _COMMAND_DECLARATIONS | _PRIMITIVE_DEFINITIONS | {'DeclareMathOperator'}:
-                        literal = text[node.pos:node.pos + node.len]
-                        defined = re.match(r'\\[A-Za-z]+\*?\s*\{?\s*\\([A-Za-z@]+)', literal)
-                        if defined:
-                            self.macro_definitions.append({'name': defined[1], 'latex': literal,
-                                                           'source': self.node_span(rel, node)})
+                    self._record_macro_definition(node, rel, text)
                     if name == "newtheorem":
                         self.learn_environment(node, rel)
                         continue

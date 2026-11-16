@@ -21,7 +21,12 @@ class CompilationTests(unittest.TestCase):
         self.commands = []
         self.original = b"\\documentclass{article}\\begin{document}Text.\\end{document}"
         tree = SourceTree("tex", {"main.tex": self.original, **(extra or {})})
-        with tempfile.TemporaryDirectory() as temp, patch("qecgraph.preparation.build.tool", side_effect=lambda n: "/trusted/" + n):
+        with (
+            tempfile.TemporaryDirectory() as temp,
+            patch(
+                "qecgraph.preparation.build.tool", side_effect=lambda n: "/trusted/" + n
+            ),
+        ):
             return compile_tree(tree, "main.tex", Path(temp), runner=self.fake)
 
     def test_compile_precedes_any_conversion_and_preserves_supplied_bbl(self):
@@ -42,7 +47,9 @@ class CompilationTests(unittest.TestCase):
         self.assertFalse(any(c[0].endswith("bibtex") for c in self.commands))
 
     def test_arxiv_engine_is_allowlisted_and_comments_do_not_select_plain_tex(self):
-        tree = SourceTree("tex", {"m.tex": b"% \\input harvmac\n\\documentclass{article}"})
+        tree = SourceTree(
+            "tex", {"m.tex": b"% \\input harvmac\n\\documentclass{article}"}
+        )
         self.assertEqual(select_engine(tree, "m.tex"), "pdflatex")
         tree.files["00README.json"] = b'{"process":{"compiler":"xelatex"}}'
         self.assertEqual(select_engine(tree, "m.tex"), "xelatex")
@@ -50,6 +57,14 @@ class CompilationTests(unittest.TestCase):
             select_engine(tree, "m.tex", "pdflatex -shell-escape")
 
     def test_forged_recorder_cannot_make_parent_read_user_files(self):
-        self.assertFalse(_trusted_dependency(Path("/Users/user/.ssh/id_rsa"), Path("/tmp/build")))
-        self.assertFalse(_trusted_dependency(Path("/private/tmp/other"), Path("/tmp/build")))
-        self.assertTrue(_trusted_dependency(Path("/usr/local/texlive/2026/a.sty"), Path("/tmp/build")))
+        self.assertFalse(
+            _trusted_dependency(Path("/Users/user/.ssh/id_rsa"), Path("/tmp/build"))
+        )
+        self.assertFalse(
+            _trusted_dependency(Path("/private/tmp/other"), Path("/tmp/build"))
+        )
+        self.assertTrue(
+            _trusted_dependency(
+                Path("/usr/local/texlive/2026/a.sty"), Path("/tmp/build")
+            )
+        )

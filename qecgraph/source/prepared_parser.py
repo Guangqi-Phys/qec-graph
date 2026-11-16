@@ -199,6 +199,37 @@ diagnostic: dict, assembly: AssemblyResult, name: str,
     return mapped
 
 
+def _map_entry_block(block, name, parse_text, coords):
+    source = block.get("source") or {}
+    if source.get("path") != name:
+        return block
+    parse_start = int(source.get("char_start", 0))
+    parse_end = max(parse_start, int(source.get("char_end", parse_start)))
+    start = coords.to_entry(parse_start)
+    end = max(start, coords.to_entry(parse_end))
+    block_latex = parse_text[parse_start:parse_end]
+    anchor = start
+    for index, char in enumerate(block_latex):
+        if not char.isspace():
+            anchor = coords.to_entry(parse_start + index)
+            break
+    return {
+        **block,
+        "source": {**source, "char_start": start, "char_end": end},
+        "latex": block_latex,
+        "anchor_entry": anchor,
+    }
+
+
+def _unresolved_include_ranges(assembly):
+    unresolved: dict[str, list[tuple[int, int]]] = {}
+    for event in assembly.events:
+        if event.outcome != "resolved":
+            unresolved.setdefault(event.path, []).append(
+                (event.source_char_start, event.source_char_end))
+    return unresolved
+
+
 def _parse_entry(tree: SourceTree, assembly: AssemblyResult, selected: str,
                  root: Path, coords: EntryCoordinates, *,
                  recover: bool, transparent: bool
@@ -229,29 +260,7 @@ def _parse_entry(tree: SourceTree, assembly: AssemblyResult, selected: str,
         return [], [{"code": "parse_failed", "path": selected,
                      "message": str(exc)}], []
     lines = SourceLineIndex(tree.files)
-    mapped_blocks: list[dict] = []
-    for block in blocks:
-        source = block.get("source") or {}
-        if source.get("path") != name:
-            mapped_blocks.append(block)
-            continue
-        parse_start = int(source.get("char_start", 0))
-        parse_end = max(parse_start, int(source.get("char_end", parse_start)))
-        start = coords.to_entry(parse_start)
-        end = max(start, coords.to_entry(parse_end))
-        block_latex = parse_text[parse_start:parse_end]
-        anchor = start
-        for index, char in enumerate(block_latex):
-            if not char.isspace():
-                anchor = coords.to_entry(parse_start + index)
-                break
-        mapped_blocks.append({
-            **block,
-            "source": {**source, "char_start": start, "char_end": end},
-            "latex": block_latex,
-            "anchor_entry": anchor,
-        })
-    blocks = mapped_blocks
+    blocks = [_map_entry_block(block, name, parse_text, coords) for block in blocks]
     outside = sorted({
         str((block.get("source") or {}).get("path"))
         for block in blocks
@@ -262,12 +271,7 @@ def _parse_entry(tree: SourceTree, assembly: AssemblyResult, selected: str,
     _, body_start, _ = document_bounds(coords.text)
     dependencies = _outside_dependencies(parsed, name, coords, body_start,
                                          outside, selected)
-    unresolved: dict[str, list[tuple[int, int]]] = {}
-    for event in assembly.events:
-        if event.outcome == "resolved":
-            continue
-        unresolved.setdefault(event.path, []).append(
-            (event.source_char_start, event.source_char_end))
+    unresolved = _unresolved_include_ranges(assembly)
     fatal: list[dict] = []
     for diagnostic in diagnostics:
         diagnostic = _map_diagnostic(diagnostic, assembly, name, lines, coords)

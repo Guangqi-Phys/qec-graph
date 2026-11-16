@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Prepare original TeX through isolated local compilation and lossless syntax conversion."""
+
 import argparse
 import json
 from pathlib import Path
@@ -19,12 +20,19 @@ def main(argv=None):
     parser.add_argument("source", type=Path, nargs="?")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--entry")
-    parser.add_argument("--engine", choices=["pdflatex", "xelatex", "lualatex", "latex", "etex", "pdftex"])
+    parser.add_argument(
+        "--engine",
+        choices=["pdflatex", "xelatex", "lualatex", "latex", "etex", "pdftex"],
+    )
     parser.add_argument("--support-dir", action="append", type=Path, default=[])
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--json", action="store_true", help="JSON output (the default)")
     parser.add_argument("--recover", action="store_true")
-    parser.add_argument("--check", action="store_true", help="validate an existing material without compiling")
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="validate an existing material without compiling",
+    )
     args = parser.parse_args(argv)
     try:
         if args.recover:
@@ -36,8 +44,14 @@ def main(argv=None):
         else:
             if args.source is None:
                 parser.error("source is required unless --check or --recover is used")
-            result = prepare_material(args.source, args.out, entry=args.entry, engine=args.engine,
-                                      support=args.support_dir, overwrite=args.overwrite)
+            result = prepare_material(
+                args.source,
+                args.out,
+                entry=args.entry,
+                engine=args.engine,
+                support=args.support_dir,
+                overwrite=args.overwrite,
+            )
             code = 0 if result["status"] == "ready" else 2
     except (OSError, ValueError, RuntimeError, KeyError) as exc:
         print(json.dumps({"status": "failed", "error": str(exc)}), file=sys.stderr)

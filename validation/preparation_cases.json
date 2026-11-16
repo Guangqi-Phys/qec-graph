@@ -1,0 +1,165 @@
+{
+  "scope": "Source-inspected syntax and original-span probes; not scientific answer gold or independent human review.",
+  "cases": [
+    {
+      "paper": "1302.3428v1",
+      "file": "QEC04_springer.tex",
+      "anchor": "\\section{Introduction}",
+      "kind": "macro",
+      "name": "section",
+      "source_sha256": "cf591b1dfd33c3745434819eb3d7fb0ec2ff6be3cd63101efe13d11509afa1da"
+    },
+    {
+      "paper": "1302.3428v1",
+      "file": "QEC04_springer.tex",
+      "anchor": "\\footnote{Pauli",
+      "kind": "macro",
+      "name": "footnote",
+      "source_sha256": "cf591b1dfd33c3745434819eb3d7fb0ec2ff6be3cd63101efe13d11509afa1da"
+    },
+    {
+      "paper": "1907.11157v1",
+      "file": "cp_review_arxiv.tex",
+      "anchor": "\\section{From classical to quantum error correction}",
+      "kind": "macro",
+      "name": "section",
+      "source_sha256": "3d502c7b3b33ab35e438543ba824934ff1e1e044ff15edf4371b7935172799dc"
+    },
+    {
+      "paper": "1907.11157v1",
+      "file": "cp_review_arxiv.tex",
+      "anchor": "\\begin{abstract}",
+      "kind": "environment",
+      "name": "abstract",
+      "source_sha256": "3d502c7b3b33ab35e438543ba824934ff1e1e044ff15edf4371b7935172799dc"
+    },
+    {
+      "paper": "2104.01180v1",
+      "file": "main.tex",
+      "anchor": "\\begin{abstract}",
+      "kind": "environment",
+      "name": "abstract",
+      "source_sha256": "9894eb5376fe511869feded092083f1b6518f8ca8df1f3bee1eaa482694e5393"
+    },
+    {
+      "paper": "2104.01180v1",
+      "file": "main.tex",
+      "anchor": "\\caption{",
+      "kind": "macro",
+      "name": "caption",
+      "source_sha256": "9894eb5376fe511869feded092083f1b6518f8ca8df1f3bee1eaa482694e5393"
+    },
+    {
+      "paper": "2209.01119v1",
+      "file": "template.tex",
+      "anchor": "\\section{A New Logic Model of Optimization Under Uncertainty}",
+      "kind": "macro",
+      "name": "section",
+      "source_sha256": "df60c7e1a7f38c3b09fc56addb3fff6705c2d034dbe49f034c2e3851e1572ffa"
+    },
+    {
+      "paper": "2209.01119v1",
+      "file": "template.tex",
+      "anchor": "\\caption{Pictorial interpretation of Definition 3.1",
+      "kind": "macro",
+      "name": "caption",
+      "source_sha256": "df60c7e1a7f38c3b09fc56addb3fff6705c2d034dbe49f034c2e3851e1572ffa"
+    },
+    {
+      "paper": "2303.15933v1",
+      "file": "main.tex",
+      "anchor": "\\section{Sparse Blossom}",
+      "kind": "macro",
+      "name": "section",
+      "source_sha256": "51e21727bfce159d3e5c0cdbf0e2d7fc63f8dbcc934038a332b488baace8b86a"
+    },
+    {
+      "paper": "2303.15933v1",
+      "file": "main.tex",
+      "anchor": "\\label{sec:sparse_blossom}",
+      "kind": "macro",
+      "name": "label",
+      "source_sha256": "51e21727bfce159d3e5c0cdbf0e2d7fc63f8dbcc934038a332b488baace8b86a"
+    },
+    {
+      "paper": "1302.3428v1",
+      "file": "QEC04_springer.tex",
+      "anchor": "\\includegraphics[width=0.5\\hsize]{paritychecks.pdf}",
+      "kind": "macro",
+      "name": "includegraphics",
+      "source_sha256": "cf591b1dfd33c3745434819eb3d7fb0ec2ff6be3cd63101efe13d11509afa1da"
+    },
+    {
+      "paper": "1302.3428v1",
+      "file": "QEC04_springer.tex",
+      "anchor": "\\begin{equation}",
+      "kind": "environment",
+      "name": "equation",
+      "source_sha256": "cf591b1dfd33c3745434819eb3d7fb0ec2ff6be3cd63101efe13d11509afa1da"
+    },
+    {
+      "paper": "1302.3428v1",
+      "file": "QEC04_springer.tex",
+      "anchor": "\\begin{theorem}[\\cite{AGP:ft, AB:faulttol, KLZ:faulttol, kitaev:survey}]",
+      "kind": "environment",
+      "name": "theorem",
+      "source_sha256": "cf591b1dfd33c3745434819eb3d7fb0ec2ff6be3cd63101efe13d11509afa1da"
+    },
+    {
+      "paper": "1907.11157v1",
+      "file": "cp_review_arxiv.tex",
+      "anchor": "\\begin{tabular}{lcc}",
+      "kind": "environment",
+      "name": "tabular",
+      "source_sha256": "3d502c7b3b33ab35e438543ba824934ff1e1e044ff15edf4371b7935172799dc"
+    },
+    {
+      "paper": "1907.11157v1",
+      "file": "cp_review_arxiv.tex",
+      "anchor": "\\appendix",
+      "kind": "macro",
+      "name": "appendix",
+      "source_sha256": "3d502c7b3b33ab35e438543ba824934ff1e1e044ff15edf4371b7935172799dc"
+    },
+    {
+      "paper": "2104.01180v1",
+      "file": "main.tex",
+      "anchor": "\\begin{equation}\\label{eq:TC}",
+      "kind": "environment",
+      "name": "equation",
+      "source_sha256": "9894eb5376fe511869feded092083f1b6518f8ca8df1f3bee1eaa482694e5393"
+    },
+    {
+      "paper": "2104.01180v1",
+      "file": "main.tex",
+      "anchor": "\\begin{align}\\label{eq:Stopo}",
+      "kind": "environment",
+      "name": "align",
+      "source_sha256": "9894eb5376fe511869feded092083f1b6518f8ca8df1f3bee1eaa482694e5393"
+    },
+    {
+      "paper": "2209.01119v1",
+      "file": "template.tex",
+      "anchor": "\\begin{tabular}{l}",
+      "kind": "environment",
+      "name": "tabular",
+      "source_sha256": "df60c7e1a7f38c3b09fc56addb3fff6705c2d034dbe49f034c2e3851e1572ffa"
+    },
+    {
+      "paper": "2303.15933v1",
+      "file": "main.tex",
+      "anchor": "\\appendix",
+      "kind": "macro",
+      "name": "appendix",
+      "source_sha256": "51e21727bfce159d3e5c0cdbf0e2d7fc63f8dbcc934038a332b488baace8b86a"
+    },
+    {
+      "paper": "2303.15933v1",
+      "file": "main.tex",
+      "anchor": "\\begin{algorithm}",
+      "kind": "environment",
+      "name": "algorithm",
+      "source_sha256": "51e21727bfce159d3e5c0cdbf0e2d7fc63f8dbcc934038a332b488baace8b86a"
+    }
+  ]
+}

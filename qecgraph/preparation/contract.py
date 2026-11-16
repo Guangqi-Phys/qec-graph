@@ -1,10 +1,13 @@
 """The material handoff and its independent source-fidelity checks."""
+
 from __future__ import annotations
 
 import hashlib
 import json
 from array import array
 from pathlib import Path, PurePosixPath
+
+from ..source.package import SourceTree
 
 from ..core.coordinates import SourceLines
 
@@ -29,9 +32,18 @@ class SourceIndex:
         return self.offsets[offset] if self.offsets is not None else offset
 
     def span(self, path, start, end, *, layer="original"):
-        return {"path": path, "sha256": self.sha256, "layer": layer, "encoding": self.encoding,
-                "chars": [start, end], "bytes": [self.byte_at(start), self.byte_at(end)],
-                "lines": [self.lines.line_at(start), self.lines.line_at(max(start, end - 1))]}
+        return {
+            "path": path,
+            "sha256": self.sha256,
+            "layer": layer,
+            "encoding": self.encoding,
+            "chars": [start, end],
+            "bytes": [self.byte_at(start), self.byte_at(end)],
+            "lines": [
+                self.lines.line_at(start),
+                self.lines.line_at(max(start, end - 1)),
+            ],
+        }
 
 
 def digest(raw: bytes) -> str:
@@ -39,25 +51,27 @@ def digest(raw: bytes) -> str:
 
 
 def json_bytes(value) -> bytes:
-    return (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode()
+    return (
+        json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+    ).encode()
 
 
 def safe_path(name: str) -> str:
     path = PurePosixPath(name)
-    if (not name or path.is_absolute() or "\\" in name or "\x00" in name
-            or any(part in {"", ".", ".."} for part in name.split("/"))):
+    if (
+        not name
+        or path.is_absolute()
+        or "\\" in name
+        or "\x00" in name
+        or any(part in {"", ".", ".."} for part in name.split("/"))
+    ):
         raise ValueError(f"Unsafe material path: {name!r}")
     return name
 
 
 def validate_material(files: dict[str, bytes]) -> dict:
     """Validate bytes, tree, token tiling and exact source locators, without TeX."""
-    manifest = json.loads(files["manifest.json"])
-    if manifest.get("schema") != SCHEMA or manifest.get("status") not in {"ready", "partial"}:
-        raise ValueError("Unsupported preparation material schema or state")
-    for path, expected in manifest.get("artifacts", {}).items():
-        if digest(files[safe_path(path)]) != expected:
-            raise ValueError("Material artifact hash changed")
+    manifest = _check_manifest(files)
     document = json.loads(files["content.json"])
     nodes = document["nodes"]
     identifiers = {node["id"] for node in nodes}
@@ -65,7 +79,7 @@ def validate_material(files: dict[str, bytes]) -> dict:
         raise ValueError("Duplicate material node identity")
     text = files["entry.tex"].decode("utf-8")
     by_id = {node["id"]: node for node in nodes}
-    source_indices = {}
+    source_indices: dict[tuple[str, str], SourceIndex] = {}
     for node in nodes:
         start, end = node["range"]
         if not 0 <= start < end <= len(text):
@@ -73,40 +87,70 @@ def validate_material(files: dict[str, bytes]) -> dict:
         if node["parent"] is not None and node["parent"] not in identifiers:
             raise ValueError("Missing material parent")
         _validate_children(node, by_id)
-        pieces = []
-        for span in node["source_spans"]:
-            key = (safe_path(span["path"]), span["encoding"])
-            if key not in source_indices:
-                source_indices[key] = SourceIndex(files["sources/" + key[0]], key[1])
-            source = source_indices[key]
-            if source.sha256 != span["sha256"]:
-                raise ValueError("Source locator hash changed")
-            decoded = source.text
-            a, b = span["chars"]
-            low, high = span["bytes"]
-            if (not 0 <= a < b <= len(decoded) or low != source.byte_at(a) or high != source.byte_at(b)):
-                raise ValueError("Source locator byte/codepoint mismatch")
-            if span["lines"] != [source.lines.line_at(a), source.lines.line_at(b - 1)]:
-                raise ValueError("Source locator line mismatch")
-            pieces.append(decoded[a:b])
+        pieces = [
+            _source_piece(files, span, source_indices) for span in node["source_spans"]
+        ]
         if "".join(pieces) != text[start:end]:
             raise ValueError("Material node does not copy its original source")
     _validate_roots(document, by_id, len(text))
     if manifest["status"] == "ready":
-        if not (nodes and json.loads(files["build.json"])["success"]
-                and json.loads(files["coverage.json"])["complete"]
-                and json.loads(files["references.json"])["complete"]):
+        if not (
+            nodes
+            and json.loads(files["build.json"])["success"]
+            and json.loads(files["coverage.json"])["complete"]
+            and json.loads(files["references.json"])["complete"]
+        ):
             raise ValueError("Ready material has an incomplete prerequisite")
-    return {"source_fidelity": True, "nodes": len(nodes),
-            "ready_for_extraction": manifest["status"] == "ready"}
+    return {
+        "source_fidelity": True,
+        "nodes": len(nodes),
+        "ready_for_extraction": manifest["status"] == "ready",
+    }
+
+
+def _check_manifest(files):
+    manifest = json.loads(files["manifest.json"])
+    if manifest.get("schema") != SCHEMA or manifest.get("status") not in {
+        "ready",
+        "partial",
+    }:
+        raise ValueError("Unsupported preparation material schema or state")
+    for path, expected in manifest.get("artifacts", {}).items():
+        if digest(files[safe_path(path)]) != expected:
+            raise ValueError("Material artifact hash changed")
+    _check_originals(files, manifest)
+    return manifest
+
+
+def _check_originals(files, manifest):
+    if "sources" in manifest:
+        original = {
+            p.removeprefix("sources/"): raw
+            for p, raw in files.items()
+            if p.startswith("sources/")
+        }
+        tree = SourceTree("material", original)
+        if (
+            tree.manifest != manifest["sources"]
+            or tree.digest != manifest["source_tree_sha256"]
+        ):
+            raise ValueError("Original source inventory does not match the bound tree")
+    if (
+        "original.package" in files
+        and digest(files["original.package"]) != manifest["package_sha256"]
+    ):
+        raise ValueError("Original package hash changed")
 
 
 def _validate_children(node, by_id):
     previous = node["range"][0]
     for child_id in node["children"]:
         child = by_id.get(child_id)
-        if (child is None or child["parent"] != node["id"]
-                or not previous <= child["range"][0] < child["range"][1] <= node["range"][1]):
+        if (
+            child is None
+            or child["parent"] != node["id"]
+            or not previous <= child["range"][0] < child["range"][1] <= node["range"][1]
+        ):
             raise ValueError("Invalid material child ordering or ownership")
         previous = child["range"][1]
 
@@ -145,5 +189,32 @@ def read_material(root: Path) -> dict:
             raise ValueError("Linked material artifact")
         files[name] = path.read_bytes()
     check = validate_material(files)
-    return {"manifest": manifest, "document": json.loads(files["content.json"]),
-            "references": json.loads(files["references.json"]), "validation": check}
+    return {
+        "manifest": manifest,
+        "document": json.loads(files["content.json"]),
+        "entry_tex": files["entry.tex"].decode("utf-8"),
+        "references": json.loads(files["references.json"]),
+        "coverage": json.loads(files["coverage.json"]),
+        "validation": check,
+    }
+
+
+def _source_piece(files, span, source_indices):
+    key = (safe_path(span["path"]), span["encoding"])
+    if key not in source_indices:
+        source_indices[key] = SourceIndex(files["sources/" + key[0]], key[1])
+    source = source_indices[key]
+    if source.sha256 != span["sha256"]:
+        raise ValueError("Source locator hash changed")
+    decoded = source.text
+    a, b = span["chars"]
+    low, high = span["bytes"]
+    if (
+        not 0 <= a < b <= len(decoded)
+        or low != source.byte_at(a)
+        or high != source.byte_at(b)
+    ):
+        raise ValueError("Source locator byte/codepoint mismatch")
+    if span["lines"] != [source.lines.line_at(a), source.lines.line_at(b - 1)]:
+        raise ValueError("Source locator line mismatch")
+    return decoded[a:b]

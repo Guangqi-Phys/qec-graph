@@ -1,4 +1,5 @@
 """Compile the unchanged source tree, then collect actual build artifacts."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -38,7 +39,9 @@ def select_engine(tree, entry, requested=None):
             pass
     if requested is not None:
         if requested not in ENGINES:
-            raise ValueError("Unsupported compiler; expected " + ", ".join(sorted(ENGINES)))
+            raise ValueError(
+                "Unsupported compiler; expected " + ", ".join(sorted(ENGINES))
+            )
         return requested
     body = tree.files[entry].decode("latin1")
     body = re.sub(r"(?m)(?<!\\)%.*$", "", body)
@@ -52,7 +55,13 @@ def select_engine(tree, entry, requested=None):
 
 
 def tool(name):
-    for directory in ("/Library/TeX/texbin", "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"):
+    for directory in (
+        "/Library/TeX/texbin",
+        "/Library/Developer/CommandLineTools/usr/bin",
+        "/opt/homebrew/bin",
+        "/usr/local/bin",
+        "/usr/bin",
+    ):
         path = Path(directory) / name
         if path.is_file():
             return str(path)
@@ -83,14 +92,19 @@ def _support(build, folders):
             relative = source.relative_to(folder).as_posix()
             target = build.root / "texmf/tex/qecgraph" / safe_path(relative)
             raw = source.read_bytes()
-            if len(raw) > 16 << 20 or sum(d["size"] for d in build.dependencies) + len(raw) > 64 << 20:
+            if (
+                len(raw) > 16 << 20
+                or sum(d["size"] for d in build.dependencies) + len(raw) > 64 << 20
+            ):
                 raise ValueError("TeX support byte limit exceeded")
             if target.exists() and target.read_bytes() != raw:
                 raise ValueError("Conflicting TeX support files")
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(raw)
             build.artifacts["support/" + relative] = raw
-            build.dependencies.append({"path": relative, "sha256": digest(raw), "size": len(raw)})
+            build.dependencies.append(
+                {"path": relative, "sha256": digest(raw), "size": len(raw)}
+            )
 
 
 def _bibliography(build, tree, job, runner):
@@ -102,7 +116,12 @@ def _bibliography(build, tree, job, runner):
         binary = tool("biber")
         if platform.system() == "Darwin" and platform.machine() == "arm64":
             target = build.root / "biber-native"
-            if execute(build, "biber-architecture", [tool("lipo"), binary, "-thin", "arm64", "-output", str(target)], runner=runner):
+            if execute(
+                build,
+                "biber-architecture",
+                [tool("lipo"), binary, "-thin", "arm64", "-output", str(target)],
+                runner=runner,
+            ):
                 target.chmod(0o755)
                 binary = str(target)
         return execute(build, "bibliography", [binary, job], runner=runner)
@@ -128,12 +147,136 @@ def _record_files(build, tree, job):
             path = (path if path.is_absolute() else project / path).resolve()
             if path.is_relative_to(project):
                 paths[kind].add(path.relative_to(project).as_posix())
-            elif kind == "INPUT" and _trusted_dependency(path, build.root) and path.is_file():
-                build.dependencies.append({"path": str(path).replace(str(build.root), "<build>"),
-                                           "sha256": digest(path.read_bytes()), "size": path.stat().st_size})
+            elif (
+                kind == "INPUT"
+                and _trusted_dependency(path, build.root)
+                and path.is_file()
+            ):
+                build.dependencies.append(
+                    {
+                        "path": str(path).replace(str(build.root), "<build>"),
+                        "sha256": digest(path.read_bytes()),
+                        "size": path.stat().st_size,
+                    }
+                )
     build.inputs = sorted(paths["INPUT"])
     build.outputs = sorted(paths["OUTPUT"])
-    retained = paths["INPUT"] | paths["OUTPUT"] | {job + suffix for suffix in (".pdf", ".log", ".fls", ".synctex.gz", ".bbl", ".bcf")}
+    retained = (
+        paths["INPUT"]
+        | paths["OUTPUT"]
+        | {
+            job + suffix
+            for suffix in (".pdf", ".log", ".fls", ".synctex.gz", ".bbl", ".bcf")
+        }
+    )
+    _collect_artifacts(build, tree, retained)
+
+
+def _trusted_dependency(path, root):
+    # FLS is untrusted output. Never let it make the parent read a user file.
+    return any(
+        path.is_relative_to(Path(p).resolve())
+        for p in (
+            root / "texmf",
+            root / "cache",
+            "/usr/local/texlive",
+            "/usr/share/texlive",
+            "/usr/share/texmf",
+            "/var/lib/texmf",
+            "/System/Library/Fonts",
+            "/Library/Fonts",
+        )
+    )
+
+
+def compile_tree(
+    tree: SourceTree,
+    entry: str,
+    root: Path,
+    *,
+    engine=None,
+    support=(),
+    runner=sandbox.run,
+) -> Build:
+    """No assembly, parser, AI, archive mutation or source edits before compiling."""
+    safe_path(entry)
+    if not re.fullmatch(r"[A-Za-z0-9_./-]+", entry) or entry.startswith("-"):
+        raise ValueError("Compiler entry needs a literal portable filename")
+    build = Build(entry, select_engine(tree, entry, engine), root.resolve())
+    tree.materialize(build.root / "project")
+    _support(build, support)
+    job = Path(entry).stem
+    project = build.root / "project"
+    for suffix in (
+        ".aux",
+        ".out",
+        ".log",
+        ".toc",
+        ".bcf",
+        ".run.xml",
+        ".pdf",
+        ".fls",
+        ".synctex.gz",
+    ):
+        stale = project / (job + suffix)
+        if stale.is_file():
+            stale.unlink()
+    args = [
+        tool(build.engine),
+        "-no-shell-escape",
+        "-halt-on-error",
+        "-file-line-error",
+        "-interaction="
+        + ("errorstopmode" if build.engine == "etex" else "nonstopmode"),
+        "-recorder",
+        "-synctex=1",
+        entry,
+    ]
+    stdin = "b\n" if build.engine == "etex" else None
+    execute(build, "engine-version", [tool(build.engine), "--version"], runner=runner)
+    ok = execute(build, "tex-0", args, stdin=stdin, runner=runner)
+    if ok:
+        ok = _bibliography(build, tree, job, runner)
+    if ok:
+        for index in (1, 2):
+            if not execute(build, f"tex-{index}", args, stdin=stdin, runner=runner):
+                ok = False
+                break
+    if ok:
+        ok = _pdf(build, job, runner)
+    build.success = ok and (project / (job + ".pdf")).is_file()
+    _check_source_copy(build, tree)
+    _record_files(build, tree, job)
+    if not build.success:
+        build.diagnostics.append(
+            {
+                "code": "compile_failed",
+                "stage": "compile",
+                "severity": "error",
+                "message": "Native compilation failed; inspect the retained build logs.",
+            }
+        )
+    return build
+
+
+def _check_source_copy(build, tree):
+    for path, original in tree.files.items():
+        if Path(path).suffix not in {".tex", ".sty", ".cls", ".bst"}:
+            continue
+        file = build.root / "project" / path
+        if file.is_symlink() or not file.is_file() or file.read_bytes() != original:
+            build.success = False
+            build.diagnostics.append(
+                {
+                    "code": "source_changed_during_build",
+                    "path": path,
+                    "message": "Compilation changed an input source; the original is retained.",
+                }
+            )
+
+
+def _collect_artifacts(build, tree, retained):
+    project = build.root / "project"
     total = sum(len(v) for v in build.artifacts.values())
     for name in sorted(retained):
         path = project / safe_path(name)
@@ -147,47 +290,20 @@ def _record_files(build, tree, job):
             build.artifacts["files/" + name] = raw
 
 
-def _trusted_dependency(path, root):
-    # FLS is untrusted output. Never let it make the parent read a user file.
-    return any(path.is_relative_to(Path(p).resolve()) for p in
-               (root / "texmf", root / "cache", "/usr/local/texlive", "/usr/share/texlive",
-                "/usr/share/texmf", "/var/lib/texmf", "/System/Library/Fonts", "/Library/Fonts"))
-
-
-def compile_tree(tree: SourceTree, entry: str, root: Path, *, engine=None, support=(), runner=sandbox.run) -> Build:
-    """No assembly, parser, AI, archive mutation or source edits before compiling."""
-    safe_path(entry)
-    if not re.fullmatch(r"[A-Za-z0-9_./-]+", entry) or entry.startswith("-"):
-        raise ValueError("Compiler entry needs a literal portable filename")
-    build = Build(entry, select_engine(tree, entry, engine), root.resolve())
-    tree.materialize(build.root / "project")
-    _support(build, support)
-    job = Path(entry).stem
-    project = build.root / "project"
-    for suffix in (".aux", ".out", ".log", ".toc", ".bcf", ".run.xml", ".pdf", ".fls", ".synctex.gz"):
-        stale = project / (job + suffix)
-        if stale.is_file():
-            stale.unlink()
-    args = [tool(build.engine), "-no-shell-escape", "-halt-on-error", "-file-line-error",
-            "-interaction=" + ("errorstopmode" if build.engine == "etex" else "nonstopmode"),
-            "-recorder", "-synctex=1", entry]
-    stdin = "b\n" if build.engine == "etex" else None
-    execute(build, "engine-version", [tool(build.engine), "--version"], runner=runner)
-    ok = execute(build, "tex-0", args, stdin=stdin, runner=runner)
-    if ok:
-        ok = _bibliography(build, tree, job, runner)
-    if ok:
-        for index in (1, 2):
-            if not execute(build, f"tex-{index}", args, stdin=stdin, runner=runner):
-                ok = False
-                break
-    if ok and build.engine in {"latex", "etex"}:
-        ok = execute(build, "dvips", [tool("dvips"), "-R2", "-o", job + ".ps", job + ".dvi"], runner=runner)
+def _pdf(build, job, runner):
+    ok = True
+    if build.engine in {"latex", "etex"}:
+        ok = execute(
+            build,
+            "dvips",
+            [tool("dvips"), "-R2", "-o", job + ".ps", job + ".dvi"],
+            runner=runner,
+        )
         if ok:
-            ok = execute(build, "ps2pdf", [tool("ps2pdf"), "-dSAFER", job + ".ps", job + ".pdf"], runner=runner)
-    build.success = ok and (project / (job + ".pdf")).is_file()
-    _record_files(build, tree, job)
-    if not build.success:
-        build.diagnostics.append({"code": "compile_failed", "stage": "compile", "severity": "error",
-                                  "message": "Native compilation failed; inspect the retained build logs."})
-    return build
+            ok = execute(
+                build,
+                "ps2pdf",
+                [tool("ps2pdf"), "-dSAFER", job + ".ps", job + ".pdf"],
+                runner=runner,
+            )
+    return ok

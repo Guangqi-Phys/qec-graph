@@ -2,23 +2,57 @@ import copy
 import json
 import unittest
 
-from qecgraph.preparation.contract import digest, json_bytes, safe_path, validate_material
+from qecgraph.preparation.contract import (
+    digest,
+    json_bytes,
+    safe_path,
+    validate_material,
+)
 
 
 class MaterialContractTests(unittest.TestCase):
     def material(self):
         raw = "α\nText $d \\leq 12$.".encode()
         text = raw.decode()
-        span = {"path": "main.tex", "sha256": digest(raw), "encoding": "utf-8",
-                "chars": [0, len(text)], "bytes": [0, len(raw)], "lines": [1, 2]}
-        doc = {"roots": ["node:0"], "nodes": [{"id": "node:0", "range": [0, len(text)],
-                "parent": None, "children": [], "source_spans": [span]}]}
-        files = {"entry.tex": raw, "sources/main.tex": raw, "content.json": json_bytes(doc)}
+        span = {
+            "path": "main.tex",
+            "sha256": digest(raw),
+            "encoding": "utf-8",
+            "chars": [0, len(text)],
+            "bytes": [0, len(raw)],
+            "lines": [1, 2],
+        }
+        doc = {
+            "roots": ["node:0"],
+            "nodes": [
+                {
+                    "id": "node:0",
+                    "range": [0, len(text)],
+                    "parent": None,
+                    "children": [],
+                    "source_spans": [span],
+                }
+            ],
+        }
+        files = {
+            "entry.tex": raw,
+            "sources/main.tex": raw,
+            "content.json": json_bytes(doc),
+        }
         return files
 
     def finish(self, files):
-        files["manifest.json"] = json_bytes({"schema": "qecgraph.prepare/3", "status": "partial",
-            "artifacts": {name: digest(raw) for name, raw in files.items() if name != "manifest.json"}})
+        files["manifest.json"] = json_bytes(
+            {
+                "schema": "qecgraph.prepare/3",
+                "status": "partial",
+                "artifacts": {
+                    name: digest(raw)
+                    for name, raw in files.items()
+                    if name != "manifest.json"
+                },
+            }
+        )
         return files
 
     def test_original_codepoints_bytes_and_lines_are_independently_checked(self):
