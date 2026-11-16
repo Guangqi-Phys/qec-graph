@@ -122,8 +122,15 @@ def adapt_references(build, tree):
             diagnostics.append({"code": "bibliography_encoding", "path": path})
     text = "\n".join(aux)
     controls = set()
-    for path, raw in sorted(tree.files.items()):
+    for path in sorted(set(tree.files) | set(getattr(build, "outputs", []))):
         if not path.endswith(".bib"):
+            continue
+        file = project / path
+        if path in tree.files:
+            raw = tree.files[path]
+        elif file.is_file() and not file.is_symlink():
+            raw = file.read_bytes()
+        else:
             continue
         try:
             body = raw.decode()
@@ -132,7 +139,7 @@ def adapt_references(build, tree):
             continue
         controls.update(re.findall(r"@CONTROL\s*\{([^,}\s]+)", body, re.I))
         for key, start, end in bib_entries(body):
-            if key not in controls:
+            if key not in controls and path in tree.files:
                 originals.append(_record(key, None, None, path, raw, start, end, True))
     bcf = project / (job + ".bcf")
     requested = _bcf_requests(bcf.read_bytes()) if bcf.is_file() and not bcf.is_symlink() else _classic_requests(text, controls)
@@ -184,7 +191,8 @@ def _resolve(requested, entries, originals, aux, diagnostics, controls, biblatex
         variants = grouped.get((section, key), [])
         counts = Counter(v["context"] for v in variants)
         ambiguous = any(count > 1 for count in counts.values()) or len(labels.get(key, [])) > 1
-        status = "ambiguous" if ambiguous else "resolved" if variants else "unresolved"
+        has_label = biblatex or len(labels.get(key, [])) == 1
+        status = "ambiguous" if ambiguous else "resolved" if variants and has_label else "unresolved"
         references.append({"section": section, "key": key, "status": status,
                            "display_tex": labels.get(key, [None])[0], "entries": variants})
     return {"schema": "qecgraph.prepared_references/1", "mode": "biblatex" if biblatex else "classic",

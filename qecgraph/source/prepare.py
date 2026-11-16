@@ -329,7 +329,11 @@ def recover_output(out: Path) -> str | None:
 
 def _write_artifacts(directory: Path, artifacts: Mapping[str, bytes]) -> None:
     for name, data in artifacts.items():
-        (directory / name).write_bytes(data)
+        path = directory / name
+        if Path(name).is_absolute() or ".." in Path(name).parts or "\\" in name:
+            raise ValueError("Unsafe managed artifact path")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
 
 
 def write_outputs(prepared: PreparedSource, out: Path, *, source: Path | None = None,
@@ -390,6 +394,15 @@ def write_outputs(prepared: PreparedSource, out: Path, *, source: Path | None = 
     if prepared.normalization is not None:
         artifacts['normalization.json'] = json.dumps(
             prepared.normalization, indent=1, ensure_ascii=False).encode('utf-8')
+    publish_artifacts(artifacts, out, source=source, overwrite=overwrite)
+    return manifest
+
+
+def publish_artifacts(artifacts: Mapping[str, bytes], out: Path, *, source=None, overwrite=False):
+    """Shared journaled publication for versioned preparation material formats."""
+    if recover_output(out) == "conflict":
+        raise ValueError("Interrupted material publication conflicts with existing output")
+    _check_output_root(out, source, overwrite)
     out.parent.mkdir(parents=True, exist_ok=True)
     previous_manifest = _manifest_digest(out) if out.is_dir() else None
     staging = Path(mkdtemp(dir=out.parent, prefix=f".{out.name}.staging-"))
@@ -426,4 +439,3 @@ def write_outputs(prepared: PreparedSource, out: Path, *, source: Path | None = 
     finally:
         if out.is_dir():
             _remove_journal(out)
-    return manifest
