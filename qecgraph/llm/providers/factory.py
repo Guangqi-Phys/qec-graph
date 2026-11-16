@@ -12,7 +12,8 @@ def build_provider(config: AIConfig, environ=None):
     provider = config.require_ready(environ)
     if provider.kind in {'openai', 'openai_compatible'}:
         return OpenAICompatibleProvider(provider.name, base_url=provider.base_url,
-                                        api_key=provider.resolved_key(environ))
+                                        api_key=provider.resolved_key(environ),
+                                        reasoning_effort=provider.reasoning_effort)
     if provider.kind == 'anthropic':
         return AnthropicProvider(provider.name, base_url=provider.base_url,
                                  api_key=provider.resolved_key(environ))

@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "entry",
+    "encodings",
+    "edits",
+    "unresolved"
+  ],
+  "properties": {
+    "status": {
+      "enum": [
+        "ready",
+        "needs_review"
+      ]
+    },
+    "entry": {
+      "type": "string"
+    },
+    "encodings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "encoding"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "encoding": {
+            "enum": [
+              "utf-8",
+              "latin1",
+              "cp1252"
+            ]
+          }
+        }
+      }
+    },
+    "edits": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "old",
+          "new",
+          "evidence",
+          "reason"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "old": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "new": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "occurrence": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "evidence_path": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "unresolved": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "dialect": {
+      "enum": [
+        "latex",
+        "harvmac"
+      ]
+    },
+    "declaration_aliases": {
+      "type": "array",
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

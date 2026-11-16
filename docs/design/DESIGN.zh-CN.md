@@ -373,8 +373,38 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 `qecgraph/source/prepare.py` 和 `tools/prepare_arxiv.py` 在不调用 AI、不执行
 TeX、不要求工程可编译的前提下识别并转换来源树。入口识别按内容判断
 （`\documentclass`/`\documentstyle` 和 `\begin{document}`），包括没有
-`.tex` 后缀的文件；也接受 `00README` 顶层元数据和唯一候选。多个候选仍然
-明确报错。
+`.tex` 后缀的文件；也接受 `00README` 顶层元数据和唯一候选。仍有多个候选时，
+可用保守的字面前置信息规则选择主文档：同一目录内字节完全相同的候选共用一个代表；
+不同目录可能解析到不同的相对依赖，不能仅凭入口字节相同合并；
+包含论文标题的 supplement 标题落选；没有字面 `\title` 的候选让位于唯一带标题
+且有作者的候选；所有剩余有标题候选的标题两两相似度至少为 0.8 时，
+字面 `\author` 条目严格更多的变体胜出。相似候选对不能遮盖独立文档，相似性不作传递合并。
+该规则只读字面 `\title`/`\author` 参数、不展开宏；无法收敛到唯一候选时仍
+明确报错。不同目录只有在全部相对资产及展开组装结果字节相同时才可折叠。
+
+准备层只负责来源格式，各模块边界如下：
+
+| 模块 | 职责 |
+| --- | --- |
+| `source/prepare.py:prepare_input` | 入口选择与原始字节组装；不调用解析器或 AI。 |
+| `source/normalization.py`、`source/dialects.py` | 在派生副本上应用受校验的格式转换，保留原始字节与映射。 |
+| `llm/prepare.py`、`prepare_input` v9 skill | 提议入口、编码、语法方案；不做段落分类或科学内容提取。 |
+| `source/prepared_parser.py` | 独立负责结构解析、坐标及完整性验收。 |
+| `tools/prepare_arxiv.py` | 串联准备、下游校验与受管理产物发布。 |
+
+`prepare_source` 保留为兼容入口；`document.json` 来自独立下游解析器。
+显式传入 `--ai-prepare --ai-config-root DIR` 才启用模型后备，配置必须允许 AI 和来源
+上传；本地已完整通过的输入跳过模型。`--ai-structure` 保留为来源准备的弃用别名。
+
+skill 只返回 JSON 转换方案。程序检查来源绑定、精确匹配、编辑大小、操作白名单、
+重叠与 UTF-8，再将至多两个候选交给同一解析器校验。支持显式编码、局部定界符、
+提议的编译包装视图、成对绘图包装、字面声明别名与固定 Harvmac 语法转换；保留公式
+和正文参数。任意宏展开、缺失正文文件及科学条件选择仍明确失败。失败保留旧产物。
+
+`normalization.json` 记录 proposed 状态、来源/模型/skill 身份、修改文件的原始字节及
+哈希、转换和派生字符到原始字节的映射；插入语法没有原文出处。规范化后的
+`source-map.json` 明确标记派生层，文件坐标经上述映射回到原始字节。不生成 AI 段落
+分类、`ai-document.json`、research 记录或 workspace release。通过解析不代表科学正确。
 
 组装只复制原始字节。它解析字面 `\input`/`\include`/`\subfile`/`\import`/
 `\subimport`，剥掉 subfile 的 preamble，以及从另一个入口引入的完整文档的
@@ -485,7 +515,7 @@ proposed 而被隐藏；每行携带 `review_status`，硬过滤按证据策略�
 1. 在 `inputs/.processing/<job>` 下 **Claim** 收件箱文件，并写持久 job 记录。
 2. 把原始 bytes **Archive** 到 `archive/blobs/sha256/`；写不可变收据（size/hash/name）。
 3. 按内容 **Unpack**（TeX、gzip、tar、tar.gz、ZIP），限制 path/link/special-file/member/size/depth。拒绝 traversal、links、case collisions、forged ZIP counts、encrypted/unsupported members 和 oversized inputs。保留原始 bytes 和带哈希的展开树。
-4. 只从证据 **Select entry point**：显式 config override，或唯一的带 `\documentclass` 和 `\begin{document}` 的 TeX 文件。歧义保持 `needs_entrypoint`；不按最长文件名猜。
+4. 只从证据 **Select entry point**：显式 config override、唯一的带 `\documentclass` 和 `\begin{document}` 的 TeX 文件，或 §5.4 的保守字面标题/作者规则。歧义保持 `needs_entrypoint`；不按最长文件名猜。
 5. **Extract** 到 store，然后 stage source/research records 和 proposals。结构性 partial 不发布为 complete；来源以 `semantic_pending`/`parse_failed` 状态可见。
 6. 从所有活动状态 **Build candidate machine release**。复用的 projection 在发布前重新验证。
 7. **Validate** candidate（source hashes/spans、record references、review bindings、assets、graph endpoints、SQLite、project identity）。失败 candidate 保持 `CURRENT` 不变。

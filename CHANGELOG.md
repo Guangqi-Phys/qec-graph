@@ -2,7 +2,11 @@
 
 ## Unreleased
 
+- Separate source preparation from downstream parsing. The `prepare_input` v9 skill proposes source-format plans only; validate derived copies and preserve original bytes, hashes and projections. Retain the existing offline CLI as a compatibility facade.
+- Correct recovery chunk coordinates and synthetic document wrappers; preserve final-context parser errors and diagnose text after the document terminator. Parser identity is `0.3.7`, preparation rules `prepare-rules-v7`.
+
 - Add offline source preparation: content-based TeX entry recognition (including extensionless entries), byte-faithful include assembly and a `document/2` section/block/text model with exact source maps. The path does not call AI, run TeX, or require a compilable project.
+- Select among multiple TeX entry candidates only from literal front matter: identical bytes within one directory, supplement-title containment, the sole titled candidate with authors, or pairwise near-identical compile variants with strictly more authors. Unrelated candidates remain ambiguous; different directories collapse only with identical relative assets and expanded assembly; invalid configured entries retain `needs_entrypoint`. `prepare-rules-v4` records the rule change.
 - Default workspace MCP to eight research tools; add paper cards, ordered outlines,
   compact handles, stable source resources and bounded traversal fallback. Keep
   explicit legacy/compatible profiles and existing store/corpus entry points.

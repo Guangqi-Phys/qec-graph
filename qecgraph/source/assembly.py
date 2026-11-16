@@ -454,6 +454,7 @@ def _conditional_branches(text: str, index: int, kind: str,
     not close the conditional. Returns ``(branches, fi_start, fi_end)``; when no
     matching ``\\fi`` exists ``fi_start`` equals the stop offset.
     """
+    known = set(defined)
     limit = len(text) if stop is None else stop
     branches: list[tuple[int, int]] = []
     branch_start = index
@@ -495,7 +496,7 @@ def _conditional_branches(text: str, index: int, kind: str,
             probe = _skip_space(text, after)
             flag = _CONTROL.match(text, probe)
             if flag:
-                defined.update({flag.group(1) + "true", flag.group(1) + "false"})
+                known.update({flag.group(1) + "true", flag.group(1) + "false"})
                 index = flag.end()
             else:
                 index = probe
@@ -503,10 +504,10 @@ def _conditional_branches(text: str, index: int, kind: str,
         if name in _DECLARATIONS:
             definition = _definition_event(text, index, name)
             if definition is not None:
-                defined.add(definition.name)
+                known.add(definition.name)
             index = _skip_definition(text, after, name)
             continue
-        if _is_conditional(name, text, after, defined):
+        if _is_conditional(name, text, after, known):
             depth += 1
         elif name == "fi":
             if depth == 0:

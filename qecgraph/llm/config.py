@@ -49,6 +49,7 @@ class ProviderConfig:
     api_key_env: str | None = None
     command: str | None = None
     args: tuple[str, ...] = ()
+    reasoning_effort: str | None = None
 
     def resolved_key(self, environ: Mapping[str, str] | None = None) -> str | None:
         environ = os.environ if environ is None else environ
@@ -116,10 +117,14 @@ def _provider_table(name, raw):
         raise AIConfigError(f'[ai.providers.{name}].base_url is required')
     if kind == 'cli' and not value.get('command'):
         raise AIConfigError(f'[ai.providers.{name}].command is required')
+    effort = value.get('reasoning_effort')
+    if effort is not None and (not isinstance(effort, str) or kind not in {'openai', 'openai_compatible'} or
+                              effort not in {'none', 'minimal', 'low', 'medium', 'high'}):
+        raise AIConfigError(f'[ai.providers.{name}].reasoning_effort is unsupported')
     return ProviderConfig(name=name, kind=kind, base_url=value.get('base_url'),
                           api_key=value.get('api_key') or None,
                           api_key_env=value.get('api_key_env') or None,
-                          command=value.get('command'), args=tuple(args))
+                          command=value.get('command'), args=tuple(args), reasoning_effort=effort)
 
 
 def load_ai_config(root, environ: Mapping[str, str] | None = None) -> AIConfig:

@@ -100,7 +100,9 @@ class WorkspaceStructureRecoveryTests(unittest.TestCase):
         with self.provider(plan()) as provider:
             report = self.ws.sync()
             provider.assert_not_called()
-        self.assertEqual(report['inputs'][0]['structure_recovery']['reason'], 'body_outside_supported_scope')
+        # Discovery records the missing include even when the final strict walk
+        # fails. The dependency gate must reject it before requesting a model.
+        self.assertEqual(report['inputs'][0]['structure_recovery']['reason'], 'local_structure_or_dependency_error')
         package.write_bytes(TEX)
         self.configure('structure_fallback = true', 'structure_fallback = false')
         with self.provider(plan()) as provider:

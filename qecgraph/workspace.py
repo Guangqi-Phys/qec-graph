@@ -23,6 +23,7 @@ from .core.fs import (SHA256_HEX as HEX, check_machine_tree, managed_path as _ma
                       hash_regular as _hash_regular, matches_regular as _matches_regular,
                       read_operational_status as read_operational_status)
 from .registry import Registry
+from .source.entry import select_main_document
 from .source.package import Limits, PackageError, SourceTree, unpack
 from .store import extraction_semantics, extraction_tool_identity, ingest, source_span_index
 from .core.transactions import ManagedDataError, atomic_bytes, atomic_json, immutable_json, writer_lock
@@ -741,24 +742,33 @@ class Workspace:
             entry = cfg.get('entrypoints', {}).get(tree_hash)
             if entry not in tree.files:
                 candidates = extract_tree.entrypoints()
-                if entry is None and len(candidates) == 1:
-                    entry = candidates[0]
-                elif entry is None and len(candidates) > 1 and not mappings and (ai_client is not None or prior.get('normalization_id')):
-                    try:
-                        phase('Resolving TeX entry point')
-                        if progress:
-                            progress(0, 'Resolving TeX entry point')
-                        extract_tree, normalization = self._resolve_normalization(ai_client, tree, prior)
-                        entry = 'main.tex'
-                    except NormalizationError as exc:
-                        result.update(status='needs_entrypoint', entrypoint_candidates=candidates, reason=str(exc))
-                        return self._keep_prior(result, prior)
-                    except (OSError, ValueError, RuntimeError) as exc:
-                        result.update(status='ai_failed', reason=str(exc).replace(str(self.root), '<workspace>'))
-                        return self._keep_prior(result, prior)
-                else:
-                    result.update(status='needs_entrypoint', entrypoint_candidates=candidates)
+                if entry is not None:
+                    result.update(status='needs_entrypoint', entrypoint_candidates=candidates,
+                                  reason=f'Configured entry not found in source tree: {entry}')
                     return self._keep_prior(result, prior)
+                if entry is None and len(candidates) > 1:
+                    selected, _method = select_main_document(extract_tree.files, candidates)
+                    if selected is not None:
+                        entry = selected
+                if entry is None:
+                    if len(candidates) == 1:
+                        entry = candidates[0]
+                    elif len(candidates) > 1 and not mappings and (ai_client is not None or prior.get('normalization_id')):
+                        try:
+                            phase('Resolving TeX entry point')
+                            if progress:
+                                progress(0, 'Resolving TeX entry point')
+                            extract_tree, normalization = self._resolve_normalization(ai_client, tree, prior)
+                            entry = 'main.tex'
+                        except NormalizationError as exc:
+                            result.update(status='needs_entrypoint', entrypoint_candidates=candidates, reason=str(exc))
+                            return self._keep_prior(result, prior)
+                        except (OSError, ValueError, RuntimeError) as exc:
+                            result.update(status='ai_failed', reason=str(exc).replace(str(self.root), '<workspace>'))
+                            return self._keep_prior(result, prior)
+                    else:
+                        result.update(status='needs_entrypoint', entrypoint_candidates=candidates)
+                        return self._keep_prior(result, prior)
             source_id = 'source:local:' + hash_text(canonical([tree_hash, work_id, upstream]))
             build_key = (source_id, entry, normalization and normalization['normalization_sha256'])
             version = self._verify_reusable_projection(reused.get(build_key), manifest_hashes)

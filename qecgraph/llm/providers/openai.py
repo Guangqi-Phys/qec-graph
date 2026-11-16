@@ -6,6 +6,7 @@ retry loop: the shared client owns retries, budgeting and validation.
 from __future__ import annotations
 
 import json
+from urllib.parse import urlsplit
 from typing import Any, Mapping, Sequence
 
 from ..errors import ProviderError
@@ -36,7 +37,7 @@ class OpenAICompatibleProvider:
     kind = 'openai_compatible'
 
     def __init__(self, name, *, base_url, api_key, transport: Transport | None = None,
-                 extra_headers: Mapping[str, str] | None = None):
+                 extra_headers: Mapping[str, str] | None = None, reasoning_effort: str | None = None):
         if not base_url:
             raise ValueError('base_url is required')
         if not api_key:
@@ -46,6 +47,7 @@ class OpenAICompatibleProvider:
         self.api_key = api_key
         self.transport = transport or UrllibTransport()
         self.extra_headers = dict(extra_headers or {})
+        self.reasoning_effort = reasoning_effort
 
     @property
     def endpoint(self):
@@ -59,6 +61,11 @@ class OpenAICompatibleProvider:
         }
         if max_output_tokens is not None:
             payload['max_tokens'] = max_output_tokens
+        if self.reasoning_effort is not None:
+            if urlsplit(self.base_url).hostname == 'openrouter.ai':
+                payload['reasoning'] = {'effort': self.reasoning_effort}
+            else:
+                payload['reasoning_effort'] = self.reasoning_effort
         if response_schema is not None:
             if response_schema.get('type') == 'object' and _supports_strict_schema(response_schema):
                 wire_schema = {key: value for key, value in response_schema.items() if key != '$schema'}

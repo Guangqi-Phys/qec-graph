@@ -11,16 +11,16 @@ from unittest import mock
 
 from qecgraph.source.assembly import EntryCoordinates, assemble_files
 from qecgraph.source.package import SourceTree
-from qecgraph.source.prepare import (
-    _conditional_has_content,
-    _coverage,
-    _manifest_digest,
-    _outside_dependencies,
-    _prose_chars,
+from qecgraph.source.prepared_parser import (
+    _conditional_has_content, _coverage, _outside_dependencies, _prose_chars,
     _uncovered_entry_prose,
+)
+from qecgraph.source.prepare import (
+    _manifest_digest,
     entry_candidates,
     prepare_source,
     recover_output,
+    select_entry,
     write_outputs,
 )
 
@@ -29,7 +29,39 @@ def _sha256_text(value: str) -> str:
     return __import__("hashlib").sha256(value.encode("utf-8")).hexdigest()
 
 
+def _tex(title: str = "", authors: tuple[str, ...] = (),
+         body: str = "Body.") -> bytes:
+    front = f"\\title{{{title}}}\n" if title else ""
+    front += "".join(f"\\author{{{author}}}\n" for author in authors)
+    return ("\\documentclass{article}\n" + front + "\\begin{document}\n"
+            + body + "\n\\end{document}\n").encode()
+
+
 class PrepareTests(unittest.TestCase):
+    def test_duplicate_directory_requires_identical_assets_and_expanded_body(self):
+        files = {'main.tex': _tex(body=r'\input{body}'), 'body.tex': b'Body.',
+                 'figure.pdf': b'original figure'}
+        files.update({'copy/' + path: raw for path, raw in list(files.items())})
+        self.assertEqual(select_entry(SourceTree('directory', files)), 'main.tex')
+        files['copy/figure.pdf'] = b'different figure'
+        with self.assertRaisesRegex(ValueError, 'multiple TeX entry candidates'):
+            select_entry(SourceTree('directory', files))
+
+    def test_chunk_recovery_keeps_real_math_error_and_correct_file_coordinates(self):
+        broken = b'\\section{Broken}\nBefore $x is unclosed.\n'
+        tree = SourceTree('directory', {
+            'main.tex': _tex(body=r'\input{broken}\input{healthy}'),
+            'broken.tex': broken,
+            'healthy.tex': b'\\section{Healthy}\nRetained text.\n',
+        })
+        result = prepare_source(tree)
+        self.assertFalse(result.coverage['complete'])
+        error = next(d for d in result.parser_errors if d['path'] == 'broken.tex')
+        self.assertEqual(error['source']['line_start'], 2)
+        self.assertEqual(error['source']['char_start'], broken.index(b'$'))
+        healthy = next(b for b in result.document['blocks'] if 'Retained text.' in b['text'])
+        self.assertEqual(healthy['source_spans'][0]['path'], 'healthy.tex')
+
     def test_prepare_builds_section_tree_and_text(self):
         tree = SourceTree("directory", {
             "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
@@ -64,6 +96,121 @@ class PrepareTests(unittest.TestCase):
         self.assertEqual([section["title"] for section in prepared.document["sections"]],
                          ["Introduction"])
         self.assertTrue(prepared.coverage["content_complete"])
+
+    def test_supplement_title_selects_the_main_document(self):
+        tree = SourceTree("directory", {
+            "main.tex": _tex("Quantum memory", ("Ada Lovelace",)),
+            "supplement.tex": _tex(
+                "Supplementary information for Quantum memory", ("Ada Lovelace",)),
+        })
+        self.assertEqual(select_entry(tree), "main.tex")
+
+    def test_macro_title_and_last_supplement_title_are_compared_literally(self):
+        main = (b'\\documentclass{article}\n\\begin{document}\n'
+                b'\\title{\\puttitle}\n\\author{Ada Lovelace}\n'
+                b'Text.\n\\end{document}\n')
+        supplement = (b'\\documentclass{article}\n\\begin{document}\n'
+                      b'\\title{\\puttitle}\n'
+                      b'\\title{Supplemental Information for: \\puttitle}\n'
+                      b'\\author{Ada Lovelace}\nText.\n\\end{document}\n')
+        tree = SourceTree("directory", {"main.tex": main,
+                                        "supplement.tex": supplement})
+        self.assertEqual(select_entry(tree), "main.tex")
+
+    def test_titled_candidate_wins_over_untitled_fragment(self):
+        tree = SourceTree("directory", {
+            "main.tex": _tex("Quantum memory", ("Ada Lovelace",)),
+            "appendix.tex": _tex(body="Additional derivation."),
+        })
+        self.assertEqual(select_entry(tree), "main.tex")
+
+    def test_commented_title_does_not_make_a_fragment_look_like_the_paper(self):
+        fragment = (b'\\documentclass{article}\n% \\title{Commented template}\n'
+                    b'\\author{Ada Lovelace}\n\\begin{document}\nNotes.\n'
+                    b'\\end{document}\n')
+        tree = SourceTree("directory", {
+            "main.tex": _tex("Quantum memory", ("Ada Lovelace",)),
+            "notes.tex": fragment,
+        })
+        self.assertEqual(select_entry(tree), "main.tex")
+
+    def test_identical_candidate_bytes_are_one_document(self):
+        text = _tex("Quantum memory", ("Ada Lovelace",))
+        tree = SourceTree("directory", {
+            "main.tex": text,
+            "main-copy.tex": text,
+        })
+        self.assertEqual(select_entry(tree), "main.tex")
+
+    def test_identical_wrappers_with_different_relative_inputs_stay_ambiguous(self):
+        text = _tex("Quantum memory", ("Ada Lovelace",), r"\input{body}")
+        tree = SourceTree("directory", {
+            "main.tex": text, "copies/main.tex": text,
+            "body.tex": b"First paper.", "copies/body.tex": b"Different paper.",
+        })
+        with self.assertRaisesRegex(ValueError, "multiple TeX entry candidates"):
+            select_entry(tree)
+
+    def test_similar_title_pair_does_not_hide_an_independent_document(self):
+        tree = SourceTree("directory", {
+            "main.tex": _tex(
+                "The Variational Quantum Eigensolver: a review of methods and best practices",
+                ("Ada Lovelace", "Alan Turing")),
+            "wrapper.tex": _tex(
+                "The Variational Quantum Eigensolver: a review of recent research and best practices",
+                ("A B",)),
+            "independent.tex": _tex("Causal inference for all", ("Grace Hopper",)),
+        })
+        with self.assertRaisesRegex(ValueError, "multiple TeX entry candidates"):
+            select_entry(tree)
+
+    def test_title_similarity_does_not_merge_a_transitive_chain(self):
+        # Adjacent pairs match at 5/6, but the endpoints match at only 2/3.
+        tree = SourceTree("directory", {
+            "first.tex": _tex("a" * 10 + "b" * 10 + "c" * 10,
+                              ("Ada", "Alan", "Grace")),
+            "bridge.tex": _tex("a" * 10 + "b" * 10 + "d" * 5 + "c" * 5,
+                               ("Ada", "Alan")),
+            "last.tex": _tex("a" * 10 + "e" * 5 + "b" * 5 + "d" * 5 + "c" * 5,
+                             ("Ada",)),
+        })
+        with self.assertRaisesRegex(ValueError, "multiple TeX entry candidates"):
+            select_entry(tree)
+
+    def test_near_identical_compile_variant_with_more_authors_is_main(self):
+        tree = SourceTree("directory", {
+            "main.tex": _tex(
+                "The Variational Quantum Eigensolver: a review of methods and best practices",
+                ("Ada Lovelace", "Alan Turing", "Grace Hopper")),
+            "wrapper.tex": _tex(
+                "The Variational Quantum Eigensolver: a review of recent research and best practices",
+                ("A B",)),
+        })
+        self.assertEqual(select_entry(tree), "main.tex")
+
+    def test_same_title_with_different_author_counts_stays_ambiguous(self):
+        tree = SourceTree("directory", {
+            "paper.tex": _tex("Quantum memory", ("Ada Lovelace",)),
+            "copy.tex": _tex("Quantum memory", ("Ada Lovelace", "Alan Turing")),
+        })
+        with self.assertRaisesRegex(ValueError, "multiple TeX entry candidates"):
+            select_entry(tree)
+
+    def test_unrelated_documents_stay_ambiguous(self):
+        tree = SourceTree("directory", {
+            "paper.tex": _tex("Quantum error correction", ("Ada Lovelace",)),
+            "other.tex": _tex("Causal inference for all", ("Alan Turing",)),
+        })
+        with self.assertRaisesRegex(ValueError, "multiple TeX entry candidates"):
+            select_entry(tree)
+
+    def test_supplement_word_without_containment_stays_ambiguous(self):
+        tree = SourceTree("directory", {
+            "main.tex": _tex("Dietary Supplement Use in Adults", ("Ada Lovelace",)),
+            "supplement.tex": _tex("Supplemental methods", ("Alan Turing",)),
+        })
+        with self.assertRaisesRegex(ValueError, "multiple TeX entry candidates"):
+            select_entry(tree)
 
     def test_missing_preamble_dependency_does_not_lose_content(self):
         tree = SourceTree("directory", {

@@ -97,9 +97,13 @@ class LLMClient:
 
     def _provider_identity(self):
         configured = self.config.providers.get(self.config.provider)
-        return {'name': self.config.provider, 'kind': getattr(self.provider, 'kind', configured and configured.kind),
+        identity = {'name': self.config.provider, 'kind': getattr(self.provider, 'kind', configured and configured.kind),
                 'endpoint': getattr(self.provider, 'endpoint', None) or (configured and configured.base_url),
                 'command': configured and configured.command, 'args': configured and configured.args}
+        effort = getattr(self.provider, 'reasoning_effort', configured and configured.reasoning_effort)
+        if effort is not None:
+            identity['reasoning_effort'] = effort
+        return identity
 
     def batch_usage(self):
         with self._batch_lock:

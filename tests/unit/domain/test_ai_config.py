@@ -57,6 +57,14 @@ class AIConfigTests(unittest.TestCase):
         with self.assertRaisesRegex(AIConfigError, 'missing API key'):
             config.require_ready(environ={})
 
+    def test_reasoning_effort_is_explicit_and_validated(self):
+        self.write('[ai]\n[ai.providers.openrouter]\nreasoning_effort = "none"\n')
+        self.assertEqual(load_ai_config(self.root).selected.reasoning_effort, 'none')
+        for value in ['"unsupported"', '["none"]', 'false']:
+            self.write('[ai]\n[ai.providers.openrouter]\nreasoning_effort = ' + value + '\n')
+            with self.assertRaisesRegex(AIConfigError, 'reasoning_effort'):
+                load_ai_config(self.root)
+
     def test_cli_provider_needs_no_api_key(self):
         self.write(render_config_template('workspace:test')
                    .replace('provider = "openrouter"', 'provider = "claude_code"')

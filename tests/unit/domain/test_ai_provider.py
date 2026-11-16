@@ -65,6 +65,34 @@ class OpenAIProviderTests(unittest.TestCase):
         return OpenAICompatibleProvider('openrouter', base_url='https://example.test/v1',
                                        api_key='secret', transport=transport)
 
+    def test_reasoning_override_is_opt_in_and_uses_the_endpoint_protocol(self):
+        for base, expected in [('https://openrouter.ai/api/v1', {'reasoning': {'effort': 'none'}}),
+                               ('https://api.openai.com/v1', {'reasoning_effort': 'none'})]:
+            transport = FakeTransport(body=response())
+            provider = OpenAICompatibleProvider('provider', base_url=base, api_key='secret', transport=transport)
+            provider.complete([Message('user', 'x')], model='model')
+            self.assertNotIn('reasoning', transport.requests[-1][3])
+            self.assertNotIn('reasoning_effort', transport.requests[-1][3])
+            provider.reasoning_effort = 'none'
+            provider.complete([Message('user', 'x')], model='model')
+            for key, value in expected.items():
+                self.assertEqual(transport.requests[-1][3][key], value)
+
+    def test_reasoning_override_has_a_separate_response_cache(self):
+        import tempfile
+        from tests.unit.domain.test_ai_client import config, SCHEMA
+        from qecgraph.llm.client import LLMClient
+        transport = FakeTransport(body=response())
+        provider = self.provider(transport)
+        with tempfile.TemporaryDirectory() as directory:
+            client = LLMClient(config(), provider=provider, cache_dir=directory)
+            messages = [Message('user', 'x')]
+            self.assertFalse(client.complete_json(messages, SCHEMA).cached)
+            provider.reasoning_effort = 'none'
+            self.assertFalse(client.complete_json(messages, SCHEMA).cached)
+            self.assertTrue(client.complete_json(messages, SCHEMA).cached)
+            self.assertEqual(len(transport.requests), 2)
+
     def test_posts_messages_and_structured_output_schema(self):
         transport = FakeTransport(body=response())
         completion = self.provider(transport).complete(
@@ -90,6 +118,8 @@ class OpenAIProviderTests(unittest.TestCase):
             with self.subTest(skill=name):
                 if name == 'recover_structure':
                     result = {'status': 'needs_review', 'blocks': []}
+                elif name == 'prepare_input':
+                    result = {'status': 'needs_review', 'entry': '', 'encodings': [], 'edits': [], 'unresolved': []}
                 elif name == 'normalize_package':
                     result = {'status': 'needs_review', 'documents': [], 'operations': [], 'unresolved': []}
                 else:

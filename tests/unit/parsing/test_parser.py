@@ -225,6 +225,25 @@ Text.
         self.assertIn('latex_parse_error', codes)
         self.assertIn('latex_parse_recovered', codes)
 
+    def test_braket_package_uses_one_argument_without_rewriting_math(self):
+        text = (r'\documentclass{article}\usepackage{braket}'
+                r'\begin{document}\begin{figure}\caption{Test $\braket{x|A|x}$.}'
+                r'\end{figure}\end{document}')
+        self.entry.write_text(text)
+        parsed = parse_project(self.entry)
+        self.assertFalse([d for d in parsed['diagnostics'] if d['severity'] == 'error'])
+        self.assertIn(r'\braket{x|A|x}', ''.join(b['latex'] for b in parsed['blocks']))
+        self.assertEqual(self.entry.read_text(), text)
+
+    def test_trailing_unclosed_math_is_reported_but_not_parsed_as_document_body(self):
+        text = r'\begin{document}Visible.\end{document}Trailing $unclosed'
+        self.entry.write_text(text)
+        parsed = parse_project(self.entry)
+        self.assertFalse([d for d in parsed['diagnostics'] if d['severity'] == 'error'])
+        self.assertIn('text_after_end_document', {d['code'] for d in parsed['diagnostics']})
+        self.assertEqual(self.entry.read_text(), text)
+        self.assertNotIn('Trailing', ''.join(b['latex'] for b in parsed['blocks']))
+
     def test_extensionless_tex_entry_requires_an_explicit_opt_in(self):
         entry = self.root / 'tqecp'
         entry.write_text(

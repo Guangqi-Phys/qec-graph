@@ -39,12 +39,28 @@ A/B/C 测量证据检索，不评定模型回答质量或数学正确性。
 
 `tools/prepare_arxiv.py` 按内容识别 LaTeX 入口，把字面 include 组装成
 `entry.tex`，并写出带 section 层级、block 文本和来源区间的 `document/2`。
-不调用 AI、不执行 TeX、不要求工程可编译。
+默认不调用 AI；始终不执行 TeX、不要求工程可编译。
 
 ```bash
 python tools/prepare_arxiv.py /path/to/source-tree \
   --entry main.tex --out build/prepared/paper --json
 ```
+
+失败或不完整的输入可使用来源格式转换后备；所选配置须明确允许 AI 和来源上传：
+
+```sh
+python tools/prepare_arxiv.py /path/to/source-tree \
+  --out build/prepared/paper --json \
+  --ai-prepare --ai-config-root /path/to/config-directory
+```
+
+字面语法适配器先在本地运行，已完整通过的输入跳过模型。`prepare_input` v9 skill 只提交入口、编码、语法方案，
+程序在派生副本上转换，再由独立下游解析器检查。模型不分类定理/证明，不提取科学内容。
+失败保留旧输出；`normalization.json` 保存原始字节、哈希、操作与映射，来源坐标明确
+标记派生层。既有 `document.json` 来自下游校验。`--ai-structure` 是弃用别名。
+预算、超时与响应缓存使用所选配置；本工具不发布 workspace release。
+`--ai-reasoning-effort low` 可仅为本次工具调用覆盖推理强度；OpenAI-compatible
+provider 配置也可设 `reasoning_effort`。默认仍由 provider 决定，不同设置隔离响应缓存。
 
 `--no-parser-recovery` 和 `--no-transparent-containers` 可关闭可选的 partial
 结构恢复。退出码 `0` 表示 `document_complete`；`2` 表示正文完整但结构 partial，

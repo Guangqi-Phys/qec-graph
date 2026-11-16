@@ -41,12 +41,34 @@ not model answer accuracy or mathematical correctness.
 
 ## Offline preparation
 
-`tools/prepare_arxiv.py` recognizes a LaTeX entry by content, assembles literal includes into `entry.tex`, and writes the `document/2` model with section levels, block text and source spans. It does not call AI, run TeX, or require a compilable project.
+`tools/prepare_arxiv.py` recognizes a LaTeX entry by content, assembles literal includes into `entry.tex`, and writes the `document/2` model with section levels, block text and source spans. By default it does not call AI. It never runs TeX or requires a compilable project.
 
 ```bash
 python tools/prepare_arxiv.py /path/to/source-tree \
   --entry main.tex --out build/prepared/paper --json
 ```
+
+For failed/partial input, use a configuration explicitly enabling AI and source upload:
+
+```sh
+python tools/prepare_arxiv.py /path/to/source-tree \
+  --out build/prepared/paper --json \
+  --ai-prepare --ai-config-root /path/to/config-directory
+```
+
+Literal grammar adapters run locally first; complete local inputs skip AI. The `prepare_input` v9 skill returns only entry,
+encoding and syntax plans. The program converts a derived copy, then the independent
+downstream parser validates it. AI never classifies theorems/proofs or extracts
+scientific content. Failed candidates retain the previous output.
+`normalization.json` retains original bytes, hashes, changes and projections;
+source coordinates explicitly identify the derived layer. Existing `document.json`
+comes from downstream validation. `--ai-structure` is a deprecated alias.
+Budgets, timeouts and validated-response caching use the selected configuration.
+`--ai-reasoning-effort low` optionally overrides reasoning for this tool only;
+OpenAI-compatible provider tables may also set `reasoning_effort`. The default
+remains the provider default, and distinct settings have separate response caches.
+For the OpenRouter wire format see its [reasoning documentation](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens).
+This tool does not publish a workspace release.
 
 `--no-parser-recovery` and `--no-transparent-containers` disable the opt-in partial-structure fallbacks. Exit `0` means `document_complete`; `2` means content is complete but structure is partial, or content remains unresolved.
 

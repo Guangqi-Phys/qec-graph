@@ -345,8 +345,50 @@ The workspace AI pipeline (§15) can call a configured provider during sync when
 a source tree without an AI provider, TeX execution or a compilable project.
 Entry recognition uses content (`\documentclass`/`\documentstyle` and
 `\begin{document}`), including extensionless files; `00README` top-level
-metadata and a unique candidate are also accepted. Multiple candidates remain
-an explicit error.
+metadata and a unique candidate are also accepted. When several files remain,
+a conservative literal front-matter rule may choose the main document:
+byte-identical candidates in the same directory share a representative (different
+directories can resolve relative dependencies differently). A duplicated directory
+is collapsed only when all relative assets and the expanded assembly are byte-identical; a supplement title that contains
+the paper title loses; a candidate with no literal `\title` loses to the only
+titled candidate with authors; and a near-identical title variant with strictly
+more literal `\author` entries wins only when all remaining titled candidates
+have pairwise similarity of at least 0.8. A similar pair cannot hide an unrelated
+document, and similarity is not transitive. The rule reads literal `\title`/`\author`
+arguments only, does not expand macros, and keeps the explicit ambiguity error
+when it cannot leave exactly one candidate.
+
+The preparation boundary is source format:
+
+| Module | Responsibility |
+| --- | --- |
+| `source/prepare.py:prepare_input` | Entry selection and byte assembly; no parser or AI calls. |
+| `source/normalization.py`, `source/dialects.py` | Validated format conversions on a derived copy; original bytes and projections retained. |
+| `llm/prepare.py`, `prepare_input` v9 skill | Propose entry/encoding/syntax plans; no block classifications or scientific extraction. |
+| `source/prepared_parser.py` | Independent structural parsing, coordinates and completeness checks. |
+| `tools/prepare_arxiv.py` | Orchestrate preparation, downstream validation and managed output. |
+
+`prepare_source` remains a compatibility facade. `document.json` comes from the
+independent downstream parser. Explicit `--ai-prepare --ai-config-root DIR`
+requires enabled AI and source-upload permission; complete local inputs skip AI.
+`--ai-structure` is a deprecated alias for source preparation.
+
+The skill returns a JSON conversion plan. The program validates source bindings,
+exact matches, edit bounds, permitted operations, overlap and UTF-8, then checks
+at most two candidate plans with the same downstream parser. Supported operations
+are explicit encodings, local delimiters, proposed compilation-wrapper views,
+paired drawing wrappers, literal declaration aliases and the fixed Harvmac adapter.
+They retain formula/prose arguments. Unknown macro expansion, missing body files
+and scientific case selection remain explicit failures. Failed candidates retain
+the previous managed output.
+
+`normalization.json` records proposed status, source/model/skill identities,
+original changed-file bytes and hashes, transformations and normalized-character
+to original-byte projections. Inserted syntax has no original source. A normalized
+`source-map.json` explicitly marks its derived layer; compose its file coordinates
+through those projections to reach original bytes. No AI block classifications,
+`ai-document.json`, research records or workspace release are generated. Parser
+acceptance does not establish scientific correctness.
 
 Assembly copies original bytes only. It resolves literal
 `\input`/`\include`/`\subfile`/`\import`/`\subimport` directives, strips the
@@ -472,7 +514,7 @@ Default query behavior excludes inactive edges (`stale`, `unbound_review`, `unre
 1. **Claim** an inbox file under `inputs/.processing/<job>` with a durable job record.
 2. **Archive** original bytes under `archive/blobs/sha256/`; write an immutable receipt with size/hash/name.
 3. **Unpack** by content (TeX, gzip, tar, tar.gz, ZIP), with path/link/special-file/member/size/depth limits. Reject traversal, links, case collisions, forged ZIP counts, encrypted/unsupported members and oversized inputs. Preserve original bytes and a hashed expanded tree.
-4. **Select the entry point** only from evidence: explicit config override or a unique TeX file with `\documentclass` and `\begin{document}`. Ambiguity stays `needs_entrypoint`; do not guess by longest filename.
+4. **Select the entry point** only from evidence: explicit config override, a unique TeX file with `\documentclass` and `\begin{document}`, or the conservative literal title/author rule in §5.4. Ambiguity stays `needs_entrypoint`; do not guess by longest filename.
 5. **Extract** into a store, then stage source/research records and proposals. A structural partial is not published as complete; the source remains visible with `semantic_pending`/`parse_failed` state.
 6. **Build a candidate machine release** from all active state. Reused projections are reverified before publication.
 7. **Validate** the candidate (source hashes/spans, record references, review bindings, assets, graph endpoints, SQLite, project identity). A failed candidate leaves `CURRENT` unchanged.

@@ -343,7 +343,8 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(self.ws.sync()['status'], 'partial_batch')
 
     def test_entrypoint_override_retries_archived_failure_without_inbox(self):
-        bundle = tar_bytes({'a.tex': TEX, 'b.tex': TEX})
+        bundle = tar_bytes({'a.tex': TEX,
+                            'b.tex': TEX.replace(b'Hello', b'Independent paper')})
         (self.inbox / 'two').write_bytes(bundle)
         first = self.ws.init()
         self.assertEqual(first['inputs'][0]['status'], 'needs_entrypoint')
@@ -353,6 +354,34 @@ class WorkspaceTests(unittest.TestCase):
         rebuilt = self.ws.rebuild()
         self.assertEqual(rebuilt['counts']['processed'], 1)
         self.assertEqual(rebuilt['inputs'][0]['entrypoint'], 'b.tex')
+
+    def test_supplement_title_selects_the_main_entry_without_ai(self):
+        main = (b'\\documentclass{article}\n\\begin{document}\n'
+                b'\\title{Quantum memory}\n\\author{Ada Lovelace}\n'
+                b'\\section{Body}\nMain text.\n\\end{document}\n')
+        supplement = (b'\\documentclass{article}\n\\begin{document}\n'
+                      b'\\title{Supplementary information for Quantum memory}\n'
+                      b'\\author{Ada Lovelace}\nSupplement text.\n\\end{document}\n')
+        (self.inbox / 'bundle.tar').write_bytes(
+            tar_bytes({'main.tex': main, 'supplement.tex': supplement}))
+        result = self.ws.init()
+        self.assertEqual(result['status'], 'published')
+        self.assertEqual(result['inputs'][0]['entrypoint'], 'main.tex')
+        self.assertTrue(result['inputs'][0]['input_consumed'])
+
+    def test_missing_configured_entry_stays_needs_entrypoint(self):
+        self.ws.prepare()
+        tree_hash = unpack(TEX).digest
+        with (self.root / 'qecgraph.toml').open('a') as config:
+            config.write(f'\n[entrypoints]\n"{tree_hash}" = "missing.tex"\n')
+        (self.inbox / 'paper.tex').write_bytes(TEX)
+        result = self.ws.sync()
+        item = result['inputs'][0]
+        self.assertEqual(item['status'], 'needs_entrypoint')
+        self.assertEqual(item['entrypoint_candidates'], ['main.tex'])
+        self.assertIn('missing.tex', item['reason'])
+        self.assertFalse(item.get('input_consumed', False))
+        self.assertTrue((self.inbox / 'paper.tex').exists())
 
     def test_rebuild_reuses_exact_extractions_and_reparses_after_processor_changes(self):
         (self.inbox / 'paper.tex').write_bytes(TEX)

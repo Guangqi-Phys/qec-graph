@@ -83,6 +83,7 @@ _CONDITIONALS = {
 }
 _CONDITIONAL_MACROS = {"ifthenelse", "ifboolexpr"}
 _CONTROL_WORD = re.compile(r"\\([A-Za-z@]+)")
+_END_DOCUMENT_MARKER = re.compile(r"\\end\s*\{document\}")
 _ENVIRONMENT_ALIAS = re.compile(r"\\(begin|end)\s*\{([A-Za-z0-9* ._-]+)\}")
 _STRUCTURAL_TOKEN = re.compile(r"[\\%{}]")
 
@@ -553,6 +554,7 @@ class _ProjectParser:
         self.explicit_environments = explicit
         self.environment_map.update(explicit)
         self.macro_specs: dict[str, str] = {}
+        self.packages: set[str] = set()
         self.macro_definitions: list[MacroDefinition] = []
         self.files: dict[str, dict] = {}
         self.structures: dict[str, tuple] = {}
@@ -569,6 +571,8 @@ class _ProjectParser:
         self.diagnostic_keys: set[tuple] = set()
         self.context = self._context()
         self._conditional_names = set(_CONDITIONALS)
+        self._discovery_diagnostics: dict[str, list[tuple]] = {}
+        self._final_parsed: set[str] = set()
 
     def relative(self, path: Path) -> str:
         return path.relative_to(self.root).as_posix()
@@ -592,8 +596,12 @@ class _ProjectParser:
 
     def _context(self):
         context = _ProjectLatexContext()
+        # braket.sty takes one braced argument (unlike physics.sty's two).
+        # Source declarations override these literal package signatures.
+        package_specs = ({'braket': '{', 'Braket': '{'}
+                         if 'braket' in self.packages and 'physics' not in self.packages else {})
         specs = {name: MacroSpec(name, args_parser=signature)
-                 for name, signature in self.macro_specs.items()}
+                 for name, signature in {**package_specs, **self.macro_specs}.items()}
         for name in _SECTIONS:
             specs[name] = MacroSpec(name, args_parser="*[{" )
         for name in _REFERENCE_KINDS:
@@ -642,11 +650,26 @@ class _ProjectParser:
                     for name in sorted(_LITERAL_ENVIRONMENTS))
         context.add_context_category("qecgraph", macros=list(specs.values()),
                                      environments=envs, prepend=True)
-        self._applied_context = {'environments': dict(self.environment_map), 'macro_specs': dict(self.macro_specs)}
+        self._applied_context = {'environments': dict(self.environment_map),
+                                 'macro_specs': dict(self.macro_specs), 'packages': sorted(self.packages)}
         return context
 
-    def parse_nodes(self, path: str):
+    def parse_nodes(self, path: str, *, final: bool = False):
+        """Parse one file with the current context.
+
+        Discovery parses run before later declarations (for example a
+        ``\\renewcommand{\\H}{...}`` that removes a built-in argument) are
+        known. Their failures are held back; the final parse with every
+        learned declaration decides which errors are reported.
+        """
         phase('Parsing LaTeX source', detail=path)
+        if final:
+            self._final_parsed.add(path)
+            report = self.diagnostic
+        else:
+            def report(severity, code, message, source=None):
+                self._discovery_diagnostics.setdefault(path, []).append(
+                    (severity, code, message, source))
         text, aliases = self.structures[path]
         key = None
         if self.node_cache:
@@ -665,19 +688,25 @@ class _ProjectParser:
             return nodes
         except (LatexWalkerParseError, IndexError) as exc:
             pos = max(0, min(getattr(exc, "pos", 0) or 0, len(text)))
-            self.diagnostic("error", "latex_parse_error", str(exc), self.span(path, pos, pos))
-            if not self.recover_parse_errors:
+            # An EOF/closing-token error may be caused by an earlier unclosed
+            # math/group argument. Include its literal opening in the diagnostic
+            # span so a preparation planner sees the actual failure site.
+            contexts = getattr(exc, "open_contexts", None) or []
+            start = contexts[0][1] if contexts else pos
+            start = max(0, min(start, pos))
+            report("error", "latex_parse_error", str(exc), self.span(path, start, pos))
+            if final and not self.recover_parse_errors:
                 return []
             try:
                 nodes, _, _ = _StructuralWalker(text, aliases, latex_context=self.context,
                                                 tolerant_parsing=True).get_latex_nodes()
             except (LatexWalkerParseError, IndexError):
                 return []
-            self.diagnostic("warning", "latex_parse_recovered",
-                            "Recovered a tolerant structural parse after the strict walker failed.",
-                            self.span(path, pos, pos))
-            if self.node_cache:
-                self.node_cache.put(key, nodes)
+            report("warning", "latex_parse_recovered",
+                   "Recovered a tolerant structural parse after the strict walker failed.",
+                   self.span(path, pos, pos))
+            # Only strict parses are cached: a cached tolerant tree would hide
+            # the parse error from a later read with the same context.
             return nodes
 
     def resolve(self, literal: str, current: str, *, kind: str, source):
@@ -757,6 +786,8 @@ class _ProjectParser:
                             "Static LaTeX structure recognition failed; parsing the original token stream.",
                             self.span(rel, pos, pos))
             projected, aliases, include_bindings, selected = text, {}, {}, []
+        if path.resolve() == self.entry:
+            projected = self._mask_after_document(rel, projected)
         self.structures[rel] = projected, aliases
         for start, end in selected:
             self.diagnostic("warning", "conditional_branch_selected",
@@ -781,6 +812,8 @@ class _ProjectParser:
                     if name in _COMMAND_DECLARATIONS:
                         self.learn_macro(node, rel)
                         continue
+                    if name in {'usepackage', 'RequirePackage'}:
+                        self.packages.update(part.strip() for part in _last_arg(node, text).split(','))
                     if name == "newif":
                         custom_if = _last_arg(node, text).strip().lstrip("\\")
                         if custom_if:
@@ -808,6 +841,29 @@ class _ProjectParser:
 
         visit(nodes)
         self.discovery_stack.pop()
+
+    def _mask_after_document(self, rel: str, text: str) -> str:
+        """Blank the entry text that TeX never reads after ``\\end{document}``.
+
+        Lengths and line breaks are kept, so every coordinate still points at
+        the original bytes. Visible trailing text is reported, not dropped
+        silently.
+        """
+        from .assembly import document_bounds
+
+        _, body_start, end_start = document_bounds(text)
+        if body_start is None or end_start is None:
+            return text
+        marker = _END_DOCUMENT_MARKER.match(text, end_start)
+        if marker is None:
+            return text
+        tail = text[marker.end():]
+        if not tail.strip():
+            return text
+        self.diagnostic("info", "text_after_end_document",
+                        "Text after \\end{document} is not read by TeX and is excluded from the structure.",
+                        self.span(rel, marker.end(), len(text)))
+        return text[:marker.end()] + re.sub(r"[^\r\n]", " ", tail)
 
     def learn_environment(self, node, path):
         args = _args(node)
@@ -1116,7 +1172,7 @@ class _ProjectParser:
         if path in self.emitted:
             return
         self.emitted.add(path)
-        nodes = self.parse_nodes(path)
+        nodes = self.parse_nodes(path, final=True)
         has_document = any(isinstance(node, LatexEnvironmentNode) and node.environmentname == "document"
                            for node in nodes)
         self.process(nodes, path, owner, sections, body=False if has_document else body)
@@ -1148,6 +1204,12 @@ class _ProjectParser:
         if entry in self.files:
             self.emit_file(entry, None, [], body=True)
             self.emit_bib_resources()
+        # A file that was discovered but never re-read with the final context
+        # keeps the errors from its discovery parse.
+        for path, items in self._discovery_diagnostics.items():
+            if path not in self._final_parsed:
+                for item in items:
+                    self.diagnostic(*item)
         if self.macro_specs:
             self.diagnostic("warning", "custom_macros_not_expanded",
                             "Literal environment aliases and macro argument shapes are recognized; arbitrary macro bodies are not expanded.")
