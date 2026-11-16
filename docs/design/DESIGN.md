@@ -339,155 +339,78 @@ The workspace AI pipeline (§15) can call a configured provider during sync when
 
 ### 5.4 Offline source preparation
 
-**Status: Implemented in the offline tool; not part of workspace publication.**
+**Status: Compile-first material preparation is implemented as an offline tool; it is not connected to workspace publication or scientific extraction.**
 
-`qecgraph/source/prepare.py` and `tools/prepare_arxiv.py` recognize and convert
-a source tree without an AI provider, TeX execution or a compilable project.
-Entry recognition uses content (`\documentclass`/`\documentstyle` and
-`\begin{document}`), including extensionless files; `00README` top-level
-metadata and a unique candidate are also accepted. When several files remain,
-a conservative literal front-matter rule may choose the main document:
-byte-identical candidates in the same directory share a representative (different
-directories can resolve relative dependencies differently). A duplicated directory
-is collapsed only when all relative assets and the expanded assembly are byte-identical; a supplement title that contains
-the paper title loses; a candidate with no literal `\title` loses to the only
-titled candidate with authors; and a near-identical title variant with strictly
-more literal `\author` entries wins only when all remaining titled candidates
-have pairwise similarity of at least 0.8. A similar pair cannot hide an unrelated
-document, and similarity is not transitive. The rule reads literal `\title`/`\author`
-arguments only, does not expand macros, and keeps the explicit ambiguity error
-when it cannot leave exactly one candidate.
+The material contract follows [Human.md](Human.md): retain the full paper, mathematics,
+author structure, tables/figures and their conditions, references, assets and exact
+original-source access. Preparation produces no QEC records, theorem judgments,
+proof dependencies, nine-question answers or model requests.
 
-The preparation boundary is source format:
+The new workflow is `tools/prepare_compiled.py`: archive verification and safe
+unpacking → entry/build configuration → isolated native compilation → lossless
+TeX syntax conversion and citation adaptation → independent material validation →
+journaled publication. No static body preparation or AI pass runs before compilation.
+Entry ambiguity requires an explicit `--entry`; a package name is not a paper identity.
 
 | Module | Responsibility |
 | --- | --- |
-| `source/prepare.py:prepare_input` | Entry selection and byte assembly; no parser or AI calls. |
-| `source/normalization.py`, `source/dialects.py` | Validated format conversions on a derived copy; original bytes and projections retained. |
-| `llm/prepare.py`, `prepare_input` v9 skill | Propose entry/encoding/syntax plans; no block classifications or scientific extraction. |
-| `source/prepared_parser.py` | Independent structural parsing, coordinates and completeness checks. |
-| `tools/prepare_arxiv.py` | Orchestrate preparation, downstream validation and managed output. |
+| `preparation/build.py` | Build the unchanged engineering copy; choose an allowlisted engine, preserve the same job's supplied BBL, run BibTeX/Biber when needed, collect actual FLS inputs/outputs and dependency hashes |
+| `preparation/sandbox.py` | Credential-free child environment, bounded tools/process groups, restricted files and network; macOS sandbox-exec or Linux bubblewrap; no unsandboxed fallback |
+| `preparation/references.py` | Classic AUX and Biblatex BCF/BBL bindings; retain literal BIB entries and BBL variants, refsections, sorting contexts, display labels and exact provenance; duplicate/missing keys remain explicit |
+| `preparation/convert.py`, `source/syntax.py` | Preserve author syntax, paragraph reading ranges, heading hierarchy, math TeX, environments, footnotes, table cells/spans, asset links and textual cross-references; keep declaration bodies opaque |
+| `preparation/contract.py` | Independent byte/codepoint/line, hash, hierarchy and full source-tiling checks; read a verified material handoff without compilation |
+| `preparation/pipeline.py` | Compile first, then convert, bind originals, validate and publish; failed/partial attempts retain a prior ready material |
+| `source/prepare.py` | Shared journaled publication and the retained static preparation compatibility API; no automatic fallback from the compile-first route |
 
-`prepare_source` remains a compatibility facade. `document.json` comes from the
-independent downstream parser. Explicit `--ai-prepare --ai-config-root DIR`
-requires enabled AI and source-upload permission; complete local inputs skip AI.
-`--ai-structure` is a deprecated alias for source preparation.
+The main representation is source-mapped TeX syntax JSON, with the original TeX
+available throughout. It does not depend on HTML/MathML or attempt to recover author
+structure from a PDF. Native TeX supplies runtime reference observations; arbitrary
+macro expansion into readable semantic text is **not implemented**. A unique literal
+one-argument cite wrapper can bind to an emitted AUX key with an exact invocation span;
+unknown wrappers, unresolved cross-references and unmapped body conditionals stay partial.
+The converter preserves unparsed tails as opaque source, never silently discards them.
 
-The skill returns a JSON conversion plan. The program validates source bindings,
-exact matches, edit bounds, permitted operations, overlap and UTF-8, then checks
-at most two candidate plans with the same downstream parser. Supported operations
-are explicit encodings, local delimiters, proposed compilation-wrapper views,
-paired drawing wrappers, literal declaration aliases and the fixed Harvmac adapter.
-They retain formula/prose arguments. Unknown macro expansion, missing body files
-and scientific case selection remain explicit failures. Failed candidates retain
-the previous managed output.
+| Artifact | Retained data |
+| --- | --- |
+| `original.package`, `sources/` | Exact input package when supplied as a file, and every original member/asset; original hashes and versions remain distinct from derived artifacts |
+| `build/`, `build.json` | Relevant PDF/AUX/BBL/BCF/FLS/SyncTeX and logs when produced; exact commands, exits, tool version output, actual inputs/outputs, support and dependency hashes |
+| `entry.tex`, `content.json` | A byte-copy assembly created after native compilation and `qecgraph.prepared_syntax/1`: ordered syntax parents/children, outline, paragraph ranges, math, authored environments, tables, assets and reference occurrences |
+| `references.json` | `qecgraph.prepared_references/1`: emitted keys, scoped bindings, original BIB and consumed BBL text, contexts, identifiers present literally, conflicts and missing data |
+| `source-map.json` | Assembly-to-original mapping when conversion succeeds; nodes separately retain exact original spans and their hashes |
+| `coverage.json`, `diagnostics.json` | Conversion limits, inactive/uncompiled file inventory, opaque content, missing/ambiguous references and stage failures |
+| `manifest.json` | `qecgraph.prepare/3`, `compile-prepare-v2`, source/package hashes, artifact hashes, capabilities, independent stages and `ready`/`partial` state |
 
-`normalization.json` records proposed status, source/model/skill identities,
-original changed-file bytes and hashes, transformations and normalized-character
-to original-byte projections. Inserted syntax has no original source. A normalized
-`source-map.json` explicitly marks its derived layer; compose its file coordinates
-through those projections to reach original bytes. No AI block classifications,
-`ai-document.json`, research records or workspace release are generated. Parser
-acceptance does not establish scientific correctness.
+A ready handoff requires successful native compilation, complete supported syntax
+conversion, resolved applicable citations/cross-references, and independently verified
+source fidelity. Exit 0 means ready; exit 2 means explicit partial material; exit 1 means
+an input/configuration/publication error. A partial retry of a ready output goes to
+`<out>.attempt`. Publication uses a writer lock and the existing backup/journal recovery.
+Source quotation coordinates are UTF-8 Unicode codepoint half-open ranges and 1-based
+lines, with separate byte ranges. Rendered text, PDF positions and SyncTeX hints never
+become exact original quotations. Non-UTF-8 source stays archived and explicitly partial.
+A successful compiler or a JSON validator does not establish scientific correctness.
 
-Assembly copies original bytes only. It resolves literal
-`\input`/`\include`/`\subfile`/`\import`/`\subimport` directives, strips the
-preamble of subfiles and of complete documents included from another entry, and
-learns literal zero-argument path macros from source (`\newcommand`/`\def`).
-Document markers are located with the same lexical rules as directives:
-declaration bodies, literal environments and inactive conditional branches
-cannot end a document.
-A multi-argument include becomes the search context of the files it includes, so
-an `\import`ed chapter resolves its own sibling inputs before root-level ones.
-The structural parse reads a copy of the entry with one space or newline
-inserted where splicing would merge two tokens or extend a child's trailing
-comment into the parent; block text, document bounds, conditional regions and
-coverage are computed on that parse view and mapped back through
-`EntryCoordinates`, while coordinates still point at the untouched entry
-bytes.
-Path macros are learned in source order and follow brace-group scope: a use
-before its definition, after a closed group, or inside an inactive conditional
-stays dynamic and is reported. An empty literal value is a definite value; a
-non-literal redefinition makes the name uncertain instead of leaving the old
-value in place. `\gdef`/`\xdef` and `\begingroup`/`\endgroup` follow their
-group scope, and a conditional keeps a value only when every branch gives the
-same definite value. Each branch runs against a full snapshot of the scope
-stack, so a definition inside a group that closes before the branch ends does
-not enter the merge, and a global definition in every branch takes effect
-globally. `\ifcase` treats every `\or` branch and the optional `\else` (or an
-implicit empty branch) as alternatives. Condition pairing skips declaration
-bodies, literal environments and comments, so a `\fi` shown there does not
-close the conditional. A path that uses an uncertain macro is reported as
-`uncertain_path`. A statically decidable `\iffalse`/`\iftrue` branch is
-followed; other conditionals keep all branches and mark an include inside one
-as uncertain. Dynamic paths and missing body dependencies stay in the entry and
-are reported.
-A missing preamble dependency is a dependency warning, not content loss. Entry
-and source-map coordinates use the half-open convention in §4.5.
-
-The document model is `qecgraph.document/2`:
-
-- `sections[]`: stable `id`, `parent_id`, normalized `level` (the highest level
-  present becomes 1), `source_level`, `command`, `numbered`, `appendix`,
-  `title`, `title_tex`, `source`, `entry`, `block_ids`;
-- `blocks[]`: `key`, `document_id`, `section_id`, `kind`, plain `text`, labels,
-  references, `source`, `source_spans`, `conditional`, `entry`;
-- `text_projection: reading-v1`: plain text strips commands, comments and
-  labels, preserves mathematics, citation keys as `[key]`, and theorem/proof
-  bodies;
-- `coverage`: `content_complete` states that every body include directive was
-  resolved and no body content was read from outside the assembled entry
-  (`include_outside_entry`); `structure_complete` states that the model
-  represents the body: no parser errors, at least one block, no substantive
-  body text outside every block (`uncovered_entry_chars`), no visible body
-  content or include inside an undecidable conditional (`conditional_body`:
-  math, text, text-command arguments, Unicode and unrecognised commands count
-  as content, while layout-only branches do not; `conditional_content_regions`
-  and `conditional_body_chars` report the regions), and no condition without a
-  matching `\fi` (`unclosed_conditional`). `reasons` names each failure and
-  `conditional_ranges` locates the uncertain body regions by entry and source
-  span. Branches of a statically decidable conditional are either followed or
-  excluded from the uncovered count. `document_complete` requires both.
-  Compilation is not checked and is not a completion condition.
-
-The model comes from one parse of the assembled entry, so declarations in the
-entry preamble — theorem environments, macros — apply to every included
-fragment, and block boundaries follow the entry rather than each file. Blocks
-are projected back onto the original files through the source map: `source`
-anchors the block's first non-space character and `source_spans` lists every
-source range the block covers, in entry order (`spans_include` marks a block
-that crosses an include boundary). A repeated include therefore yields one
-block per occurrence, each with its own entry span and section parent.
-
-Outputs are `entry.tex`, `source-map.json`, `document.json`, `coverage.json`,
-`diagnostics.json` and `manifest.json` (`qecgraph.prepare/2`). They are built in
-a sibling staging directory and published through a journaled transaction: the
-old managed directory is renamed aside, staging is renamed into place, and the
-backup is removed. A normal failure restores the old directory. A process
-killed between the two renames leaves the target absent until the next write or
-`--recover` restores the journaled backup and removes staged leftovers.
-Recovery compares the target with the recorded new and previous manifests and
-the journaled digest of every artifact: only a target whose manifest and all
-artifacts match the expected new version is cleaned as committed, the recorded
-old version is left in place, and any other target (an empty or unrelated
-directory, a different managed output, or a directory with the expected
-manifest but missing or altered artifacts) is a conflict that keeps the
-journal and backup. A non-empty directory without a prepare manifest is refused unless
-the caller explicitly overwrites it. The manifest records `parser_version` and a separate
-`prepare_version`, so an offline conversion-rule change is traceable without
-treating it as a parser change that would rebuild workspace snapshots. This path is not connected to workspace
-stage/validate/publish. Parser errors leave structure partial rather than being
-silently accepted; when one malformed region breaks the structural walk, the
-entry is re-parsed in chunks split at resolved top-level includes so a broken
-file does not discard the structure of the others. Bibliography and asset
-copying are outside this step.
-
-```bash
-python tools/prepare_arxiv.py /path/to/source-tree \
-  --entry main.tex --out build/prepared/paper --json
+```sh
+python tools/prepare_compiled.py /path/to/source-tree \
+  --entry main.tex --out build/prepared/paper
+python tools/prepare_compiled.py --out build/prepared/paper --check
+python tools/prepare_compiled.py --out build/prepared/paper --recover
+python tools/reproduce_preparation.py \
+  --manifest test-sources/arxiv-sources/manifest.json --out build/preparation-replay
 ```
 
----
+Optional `--engine` and repeatable `--support-dir` make engine/dependency choices
+explicit; support files are copied and hashed in the isolated build. There is no
+automatic dependency download, system TeX modification, source upload or AI repair.
+Linux isolation and scientific gold-label acceptance require their own executed checks;
+engineering replay results do not establish Usable (§16.8).
+
+For compatibility, `tools/prepare_arxiv.py`, `prepare_input`, `prepare_source` and
+`parse_prepared` retain the existing static `qecgraph.prepare/2`/`document/2` route.
+Its optional `--ai-prepare` (old alias `--ai-structure`) and v9 format-plan skill still
+require explicit upload opt-in; they are not imported or invoked by the compile-first
+workflow. The static parser remains independent, and no automatic workspace migration
+or semantic extraction is introduced by this offline tool.
 
 ## 6. Review, evidence, and query eligibility
 

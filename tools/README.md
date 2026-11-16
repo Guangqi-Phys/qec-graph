@@ -12,7 +12,7 @@ tooling, not part of the installed `qecgraph` package.
 | Release | `check_distribution.py`, `qec-graph.spec` | Distribution metadata checks and PyInstaller spec |
 | Performance | `bench.py` | Generated incremental workload and pinned-source benchmark |
 | Knowledge evidence | `reproduce_knowledge.py` | Compare complete reading, source search and task context; no LLM execution |
-| Offline preparation | `prepare_arxiv.py` | Recognize an entry, assemble literal includes and write the `document/2` model; no AI or TeX execution |
+| Offline preparation | `prepare_compiled.py`, `reproduce_preparation.py`, `prepare_arxiv.py` | Compile-first source material and fixed-corpus replay; retain the static compatibility tool |
 
 The standard gates are:
 
@@ -40,6 +40,30 @@ omit it to save only hashes and measurements. A/B/C measure evidence retrieval,
 not model answer accuracy or mathematical correctness.
 
 ## Offline preparation
+
+Use `prepare_compiled.py` for the new preparation workflow. It compiles original
+source in a local sandbox, then converts it into source-mapped TeX syntax JSON,
+retaining formulas, authored structure, table cells/spans, figures/assets, footnotes,
+literal BIB and emitted AUX/BBL/BCF citation bindings. It never calls AI or performs
+scientific extraction. See [the material contract](../docs/design/DESIGN.md#54-offline-source-preparation).
+
+```sh
+python tools/prepare_compiled.py /path/to/source-tree --entry main.tex --out build/material/paper
+python tools/prepare_compiled.py --out build/material/paper --check
+python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/material-replay
+```
+
+`--engine` selects a local engine; repeat `--support-dir` for explicit, hashed
+support files. There are no dependency downloads or system TeX changes. Exit 0
+means ready, 2 means explicit partial material, and 1 means an input/configuration
+or publication failure. A partial retry retains a ready output and writes `.attempt`.
+`--check` verifies artifacts and exact original spans without rebuilding. macOS
+uses sandbox-exec; Linux requires bubblewrap. Unsupported isolation never falls
+back to unrestricted TeX. The handoff is `qecgraph.prepare/3` with `content.json`,
+not a research record or workspace snapshot; arbitrary macro expansion is unavailable.
+
+The following retained static interface is independent and is never an automatic
+fallback from the compile-first route.
 
 `tools/prepare_arxiv.py` recognizes a LaTeX entry by content, assembles literal includes into `entry.tex`, and writes the `document/2` model with section levels, block text and source spans. By default it does not call AI. It never runs TeX or requires a compilable project.
 

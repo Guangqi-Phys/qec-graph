@@ -368,116 +368,65 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 
 ### 5.4 离线来源准备
 
-**状态：已在离线工具中实现；尚未接入 workspace 发布。**
+**状态：已实现先编译的离线材料准备工具；尚未接入 workspace 发布或科研抽取。**
 
-`qecgraph/source/prepare.py` 和 `tools/prepare_arxiv.py` 在不调用 AI、不执行
-TeX、不要求工程可编译的前提下识别并转换来源树。入口识别按内容判断
-（`\documentclass`/`\documentstyle` 和 `\begin{document}`），包括没有
-`.tex` 后缀的文件；也接受 `00README` 顶层元数据和唯一候选。仍有多个候选时，
-可用保守的字面前置信息规则选择主文档：同一目录内字节完全相同的候选共用一个代表；
-不同目录可能解析到不同的相对依赖，不能仅凭入口字节相同合并；
-包含论文标题的 supplement 标题落选；没有字面 `\title` 的候选让位于唯一带标题
-且有作者的候选；所有剩余有标题候选的标题两两相似度至少为 0.8 时，
-字面 `\author` 条目严格更多的变体胜出。相似候选对不能遮盖独立文档，相似性不作传递合并。
-该规则只读字面 `\title`/`\author` 参数、不展开宏；无法收敛到唯一候选时仍
-明确报错。不同目录只有在全部相对资产及展开组装结果字节相同时才可折叠。
+材料合同来自 [Human.md](Human.md)：保留全文、数学内容、作者结构、图表及其条件、
+引用、附件和精确原文访问。准备不生成 QEC 记录、定理判断、证明依赖、九问答案或模型请求。
 
-准备层只负责来源格式，各模块边界如下：
+新流程为 `tools/prepare_compiled.py`：归档校验与安全解包 → 入口/构建配置 → 隔离的原生编译
+→ 无损 TeX 语法转换与引用适配 → 独立材料验收 → 日志式原子发布。
+编译前不做静态正文准备或 AI 处理。入口歧义使用显式 `--entry`；包名不决定论文身份。
 
 | 模块 | 职责 |
 | --- | --- |
-| `source/prepare.py:prepare_input` | 入口选择与原始字节组装；不调用解析器或 AI。 |
-| `source/normalization.py`、`source/dialects.py` | 在派生副本上应用受校验的格式转换，保留原始字节与映射。 |
-| `llm/prepare.py`、`prepare_input` v9 skill | 提议入口、编码、语法方案；不做段落分类或科学内容提取。 |
-| `source/prepared_parser.py` | 独立负责结构解析、坐标及完整性验收。 |
-| `tools/prepare_arxiv.py` | 串联准备、下游校验与受管理产物发布。 |
+| `preparation/build.py` | 编译未改写的工程副本；限定引擎、保留同一 job 的已有 BBL、必要时执行 BibTeX/Biber，收集 FLS 实际输入/输出和依赖哈希 |
+| `preparation/sandbox.py` | 子进程不继承凭据；限制工具、进程组、目录和网络；macOS 使用 sandbox-exec，Linux 使用 bubblewrap；没有无隔离回退 |
+| `preparation/references.py` | 适配经典 AUX 与 Biblatex BCF/BBL；保留字面 BIB、BBL 变体、refsection、排序上下文、显示标签及来源；重复或缺失 key 明示 |
+| `preparation/convert.py`、`source/syntax.py` | 保留作者语法、段落阅读范围、标题层级、数学 TeX、环境、脚注、表格单元格/合并、资产关联及文本交叉引用；宏定义体不当正文解释 |
+| `preparation/contract.py` | 独立检查字节/字符/行、哈希、层级和全文覆盖；只读验收材料包时不编译 |
+| `preparation/pipeline.py` | 先编译、再转换，绑定原始材料、验收并发布；失败/partial 尝试保留已有 ready 材料 |
+| `source/prepare.py` | 共用日志式原子发布与保留的静态准备兼容 API；编译路线不会自动回退到它 |
 
-`prepare_source` 保留为兼容入口；`document.json` 来自独立下游解析器。
-显式传入 `--ai-prepare --ai-config-root DIR` 才启用模型后备，配置必须允许 AI 和来源
-上传；本地已完整通过的输入跳过模型。`--ai-structure` 保留为来源准备的弃用别名。
+主格式为带来源映射的 TeX 语法 JSON，始终可以访问原始 TeX。不依赖 HTML/MathML，也不
+试图从 PDF 恢复全部作者结构。TeX 编译提供运行时引用观测；**尚未实现**任意宏展开成
+语义阅读文本。唯一的字面单参数 cite 包装宏，可以绑定编译后的 AUX key 并保留精确调用位置；
+未知包装宏、未解析交叉引用、未映射的正文条件分支保持 partial。未解析尾部以 opaque 原文
+保留，不能悄悄删除。
 
-skill 只返回 JSON 转换方案。程序检查来源绑定、精确匹配、编辑大小、操作白名单、
-重叠与 UTF-8，再将至多两个候选交给同一解析器校验。支持显式编码、局部定界符、
-提议的编译包装视图、成对绘图包装、字面声明别名与固定 Harvmac 语法转换；保留公式
-和正文参数。任意宏展开、缺失正文文件及科学条件选择仍明确失败。失败保留旧产物。
+| 产物 | 保留的数据 |
+| --- | --- |
+| `original.package`、`sources/` | 文件输入的原始包，以及所有原始成员/附件；原始哈希和版本与派生产物分开 |
+| `build/`、`build.json` | 实际生成的相关 PDF/AUX/BBL/BCF/FLS/SyncTeX 与日志；确切命令、退出状态、工具版本输出、实际输入/输出、支持文件与依赖哈希 |
+| `entry.tex`、`content.json` | 原生编译之后创建的原字节组装，以及 `qecgraph.prepared_syntax/1`：有序语法父子节点、目录、段落范围、数学、作者环境、表格、资产和引用发生位置 |
+| `references.json` | `qecgraph.prepared_references/1`：编译 key、作用域绑定、原始 BIB 与实际使用的 BBL 文本、上下文、字面存在的标识符、冲突和缺项 |
+| `source-map.json` | 转换成功时的组装到原文映射；节点另外保留精确原始范围和哈希 |
+| `coverage.json`、`diagnostics.json` | 转换限制、非活动/未参与阅读的文件清单、opaque 内容、缺失/歧义引用和各阶段失败 |
+| `manifest.json` | `qecgraph.prepare/3`、`compile-prepare-v2`、来源/包哈希、产物哈希、能力、独立阶段和 ready/partial 状态 |
 
-`normalization.json` 记录 proposed 状态、来源/模型/skill 身份、修改文件的原始字节及
-哈希、转换和派生字符到原始字节的映射；插入语法没有原文出处。规范化后的
-`source-map.json` 明确标记派生层，文件坐标经上述映射回到原始字节。不生成 AI 段落
-分类、`ai-document.json`、research 记录或 workspace release。通过解析不代表科学正确。
+ready 要求原生编译成功、支持的语法转换完整、适用引用/交叉引用可解析，并独立验证来源保真。
+退出 0 表示 ready；退出 2 表示显式 partial 材料；退出 1 表示输入/配置/发布错误。
+已有 ready 产物的 partial 重试写到 `<out>.attempt`。发布沿用写锁、备份/日志恢复。
+原文坐标为 UTF-8 解码后的 Unicode codepoint 半开区间、1-based 行号，并分别保留字节范围；
+排版文本、PDF 位置和 SyncTeX 提示不能充当精确原文引句。非 UTF-8 来源仍归档并明确 partial。
+编译成功或 JSON 校验通过不证明科学正确性。
 
-组装只复制原始字节。它解析字面 `\input`/`\include`/`\subfile`/`\import`/
-`\subimport`，剥掉 subfile 的 preamble，以及从另一个入口引入的完整文档的
-preamble，并从来源中的 `\newcommand`/`\def` 学习零参数字面路径宏。文档标记与
-指令使用同一套词法规则：声明体、字面环境和非活跃条件分支中的标记不能结束文档。多参数
-引入指令会成为其内容内引用的搜索目录，因此被 `\import` 的章节先解析自己的
-同级文件，而不是根目录同名文件。结构解析读取 entry 的副本，并在拼接会合并
-token 或让子文件末尾注释吞掉父文件内容的位置插入一个空格或换行；block 文本、
-文档边界、条件区间和覆盖判断都在该解析视图上计算，再通过 `EntryCoordinates`
-映射回 entry，坐标仍对应未改动的原字节。路径宏按来源顺序学习并遵守
-花括号作用域：在定义之前使用、在已关闭的分组里定义、或位于非活跃条件分支中的
-宏保持动态并报告。空字面值是确定值；非字面重定义会让该名字变为不确定，而不是
-继续沿用旧值。`\gdef`/`\xdef` 与 `\begingroup`/`\endgroup` 按其分组作用域生效，
-条件分支只有在每个分支都给出相同确定值时才保留该值。每个分支都在完整作用域栈
-快照上执行，因此在分支结束前已关闭的分组里的定义不参与合并，而每个分支都执行的
-全局定义按全局生效。`\ifcase` 把每个 `\or` 分支和可选的 `\else`（或隐式空分支）
-都视为备选。条件配对跳过声明体、字面环境和注释，因此其中出现的 `\fi` 不会结束
-条件。使用不确定宏的路径报告为 `uncertain_path`。静态可判定的
-`\iffalse`/`\iftrue` 分支会被跟随；其他条件保留所有分支，并把其中的 include
-标为不确定。动态路径和缺失的正文依赖保留在 entry
-中并报告；缺失的 preamble 依赖只算依赖警告，不算正文缺失。entry 和 source map
-使用 §4.5 的半开区间约定。
-
-文档模型是 `qecgraph.document/2`：
-
-- `sections[]`：稳定 `id`、`parent_id`、归一化 `level`（当前文档最高层为 1）、
-  `source_level`、`command`、`numbered`、`appendix`、`title`、`title_tex`、
-  `source`、`entry`、`block_ids`；
-- `blocks[]`：`key`、`document_id`、`section_id`、`kind`、纯文本 `text`、
-  labels、references、`source`、`source_spans`、`conditional`、`entry`；
-- `text_projection: reading-v1`：纯文本去掉命令、注释和 label，保留数学、
-  形如 `[key]` 的引用键，以及 theorem/proof 正文；
-- `coverage`：`content_complete` 表示正文中的 include 指令都已解析，并且没有从
-  entry 之外读入正文内容（`include_outside_entry`）；
-  `structure_complete` 表示模型确实表达了正文：没有 parser 错误、至少一个 block、
-  每个 block 之外没有实质正文文本（`uncovered_entry_chars`），无法判定的条件分支
-  中没有可见正文或 include（`conditional_body`：数学、文本、文字命令参数、
-  Unicode 和未知命令都算正文，纯排版分支不算；`conditional_content_regions` 与
-  `conditional_body_chars` 报告这些区域；`conditional_directives` 记录其中的
-  include），也没有缺少匹配 `\fi` 的条件（`unclosed_conditional`）。`reasons`
-  列出每个失败原因，`conditional_ranges` 用 entry 与来源区间定位不确定的正文区域；
-  静态可判定的条件分支要么被跟随，要么从覆盖计数中排除。`document_complete`
-  要求两者都成立。不检查编译，编译不是完成条件。
-
-模型来自对组装后 entry 的一次解析，因此 entry preamble 中的声明——定理环境、
-宏——会作用于所有被引入片段，block 边界跟随 entry 而不是各个文件。block 再通过
-source map 投影回原始文件：`source` 锚定 block 首个非空白字符，`source_spans`
-按 entry 顺序列出该 block 覆盖的每个来源区间（`spans_include` 标记跨越 include
-边界的 block）。因此重复 include 的每次出现各有一个 block，并各自带有 entry 区间
-和所属 section。
-
-输出是 `entry.tex`、`source-map.json`、`document.json`、`coverage.json`、
-`diagnostics.json` 和 `manifest.json`（`qecgraph.prepare/2`）。产物先写入同级
-staging 目录，再通过带 journal 的事务发布：旧目录改名让位、staging 改名就位、
-删除 backup。普通失败会恢复旧目录；进程在两次改名之间被终止时，目标路径会暂时
-消失，下一次写入或 `--recover` 会恢复 journal 记录的 backup 并清理暂存遗留。
-恢复会对比目标 manifest 与 journal 记录的新、旧摘要，并校验 journal 中每个产物的
-摘要：只有 manifest 与全部产物都匹配预期新版本时才按已发布清理；记录中的旧版本
-保持原地；其他目标（空目录、无关目录、另一份受管理产物，或 manifest 正确但产物
-缺失/被改写）一律视为冲突，保留 journal 与 backup。非空但没有 prepare manifest 的目录会被
-拒绝，除非调用方显式覆盖。manifest 记录
-`parser_version` 和独立的 `prepare_version`，使离线转换规则的变化可追溯，又不必
-把它当成需要重建 workspace 快照的 parser 变化。本路径尚未接入 workspace 的
-stage/validate/publish。parser 错误会让结构保持 partial，而不是静默接受；
-当某一处畸形内容打断结构扫描时，entry 会按已解析的顶层 include 分块重新解析，
-避免一个坏文件丢掉其他文件的结构。bibliography 和资产复制不属于本步骤。
-
-```bash
-python tools/prepare_arxiv.py /path/to/source-tree \
-  --entry main.tex --out build/prepared/paper --json
+```sh
+python tools/prepare_compiled.py /path/to/source-tree \
+  --entry main.tex --out build/prepared/paper
+python tools/prepare_compiled.py --out build/prepared/paper --check
+python tools/prepare_compiled.py --out build/prepared/paper --recover
+python tools/reproduce_preparation.py \
+  --manifest test-sources/arxiv-sources/manifest.json --out build/preparation-replay
 ```
 
----
+可选 `--engine` 和可重复的 `--support-dir` 明示引擎/依赖选择；支持文件复制到隔离副本并记录哈希。
+不自动下载依赖、修改系统 TeX、上传来源或执行 AI 修复。Linux 隔离和科学金标仍需独立实测；
+工程回放结果不构成 §16.8 的 Usable 验收。
+
+兼容入口 `tools/prepare_arxiv.py`、`prepare_input`、`prepare_source`、`parse_prepared`
+保留原有静态 `qecgraph.prepare/2`/`document/2` 路线。其可选 `--ai-prepare`（旧别名
+`--ai-structure`）与 v9 格式方案 skill 仍要求显式上传许可；先编译路线不导入或调用它们。
+静态 parser 保持独立；本离线工具不引入 workspace 自动迁移或科研语义抽取。
 
 ## 6. 审核、证据和查询资格
 

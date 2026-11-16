@@ -1,0 +1,1506 @@
+{
+  "status": "Engineering implementation verified; complete corpus and scientific usability are not accepted",
+  "date": "2026-11-16",
+  "code_revision": "8bb772a86617a8add199b255c71b69faa41c9477",
+  "scope": "Offline compile-first preparation only; no scientific extraction, model calls, workspace migration or original database writes",
+  "schema": "qecgraph.prepare/3",
+  "rule_version": "compile-prepare-v2",
+  "environment": {
+    "platform": "macOS-27.2.1-arm64-arm-64bit-Mach-O",
+    "python": "3.15.2",
+    "engine_versions_from_actual_builds": {
+      "pdflatex": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
+      "latex": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
+      "xelatex": "XeTeX 3.141592653-2.6-0.999998 (TeX Live 2026)",
+      "etex": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)"
+    },
+    "linux_isolation": "Not executed"
+  },
+  "input": {
+    "manifest": "test-sources/arxiv-sources/manifest.json",
+    "manifest_sha256": "153f4e78fc1546f8d6f5bd883e4c45f0a6967e6ca17ca712ffaa16b05d92a35b",
+    "tex_inputs": 47,
+    "negative_pdf_inputs": 1,
+    "entry_overrides": "validation/preparation_entries.json",
+    "automatic_tex_entries": 44,
+    "configured_tex_entries": 3,
+    "entry_override_origin": "Three previously confirmed entry paths; not evidence of automatic selection. No model was called in this replay."
+  },
+  "counts": {
+    "papers": 48,
+    "ready": 18,
+    "compiled": 45,
+    "partial": 29,
+    "failed": 1,
+    "source_fidelity": 44
+  },
+  "bibliography_complete": 40,
+  "conversion_complete": 18,
+  "original_bundles_validated": 47,
+  "nonempty_syntax_bundles_validated": 44,
+  "model_calls": 0,
+  "criteria": "Ready requires successful native compile, complete supported syntax conversion, resolved applicable citations/cross-references and independent exact-source validation. Partial bundles are not accepted as ready.",
+  "comparison": {
+    "prior_compile_experiment": {
+      "tex_inputs": 47,
+      "compiled": 45,
+      "bibliography_mechanically_complete": 40
+    },
+    "current": {
+      "tex_inputs": 47,
+      "compiled": 45,
+      "bibliography_mechanically_complete": 40,
+      "strict_preparation_ready": 18
+    },
+    "note": "The native/reference count was reproduced, not improved. Earlier 34/47 static parser completeness and 11/47 strict reference audit used different gates and are not comparable to these mechanical counts."
+  },
+  "syntax_probes": {
+    "scope": "Mechanical syntax/source checks, not scientific accuracy or human acceptance",
+    "passed": 20,
+    "total": 20,
+    "cases": [
+      {
+        "paper": "1302.3428v1",
+        "anchor": "\\section{Introduction}",
+        "passed": true
+      },
+      {
+        "paper": "1302.3428v1",
+        "anchor": "\\footnote{Pauli",
+        "passed": true
+      },
+      {
+        "paper": "1907.11157v1",
+        "anchor": "\\section{From classical to quantum error correction}",
+        "passed": true
+      },
+      {
+        "paper": "1907.11157v1",
+        "anchor": "\\begin{abstract}",
+        "passed": true
+      },
+      {
+        "paper": "2104.01180v1",
+        "anchor": "\\begin{abstract}",
+        "passed": true
+      },
+      {
+        "paper": "2104.01180v1",
+        "anchor": "\\caption{",
+        "passed": true
+      },
+      {
+        "paper": "2209.01119v1",
+        "anchor": "\\section{A New Logic Model of Optimization Under Uncertainty}",
+        "passed": true
+      },
+      {
+        "paper": "2209.01119v1",
+        "anchor": "\\caption{Pictorial interpretation of Definition 3.1",
+        "passed": true
+      },
+      {
+        "paper": "2303.15933v1",
+        "anchor": "\\section{Sparse Blossom}",
+        "passed": true
+      },
+      {
+        "paper": "2303.15933v1",
+        "anchor": "\\label{sec:sparse_blossom}",
+        "passed": true
+      },
+      {
+        "paper": "1302.3428v1",
+        "anchor": "\\includegraphics[width=0.5\\hsize]{paritychecks.pdf}",
+        "passed": true
+      },
+      {
+        "paper": "1302.3428v1",
+        "anchor": "\\begin{equation}",
+        "passed": true
+      },
+      {
+        "paper": "1302.3428v1",
+        "anchor": "\\begin{theorem}[\\cite{AGP:ft, AB:faulttol, KLZ:faulttol, kitaev:survey}]",
+        "passed": true
+      },
+      {
+        "paper": "1907.11157v1",
+        "anchor": "\\begin{tabular}{lcc}",
+        "passed": true
+      },
+      {
+        "paper": "1907.11157v1",
+        "anchor": "\\appendix",
+        "passed": true
+      },
+      {
+        "paper": "2104.01180v1",
+        "anchor": "\\begin{equation}\\label{eq:TC}",
+        "passed": true
+      },
+      {
+        "paper": "2104.01180v1",
+        "anchor": "\\begin{align}\\label{eq:Stopo}",
+        "passed": true
+      },
+      {
+        "paper": "2209.01119v1",
+        "anchor": "\\begin{tabular}{l}",
+        "passed": true
+      },
+      {
+        "paper": "2303.15933v1",
+        "anchor": "\\appendix",
+        "passed": true
+      },
+      {
+        "paper": "2303.15933v1",
+        "anchor": "\\begin{algorithm}",
+        "passed": true
+      }
+    ]
+  },
+  "checks": {
+    "unittest": {
+      "command": "python -m unittest discover -s tests -v",
+      "passed": true,
+      "tests": 515,
+      "skipped": 2,
+      "skip_reason": "Real TeX checks are opt-in and were also run separately"
+    },
+    "real_tex": {
+      "command": "QECGRAPH_TEST_TEX=1 python -m unittest tests.integration.pipeline.test_compilation -v",
+      "passed": true,
+      "tests": 2,
+      "scope": "Actual BibTeX and custom citation fixture; external read/write, credentials and network denial on macOS"
+    },
+    "coverage": {
+      "command": "python -m coverage run -m unittest discover -s tests -v && python -m coverage report",
+      "passed": true,
+      "percent": 84.54
+    },
+    "ruff": {
+      "command": "python -m ruff check qecgraph tests tools",
+      "passed": true
+    },
+    "mypy": {
+      "command": "python -m mypy qecgraph",
+      "passed": true
+    },
+    "pyright": {
+      "command": "python -m pyright --pythonpath .venv/bin/python",
+      "passed": true,
+      "errors": 0,
+      "warnings": 80
+    },
+    "complexity": {
+      "command": "python tools/check_complexity.py",
+      "passed": true,
+      "new_preparation_functions_maximum": 10,
+      "review": {
+        "baseline_revision": "3ef28ae",
+        "reason": "The gate already failed at the starting committed revision. Only source-verified pre-existing ceilings are recorded; new preparation functions remain at most 10. Moved compatibility functions retain their old ceilings.",
+        "reviewed": [
+          {
+            "function": "qecgraph/source/assembly.py:_skip_definition",
+            "current": 22,
+            "baseline_revision_function": "qecgraph/source/assembly.py:_skip_definition",
+            "baseline_revision_complexity": 22
+          },
+          {
+            "function": "qecgraph/source/assembly.py:_conditional_branches",
+            "current": 19,
+            "baseline_revision_function": "qecgraph/source/assembly.py:_conditional_branches",
+            "baseline_revision_complexity": 19
+          },
+          {
+            "function": "qecgraph/source/assembly.py:_scan",
+            "current": 37,
+            "baseline_revision_function": "qecgraph/source/assembly.py:_scan",
+            "baseline_revision_complexity": 37
+          },
+          {
+            "function": "qecgraph/source/assembly.py:_scan.walk",
+            "current": 34,
+            "baseline_revision_function": "qecgraph/source/assembly.py:_scan.walk",
+            "baseline_revision_complexity": 34
+          },
+          {
+            "function": "qecgraph/source/assembly.py:document_bounds",
+            "current": 22,
+            "baseline_revision_function": "qecgraph/source/assembly.py:document_bounds",
+            "baseline_revision_complexity": 22
+          },
+          {
+            "function": "qecgraph/source/assembly.py:document_bounds.walk",
+            "current": 21,
+            "baseline_revision_function": "qecgraph/source/assembly.py:document_bounds.walk",
+            "baseline_revision_complexity": 21
+          },
+          {
+            "function": "qecgraph/source/assembly.py:condition_regions",
+            "current": 21,
+            "baseline_revision_function": "qecgraph/source/assembly.py:condition_regions",
+            "baseline_revision_complexity": 21
+          },
+          {
+            "function": "qecgraph/source/assembly.py:condition_regions.walk",
+            "current": 20,
+            "baseline_revision_function": "qecgraph/source/assembly.py:condition_regions.walk",
+            "baseline_revision_complexity": 20
+          },
+          {
+            "function": "qecgraph/source/assembly.py:Assembler._assemble_range",
+            "current": 18,
+            "baseline_revision_function": "qecgraph/source/assembly.py:Assembler._assemble_range",
+            "baseline_revision_complexity": 18
+          },
+          {
+            "function": "qecgraph/source/assembly.py:Assembler._resolve",
+            "current": 18,
+            "baseline_revision_function": "qecgraph/source/assembly.py:Assembler._resolve",
+            "baseline_revision_complexity": 18
+          },
+          {
+            "function": "qecgraph/source/assembly.py:merge_blocks",
+            "current": 20,
+            "baseline_revision_function": "qecgraph/source/assembly.py:merge_blocks",
+            "baseline_revision_complexity": 20
+          },
+          {
+            "function": "qecgraph/source/parser.py:_ProjectParser.process",
+            "current": 29,
+            "baseline_revision_function": "qecgraph/source/parser.py:_ProjectParser.process",
+            "baseline_revision_complexity": 29
+          },
+          {
+            "function": "qecgraph/source/prepare.py:entry_candidates",
+            "current": 12,
+            "baseline_revision_function": "qecgraph/source/prepare.py:entry_candidates",
+            "baseline_revision_complexity": 12
+          },
+          {
+            "function": "qecgraph/source/prepare.py:recover_output",
+            "current": 12,
+            "baseline_revision_function": "qecgraph/source/prepare.py:recover_output",
+            "baseline_revision_complexity": 12
+          },
+          {
+            "function": "qecgraph/source/prepared_parser.py:_prose_chars",
+            "current": 16,
+            "baseline_revision_function": "qecgraph/source/prepare.py:_prose_chars",
+            "baseline_revision_complexity": 16
+          },
+          {
+            "function": "qecgraph/source/prepared_parser.py:_conditional_has_content",
+            "current": 15,
+            "baseline_revision_function": "qecgraph/source/prepare.py:_conditional_has_content",
+            "baseline_revision_complexity": 15
+          }
+        ]
+      }
+    },
+    "reproduce": {
+      "command": "python tools/reproduce.py --out build/compiled-preparation/reproduce-final",
+      "passed": true
+    },
+    "human_md": {
+      "unchanged_since": "3ef28ae",
+      "sha256": "6a95cc5aeb4a466cb58a9bc2b790319aad729ccd8b53f0733198893820a1630d"
+    },
+    "documentation": {
+      "command": "python -m unittest discover -s tests -p '*docs*' -v",
+      "passed": true,
+      "tests": 17
+    }
+  },
+  "machine_evaluation": {
+    "machine_copy": "build/opencode-review/machine-copy",
+    "release": "aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22",
+    "command": "python tools/reproduce_knowledge.py --machine build/opencode-review/machine-copy --release aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22 --out build/compiled-preparation/machine-evaluation-final.json",
+    "accepted": false,
+    "error": "Registry state schema mismatch",
+    "before_after_metrics": null,
+    "original_database_modified": false,
+    "private_or_human_notes_read": false
+  },
+  "replay": {
+    "support_files": "Supply the public historical TeX files explicitly; there are no automatic downloads. Copying support into each sandbox and recording its hashes does not change system TeX.",
+    "dependency_provenance": [
+      {
+        "file": "dependencies/BoxedEPS.tex",
+        "sha256": "0d7a065b0fc97cfdd5bf262dca32a46f563137f87023ea08b7f5b6f63132f2e7",
+        "url": "https://www.ctan.net/macros/generic/boxedeps/boxedeps.tex"
+      },
+      {
+        "file": "dependencies/doublespace.sty",
+        "sha256": "46bb289da9b6d0c1a099d1f44ca66e4418bb30097f7bbcf03dc1fb8bf1380918",
+        "url": "https://www.ctan.net/obsolete/macros/latex209/contrib/misc/doublespace.sty"
+      },
+      {
+        "file": "dependencies/boxedeps.cfg",
+        "sha256": "40e5abdffbfa93bb1170efa13bb15607cc86c3a9cbb8c17afada10eef6ba6bb7",
+        "url": "https://www.ctan.net/macros/generic/boxedeps/boxedeps.cfg"
+      },
+      {
+        "file": "revtex.zip",
+        "sha256": "a6338191e5e96b282889a5673594e31814e107d77c5c7b389b691d59feb1de3f",
+        "url": "https://www.ctan.net/obsolete/macros/latex209/contrib/revtex.zip"
+      },
+      {
+        "file": "biber-arm64",
+        "sha256": "a1a2784931d9156a9d4cc8cb609912d533f04365d2e4aa7b902001a2f1a65066",
+        "source": "Installed /Library/TeX/texbin/biber, extracted with Apple lipo -thin arm64; Biber 2.21."
+      }
+    ],
+    "recorded_child_tool_seconds_sum": 308.744,
+    "material_bytes": 895673016,
+    "note": "Tool seconds are summed per-command elapsed times, not replay wall time. Large build artifacts remain under ignored build/. The replay initially ran the first 10 probes; all 20 frozen source probes were then checked against the same retained material. Superseded replay/debug directories and the old entry-hint file were deleted after acceptance; the three effective overrides are committed under validation/.",
+    "reproduction_command": "python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/preparation-replay --entries validation/preparation_entries.json --cases validation/preparation_cases.json --support-dir build/compile-first/dependencies --support-dir build/compile-first/historical-revtex --jobs 2",
+    "executed_command": ".venv/bin/python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/compiled-preparation/accepted --entries build/compiled-preparation/entries.json --support-dir build/compile-first/dependencies --support-dir build/compile-first/historical-revtex --cases validation/preparation_cases.json --jobs 2"
+  },
+  "remaining_acceptance": [
+    "29 TeX inputs remain partial; see each row and retained build logs.",
+    "Two legacy-class packages fail native compilation.",
+    "One compiled non-UTF-8 package has no converted syntax.",
+    "Conditional active views, arbitrary macro expansion, unresolved original references and ambiguous assets are not fully supported.",
+    "The 20 probes on five papers are agent-authored mechanical checks, not independent human gold for every required structure.",
+    "No scientific model quality, Lean, Linux isolation, or full fixed-machine usability acceptance was performed."
+  ],
+  "rows": [
+    {
+      "paper": "0903.0566v1",
+      "package_sha256": "256ea08a5d91cc3bc50fc14a271e77e337e2345a50a7b50f6568d48450a0ca65",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 4231,
+      "reasons": [
+        "conversion_diagnostics"
+      ],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {
+        "syntax_incomplete": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "1208.0928v1",
+      "package_sha256": "7a0f2a7f3b5394b734b6695b83b3caf72d159bb2a16d14c7236c375b9aca6024",
+      "entry_selection": "automatic",
+      "status": "failed",
+      "error": "Expected TeX source, not PDF, HTML or binary data"
+    },
+    {
+      "paper": "1208.2317v1",
+      "package_sha256": "f597aae24ddd562b8e5e8c7fe82d91a9a83a494afeee169fbb8496eb55b0ffdc",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 2233,
+      "reasons": [
+        "conversion_diagnostics"
+      ],
+      "entry": "ft-def25.tex",
+      "engine": "latex",
+      "references_complete": true,
+      "diagnostic_codes": {
+        "expanded_citation_locations_unknown": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "1302.3428v1",
+      "package_sha256": "700cba0ce6979f58181aaa22b2edaedcfd352586399d8cf40ec118c04a95afb0",
+      "entry_selection": "automatic",
+      "exit": 0,
+      "status": "ready",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 10277,
+      "reasons": [],
+      "entry": "QEC04_springer.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "1804.03719v1",
+      "package_sha256": "6d8398d5b0712b696ea25a5801b5cb950e82d57aa32c3f82a91ca5f7400d0039",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "failed",
+        "conversion": "partial",
+        "references": "partial",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 0,
+      "reasons": [
+        "compile_failed"
+      ],
+      "entry": "rrqp.tex",
+      "engine": "pdflatex",
+      "references_complete": false,
+      "diagnostic_codes": {
+        "compile_failed": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "1907.02554v1",
+      "package_sha256": "01e3d3abec16b93f103d00e9fdc3712cd0bb61c5b46ddacbce71d4acb5186f7e",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 7897,
+      "reasons": [
+        "conditional_view_not_mapped"
+      ],
+      "entry": "ms.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "1907.11157v1",
+      "package_sha256": "db4ba929252c87ab094d5e9d35debe03174701dd1d63b3a71af86851551a1bdd",
+      "entry_selection": "automatic",
+      "exit": 0,
+      "status": "ready",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 11390,
+      "reasons": [],
+      "entry": "cp_review_arxiv.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2009.07851v3",
+      "package_sha256": "8c48a66a14f447ffc8481a8732687d9e79d2be542835e3a252060523bef5397a",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 15435,
+      "reasons": [
+        "conditional_view_not_mapped"
+      ],
+      "entry": "XZZX.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2012.04068v1",
+      "package_sha256": "621e0d1abccfdfa76f951fafff447f619f718f46611c247baa78dcb3b03fba87",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 17018,
+      "reasons": [
+        "conditional_view_not_mapped",
+        "conversion_diagnostics"
+      ],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {
+        "conditionals_present": 1,
+        "cross_reference_unresolved": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2012.09271v1",
+      "package_sha256": "24195340a2be98ff90506b83164f1ac1ff5fc86a054fad8d4a52f1c78456d837",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 13291,
+      "reasons": [
+        "conditional_view_not_mapped",
+        "conversion_diagnostics"
+      ],
+      "entry": "balanced_product_codes.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {
+        "conditionals_present": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2102.06132v1",
+      "package_sha256": "130d0eeada4f97430739d23efc1008b0571ddf38ed639aa339945aeb4a8c689e",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 7817,
+      "reasons": [
+        "conversion_diagnostics"
+      ],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {
+        "cross_reference_unresolved": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2103.02202v1",
+      "package_sha256": "c722b60c4d3080c8b81a77011c7edfe04664b3ed75bfeeee277fa3da2a157228",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "failed",
+        "conversion": "partial",
+        "references": "partial",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 0,
+      "reasons": [
+        "compile_failed"
+      ],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": false,
+      "diagnostic_codes": {
+        "compile_failed": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2103.06309v1",
+      "package_sha256": "f9ffda354a0e4855a99366ea515a7b725d67274ebdf198d671a7f85f478029a3",
+      "entry_selection": "automatic",
+      "exit": 0,
+      "status": "ready",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 7176,
+      "reasons": [],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2104.01180v1",
+      "package_sha256": "969797ee6ecb5871a0b11155858af794d631a0303547d2a0c8428997b7e5c6f4",
+      "entry_selection": "automatic",
+      "exit": 0,
+      "status": "ready",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 6079,
+      "reasons": [],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2111.05176v1",
+      "package_sha256": "f7af32eb9738b5ba342fc2fcc47605544236ebd6fe9acccba118f3c3d1cf8dee",
+      "entry_selection": "configured",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 93976,
+      "reasons": [
+        "conditional_view_not_mapped",
+        "conversion_diagnostics"
+      ],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {
+        "conditionals_present": 1,
+        "asset_target_unresolved": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2201.08309v1",
+      "package_sha256": "b86af2d81370fce30c762389b1ffa971a5fd747922cdf24e5e555af4af081783",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 49799,
+      "reasons": [
+        "conversion_diagnostics"
+      ],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {
+        "syntax_incomplete": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2202.13641v1",
+      "package_sha256": "80bdb36621180b25c80353838a9b29fff7531352c53813e81014fea1792400e5",
+      "entry_selection": "automatic",
+      "exit": 0,
+      "status": "ready",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 10886,
+      "reasons": [],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2207.06431v1",
+      "package_sha256": "39fee3c6dc8a9032b3d93d34cf8de4184820bdbf5d9448329733ab1a22762309",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 10754,
+      "reasons": [
+        "conversion_diagnostics"
+      ],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {
+        "expanded_citation_locations_unknown": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2209.01119v1",
+      "package_sha256": "4f3f49fdf8947eadd831dc1e397b567beb4609bb23f14a867a9948a7bec6df66",
+      "entry_selection": "automatic",
+      "exit": 0,
+      "status": "ready",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 16324,
+      "reasons": [],
+      "entry": "template.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2209.05640v1",
+      "package_sha256": "de7844219c8bd68dc03ee8e2683e60e2323bbb32261398f8e9c993d478f6eaad",
+      "entry_selection": "configured",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "partial",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 0,
+      "reasons": [
+        "conversion_failed"
+      ],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": false,
+      "diagnostic_codes": {
+        "preparation_failed": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2303.15933v1",
+      "package_sha256": "caad7becc67a31426b5d8d7547779be24fa645dcdc24141434501c2b33cfa2f1",
+      "entry_selection": "automatic",
+      "exit": 0,
+      "status": "ready",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 7878,
+      "reasons": [],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2308.02321v1",
+      "package_sha256": "9a958f85a621f43c7d3aa9e206293f7a96800be46de6def98bb5d6706a7b97dc",
+      "entry_selection": "automatic",
+      "exit": 0,
+      "status": "ready",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 1704,
+      "reasons": [],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2308.07915v1",
+      "package_sha256": "7d3408adda52719fd9c4411d8a626421dfa72feece374acbad5bf11fa5644d17",
+      "entry_selection": "automatic",
+      "exit": 0,
+      "status": "ready",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 14010,
+      "reasons": [],
+      "entry": "main_arxiv.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2308.07915v2",
+      "package_sha256": "d0dc3ffbb467a71630efa6b930913d19ee3d5356c42412930bc43dbd96306b2e",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 15716,
+      "reasons": [
+        "conditional_view_not_mapped",
+        "conversion_diagnostics",
+        "unresolved_directives"
+      ],
+      "entry": "arXiv_v2.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {
+        "conditionals_present": 1,
+        "directive_in_conditional": 1,
+        "cross_reference_unresolved": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2408.13687v1",
+      "package_sha256": "ff7e1c7054f88935970319e2ac131de67d0a65d688c0ef492e275d55efa7a9f2",
+      "entry_selection": "automatic",
+      "exit": 0,
+      "status": "ready",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 3186,
+      "reasons": [],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2410.02885v1",
+      "package_sha256": "e6269e71c69b61e317a2bcd4a803bab9b6d6532d2a3fe4e5d908fb412c344787",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 7900,
+      "reasons": [
+        "conversion_diagnostics"
+      ],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {
+        "expanded_citation_locations_unknown": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2411.11822v1",
+      "package_sha256": "eee7394f81deebacca404e0e95c84694287670691228f6b73afce00e298a9cc7",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 8819,
+      "reasons": [
+        "conditional_view_not_mapped",
+        "conversion_diagnostics",
+        "nonstandard_document_body"
+      ],
+      "entry": "outline.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {
+        "conditionals_present": 2,
+        "directive_in_conditional": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2412.14256v1",
+      "package_sha256": "8cba24a512a54698d110bc81f3efcd655b7f4e5c7934c0700dac8954c3aaf2ca",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "partial",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 4711,
+      "reasons": [
+        "conversion_diagnostics"
+      ],
+      "entry": "main_arxiv.tex",
+      "engine": "pdflatex",
+      "references_complete": false,
+      "diagnostic_codes": {
+        "expanded_citation_locations_unknown": 1,
+        "cross_reference_unresolved": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2509.03613v1",
+      "package_sha256": "686d73f31e3684c5c5192192daeb7ffeda0d5a66f532a4b7d7895f8a9376e865",
+      "entry_selection": "automatic",
+      "exit": 0,
+      "status": "ready",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 6521,
+      "reasons": [],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2510.06495v2",
+      "package_sha256": "414b5291ec22e54bee82e61f97e5cfda03f0eb79d99d42e4daaf457bff599c72",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 21023,
+      "reasons": [
+        "conditional_view_not_mapped"
+      ],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2511.01062v1",
+      "package_sha256": "9f93e3ff14a4a27ed7884cd698c48bddb00fe424119ae1574c2ed17c174c089b",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "partial",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 6136,
+      "reasons": [
+        "conditional_view_not_mapped",
+        "conversion_diagnostics"
+      ],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": false,
+      "diagnostic_codes": {
+        "conditionals_present": 1,
+        "syntax_incomplete": 1,
+        "unparsed_source_preserved": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2511.01062v2",
+      "package_sha256": "bac94519760b3f83c9ebb9999612713ab5523367b8c70122c948c56eb5b3b478",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "partial",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 5435,
+      "reasons": [
+        "conditional_view_not_mapped",
+        "conversion_diagnostics"
+      ],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": false,
+      "diagnostic_codes": {
+        "conditionals_present": 1,
+        "syntax_incomplete": 1,
+        "unparsed_source_preserved": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2512.07737v1",
+      "package_sha256": "937cf5e26e6ebd61ec1912aeb52548e1396febc25226ccf0b256b871b2d9f80b",
+      "entry_selection": "automatic",
+      "exit": 0,
+      "status": "ready",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 4130,
+      "reasons": [],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2605.29137v1",
+      "package_sha256": "d0e9f8936a687fd9f90b026891004d0ca68732b92aa2db9c5e1c5c66c54dd3af",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 70155,
+      "reasons": [
+        "conditional_view_not_mapped",
+        "conversion_diagnostics"
+      ],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {
+        "conditionals_present": 1,
+        "syntax_incomplete": 1,
+        "cross_reference_unresolved": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2605.29554v1",
+      "package_sha256": "f21b456235b3e23ba4cb4431cf5f166dff192f02e2ddabf69095ebc43e0606b1",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 8945,
+      "reasons": [
+        "conditional_view_not_mapped",
+        "conversion_diagnostics"
+      ],
+      "entry": "swemed1_concentration_transport_springer.tex",
+      "engine": "xelatex",
+      "references_complete": true,
+      "diagnostic_codes": {
+        "conditionals_present": 1,
+        "cross_reference_unresolved": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2605.29774v1",
+      "package_sha256": "0674026d677625396ef510e6b1e1edf3c9006f9ea7a22c36e51616b6bdc23141",
+      "entry_selection": "automatic",
+      "exit": 0,
+      "status": "ready",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 6280,
+      "reasons": [],
+      "entry": "qdft.tex",
+      "engine": "xelatex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2605.30298v1",
+      "package_sha256": "f180d4f1b277f4d4e73ff08dc8a25fc9953b8dbf17da51e83a4098c88eca173b",
+      "entry_selection": "automatic",
+      "exit": 0,
+      "status": "ready",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 8007,
+      "reasons": [],
+      "entry": "cohomology-moduli-stack-real-bundles.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2606.00045v1",
+      "package_sha256": "71472bc4545e8a30beedefc968fab90ddfc1dff28166cc2584a3b814d03865a2",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 3831,
+      "reasons": [
+        "conversion_diagnostics"
+      ],
+      "entry": "main__1_.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {
+        "expanded_citation_locations_unknown": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2606.30447v1",
+      "package_sha256": "ba189214d54f3f9fc786f1720ba5e5235d15d683b6734fec3f5a24a3a998c7a4",
+      "entry_selection": "automatic",
+      "exit": 0,
+      "status": "ready",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 6713,
+      "reasons": [],
+      "entry": "StokesSpectralQuantum.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2607.00222v1",
+      "package_sha256": "fa67a91955643baeb91331b7f724f421fb2ecdb0166519e1712a7648f4303c8b",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "partial",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 16338,
+      "reasons": [
+        "conversion_diagnostics"
+      ],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": false,
+      "diagnostic_codes": {
+        "cross_reference_unresolved": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2607.00262v1",
+      "package_sha256": "941063b27e9cf951aa1626b7f65b92f40b34a3625d39ba89213676f63a90f240",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 12174,
+      "reasons": [
+        "conversion_diagnostics"
+      ],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {
+        "conditionals_present": 1,
+        "cross_reference_unresolved": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2607.29382v2",
+      "package_sha256": "5097bbbf80685c973281afe92127c5e0e609e1b407371d3970a93408192bd339",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 16437,
+      "reasons": [
+        "conditional_view_not_mapped",
+        "conversion_diagnostics"
+      ],
+      "entry": "main.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {
+        "conditionals_present": 1,
+        "syntax_incomplete": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "2609.22572v1",
+      "package_sha256": "12bb3e1bf392956808f34d0a09820795c179f01b3333d4477a0c87ad9a3bf1cc",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 5680,
+      "reasons": [
+        "conversion_diagnostics"
+      ],
+      "entry": "arxiv.tex",
+      "engine": "pdflatex",
+      "references_complete": true,
+      "diagnostic_codes": {
+        "expanded_citation_locations_unknown": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "hep-th/9407087v1",
+      "package_sha256": "9a84cef701c8a76e3cd734ebe5b113f1839e991276e012aee236794dc8353d55",
+      "entry_selection": "configured",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 8437,
+      "reasons": [
+        "conditional_view_not_mapped",
+        "conversion_diagnostics",
+        "nonstandard_document_body",
+        "unresolved_directives"
+      ],
+      "entry": "9407087.tex",
+      "engine": "etex",
+      "references_complete": true,
+      "diagnostic_codes": {
+        "unclosed_conditional": 1,
+        "syntax_incomplete": 1
+      },
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "quant-ph/0001106v1",
+      "package_sha256": "525bb123ba15c14b05ae36d09da433858f3d198e6b250a09ce43a833e209af74",
+      "entry_selection": "automatic",
+      "exit": 2,
+      "status": "partial",
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 7467,
+      "reasons": [
+        "conditional_view_not_mapped"
+      ],
+      "entry": "FarhiAdiabatic.tex",
+      "engine": "latex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "quant-ph/0110143v1",
+      "package_sha256": "70bf59629e09a0e71e71e9fe1c6be4323aa3c0fe2c48629fda49cdc2b71cf7a1",
+      "entry_selection": "automatic",
+      "exit": 0,
+      "status": "ready",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 12446,
+      "reasons": [],
+      "entry": "toric.tex",
+      "engine": "latex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "quant-ph/9604034v1",
+      "package_sha256": "153b7dfa555b0d21148c2ef383b426c4d5a9eb4117b7d2fb33db8c6569bb202a",
+      "entry_selection": "automatic",
+      "exit": 0,
+      "status": "ready",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 7741,
+      "reasons": [],
+      "entry": "tqecp",
+      "engine": "latex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    },
+    {
+      "paper": "quant-ph/9605021v1",
+      "package_sha256": "895def913b9e8bcb511297698487f35ab3baf581ca3f4e630057990beeab780a",
+      "entry_selection": "automatic",
+      "exit": 0,
+      "status": "ready",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "source_fidelity": true,
+      "nodes": 5792,
+      "reasons": [],
+      "entry": "main.tex",
+      "engine": "latex",
+      "references_complete": true,
+      "diagnostic_codes": {},
+      "bibliography_diagnostic_codes": {}
+    }
+  ]
+}

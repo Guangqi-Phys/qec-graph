@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add isolated compile-first material preparation (`tools/prepare_compiled.py`, `qecgraph.prepare/3`, `compile-prepare-v2`) with original bytes, lossless syntax, scoped bibliography, exact source validation and partial-attempt retention. It makes zero model calls and does not publish scientific records or a workspace release. Keep the static CLI compatible; consolidate preparation plans into DESIGN.
+- Add isolated compile-first material preparation (`prepare_compiled.py`, `qecgraph.prepare/3`, `compile-prepare-v2`): preserve original packages/assets, lossless syntax and exact source spans, scoped BibTeX/Biblatex bindings and build evidence. Keep scientific extraction outside preparation; partial retries retain previous ready material. Add fixed-corpus replay and an independent material verifier.
 - Separate source preparation from downstream parsing. The `prepare_input` v9 skill proposes source-format plans only; validate derived copies and preserve original bytes, hashes and projections. Retain the existing offline CLI as a compatibility facade.
 - Correct recovery chunk coordinates and synthetic document wrappers; preserve final-context parser errors and diagnose text after the document terminator. Parser identity is `0.3.7`, preparation rules `prepare-rules-v7`.
 

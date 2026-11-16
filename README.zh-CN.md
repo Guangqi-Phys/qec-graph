@@ -20,6 +20,17 @@ curl -fsSL https://raw.githubusercontent.com/Guangqi-Phys/qec-graph/main/install
 
 ## 快速开始
 
+独立的编译优先准备流程，从源码检出目录运行：
+
+```sh
+python tools/prepare_compiled.py source.tar.gz --out build/prepared/paper
+python tools/prepare_compiled.py --out build/prepared/paper --check
+```
+
+需要本地 TeX 工具，产出经过来源映射校验的材料包，并明确标注 `ready`/`partial`。
+不调用模型、不生成科研记录。参见[准备层边界与产物](docs/design/DESIGN.zh-CN.md#54-离线来源准备)。
+下方工作区命令仍采用现有的导入与抽取行为。
+
 在一个空目录中运行，或只保留 `inputs/`。有其他条目时 `init` 会在写入前停止。
 
 ```sh

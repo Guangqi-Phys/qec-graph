@@ -23,6 +23,18 @@ Downloads are available for macOS and Linux on arm64 and x86_64.
 
 ## Quick start
 
+For the standalone compile-first preparation workflow, run from a source checkout:
+
+```sh
+python tools/prepare_compiled.py source.tar.gz --out build/prepared/paper
+python tools/prepare_compiled.py --out build/prepared/paper --check
+```
+
+This requires local TeX tools and produces a verified, source-mapped material
+bundle with explicit `ready`/`partial` status. It makes no model requests or
+scientific records. See [preparation boundaries and artifacts](docs/design/DESIGN.md#54-offline-source-preparation).
+The workspace commands below retain their existing import/extraction behavior.
+
 Run these commands in an empty folder, or one containing only `inputs/`. Other
 entries make `init` stop before writing anything.
 

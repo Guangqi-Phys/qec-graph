@@ -5,13 +5,14 @@
 > **中文** · [English](README.md)
 
 仓库不再携带历史运行产物。早期 release 的证据保留在 Git history；本目录只保留
-当前索引，避免把过期报告误当成对当前代码的结论。
+当前检查和明确限定范围的验收结果，避免把过期报告误当成对当前代码的结论。
 
 ## 当前检查
 
 | 检查 | 命令 |
 |---|---|
 | 单元、集成和契约测试 | `python -m unittest discover -s tests` |
+| 编译优先准备，零模型 | `python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/preparation-replay --entries validation/preparation_entries.json --cases validation/preparation_cases.json` |
 | 端到端抽取和查询复现 | `python tools/reproduce.py --out build/reproduce` |
 | 直接阅读 / 搜索 / 任务上下文证据 | `python tools/reproduce_knowledge.py --out build/knowledge-synthetic.json --include-payloads` |
 | 已登记真实来源阅读（只读） | `python tools/reproduce_knowledge.py --machine /path/to/machine --out build/knowledge-real.json --include-payloads` |
@@ -24,6 +25,13 @@
 检查只对实际运行它的源码修订和环境构成证据。测试通过不代表论文定理为真、
 距离界已被数学验证，或 Lean 声明已语义匹配。
 
+当前[准备验收报告](preparation_acceptance.json)记录 47 篇 TeX 和一个 PDF 反例：
+45 篇可编译，40 篇文献绑定完整，18 篇满足全部准备判据，其余 29 篇 TeX 保持 partial。
+五篇论文的 20 个来源绑定语法检查通过；这是机械检查，不是独立人工金标。
+三个显式入口配置保存在 `preparation_entries.json`，历史 TeX 依赖的 URL/哈希和命令
+写在报告里。固定 machine 的评测因注册表 schema 不兼容而未验收。
+原始数据库和 Human.md 均未修改。
+
 `validation/retrieval_qa.json` 包含八道绑定评审中五篇论文固定来源的工程问题。
 锚点在查看检索片段后选择，所以这是导航 smoke，不是独立相关性金标。运行
 `python tools/eval_retrieval.py --machine /path/to/copied-machine --cases validation/retrieval_qa.json --out build/retrieval-eval.json`。
@@ -33,6 +41,8 @@
 
 复杂度回归门禁为 `python tools/check_complexity.py`；修改
 `validation/complexity_baseline.json` 必须明确评审。基线记录旧债务，不代表现有函数简单。
+准备报告包含 16 个遗漏旧复杂度上限的明确评审：逐项对照起始版本 `3ef28ae`，
+没有放行复杂度增长。新增编译/准备函数的复杂度均不超过 10。
 
 ## 添加证据
 

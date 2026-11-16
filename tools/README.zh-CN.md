@@ -11,7 +11,7 @@
 | 发布 | `check_distribution.py`、`qec-graph.spec` | 分发包元数据检查和 PyInstaller spec |
 | 性能 | `bench.py` | 生成增量负载和固定来源基准 |
 | 知识证据 | `reproduce_knowledge.py` | 对比完整阅读、原文搜索和任务上下文；不执行 LLM |
-| 离线准备 | `prepare_arxiv.py` | 识别入口、组装字面 include，写出 `document/2`；不调用 AI、不执行 TeX |
+| 离线准备 | `prepare_compiled.py`、`reproduce_preparation.py`、`prepare_arxiv.py` | 先编译的来源材料与固定语料回放；保留静态兼容工具 |
 
 标准门禁：
 
@@ -36,6 +36,24 @@ python tools/reproduce_knowledge.py --machine /path/to/machine --out build/knowl
 A/B/C 测量证据检索，不评定模型回答质量或数学正确性。
 
 ## 离线准备
+
+新准备流程使用 `prepare_compiled.py`：先在本地沙箱编译原始工程，再转换为带来源映射的
+TeX 语法 JSON，保留公式、作者结构、表格单元格/合并、图与资产、脚注、字面 BIB 和实际
+AUX/BBL/BCF 引用绑定。不调用 AI、不执行科研抽取。详见[材料合同](../docs/design/DESIGN.zh-CN.md#54-离线来源准备)。
+
+```sh
+python tools/prepare_compiled.py /path/to/source-tree --entry main.tex --out build/material/paper
+python tools/prepare_compiled.py --out build/material/paper --check
+python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/material-replay
+```
+
+`--engine` 选择本地引擎；可重复 `--support-dir` 指定并记录支持文件哈希。不下载依赖、
+不修改系统 TeX。退出 0 表示 ready，2 表示显式 partial，1 表示输入/配置或发布失败。
+partial 重试保留旧 ready 并写到 `.attempt`。`--check` 不重建，只验收产物和精确原文范围。
+macOS 使用 sandbox-exec；Linux 要求 bubblewrap。隔离不支持时不会执行无约束 TeX。
+交付为带 `content.json` 的 `qecgraph.prepare/3`，不是研究记录或 workspace 快照；尚无任意宏展开。
+
+下面保留的静态接口独立存在；先编译路线不会自动回退到这里。
 
 `tools/prepare_arxiv.py` 按内容识别 LaTeX 入口，把字面 include 组装成
 `entry.tex`，并写出带 section 层级、block 文本和来源区间的 `document/2`。
