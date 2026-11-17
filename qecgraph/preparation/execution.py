@@ -49,6 +49,12 @@ def execute(build: Build, name, command, *, stdin=None, runner=sandbox.run):
     return result["exit"] == 0 and not result["timeout"]
 
 
+def compile_derived(original, tree, directory, support, compiler):
+    root = original.root / directory
+    root.mkdir()
+    return compiler(tree, original.entry, root, engine=original.engine, support=support)
+
+
 def compare_pdf_text(original, derived, report):
     job = Path(original.entry).stem
     pdfs = [b.root / "project" / (job + ".pdf") for b in (original, derived)]

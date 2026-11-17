@@ -22,31 +22,14 @@ def validate_material(files: dict[str, bytes]) -> dict:
 
     check_projection(files)
     document = json.loads(files["content.json"])
-    nodes = document["nodes"]
-    identifiers = {node["id"] for node in nodes}
-    if len(identifiers) != len(nodes):
-        raise ValueError("Duplicate material node identity")
     text = files["entry.tex"].decode("utf-8")
-    by_id = {node["id"]: node for node in nodes}
-    source_indices: dict[tuple[str, str], SourceIndex] = {}
-    for node in nodes:
-        start, end = node["range"]
-        if not 0 <= start < end <= len(text):
-            raise ValueError("Invalid material node range")
-        if node["parent"] is not None and node["parent"] not in identifiers:
-            raise ValueError("Missing material parent")
-        _validate_children(node, by_id)
-        pieces = [
-            _source_piece(files, span, source_indices) for span in node["source_spans"]
-        ]
-        if "".join(pieces) != text[start:end]:
-            raise ValueError("Material node does not copy its original source")
-    _validate_roots(document, by_id, len(text))
-    _check_reference_origins(files, source_indices)
+    sources = _SourceEvidence(files)
+    _check_syntax(document, text, sources)
+    _check_reference_origins(files, sources)
     from .harvmac import check_dialect
 
     check_dialect(files, document)
-    _check_environment_declarations(files, document, text, source_indices)
+    _check_environment_declarations(files, document, text, sources)
     from .crossrefs import check_reference_candidates
 
     check_reference_candidates(files, document, text, manifest)
@@ -67,7 +50,7 @@ def validate_material(files: dict[str, bytes]) -> dict:
             raise ValueError("Preparation capabilities do not match retained evidence")
     if manifest["status"] == "ready":
         if not (
-            nodes
+            document["nodes"]
             and json.loads(files["build.json"])["success"]
             and json.loads(files["coverage.json"])["complete"]
             and json.loads(files["references.json"])["complete"]
@@ -75,12 +58,31 @@ def validate_material(files: dict[str, bytes]) -> dict:
             raise ValueError("Ready material has an incomplete prerequisite")
     return {
         "source_fidelity": True,
-        "nodes": len(nodes),
+        "nodes": len(document["nodes"]),
         "ready_for_extraction": manifest["status"] == "ready",
     }
 
 
-def _check_environment_declarations(files, document, text, source_indices):
+def _check_syntax(document, text, sources):
+    nodes = document["nodes"]
+    identifiers = {node["id"] for node in nodes}
+    if len(identifiers) != len(nodes):
+        raise ValueError("Duplicate material node identity")
+    by_id = {node["id"]: node for node in nodes}
+    for node in nodes:
+        start, end = node["range"]
+        if not 0 <= start < end <= len(text):
+            raise ValueError("Invalid material node range")
+        if node["parent"] is not None and node["parent"] not in identifiers:
+            raise ValueError("Missing material parent")
+        _validate_children(node, by_id)
+        pieces = [sources.piece(span) for span in node["source_spans"]]
+        if "".join(pieces) != text[start:end]:
+            raise ValueError("Material node does not copy its original source")
+    _validate_roots(document, by_id, len(text))
+
+
+def _check_environment_declarations(files, document, text, sources):
     if "environment_label_declarations" not in document:
         return
     from .environments import label_declarations
@@ -88,7 +90,7 @@ def _check_environment_declarations(files, document, text, source_indices):
 
     records = document["environment_label_declarations"]
     for record in records:
-        if _source_piece(files, record["origin"], source_indices) != record["raw_tex"]:
+        if sources.piece(record["origin"]) != record["raw_tex"]:
             raise ValueError(
                 "Environment declaration does not copy its original source"
             )
@@ -157,7 +159,7 @@ def _check_normalized(files, document, text):
             raise ValueError("Ready normalized LaTeX has not passed its round trip")
 
 
-def _check_reference_origins(files, source_indices):
+def _check_reference_origins(files, sources):
     if "references.json" not in files:
         return
     references = json.loads(files["references.json"])
@@ -165,7 +167,7 @@ def _check_reference_origins(files, source_indices):
         for record in references.get(field, []):
             span = record.get("origin", {})
             if span.get("layer") in {"original", "projected"}:
-                if _source_piece(files, span, source_indices) != record["raw_tex"]:
+                if sources.piece(span) != record["raw_tex"]:
                     raise ValueError(
                         "Reference metadata does not copy its original source"
                     )
@@ -173,10 +175,12 @@ def _check_reference_origins(files, source_indices):
     for record in references.get("observed_labels", []):
         span = record["origin"]
         path = safe_path(span["path"])
-        raw = files.get("build/files/" + path, files.get("sources/" + path))
-        if raw is None:
+        artifact = "build/files/" + path
+        if artifact not in files:
+            artifact = "sources/" + path
+        if artifact not in files:
             raise ValueError("Compiled label observation is missing its AUX")
-        index = SourceIndex(raw, span["encoding"])
+        index = sources.index(artifact, span["encoding"])
         start, end = span["chars"]
         if (
             index.span(path, start, end, layer="compiled") != span
@@ -258,8 +262,9 @@ def read_material(root: Path) -> dict:
     if root.is_symlink() or (root / "manifest.json").is_symlink():
         raise ValueError("Linked material root or manifest")
     root = root.resolve()
-    manifest = json.loads((root / "manifest.json").read_bytes())
-    files = {"manifest.json": (root / "manifest.json").read_bytes()}
+    raw_manifest = (root / "manifest.json").read_bytes()
+    manifest = json.loads(raw_manifest)
+    files = {"manifest.json": raw_manifest}
     for name in manifest["artifacts"]:
         path = root / safe_path(name)
         if any(p.is_symlink() for p in (path, *path.parents) if p.is_relative_to(root)):
@@ -289,28 +294,39 @@ def read_material(root: Path) -> dict:
     }
 
 
-def _source_piece(files, span, source_indices):
-    projected = span.get("layer") == "projected"
-    prefix = "projected-sources/" if projected else "sources/"
-    key = (prefix + safe_path(span["path"]), span["encoding"])
-    if key not in source_indices:
-        source_indices[key] = SourceIndex(files[key[0]], key[1])
-    if projected:
-        from .projection import check_locator
+class _SourceEvidence:
+    """Read-scoped indexes; validation never reuses evidence from a previous bundle."""
 
-        check_locator(span, files, source_indices[key].text)
-    source = source_indices[key]
-    if source.sha256 != span["sha256"]:
-        raise ValueError("Source locator hash changed")
-    decoded = source.text
-    a, b = span["chars"]
-    low, high = span["bytes"]
-    if (
-        not 0 <= a < b <= len(decoded)
-        or low != source.byte_at(a)
-        or high != source.byte_at(b)
-    ):
-        raise ValueError("Source locator byte/codepoint mismatch")
-    if span["lines"] != [source.lines.line_at(a), source.lines.line_at(b - 1)]:
-        raise ValueError("Source locator line mismatch")
-    return decoded[a:b]
+    def __init__(self, files):
+        self.files = files
+        self.indices = {}
+        self.projection = json.loads(files.get("source-projection.json", b"null"))
+
+    def index(self, path, encoding):
+        key = (path, encoding)
+        if key not in self.indices:
+            self.indices[key] = SourceIndex(self.files[path], encoding)
+        return self.indices[key]
+
+    def piece(self, span):
+        projected = span.get("layer") == "projected"
+        prefix = "projected-sources/" if projected else "sources/"
+        source = self.index(prefix + safe_path(span["path"]), span["encoding"])
+        if projected:
+            from .projection import check_locator
+
+            check_locator(span, self.files, source.text, report=self.projection)
+        if source.sha256 != span["sha256"]:
+            raise ValueError("Source locator hash changed")
+        decoded = source.text
+        a, b = span["chars"]
+        low, high = span["bytes"]
+        if (
+            not 0 <= a < b <= len(decoded)
+            or low != source.byte_at(a)
+            or high != source.byte_at(b)
+        ):
+            raise ValueError("Source locator byte/codepoint mismatch")
+        if span["lines"] != [source.lines.line_at(a), source.lines.line_at(b - 1)]:
+            raise ValueError("Source locator line mismatch")
+        return decoded[a:b]

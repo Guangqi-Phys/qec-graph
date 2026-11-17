@@ -7,7 +7,7 @@ import re
 from types import SimpleNamespace
 
 from .build_view import SCHEMA, _candidates, _instrument, _bibliography, _observations
-from .artifacts import digest, json_bytes
+from .artifacts import digest, json_bytes, pdf_text_pages, pdf_text_hashes
 from .guard_syntax import scan_views, project_view
 from .branches import syntax_view
 from .projection import working_tree, decorate_origins
@@ -92,8 +92,8 @@ def _check_pdf_text(files, view):
     pages = []
     for index in (0, 1):
         raw = files["build-view/build/files/pdf-text-" + str(index) + ".txt"]
-        pages.append(["".join(p.split()) for p in raw.decode().split("\f")])
-    hashes = [digest("\f".join(p).encode()) for p in pages]
+        pages.append(pdf_text_pages(raw))
+    hashes = pdf_text_hashes(pages)
     if pages[0] != pages[1] or hashes != view["pdf_text_sha256"]:
         raise ValueError("Native guard probe changed the per-page PDF text")
 

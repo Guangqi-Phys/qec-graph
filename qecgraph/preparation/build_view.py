@@ -6,7 +6,7 @@ import secrets
 
 from .artifacts import json_bytes, compiled_bibliography
 from .guard_syntax import candidates
-from .execution import compare_pdf_text as _compare_pdf_text
+from .execution import compare_pdf_text as _compare_pdf_text, compile_derived
 from ..source.package import SourceTree
 
 SCHEMA = "qecgraph.build_view/1"
@@ -28,11 +28,8 @@ def observe_branches(build, tree, support, compiler):
     files, changed = _instrument(tree, guards, prefix)
     files.update(_bibliography(build))
     derived_tree = SourceTree("observed_build_view", files)
-    root = build.root / "build-view"
-    root.mkdir()
-    derived = compiler(
-        derived_tree, build.entry, root, engine=build.engine, support=support
-    )
+    derived = compile_derived(build, derived_tree, "build-view", support, compiler)
+
     report.update(
         marker_prefix=prefix,
         instrumented_tree_sha256=derived_tree.digest,

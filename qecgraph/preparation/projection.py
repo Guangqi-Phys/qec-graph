@@ -4,8 +4,8 @@ import json
 from pathlib import PurePosixPath
 import re
 
-from .artifacts import digest, json_bytes, safe_path
-from .execution import compare_pdf_text as _compare_pdf_text
+from .artifacts import digest, json_bytes, safe_path, pdf_text_pages, pdf_text_hashes
+from .execution import compare_pdf_text as _compare_pdf_text, compile_derived
 from ..source.package import SourceTree
 
 SCHEMA = "qecgraph.source_projection/1"
@@ -87,11 +87,8 @@ def prepare_projection(build, tree, support, compiler, artifacts):
     }
     artifacts["source-projection.json"] = json_bytes(report)
     _eligibility(build.engine, tree, build.inputs)
-    root = build.root / "projection-build"
-    root.mkdir()
-    derived = compiler(
-        projected, build.entry, root, engine=build.engine, support=support
-    )
+    derived = compile_derived(build, projected, "projection-build", support, compiler)
+
     report.update(
         native_compile="complete" if derived.success else "failed",
         engine=derived.engine,
@@ -184,15 +181,10 @@ def _check_evidence(files, report, build, original):
     ):
         raise ValueError("Source projection build input evidence mismatch")
     pages = [
-        [
-            "".join(p.split())
-            for p in files[f"projection-build/files/pdf-text-{i}.txt"]
-            .decode()
-            .split("\f")
-        ]
+        pdf_text_pages(files[f"projection-build/files/pdf-text-{i}.txt"])
         for i in (0, 1)
     ]
-    hashes = [digest("\f".join(p).encode()) for p in pages]
+    hashes = pdf_text_hashes(pages)
     if (
         report["pdf_text"] != "equal"
         or pages[0] != pages[1]
@@ -215,21 +207,25 @@ def decorate_origins(value, artifacts):
     report = json.loads(artifacts.get("source-projection.json", b'{"verified":false}'))
     if report["verified"]:
         records = {r["path"]: r for r in report["files"]}
-        _decorate(value, records, artifacts)
+        _decorate(value, records, artifacts, {})
 
 
-def _decorate(value, records, artifacts):
+def _decorate(value, records, artifacts, texts):
     if isinstance(value, list):
         for item in value:
-            _decorate(item, records, artifacts)
+            _decorate(item, records, artifacts, texts)
     elif isinstance(value, dict):
         path = value.get("path")
         if value.get("layer") == "original" and path in records:
             value["layer"] = "projected"
-            value["original_source"] = original_locator(value, records[path], artifacts)
+            if path not in texts:
+                texts[path] = artifacts["projected-sources/" + safe_path(path)].decode()
+            value["original_source"] = original_locator(
+                value, records[path], artifacts, texts[path]
+            )
         else:
             for item in value.values():
-                _decorate(item, records, artifacts)
+                _decorate(item, records, artifacts, texts)
 
 
 def original_locator(span, record, artifacts, text=None):
@@ -256,8 +252,9 @@ def original_locator(span, record, artifacts, text=None):
     }
 
 
-def check_locator(span, files, text):
-    report = json.loads(files["source-projection.json"])
+def check_locator(span, files, text, *, report=None):
+    if report is None:
+        report = json.loads(files["source-projection.json"])
     if not report["verified"]:
         raise ValueError("Projected locator has no verified projection")
     record = next((r for r in report["files"] if r["path"] == span["path"]), None)

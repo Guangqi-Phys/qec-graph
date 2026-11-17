@@ -309,3 +309,51 @@ class MaterialPipelineTests(unittest.TestCase):
             self.assertEqual(result["status"], "ready")
             manifest = json.loads((out / "manifest.json").read_bytes())
             self.assertIn("duplicate_labels", manifest["warnings"])
+
+    def test_many_aux_labels_share_an_index_but_later_reads_revalidate_bytes(self):
+        from qecgraph.preparation.contract import SourceIndex, digest, json_bytes
+
+        labels = [f"label:{index}" for index in range(200)]
+        aux = "".join(
+            r"\newlabel{" + key + r"}{{1}{1}}" + "\n" for key in labels
+        ).encode()
+        body = "".join(r"\label{" + key + "}" for key in labels)
+        raw = (
+            r"\documentclass{article}\begin{document}"
+            + body
+            + "Unicode α."
+            + r"\end{document}"
+        ).encode()
+
+        def compiler(tree, entry, root, **kwargs):
+            tree.materialize(root / "project")
+            (root / "project/main.aux").write_bytes(aux)
+            return Build(
+                entry,
+                "pdflatex",
+                root,
+                success=True,
+                inputs=[entry, "main.aux"],
+                artifacts={"files/main.aux": aux},
+            )
+
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "main.tex"
+            source.write_bytes(raw)
+            out = Path(temp) / "material"
+            prepare_material(source, out, compiler=compiler)
+            with patch(
+                "qecgraph.preparation.contract.SourceIndex", wraps=SourceIndex
+            ) as indexes:
+                material = read_material(out)
+            self.assertEqual(len(material["references"]["observed_labels"]), 200)
+            self.assertEqual(
+                sum(call.args[0] == aux for call in indexes.call_args_list), 1
+            )
+            changed = aux + b"% changed after the first read\n"
+            (out / "build/files/main.aux").write_bytes(changed)
+            manifest = material["manifest"]
+            manifest["artifacts"]["build/files/main.aux"] = digest(changed)
+            (out / "manifest.json").write_bytes(json_bytes(manifest))
+            with self.assertRaisesRegex(ValueError, "Compiled label observation"):
+                read_material(out)

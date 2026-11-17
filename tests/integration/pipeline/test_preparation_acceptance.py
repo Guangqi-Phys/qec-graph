@@ -156,3 +156,30 @@ class PreparationAcceptanceTests(unittest.TestCase):
         baseline["input"]["manifest_sha256"] = "0" * 64
         with self.assertRaisesRegex(ValueError, "corpus identities differ"):
             self.report(baseline=baseline)
+
+    def test_retained_material_comparison_detects_changes_beyond_counts(self):
+        from tools.compare_preparation import compare_replays
+        import shutil
+
+        copied = self.root / "copied"
+        shutil.copytree(self.replay, copied)
+        matching = compare_replays(self.replay, copied)
+        self.assertEqual(matching["matched"], 1)
+        self.source.write_bytes(self.source.read_bytes().replace(b"Body.", b"Changed body."))
+        prepare_material(self.source, copied / "synthetic", compiler=self.compiler)
+        changed = compare_replays(self.replay, copied)
+        self.assertEqual(changed["matched"], 0)
+        self.assertIn("stable_artifacts", changed["rows"][0]["differences"])
+        self.assertIn("content", changed["rows"][0]["differences"])
+
+    def test_retained_material_comparison_rejects_a_different_corpus(self):
+        from tools.compare_preparation import compare_replays
+        import shutil
+
+        copied = self.root / "copied"
+        shutil.copytree(self.replay, copied)
+        results = deepcopy(self.results)
+        results["manifest_sha256"] = "0" * 64
+        (copied / "results.json").write_text(json.dumps(results))
+        with self.assertRaisesRegex(ValueError, "same frozen corpus"):
+            compare_replays(self.replay, copied)
