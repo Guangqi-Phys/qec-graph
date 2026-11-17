@@ -219,7 +219,9 @@ def _decorate(value, records, artifacts, texts):
         if value.get("layer") == "original" and path in records:
             value["layer"] = "projected"
             if path not in texts:
-                texts[path] = artifacts["projected-sources/" + safe_path(path)].decode()
+                texts[path] = artifacts[
+                    "projected-sources/" + safe_path(value["path"])
+                ].decode()
             value["original_source"] = original_locator(
                 value, records[path], artifacts, texts[path]
             )
