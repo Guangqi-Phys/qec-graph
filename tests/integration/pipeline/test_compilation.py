@@ -5,6 +5,9 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
+
+from qecgraph.preparation.contract import digest
 
 from qecgraph.preparation import sandbox
 from qecgraph.preparation.build import compile_tree
@@ -18,6 +21,31 @@ from qecgraph.source.package import SourceTree
     "Set QECGRAPH_TEST_TEX=1 for isolated local TeX checks",
 )
 class LocalCompilerTests(unittest.TestCase):
+    def test_false_literal_branch_and_known_legacy_hook_round_trip(self):
+        cls = rb"\NeedsTeXFormat{LaTeX2e}\ProvidesClass{quantumarticle}\LoadClass{article}\AtEndDocument{\@afterenddocumenthook}"
+        original = rb"""\documentclass{quantumarticle}\begin{document}Visible.
+\if 0
+Inactive \end{now} \cite{absent}
+\fi
+End.\end{document}\end{now}"""
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "input"
+            source.mkdir()
+            (source / "main.tex").write_bytes(original)
+            (source / "quantumarticle.cls").write_bytes(cls)
+            with patch(
+                "qecgraph.preparation.compatibility.QUANTUMARTICLE_42", digest(cls)
+            ):
+                result = prepare_material(source, root / "out", entry="main.tex")
+            self.assertEqual(result["status"], "ready", result)
+            material = read_material(root / "out")
+            self.assertEqual(material["normalization"]["pdf_text"], "equal")
+            self.assertTrue(material["document"]["inactive_ranges"])
+            self.assertTrue(material["normalization"]["compatibility"])
+            self.assertEqual((source / "main.tex").read_bytes(), original)
+            self.assertEqual((source / "quantumarticle.cls").read_bytes(), cls)
+
     def test_custom_citation_and_bibtex_are_resolved_without_source_edits(self):
         original = rb"""\documentclass{article}
 \newcommand{\citeRef}[1]{\cite{ref:#1}}

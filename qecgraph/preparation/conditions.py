@@ -2,12 +2,14 @@
 
 import re
 
+from .branches import literal_false_ranges
 from ..source.assembly import condition_regions, _skip_definition, _definition_event
 
 
 def conditional_views(text, nodes, start, end):
     inactive, uncertain = condition_regions(text)
     views = []
+    literal = literal_false_ranges(text)
     for a, b in [*inactive, *uncertain]:
         region = (
             "preamble"
@@ -18,14 +20,21 @@ def conditional_views(text, nodes, start, end):
         )
         kind = "unmapped"
         raw = text[a:b]
-        if region != "body":
+        if any(x == a for x, _ in literal):
+            kind = "literal_false_guard"
+        elif region != "body":
             kind = region + "_syntax_preserved"
         elif _layout_guard(raw):
             kind = "layout_only"
         elif _inside_bibliography(a, b, nodes) and _bibliography_helpers(raw):
             kind = "bibliography_format_setup"
         views.append(
-            {"range": [a, b], "region": region, "kind": kind, "branch_selected": False}
+            {
+                "range": [a, b],
+                "region": region,
+                "kind": kind,
+                "branch_selected": kind == "literal_false_guard",
+            }
         )
     return views
 

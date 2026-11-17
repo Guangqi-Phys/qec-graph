@@ -19,6 +19,7 @@ from ..source.assembly import (
 from ..source.syntax import declaration_context
 from .crossrefs import cross_references as _cross_references
 from .conditions import conditional_views
+from .branches import syntax_view
 
 HEADINGS = {
     "part": 0,
@@ -63,7 +64,7 @@ def _token_name(node):
 
 
 class _Syntax:
-    def __init__(self, tree, assembly, coordinates, parse_text):
+    def __init__(self, tree, assembly, coordinates, parse_text, inactive=()):
         self.tree, self.assembly, self.coordinates, self.parse_text = (
             tree,
             assembly,
@@ -72,7 +73,10 @@ class _Syntax:
         )
         self.text, self.tree_hash = assembly.text, tree.digest
         self.nodes, self.indices, self.source_names = [], {}, set()
-        _, self.body_start, self.body_end = document_bounds(self.text)
+        _, start, end = document_bounds(parse_text)
+        self.body_start = coordinates.to_entry(start) if start is not None else None
+        self.body_end = coordinates.to_entry(end) if end is not None else None
+        self.inactive = inactive
 
     def roots(self, parsed, diagnostics):
         roots, cursor = [], 0
@@ -131,7 +135,9 @@ class _Syntax:
             "children": [],
             "source_spans": spans,
             "arguments": _arguments(node, self.parse_text),
-            "region": "preamble"
+            "region": "inactive"
+            if any(a <= node.pos < b for a, b in self.inactive)
+            else "preamble"
             if self.body_start is not None and end <= self.body_start
             else "inactive"
             if self.body_end is not None and start >= self.body_end
@@ -172,7 +178,7 @@ def convert_source(tree, entry, references, *, used_files=()):
     assembly = assemble_files(tree.files, entry)
     text = assembly.text
     coordinates = EntryCoordinates(assembly)
-    parse_text = coordinates.copy_text()
+    parse_text, inactive = syntax_view(coordinates.copy_text())
     observations = [
         d for d in assembly.diagnostics if d["code"] == "conditionals_present"
     ]
@@ -180,7 +186,7 @@ def convert_source(tree, entry, references, *, used_files=()):
         d for d in assembly.diagnostics if d["code"] != "conditionals_present"
     ]
     parsed = _parse_nodes(parse_text, diagnostics, scope_commands(references))
-    syntax = _Syntax(tree, assembly, coordinates, parse_text)
+    syntax = _Syntax(tree, assembly, coordinates, parse_text, inactive)
     roots = syntax.roots(parsed, diagnostics)
     nodes, source_names = syntax.nodes, syntax.source_names
     body_start, body_end = syntax.body_start, syntax.body_end
@@ -238,6 +244,9 @@ def convert_source(tree, entry, references, *, used_files=()):
         "body_range": [body_start, body_end],
         "conditional_ranges": conditional_ranges,
         "conditional_views": views,
+        "inactive_ranges": [
+            [coordinates.to_entry(a), coordinates.to_entry(b)] for a, b in inactive
+        ],
         "syntax_complete": not any(
             d["code"] in {"syntax_incomplete", "unparsed_source_preserved"}
             for d in diagnostics
@@ -251,7 +260,9 @@ def convert_source(tree, entry, references, *, used_files=()):
         },
         "files_not_in_reading_view": sorted(set(tree.files) - source_names),
     }
-    document["reading_units"] = _reading_units(nodes, text, body_start, body_end)
+    document["reading_units"] = _reading_units(
+        nodes, text, body_start, body_end, document["inactive_ranges"]
+    )
     document["labels"], document["cross_references"] = labels, cross_references
     return (
         assembly,
@@ -316,11 +327,12 @@ def _outline(nodes):
     return outline
 
 
-def _reading_units(nodes, text, start, end):
+def _reading_units(nodes, text, start, end, inactive=()):
     if start is None:
         return []
     end = end if end is not None else len(text)
     boundaries = {start, end}
+    boundaries.update(p for bounds in inactive for p in bounds if start < p < end)
     by_id = {n["id"]: n for n in nodes}
     atomic = {}
     for node in nodes:
@@ -339,7 +351,11 @@ def _reading_units(nodes, text, start, end):
         {
             "range": [a, b],
             "node": atomic.get((a, b)),
-            "kind": "authored_structure" if (a, b) in atomic else "paragraph",
+            "kind": "inactive_source"
+            if any(x <= a < b <= y for x, y in inactive)
+            else "authored_structure"
+            if (a, b) in atomic
+            else "paragraph",
         }
         for a, b in zip(points, points[1:])
         if text[a:b].strip()

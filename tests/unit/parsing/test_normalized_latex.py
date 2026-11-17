@@ -8,7 +8,7 @@ from qecgraph.source.package import SourceTree
 
 class NormalizedLatexTests(unittest.TestCase):
     def test_incomplete_syntax_keeps_the_lossless_view_without_format_edits(self):
-        source = r"\documentclass{article}\begin{document}$x$\end{document}}"
+        source = r"\documentclass{article}\begin{document}$x$}\end{document}"
         _, normalized, _, report, _, _ = self.prepare(source)
         self.assertEqual(normalized, source)
         self.assertEqual(report["transformations"], {})

@@ -8,6 +8,7 @@ import re
 from pylatexenc.latexwalker import LatexWalker, LatexWalkerParseError
 
 from .contract import digest
+from .branches import syntax_view
 from ..source.syntax import declaration_context
 
 PROFILE = "qecgraph.normalized_latex/1"
@@ -69,9 +70,12 @@ def normalize_latex(text, document, references, bibliography=None):
 
 
 def _syntax_check(text):
+    text, _ = syntax_view(text)
     try:
         _, start, length = LatexWalker(
-            text, latex_context=declaration_context(source_text=text), tolerant_parsing=False
+            text,
+            latex_context=declaration_context(source_text=text),
+            tolerant_parsing=False,
         ).get_latex_nodes()
     except (LatexWalkerParseError, ValueError):
         return "partial"

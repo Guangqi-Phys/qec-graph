@@ -2,12 +2,54 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
+
+from qecgraph.preparation.compatibility import initial_compile
+from qecgraph.preparation.contract import digest
 
 from qecgraph.preparation.build import compile_tree, select_engine, _trusted_dependency
 from qecgraph.source.package import SourceTree
 
 
 class CompilationTests(unittest.TestCase):
+    def test_legacy_hook_retry_is_hash_bound_and_keeps_failed_log(self):
+        raw = b"fixture class"
+        tree = SourceTree(
+            "tex",
+            {"main.tex": rb"\documentclass{quantumarticle}", "quantumarticle.cls": raw},
+        )
+        for expected_hash, retried in [(digest(raw), True), ("other", False)]:
+            build = SimpleNamespace(
+                entry="main.tex",
+                engine="pdflatex",
+                root=Path("/tmp"),
+                artifacts={},
+                steps=[],
+                compatibility=[],
+            )
+            commands = []
+
+            def runner(work, cwd, command, **options):
+                commands.append(list(command))
+                return {
+                    "exit": 1 if len(commands) == 1 else 0,
+                    "timeout": False,
+                    "log": rb"Undefined control sequence. \@afterenddocumenthook",
+                }
+
+            args = ["pdflatex", "main.tex"]
+            with patch(
+                "qecgraph.preparation.compatibility.QUANTUMARTICLE_42", expected_hash
+            ):
+                success = initial_compile(build, tree, args, stdin=None, runner=runner)
+            self.assertEqual(success, retried)
+            self.assertEqual(len(commands), 2 if retried else 1)
+            self.assertIn("logs/tex-0.log", build.artifacts)
+            if retried:
+                self.assertIn("-jobname=main", args)
+                self.assertIn("logs/tex-compatibility-0.log", build.artifacts)
+                self.assertFalse(build.compatibility[0]["source_edits"])
+
     def fake(self, work, cwd, command, **options):
         self.commands.append(command)
         if "-recorder" in command:

@@ -29,6 +29,7 @@ def verify_roundtrip(build, tree, normalized, report, support, compiler):
         steps=derived.steps,
         dependencies=derived.dependencies,
         diagnostics=derived.diagnostics,
+        compatibility=getattr(derived, "compatibility", []),
     )
     report["derived_tree_sha256"] = derived_tree.digest
     if derived.success:

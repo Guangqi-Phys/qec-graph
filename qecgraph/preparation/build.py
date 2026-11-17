@@ -28,6 +28,7 @@ class Build:
     outputs: list[str] = field(default_factory=list)
     dependencies: list[dict] = field(default_factory=list)
     diagnostics: list[dict] = field(default_factory=list)
+    compatibility: list[dict] = field(default_factory=list)
 
 
 def select_engine(tree, entry, requested=None):
@@ -234,7 +235,9 @@ def compile_tree(
     ]
     stdin = "b\n" if build.engine == "etex" else None
     execute(build, "engine-version", [tool(build.engine), "--version"], runner=runner)
-    ok = execute(build, "tex-0", args, stdin=stdin, runner=runner)
+    from .compatibility import initial_compile
+
+    ok = initial_compile(build, tree, args, stdin=stdin, runner=runner)
     if ok:
         ok = _bibliography(build, tree, job, runner)
     if ok:

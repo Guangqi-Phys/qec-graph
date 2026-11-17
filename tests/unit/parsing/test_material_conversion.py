@@ -6,6 +6,46 @@ from qecgraph.source.package import SourceTree
 
 
 class MaterialConversionTests(unittest.TestCase):
+    def test_tex_terminator_tail_is_preserved_but_not_parsed_as_body(self):
+        raw = rb"\documentclass{article}\begin{document}Visible.\end{document}\end{now}"
+        assembly, doc, coverage = self.convert({"main.tex": raw})
+        self.assertTrue(coverage["complete"], coverage)
+        self.assertEqual(assembly.data, raw)
+        start, end = doc["inactive_ranges"][0]
+        self.assertEqual(raw.decode()[start:end], r"\end{now}")
+        self.assertFalse(any(n["name"] == "now" for n in doc["nodes"]))
+
+    def test_literal_false_guard_preserves_bytes_and_excludes_inactive_syntax(self):
+        raw = rb"""\documentclass{article}\begin{document}Visible.
+\if 0
+This is inactive. \end{now} \cite{missing} \label{ghost}
+\else
+Selected.
+\fi
+\ref{ghost}\end{document}"""
+        assembly, doc, coverage = self.convert({"main.tex": raw})
+        self.assertEqual(assembly.data, raw)
+        self.assertTrue(doc["syntax_complete"])
+        self.assertEqual(doc["citations"], [])
+        self.assertFalse(any("ghost" in x["keys"] for x in doc["labels"]))
+        self.assertFalse(
+            coverage["complete"]
+        )  # The active reference is truly unresolved.
+        self.assertTrue(doc["inactive_ranges"])
+        self.assertEqual(doc["conditional_views"][0]["kind"], "literal_false_guard")
+
+    def test_literal_guard_adapter_rejects_equal_or_dynamic_operands(self):
+        for guard in [r"\if 00", r"\if 0\value", r"\if 0 X\fi next"]:
+            raw = (
+                r"\documentclass{article}\begin{document}"
+                + guard
+                + "\n"
+                + r"\fi\end{document}"
+            ).encode()
+            _, doc, coverage = self.convert({"main.tex": raw})
+            self.assertFalse(coverage["complete"])
+            self.assertEqual(doc["inactive_ranges"], [])
+
     def test_layout_and_bibliography_guards_keep_payload_without_selecting_prose(self):
         raw = rb"""\documentclass{article}\begin{document}Body.
 \ifCLASSOPTIONcaptionsoff \newpage \fi

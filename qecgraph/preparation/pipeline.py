@@ -108,6 +108,7 @@ def _material(tree, entry, work, engine, support, compiler, loading):
             "inputs": build.inputs,
             "outputs": build.outputs,
             "dependencies": build.dependencies,
+            "compatibility": getattr(build, "compatibility", []),
         }
         diagnostics.extend(build.diagnostics)
         if build.success:
