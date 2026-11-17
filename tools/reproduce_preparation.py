@@ -5,7 +5,6 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
-import re
 from pathlib import Path
 import subprocess
 import sys
@@ -14,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from qecgraph.preparation.contract import read_material  # noqa: E402
+from qecgraph.preparation.acceptance import counts, check_cases, replay_metadata  # noqa: E402
 from qecgraph.source.normalization import load_for_preparation  # noqa: E402
 from qecgraph.source.prepare import select_entry  # noqa: E402
 
@@ -34,6 +34,7 @@ def main():
     )
     parser.add_argument("--jobs", type=int, choices=range(1, 5), default=2)
     args = parser.parse_args()
+    metadata = replay_metadata([sys.executable, *sys.argv], args.entries, args.cases)
     manifest = json.loads(args.manifest.read_bytes())
     hints = json.loads(args.entries.read_bytes()) if args.entries else {}
     args.out.mkdir(parents=True, exist_ok=True)
@@ -114,25 +115,8 @@ def main():
         "manifest_sha256": hashlib.sha256(args.manifest.read_bytes()).hexdigest(),
         "model_calls": 0,
         "rows": rows,
-        "counts": {
-            "papers": len(rows),
-            "ready": sum(r["status"] == "ready" for r in rows),
-            "compiled": sum(
-                r.get("stages", {}).get("compile") == "complete" for r in rows
-            ),
-            "partial": sum(r["status"] == "partial" for r in rows),
-            "failed": sum(r["status"] == "failed" for r in rows),
-            "source_fidelity": sum(
-                r.get("source_fidelity", False) and r.get("nodes", 0) > 0 for r in rows
-            ),
-            "normalized_recompiled": sum(
-                r.get("normalization", {}).get("native_compile") == "complete"
-                for r in rows
-            ),
-            "normalized_text_equal": sum(
-                r.get("normalization", {}).get("pdf_text") == "equal" for r in rows
-            ),
-        },
+        "counts": counts(rows),
+        "run_metadata": metadata,
     }
     if args.cases:
         selected = {row["paper"] for row in rows}
@@ -145,39 +129,6 @@ def main():
     (args.out / "results.json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps(report["counts"], indent=2))
     return 0
-
-
-def check_cases(root, cases):
-    results = []
-    for case in cases:
-        folder = root / case["paper"].replace("/", "_")
-        material = read_material(folder)
-        raw = (folder / "sources" / case["file"]).read_bytes()
-        if hashlib.sha256(raw).hexdigest() != case["source_sha256"]:
-            raise ValueError("Syntax probe source hash mismatch")
-        original = raw.decode()
-        positions = {
-            match.start() for match in re.finditer(re.escape(case["anchor"]), original)
-        }
-        matches = [
-            n
-            for n in material["document"]["nodes"]
-            if n["kind"] == case["kind"]
-            and n["name"] == case["name"]
-            and any(
-                s["path"] == case["file"] and s["chars"][0] in positions
-                for s in n["source_spans"]
-            )
-        ]
-        results.append(
-            {"paper": case["paper"], "anchor": case["anchor"], "passed": bool(matches)}
-        )
-    return {
-        "scope": "Mechanical syntax/source checks, not scientific accuracy or human acceptance",
-        "passed": sum(r["passed"] for r in results),
-        "total": len(results),
-        "cases": results,
-    }
 
 
 if __name__ == "__main__":
