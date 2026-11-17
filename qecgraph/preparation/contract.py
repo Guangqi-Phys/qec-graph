@@ -163,6 +163,20 @@ def _check_reference_origins(files, source_indices):
                         "Reference metadata does not copy its original source"
                     )
 
+    for record in references.get("observed_labels", []):
+        span = record["origin"]
+        path = safe_path(span["path"])
+        raw = files.get("build/files/" + path, files.get("sources/" + path))
+        if raw is None:
+            raise ValueError("Compiled label observation is missing its AUX")
+        index = SourceIndex(raw, span["encoding"])
+        start, end = span["chars"]
+        if (
+            index.span(path, start, end, layer="compiled") != span
+            or index.text[start:end] != record["raw_tex"]
+        ):
+            raise ValueError("Compiled label observation does not match consumed AUX")
+
 
 def _check_manifest(files):
     manifest = json.loads(files["manifest.json"])

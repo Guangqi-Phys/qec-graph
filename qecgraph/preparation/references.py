@@ -155,7 +155,7 @@ def adapt_references(build, tree):
     project = build.root / "project"
     job = Path(build.entry).stem
     diagnostics = []
-    from .scopes import reference_scopes, imported_labels
+    from .scopes import reference_scopes, imported_labels, observed_labels
 
     aux, entries = _consumed(build, tree, diagnostics)
     controls, originals = _originals(build, tree, diagnostics)
@@ -190,6 +190,7 @@ def adapt_references(build, tree):
     )
     result["scopes"] = scopes
     result["external_labels"] = imported_labels(scopes, aux, tree)
+    result["observed_labels"] = observed_labels(scopes, aux)
     return result
 
 

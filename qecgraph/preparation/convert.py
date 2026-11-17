@@ -15,9 +15,10 @@ from ..source.assembly import (
     EntryCoordinates,
     entry_source_spans,
     document_bounds,
-    condition_regions,
 )
 from ..source.syntax import declaration_context
+from .crossrefs import cross_references as _cross_references
+from .conditions import conditional_views
 
 HEADINGS = {
     "part": 0,
@@ -172,7 +173,12 @@ def convert_source(tree, entry, references, *, used_files=()):
     text = assembly.text
     coordinates = EntryCoordinates(assembly)
     parse_text = coordinates.copy_text()
-    diagnostics = list(assembly.diagnostics)
+    observations = [
+        d for d in assembly.diagnostics if d["code"] == "conditionals_present"
+    ]
+    diagnostics = [
+        d for d in assembly.diagnostics if d["code"] != "conditionals_present"
+    ]
     parsed = _parse_nodes(parse_text, diagnostics, scope_commands(references))
     syntax = _Syntax(tree, assembly, coordinates, parse_text)
     roots = syntax.roots(parsed, diagnostics)
@@ -192,7 +198,9 @@ def convert_source(tree, entry, references, *, used_files=()):
             {"code": "asset_target_unresolved", "nodes": unresolved_assets}
         )
     labels, cross_references = _cross_references(
-        nodes, references.get("external_labels", [])
+        nodes,
+        references.get("external_labels", []),
+        references.get("observed_labels", []),
     )
     unresolved = [
         r
@@ -213,9 +221,8 @@ def convert_source(tree, entry, references, *, used_files=()):
         reasons.append("conversion_diagnostics")
     if body_start is None:
         reasons.append("nonstandard_document_body")
-    conditional_ranges = _body_conditionals(
-        parse_text, coordinates, body_start, body_end
-    )
+    views = conditional_views(text, nodes, body_start, body_end)
+    conditional_ranges = [v["range"] for v in views if v["kind"] == "unmapped"]
     if conditional_ranges:
         # A native build is one view. Never silently treat every source branch as active.
         reasons.append("conditional_view_not_mapped")
@@ -230,6 +237,7 @@ def convert_source(tree, entry, references, *, used_files=()):
         "assets": assets,
         "body_range": [body_start, body_end],
         "conditional_ranges": conditional_ranges,
+        "conditional_views": views,
         "syntax_complete": not any(
             d["code"] in {"syntax_incomplete", "unparsed_source_preserved"}
             for d in diagnostics
@@ -252,17 +260,9 @@ def convert_source(tree, entry, references, *, used_files=()):
             "complete": not reasons,
             "reasons": sorted(set(reasons)),
             "diagnostics": diagnostics,
+            "observations": observations,
         },
     )
-
-
-def _body_conditionals(parse_text, coordinates, start, end):
-    inactive, uncertain = condition_regions(parse_text)
-    ranges = [
-        (coordinates.to_entry(a), coordinates.to_entry(b))
-        for a, b in [*inactive, *uncertain]
-    ]
-    return [[a, b] for a, b in ranges if b > (start or 0) and (end is None or a < end)]
 
 
 def _opaque_node(assembly, tree, start, end, nodes, diagnostics):
@@ -344,52 +344,6 @@ def _reading_units(nodes, text, start, end):
         for a, b in zip(points, points[1:])
         if text[a:b].strip()
     ]
-
-
-def _cross_references(nodes, external_labels=()):
-    labels, references = [], []
-    for node in nodes:
-        if node["kind"] != "macro" or node["name"] not in {
-            "label",
-            "ref",
-            "eqref",
-            "pageref",
-            "autoref",
-            "cref",
-            "Cref",
-        }:
-            continue
-        args = [a for a in node["arguments"] if a and a.startswith("{")]
-        if not args:
-            continue
-        row = {
-            "node": node["id"],
-            "keys": [k.strip() for k in args[-1][1:-1].split(",")],
-            "command": node["name"],
-            "region": node["region"],
-        }
-        (labels if node["name"] == "label" else references).append(row)
-    for row in references:
-        row["targets"] = []
-        for key in row["keys"]:
-            matches = [
-                n["node"] for n in labels if n["region"] == "body" and key in n["keys"]
-            ]
-            imported = [label for label in external_labels if label["key"] == key]
-            count = len(matches) + len(imported)
-            row["targets"].append(
-                {
-                    "key": key,
-                    "nodes": matches,
-                    "external_targets": imported,
-                    "status": "resolved"
-                    if count == 1
-                    else "ambiguous"
-                    if count
-                    else "unresolved",
-                }
-            )
-    return labels, references
 
 
 def _table_rows(node, text, coordinates):

@@ -6,6 +6,57 @@ from qecgraph.source.package import SourceTree
 
 
 class MaterialConversionTests(unittest.TestCase):
+    def test_layout_and_bibliography_guards_keep_payload_without_selecting_prose(self):
+        raw = rb"""\documentclass{article}\begin{document}Body.
+\ifCLASSOPTIONcaptionsoff \newpage \fi
+\begin{thebibliography}{1}
+\ifx\xfnm\undefined \def\xfnm[#1]{\unskip,\space#1}\fi
+\bibitem{k}Reference.\end{thebibliography}\end{document}"""
+        assembly, doc, coverage = self.convert({"main.tex": raw})
+        self.assertTrue(coverage["complete"], coverage)
+        self.assertEqual(assembly.data, raw)
+        self.assertEqual(
+            {v["kind"] for v in doc["conditional_views"]},
+            {"layout_only", "bibliography_format_setup"},
+        )
+        self.assertTrue(all(not v["branch_selected"] for v in doc["conditional_views"]))
+
+    def test_preamble_guard_is_preserved_with_explicit_observation(self):
+        raw = rb"\documentclass{article}\ifx\a\b\def\colorname{red}\else\def\colorname{blue}\fi\begin{document}Body.\end{document}"
+        _, doc, coverage = self.convert({"main.tex": raw})
+        self.assertTrue(coverage["complete"], coverage)
+        self.assertTrue(coverage["observations"])
+        self.assertEqual(
+            doc["conditional_views"][0]["kind"], "preamble_syntax_preserved"
+        )
+
+    def test_bibliography_prose_branch_is_still_partial(self):
+        raw = rb"\documentclass{article}\begin{document}\begin{thebibliography}{1}\ifx\xfnm\undefined\bibitem{k}Hidden.\fi\end{thebibliography}\end{document}"
+        _, doc, coverage = self.convert({"main.tex": raw})
+        self.assertFalse(coverage["complete"])
+        self.assertEqual(doc["conditional_views"][0]["kind"], "unmapped")
+
+    def test_label_wrapper_requires_aux_and_preserves_call_and_definition(self):
+        raw = rb"\documentclass{article}\newcommand{\suppsection}[2]{\section*{#1}\label{#2}}\begin{document}\suppsection{Appendix}{supp:proof}\ref{supp:proof}\end{document}"
+        _, _, missing = self.convert({"main.tex": raw})
+        self.assertFalse(missing["complete"])
+        refs = {"bindings": [], "observed_labels": [{"key": "supp:proof"}]}
+        # Exercise binding separately; the bundle contract requires exact AUX origins.
+        from qecgraph.preparation.convert import convert_source
+
+        _, doc, coverage = convert_source(
+            SourceTree("tex", {"main.tex": raw}), "main.tex", refs
+        )
+        self.assertTrue(coverage["complete"], coverage)
+        label = next(
+            r
+            for r in doc["labels"]
+            if r.get("origin") == "literal_wrapper_verified_by_aux"
+        )
+        self.assertTrue(label["definition_node"])
+        a, b = label["source_spans"][0]["bytes"]
+        self.assertEqual(raw[a:b], rb"\suppsection{Appendix}{supp:proof}")
+
     def test_source_macro_signatures_and_body_declaration_aliases(self):
         raw = rb"""\documentclass{article}\usepackage{braket}
 \renewcommand{\H}{H}

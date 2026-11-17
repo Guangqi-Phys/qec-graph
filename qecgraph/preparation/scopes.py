@@ -142,3 +142,30 @@ def imported_labels(scopes, aux, tree):
                         }
                     )
     return labels
+
+
+def observed_labels(scopes, aux):
+    """Keep exact consumed AUX observations; they do not supply authored prose."""
+    from .references import commands, group, origin
+
+    labels = []
+    for scope in scopes:
+        if not scope["active"]:
+            continue
+        for path in scope["aux"]:
+            text = aux[path]
+            for _, start, stop in commands(text, {"newlabel"}):
+                key = group(text, stop)
+                value = group(text, key[1]) if key else None
+                if key and value:
+                    labels.append(
+                        {
+                            "key": key[0],
+                            "scope": scope["id"],
+                            "raw_tex": text[start : value[1]],
+                            "origin": origin(
+                                path, text.encode(), start, value[1], layer="compiled"
+                            ),
+                        }
+                    )
+    return labels
