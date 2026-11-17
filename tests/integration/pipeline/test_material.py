@@ -10,6 +10,33 @@ from qecgraph.preparation.pipeline import prepare_material
 
 
 class MaterialPipelineTests(unittest.TestCase):
+    def test_duplicate_labels_preserve_body_capability_without_claiming_ready(self):
+        self.calls, self.succeeds = [], True
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "main.tex"
+            source.write_text(
+                r"\documentclass{article}\begin{document}"
+                r"\section{Body}\label{dup}First.\label{dup}Second.\ref{dup}"
+                r"\end{document}"
+            )
+            out = Path(temp) / "material"
+            result = prepare_material(source, out, compiler=self.compiler)
+            material = read_material(out)
+            self.assertEqual(result["status"], "partial")
+            caps = material["manifest"]["preparation_capabilities"]
+            self.assertEqual(caps["body_syntax"], "complete")
+            self.assertEqual(caps["cross_reference_bindings"], "partial")
+            self.assertEqual(
+                len(caps["unresolved_cross_references"][0]["candidates"]), 2
+            )
+            manifest = material["manifest"]
+            manifest["preparation_capabilities"]["cross_reference_bindings"] = (
+                "complete"
+            )
+            (out / "manifest.json").write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, "capabilities"):
+                read_material(out)
+
     def test_reopen_compares_macro_include_arguments_in_json_form(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -36,9 +63,7 @@ class MaterialPipelineTests(unittest.TestCase):
             loaded = read_material(out)
             self.assertIn("Included body.", loaded["entry_tex"])
             source_map = json.loads((out / "source-map.json").read_bytes())
-            event = next(
-                e for e in source_map["directives"] if e["kind"] == "input"
-            )
+            event = next(e for e in source_map["directives"] if e["kind"] == "input")
             self.assertEqual(event["expanded_args"], ["part"])
 
     def compiler(self, tree, entry, root, **kwargs):

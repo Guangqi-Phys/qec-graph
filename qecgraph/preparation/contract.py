@@ -99,6 +99,17 @@ def validate_material(files: dict[str, bytes]) -> dict:
 
     check_view(files, document, text)
     _check_normalized(files, document, text)
+    if "preparation_capabilities" in manifest:
+        from .capabilities import preparation_capabilities
+
+        expected = preparation_capabilities(
+            json.loads(files["build.json"]),
+            document,
+            json.loads(files["coverage.json"]),
+            json.loads(files["references.json"]),
+        )
+        if manifest["preparation_capabilities"] != expected:
+            raise ValueError("Preparation capabilities do not match retained evidence")
     if manifest["status"] == "ready":
         if not (
             nodes

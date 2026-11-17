@@ -18,6 +18,7 @@ from .roundtrip import verify_roundtrip
 from ..source.normalization import load_for_preparation
 from ..source.prepare import select_entry, publish_artifacts, _check_output_root
 from ..core.transactions import writer_lock
+from .capabilities import preparation_capabilities
 from ..source.package import read_bounded, Limits
 
 _WARNING_CODES = frozenset(
@@ -195,6 +196,9 @@ def _material(tree, entry, work, engine, support, compiler, loading):
         "stages": stages,
         "loading": loading,
         "model_calls": 0,
+        "preparation_capabilities": preparation_capabilities(
+            build_report, document, coverage, references
+        ),
         "capabilities": {
             "originals": True,
             "syntax": bool(document["nodes"]),
