@@ -62,6 +62,7 @@ flowchart TD
 | [QEC Graph — System Design](design/DESIGN.md) | Current | Explanation / reference | The only design document: architecture, data/evidence, workspace publication, CLI/MCP, human view  |
 | [Operations](operations/README.md) | Current | How-to / reference | Store/corpus maintenance, corpus/review workflows and validation pointers |
 | [Validation evidence](../validation/README.md) | Evidence | Evidence | Current executable checks and how to run them; historical run artifacts are not shipped |
+| [Review records](reviews/) | Retained records | Evidence / decisions | Dated reviews, replies and decisions; preserve this directory during cleanup; older conclusions are not current specifications |
 | [Changelog](../CHANGELOG.md) | Current | Reference | Compatibility and behavior changes |
 | [Contributing rules](../CONTRIBUTING.md#documentation-rules) | Current | Reference | Page locations, status/TOC rules and the docs test |
 
@@ -84,5 +85,6 @@ knowledge content use English. Original sources and quotations preserve their la
 
 - [Current compile-first preparation acceptance and remaining partial cases](../validation/preparation_acceptance.json)
 
-There are no redirect-only or archive pages. Superseded material lives in Git
-history, not in a second documentation tree.
+There are no redirect-only or archive pages. Superseded design and user pages
+live in Git history. Dated review records remain in `docs/reviews/` and must not
+be deleted during cleanup.

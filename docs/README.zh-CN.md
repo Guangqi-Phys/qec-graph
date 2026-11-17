@@ -61,6 +61,7 @@ flowchart TD
 | [QEC Graph — 系统设计](design/DESIGN.zh-CN.md) | 当前 | Explanation / reference | 唯一设计文档：架构、数据/证据、工作区发布、CLI/MCP、人类视图 |
 | [运维](operations/README.zh-CN.md) | 当前 | How-to / reference | store/corpus 维护、corpus/review 流程和验证入口 |
 | [验证证据](../validation/README.zh-CN.md) | 证据 | Evidence | 当前可执行检查及运行方式；历史运行产物不再随仓库提供 |
+| [评审记录](reviews/) | 永久保留记录 | Evidence / decisions | 带日期的评审、回复与决策；清理时保留此目录，旧结论不作为当前规范 |
 | [变更日志](../CHANGELOG.md) | 当前 | Reference | 兼容性和行为变化 |
 | [贡献规则](../CONTRIBUTING.md#documentation-rules) | 当前 | Reference | 文档位置、状态/TOC 规则和 docs 测试 |
 
@@ -81,4 +82,5 @@ flowchart TD
 
 - [当前编译优先准备验收及剩余 partial 明细](../validation/preparation_acceptance.json)
 
-当前文档树没有重定向页或归档页。被替代的内容只保留在 Git history 中。
+当前文档树没有重定向页或归档页。被替代的设计页和用户指南保留在 Git history 中。
+带日期的评审、回复与决策记录永久保留在 `docs/reviews/`，不得在文档或项目清理中删除。

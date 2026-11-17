@@ -31,7 +31,8 @@ the [changelog](CHANGELOG.md) for compatibility changes, and the
 
 - Current pages live only under `docs/user/`, `docs/design/` and
   `docs/operations/`. There is no redirect or archive tree; superseded pages
-  are recovered from Git history.
+  are recovered from Git history. Dated records under `docs/reviews/` are
+  retained in place and are exempt from this cleanup rule.
 - `docs/design/DESIGN.md` is the only design document. Extend it in the same
   change as the implementation instead of adding a parallel design page.
 - Every current documentation page under `docs/` is bilingual: `page.md` is English and
@@ -40,8 +41,10 @@ the [changelog](CHANGELOG.md) for compatibility changes, and the
   and executable code blocks. Pages with more than one `##` section include a
   table of contents whose anchors match the headings. Root contributor and
   security policies are English-only.
-- `docs/reviews/` holds Chinese review records, decisions and the retained requirements
-  note. These records are exempt from translation. Use English for implementation,
+- `docs/reviews/` holds Chinese review records, replies and decisions. Preserve
+  this directory and its contents during documentation or project cleanup;
+  deletion requires the user's explicit instruction naming the affected review
+  files. These records are exempt from translation. Use English for implementation,
   generated metadata, extraction, diagnostics and reading notes. Preserve verbatim
   quotations and original source bytes in their original language.
 - Prefer small tables, GitHub alerts (`> [!NOTE]`, `> [!TIP]`, `> [!WARNING]`)
