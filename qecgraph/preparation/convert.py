@@ -14,6 +14,7 @@ from ..source.assembly import (
     EntryCoordinates,
     entry_source_spans,
     document_bounds,
+    condition_regions,
 )
 from ..source.syntax import declaration_context
 
@@ -221,10 +222,10 @@ def convert_source(tree, entry, references, *, used_files=()):
         reasons.append("conversion_diagnostics")
     if body_start is None:
         reasons.append("nonstandard_document_body")
-    if re.search(
-        r"\\(?:if[a-zA-Z@]*|else|fi)\b",
-        _without_comments(text[body_start or 0 : body_end]),
-    ):
+    conditional_ranges = _body_conditionals(
+        parse_text, coordinates, body_start, body_end
+    )
+    if conditional_ranges:
         # A native build is one view. Never silently treat every source branch as active.
         reasons.append("conditional_view_not_mapped")
     document = {
@@ -237,6 +238,7 @@ def convert_source(tree, entry, references, *, used_files=()):
         "citations": citations,
         "assets": assets,
         "body_range": [body_start, body_end],
+        "conditional_ranges": conditional_ranges,
         "capabilities": {
             "original_tex": True,
             "source_spans": "exact_copy",
@@ -257,6 +259,15 @@ def convert_source(tree, entry, references, *, used_files=()):
             "diagnostics": diagnostics,
         },
     )
+
+
+def _body_conditionals(parse_text, coordinates, start, end):
+    inactive, uncertain = condition_regions(parse_text)
+    ranges = [
+        (coordinates.to_entry(a), coordinates.to_entry(b))
+        for a, b in [*inactive, *uncertain]
+    ]
+    return [[a, b] for a, b in ranges if b > (start or 0) and (end is None or a < end)]
 
 
 def _opaque_node(assembly, tree, start, end, nodes, diagnostics):

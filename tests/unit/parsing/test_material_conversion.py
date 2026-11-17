@@ -72,6 +72,15 @@ class MaterialConversionTests(unittest.TestCase):
             )
         )
 
+    def test_math_if_prefixes_and_opaque_bibliography_helpers_are_not_branches(self):
+        raw = rb"""\documentclass{article}
+\newcommand{\ifff}{if and only if}
+\begin{document}$a\iff b$ and \ifff.
+\providecommand{\helper}[1]{\ifnum#1>0 yes\else no\fi}
+\end{document}"""
+        _, _, coverage = self.convert({"main.tex": raw})
+        self.assertTrue(coverage["complete"], coverage)
+
     def test_declaration_bodies_stay_opaque_and_literal_cite_wrapper_has_exact_origin(
         self,
     ):
