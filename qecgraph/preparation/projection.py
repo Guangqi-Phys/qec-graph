@@ -201,6 +201,16 @@ def _check_evidence(files, report, build, original):
         raise ValueError("Source projection PDF text evidence mismatch")
 
 
+def bind_origins(document, references, artifacts):
+    decorate_origins(document, artifacts)
+    decorate_origins(references, artifacts)
+    if "source-projection.json" in artifacts:
+        document["source_projection_sha256"] = digest(
+            artifacts["source-projection.json"]
+        )
+        document["capabilities"]["source_spans"] = "projected_with_original_byte_ranges"
+
+
 def decorate_origins(value, artifacts):
     report = json.loads(artifacts.get("source-projection.json", b'{"verified":false}'))
     if report["verified"]:
