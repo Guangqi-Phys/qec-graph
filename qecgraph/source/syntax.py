@@ -146,7 +146,7 @@ class _PrimitiveDefinitionParser(MacroStandardArgsParser):
         )
 
 
-def declaration_context():
+def declaration_context(extra_citations=()):
     context = get_default_latex_context_db()
     specs = [
         MacroSpec(n, args_parser=_OpaqueDeclarationParser("*{[[{"))
@@ -169,7 +169,10 @@ def declaration_context():
         MacroSpec("newtheorem", args_parser=_OpaqueDeclarationParser("*{[{[")),
         MacroSpec("DeclareMathOperator", args_parser=_OpaqueDeclarationParser("*{{")),
     ]
-    specs += [MacroSpec(n, args_parser="*[[{") for n in sorted(CITATION_COMMANDS)]
+    specs += [
+        MacroSpec(n, args_parser="*[[{")
+        for n in sorted(CITATION_COMMANDS | set(extra_citations))
+    ]
     specs += [
         MacroSpec(n, args_parser="*{")
         for n in ("label", "ref", "eqref", "pageref", "autoref", "cref", "Cref")

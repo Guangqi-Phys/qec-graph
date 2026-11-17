@@ -9,6 +9,7 @@ from pylatexenc.latexwalker import LatexWalker, LatexWalkerParseError
 
 from .contract import digest, json_bytes, SourceIndex
 from .references import group
+from .citations import locate_citations as _citations, scope_commands
 from ..source.assembly import (
     assemble_files,
     EntryCoordinates,
@@ -16,7 +17,7 @@ from ..source.assembly import (
     document_bounds,
     condition_regions,
 )
-from ..source.syntax import declaration_context, CITATION_COMMANDS
+from ..source.syntax import declaration_context
 
 HEADINGS = {
     "part": 0,
@@ -27,7 +28,6 @@ HEADINGS = {
     "paragraph": 5,
     "subparagraph": 6,
 }
-CITES = CITATION_COMMANDS
 TABLES = {"tabular", "tabular*", "tabularx", "longtable", "array"}
 ASSETS = {
     ".pdf",
@@ -149,8 +149,8 @@ class _Syntax:
         return identifier
 
 
-def _parse_nodes(text, diagnostics):
-    context = declaration_context()
+def _parse_nodes(text, diagnostics, extra_citations=()):
+    context = declaration_context(extra_citations)
     try:
         LatexWalker(
             text, latex_context=context, tolerant_parsing=False
@@ -173,7 +173,7 @@ def convert_source(tree, entry, references, *, used_files=()):
     coordinates = EntryCoordinates(assembly)
     parse_text = coordinates.copy_text()
     diagnostics = list(assembly.diagnostics)
-    parsed = _parse_nodes(parse_text, diagnostics)
+    parsed = _parse_nodes(parse_text, diagnostics, scope_commands(references))
     syntax = _Syntax(tree, assembly, coordinates, parse_text)
     roots = syntax.roots(parsed, diagnostics)
     nodes, source_names = syntax.nodes, syntax.source_names
@@ -191,7 +191,9 @@ def convert_source(tree, entry, references, *, used_files=()):
         diagnostics.append(
             {"code": "asset_target_unresolved", "nodes": unresolved_assets}
         )
-    labels, cross_references = _cross_references(nodes)
+    labels, cross_references = _cross_references(
+        nodes, references.get("external_labels", [])
+    )
     unresolved = [
         r
         for r in cross_references
@@ -344,7 +346,7 @@ def _reading_units(nodes, text, start, end):
     ]
 
 
-def _cross_references(nodes):
+def _cross_references(nodes, external_labels=()):
     labels, references = [], []
     for node in nodes:
         if node["kind"] != "macro" or node["name"] not in {
@@ -373,127 +375,21 @@ def _cross_references(nodes):
             matches = [
                 n["node"] for n in labels if n["region"] == "body" and key in n["keys"]
             ]
+            imported = [label for label in external_labels if label["key"] == key]
+            count = len(matches) + len(imported)
             row["targets"].append(
                 {
                     "key": key,
                     "nodes": matches,
+                    "external_targets": imported,
                     "status": "resolved"
-                    if len(matches) == 1
+                    if count == 1
                     else "ambiguous"
-                    if matches
+                    if count
                     else "unresolved",
                 }
             )
     return labels, references
-
-
-def _citations(nodes, references, diagnostics, text, assembly, tree):
-    result, located = [], set()
-    required = {(r["section"], r["key"]) for r in references["bindings"]}
-    revtex = any(
-        n["name"] == "documentclass"
-        and any(a and a.startswith("{revtex") for a in n["arguments"])
-        for n in nodes
-    )
-    section_ids, section = {}, 0
-    by_id = {n["id"]: n for n in nodes}
-    for node in nodes:
-        if node["kind"] == "environment" and node["name"] == "refsection":
-            section += 1
-            section_ids[node["id"]] = str(section)
-        if (
-            node["kind"] != "macro"
-            or node["name"] not in CITES
-            or node["region"] != "body"
-        ):
-            continue
-        arguments = [a for a in node["arguments"] if a and a.startswith("{")]
-        if not arguments:
-            continue
-        scope = "0"
-        parent = node["parent"]
-        while parent:
-            if parent in section_ids:
-                scope = section_ids[parent]
-                break
-            parent = by_id[parent]["parent"]
-        keys = [k.strip() for k in _without_comments(arguments[-1][1:-1]).split(",")]
-        for key in keys:
-            if key == "*" or not key:
-                continue
-            key = _citation_key(key, scope, required, revtex)
-            located.add((scope, key))
-            result.append(
-                {
-                    "node": node["id"],
-                    "key": key,
-                    "section": scope,
-                    "call_tex": arguments[-1],
-                    "origin": "literal_call",
-                }
-            )
-    wrapped, wrapped_keys = _wrapper_calls(nodes, required, text, assembly, tree)
-    result.extend(wrapped)
-    located.update(wrapped_keys)
-    missing = sorted(required - located)
-    if missing:
-        diagnostics.append(
-            {
-                "code": "expanded_citation_locations_unknown",
-                "bindings": [list(v) for v in missing],
-            }
-        )
-    return result
-
-
-def _citation_key(key, scope, required, revtex):
-    if (
-        revtex
-        and key.startswith("*")
-        and (scope, key) not in required
-        and (scope, key[1:]) in required
-    ):
-        return key[1:]
-    return key
-
-
-def _source_span_for_wrapper(tree, path, start, end):
-    return SourceIndex(tree.files[path]).span(path, start, end)
-
-
-def _citation_wrappers(nodes, text):
-    wrappers, targets = {}, []
-    for node in nodes:
-        if node["kind"] != "macro" or node["name"] not in {
-            "newcommand",
-            "renewcommand",
-            "providecommand",
-        }:
-            continue
-        args = node["arguments"]
-        target = (
-            re.fullmatch(r"\{\\([A-Za-z@]+)\}", args[1] or "")
-            if len(args) >= 2
-            else None
-        )
-        if target:
-            targets.append(target[1])
-        if len(args) != 5 or args[2] != "[1]" or args[3] is not None:
-            continue
-        cite = re.search(
-            r"\\cite(?:p|t)?\{([A-Za-z0-9:._/-]*#1[A-Za-z0-9:._/-]*)\}", args[4] or ""
-        )
-        if target and cite and (args[4] or "").count("#1") == 1:
-            wrappers[target[1]] = (cite[1], node["id"])
-    return {
-        name: value
-        for name, value in wrappers.items()
-        if targets.count(name) == 1
-        and not re.search(
-            r"\\(?:def|gdef|edef|xdef|let)\s*\\" + re.escape(name) + r"(?![A-Za-z@])",
-            text,
-        )
-    }
 
 
 def _table_rows(node, text, coordinates):
@@ -586,43 +482,3 @@ def _asset_candidates(node, name, assets):
         if PurePosixPath(a["path"]).name == name
         or PurePosixPath(a["path"]).stem == name
     ]
-
-
-def _wrapper_calls(nodes, required, text, assembly, tree):
-    result, located = [], set()
-    wrappers = _citation_wrappers(nodes, text)
-    for node in nodes:
-        if (
-            node["kind"] != "macro"
-            or node["region"] != "body"
-            or node["name"] not in wrappers
-        ):
-            continue
-        template, definition = wrappers[node["name"]]
-        start, stop = node["range"]
-        arg = group(text, stop)
-        if arg:
-            value, end = arg[:2]
-        else:
-            tail = re.match(r"\s*([A-Za-z0-9])", text[stop:])
-            if not tail:
-                continue
-            value, end = tail[1], stop + tail.end()
-        key = template.replace("#1", value)
-        if ("0", key) in required:
-            result.append(
-                {
-                    "node": node["id"],
-                    "section": "0",
-                    "keys": [key],
-                    "definition_node": definition,
-                    "origin": "literal_wrapper_verified_by_aux",
-                    "range": [start, end],
-                    "source_spans": [
-                        _source_span_for_wrapper(tree, p, a, b)
-                        for p, a, b in entry_source_spans(assembly, start, end)
-                    ],
-                }
-            )
-            located.add(("0", key))
-    return result, located

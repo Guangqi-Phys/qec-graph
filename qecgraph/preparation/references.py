@@ -155,19 +155,59 @@ def adapt_references(build, tree):
     project = build.root / "project"
     job = Path(build.entry).stem
     diagnostics = []
-    text, entries = _consumed(build, tree, diagnostics)
+    from .scopes import reference_scopes, imported_labels
+
+    aux, entries = _consumed(build, tree, diagnostics)
     controls, originals = _originals(build, tree, diagnostics)
     bcf = project / (job + ".bcf")
-    requested = (
-        _bcf_requests(bcf.read_bytes())
-        if bcf.is_file() and not bcf.is_symlink()
-        else _classic_requests(text, controls)
+    scopes = reference_scopes(build, tree, aux)
+    for scope in scopes:
+        if scope["kind"] == "unassigned" and any(
+            _classic_requests(aux[p], controls) for p in scope["aux"]
+        ):
+            diagnostics.append(
+                {"code": "unassigned_bibliography_scope", "aux": scope["aux"]}
+            )
+    active = {
+        s["id"]: "\n".join(aux[p] for p in s["aux"]) for s in scopes if s["active"]
+    }
+    text = "\n".join(active.values())
+    biblatex = bcf.is_file() and not bcf.is_symlink()
+    if biblatex:
+        requested = _bcf_requests(bcf.read_bytes())
+        labels = {}
+    else:
+        _scope_entries(entries, scopes)
+        requested = {
+            (scope, key)
+            for scope, body in active.items()
+            for _, key in _classic_requests(body, controls)
+        }
+        labels = _scope_labels(active)
+        _inline_entries(build, tree, entries, active.get("0", ""))
+    result = _resolve(
+        requested, entries, originals, text, diagnostics, controls, biblatex, labels
     )
-    if not bcf.is_file():
-        _inline_entries(build, tree, entries, text)
-    return _resolve(
-        requested, entries, originals, text, diagnostics, controls, bcf.is_file()
-    )
+    result["scopes"] = scopes
+    result["external_labels"] = imported_labels(scopes, aux, tree)
+    return result
+
+
+def _scope_entries(entries, scopes):
+    names = {p: s["id"] for s in scopes for p in s["bbl"]}
+    for entry in entries:
+        entry["section"] = names.get(entry["origin"]["path"], "0")
+
+
+def _scope_labels(active):
+    labels = {}
+    for scope, body in active.items():
+        for _, _, stop in commands(body, {"bibcite"}):
+            key = group(body, stop)
+            value = group(body, key[1]) if key else None
+            if key and value:
+                labels.setdefault((scope, key[0]), []).append(value[0])
+    return labels
 
 
 def _classic_requests(text, controls):
@@ -200,25 +240,21 @@ def _inline_entries(build, tree, entries, aux):
             continue
 
 
-def _resolve(requested, entries, originals, aux, diagnostics, controls, biblatex):
+def _resolve(
+    requested, entries, originals, aux, diagnostics, controls, biblatex, labels
+):
     grouped = {}
     for entry in entries:
         grouped.setdefault((entry["section"], entry["key"]), []).append(entry)
     references = []
-    labels = {}
-    if not biblatex:
-        for _, _, stop in commands(aux, {"bibcite"}):
-            key = group(aux, stop)
-            label = group(aux, key[1]) if key else None
-            if key and label:
-                labels.setdefault(key[0], []).append(label[0])
     for section, key in sorted(requested):
         variants = grouped.get((section, key), [])
         counts = Counter(v["context"] for v in variants)
         ambiguous = (
-            any(count > 1 for count in counts.values()) or len(labels.get(key, [])) > 1
+            any(count > 1 for count in counts.values())
+            or len(labels.get((section, key), [])) > 1
         )
-        has_label = biblatex or len(labels.get(key, [])) == 1
+        has_label = biblatex or len(labels.get((section, key), [])) == 1
         status = (
             "ambiguous"
             if ambiguous
@@ -231,7 +267,7 @@ def _resolve(requested, entries, originals, aux, diagnostics, controls, biblatex
                 "section": section,
                 "key": key,
                 "status": status,
-                "display_tex": labels.get(key, [None])[0],
+                "display_tex": labels.get((section, key), [None])[0],
                 "entries": variants,
             }
         )
@@ -250,7 +286,7 @@ def _resolve(requested, entries, originals, aux, diagnostics, controls, biblatex
 
 def _consumed(build, tree, diagnostics):
     project = build.root / "project"
-    aux, entries = [], []
+    aux, entries = {}, []
     for path in build.inputs:
         if Path(path).suffix not in {".aux", ".bbl", ".tex", ""}:
             continue
@@ -260,12 +296,12 @@ def _consumed(build, tree, diagnostics):
         raw = file.read_bytes()
         try:
             if path.endswith(".aux"):
-                aux.append(raw.decode())
+                aux[path] = raw.decode()
             elif path.endswith(".bbl"):
                 entries.extend(_entries(path, raw, tree.files.get(path) == raw))
         except UnicodeDecodeError:
             diagnostics.append({"code": "bibliography_encoding", "path": path})
-    return "\n".join(aux), entries
+    return aux, entries
 
 
 def _originals(build, tree, diagnostics):

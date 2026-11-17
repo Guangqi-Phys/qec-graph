@@ -6,6 +6,79 @@ from qecgraph.source.package import SourceTree
 
 
 class MaterialConversionTests(unittest.TestCase):
+    def test_generated_note_matching_uses_tex_protection_and_citation_spacing(self):
+        raw = b"\\documentclass{revtex4-2}\\begin{document}\\footnote{Refs.~\\protect\\cite{a,%\n b}}\\end{document}"
+        refs = {
+            "bindings": [
+                {"section": "0", "key": k, "status": "resolved"} for k in ["a", "b"]
+            ]
+            + [
+                {
+                    "section": "0",
+                    "key": "Note1",
+                    "status": "resolved",
+                    "entries": [
+                        {
+                            "raw_tex": r"\bibitem{Note1}\bibinfo{note}{Refs.~\protect \cite {a,b}}",
+                            "origin": {"path": "main.bbl", "layer": "compiled"},
+                        }
+                    ],
+                }
+            ]
+        }
+        _, doc, coverage = self.convert({"main.tex": raw}, refs)
+        self.assertTrue(coverage["complete"], coverage)
+        self.assertTrue(any(c.get("key") == "Note1" for c in doc["citations"]))
+
+    def test_bibliography_unit_calls_and_generated_notes_keep_source_origins(self):
+        raw = rb"\documentclass{revtex4-2}\begin{document}\begin{bibunit}\cite{k}\end{bibunit}\footnote{A literal note.}\end{document}"
+        refs = {
+            "scopes": [{"id": "bibunit:1", "kind": "bibunit", "ordinal": 1}],
+            "bindings": [
+                {"section": "bibunit:1", "key": "k", "status": "resolved"},
+                {
+                    "section": "0",
+                    "key": "Note1",
+                    "status": "resolved",
+                    "entries": [
+                        {
+                            "raw_tex": r"\bibitem{Note1}\bibinfo{note}{A literal note.}",
+                            "origin": {"path": "main.bbl", "layer": "compiled"},
+                        }
+                    ],
+                },
+            ],
+        }
+        _, doc, coverage = self.convert({"main.tex": raw}, refs)
+        self.assertTrue(coverage["complete"], coverage)
+        self.assertEqual(
+            {(c["section"], c["key"]) for c in doc["citations"]},
+            {("bibunit:1", "k"), ("0", "Note1")},
+        )
+        note = next(c for c in doc["citations"] if c["key"] == "Note1")
+        a, b = note["source_spans"][0]["bytes"]
+        self.assertEqual(raw[a:b], rb"\footnote{A literal note.}")
+
+    def test_external_target_metadata_resolves_without_inventing_source_prose(self):
+        raw = rb"\documentclass{article}\begin{document}\ref{supp:proof}\end{document}"
+        refs = {
+            "bindings": [],
+            "external_labels": [
+                {
+                    "key": "supp:proof",
+                    "scope": "external:supp",
+                    "availability": "imported_aux_metadata",
+                }
+            ],
+        }
+        _, doc, coverage = self.convert({"main.tex": raw}, refs)
+        self.assertTrue(coverage["complete"], coverage)
+        target = doc["cross_references"][0]["targets"][0]
+        self.assertEqual(target["nodes"], [])
+        self.assertEqual(
+            target["external_targets"][0]["availability"], "imported_aux_metadata"
+        )
+
     def convert(self, files, references=None):
         tree = SourceTree("tex", files)
         assembly, document, coverage = convert_source(
@@ -82,7 +155,7 @@ class MaterialConversionTests(unittest.TestCase):
         self.assertTrue(coverage["complete"], coverage)
 
     def test_revtex_numeric_citations_and_merged_keys_have_literal_origins(self):
-        raw = rb"\documentclass{revtex4-2}\begin{document}\onlinecite{a}\citenum{b}\cite{a,*c}\end{document}"
+        raw = rb"\documentclass{revtex4-2}\begin{document}\onlinecite{a}\citenum{b}\cite{[{Theorem 1, page 2}]a,*c}\end{document}"
         refs = {"bindings": [{"section": "0", "key": key} for key in ["a", "b", "c"]]}
         _, doc, coverage = self.convert({"main.tex": raw}, refs)
         self.assertTrue(coverage["complete"], coverage)

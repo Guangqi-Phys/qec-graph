@@ -8,6 +8,44 @@ from qecgraph.source.package import SourceTree
 
 
 class CompiledReferenceTests(unittest.TestCase):
+    def test_external_aux_is_not_merged_into_primary_citations_or_labels(self):
+        result = self.adapt(
+            {
+                "main.tex": rb"\externaldocument{supp_aux}",
+                "main.aux": rb"\citation{k}\bibcite{k}{1}",
+                "supp_aux.aux": rb"\citation{foreign}\bibcite{k}{99}\newlabel{sec:supp}{{A}{2}}",
+                "main.bbl": rb"\bibitem{k}Primary reference.",
+            },
+            ["main.tex", "main.aux", "main.bbl", "supp_aux.aux"],
+        )
+        self.assertTrue(result["complete"], result)
+        self.assertEqual(
+            [(b["section"], b["key"]) for b in result["bindings"]], [("0", "k")]
+        )
+        self.assertEqual(
+            result["external_labels"][0]["availability"], "imported_aux_metadata"
+        )
+
+    def test_bibunits_and_multibib_keep_repeated_keys_in_distinct_namespaces(self):
+        for source, names, expected in [
+            (rb"\usepackage{bibunits}", ["bu1", "bu2"], {"bibunit:1", "bibunit:2"}),
+            (
+                rb"\usepackage{multibib}\newcites{meth}{Methods}",
+                ["main", "meth"],
+                {"0", "multibib:meth"},
+            ),
+        ]:
+            with self.subTest(names=names):
+                files = {"main.tex": source, "main.aux": b""}
+                for i, name in enumerate(names):
+                    files[name + ".aux"] = (
+                        r"\citation{k}\bibcite{k}{%d}" % (i + 1)
+                    ).encode()
+                    files[name + ".bbl"] = rb"\bibitem{k}Reference."
+                result = self.adapt(files, list(files))
+                self.assertTrue(result["complete"], result)
+                self.assertEqual({b["section"] for b in result["bindings"]}, expected)
+
     def adapt(self, files, inputs):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

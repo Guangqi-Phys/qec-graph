@@ -93,6 +93,7 @@ def validate_material(files: dict[str, bytes]) -> dict:
         if "".join(pieces) != text[start:end]:
             raise ValueError("Material node does not copy its original source")
     _validate_roots(document, by_id, len(text))
+    _check_reference_origins(files, source_indices)
     _check_normalized(files, document, text)
     if manifest["status"] == "ready":
         if not (
@@ -147,6 +148,20 @@ def _check_normalized(files, document, text):
             and report["pdf_text"] in {"equal", "tool_unavailable", "pdf_unavailable"}
         ):
             raise ValueError("Ready normalized LaTeX has not passed its round trip")
+
+
+def _check_reference_origins(files, source_indices):
+    if "references.json" not in files:
+        return
+    references = json.loads(files["references.json"])
+    for field in ("entries", "original_bib_entries", "external_labels"):
+        for record in references.get(field, []):
+            span = record.get("origin", {})
+            if span.get("layer") == "original":
+                if _source_piece(files, span, source_indices) != record["raw_tex"]:
+                    raise ValueError(
+                        "Reference metadata does not copy its original source"
+                    )
 
 
 def _check_manifest(files):
