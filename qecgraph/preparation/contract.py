@@ -93,6 +93,7 @@ def validate_material(files: dict[str, bytes]) -> dict:
         if "".join(pieces) != text[start:end]:
             raise ValueError("Material node does not copy its original source")
     _validate_roots(document, by_id, len(text))
+    _check_normalized(files, document, text)
     if manifest["status"] == "ready":
         if not (
             nodes
@@ -106,6 +107,44 @@ def validate_material(files: dict[str, bytes]) -> dict:
         "nodes": len(nodes),
         "ready_for_extraction": manifest["status"] == "ready",
     }
+
+
+def _check_normalized(files, document, text):
+    from .normalized import validate_normalized
+
+    if "normalized.tex" not in files:
+        manifest = json.loads(files["manifest.json"])
+        if (
+            manifest.get("rule_version") == "compile-prepare-v4"
+            and manifest["status"] == "ready"
+        ):
+            raise ValueError("Ready preparation is missing normalized LaTeX")
+        return
+    mapping = json.loads(files["normalized-map.json"])
+    origin = mapping.get("bibliography")
+    bibliography = (
+        (safe_path(origin["path"]), files[safe_path(origin["path"])])
+        if origin
+        else None
+    )
+    validate_normalized(
+        text,
+        files["normalized.tex"].decode("utf-8"),
+        mapping,
+        document,
+        json.loads(files["references.json"]),
+        bibliography,
+    )
+    manifest = json.loads(files["manifest.json"])
+    if manifest["status"] == "ready":
+        report = json.loads(files["normalization.json"])
+        if not (
+            report["complete"]
+            and report["native_compile"] == "complete"
+            and report["syntax_parse"] == "complete"
+            and report["pdf_text"] in {"equal", "tool_unavailable", "pdf_unavailable"}
+        ):
+            raise ValueError("Ready normalized LaTeX has not passed its round trip")
 
 
 def _check_manifest(files):
@@ -196,6 +235,13 @@ def read_material(root: Path) -> dict:
         "references": json.loads(files["references.json"]),
         "coverage": json.loads(files["coverage.json"]),
         "validation": check,
+        "normalized_tex": files.get("normalized.tex", b"").decode("utf-8"),
+        "normalized_map": json.loads(files["normalized-map.json"])
+        if "normalized-map.json" in files
+        else None,
+        "normalization": json.loads(files["normalization.json"])
+        if "normalization.json" in files
+        else None,
     }
 
 

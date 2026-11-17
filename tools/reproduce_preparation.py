@@ -80,6 +80,20 @@ def main():
                         "reasons"
                     ],
                 )
+                if (output / "normalization.json").is_file():
+                    normalization = json.loads(
+                        (output / "normalization.json").read_bytes()
+                    )
+                    row["normalization"] = {
+                        k: normalization.get(k)
+                        for k in (
+                            "complete",
+                            "native_compile",
+                            "syntax_parse",
+                            "pdf_text",
+                            "transformations",
+                        )
+                    }
             else:
                 row.update(
                     status="failed", error=result.stderr.decode(errors="replace")[-800:]
@@ -110,6 +124,13 @@ def main():
             "failed": sum(r["status"] == "failed" for r in rows),
             "source_fidelity": sum(
                 r.get("source_fidelity", False) and r.get("nodes", 0) > 0 for r in rows
+            ),
+            "normalized_recompiled": sum(
+                r.get("normalization", {}).get("native_compile") == "complete"
+                for r in rows
+            ),
+            "normalized_text_equal": sum(
+                r.get("normalization", {}).get("pdf_text") == "equal" for r in rows
             ),
         },
     }

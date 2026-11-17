@@ -31,6 +31,7 @@ class MaterialPipelineTests(unittest.TestCase):
             math = next(n for n in loaded["document"]["nodes"] if n["kind"] == "math")
             start, end = math["range"]
             self.assertEqual(loaded["entry_tex"][start:end], r"$d\leq12$")
+            self.assertIn(r"\(d\leq12\)", loaded["normalized_tex"])
             self.assertEqual((out / "original.package").read_bytes(), original)
             previous = (out / "manifest.json").read_bytes()
             self.succeeds = False
@@ -39,7 +40,7 @@ class MaterialPipelineTests(unittest.TestCase):
             self.assertTrue(failed["previous_retained"])
             self.assertEqual((out / "manifest.json").read_bytes(), previous)
             self.assertTrue(Path(failed["out"]).joinpath("sources/main.tex").exists())
-            self.assertEqual(self.calls, ["compile", "compile"])
+            self.assertEqual(self.calls, ["compile", "compile", "compile"])
 
     def test_failing_compile_never_runs_body_conversion_or_a_model(self):
         self.calls, self.succeeds = [], False
@@ -93,6 +94,28 @@ class MaterialPipelineTests(unittest.TestCase):
             self.assertEqual((out / "sources/main.tex").read_bytes(), original)
             self.assertTrue(read_material(out)["validation"]["source_fidelity"])
 
+    def test_derived_compiler_exception_does_not_erase_successful_source_conversion(
+        self,
+    ):
+        self.calls, self.succeeds = [], True
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "main.tex"
+            source.write_bytes(
+                rb"\documentclass{article}\begin{document}Body.\end{document}"
+            )
+
+            def compiler(tree, entry, root, **options):
+                if self.calls:
+                    raise ValueError("Derived compiler failed")
+                return self.compiler(tree, entry, root, **options)
+
+            result = prepare_material(
+                source, Path(temp) / "material", compiler=compiler
+            )
+            self.assertEqual(result["status"], "partial")
+            self.assertEqual(result["stages"]["conversion"], "complete")
+            self.assertEqual(result["stages"]["normalized_latex"], "partial")
+
     def test_preparation_does_not_call_scientific_parser_or_model(self):
         self.calls, self.succeeds = [], True
         with tempfile.TemporaryDirectory() as temp:
@@ -114,3 +137,22 @@ class MaterialPipelineTests(unittest.TestCase):
                     source, Path(temp) / "out", compiler=self.compiler
                 )
             self.assertEqual(result["status"], "ready")
+
+    def test_failed_normalized_compile_is_partial_and_keeps_the_original_material(self):
+        self.calls, self.succeeds = [], True
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "main.tex"
+            original = rb"\documentclass{article}\begin{document}$x$.\end{document}"
+            source.write_bytes(original)
+
+            def compiler(tree, entry, root, **options):
+                self.succeeds = not self.calls
+                return self.compiler(tree, entry, root, **options)
+
+            out = Path(temp) / "material"
+            result = prepare_material(source, out, compiler=compiler)
+            self.assertEqual(result["status"], "partial")
+            self.assertEqual(result["stages"]["compile"], "complete")
+            self.assertEqual(result["stages"]["normalized_latex"], "partial")
+            self.assertEqual((out / "sources/main.tex").read_bytes(), original)
+            self.assertTrue(read_material(out)["validation"]["source_fidelity"])

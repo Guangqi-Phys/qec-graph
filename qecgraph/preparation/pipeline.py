@@ -11,6 +11,8 @@ from .build import compile_tree
 from .contract import SCHEMA, digest, json_bytes, validate_material
 from .convert import convert_source
 from .references import adapt_references
+from .normalized import normalize_latex
+from .roundtrip import verify_roundtrip
 from ..source.normalization import load_for_preparation
 from ..source.prepare import select_entry, publish_artifacts, _check_output_root
 from ..core.transactions import writer_lock
@@ -91,6 +93,11 @@ def _material(tree, entry, work, engine, support, compiler, loading):
     coverage = {"complete": False, "reasons": ["compile_failed"], "diagnostics": []}
     build_report = {"success": False, "steps": []}
     diagnostics = []
+    normalization = {
+        "complete": False,
+        "native_compile": "not_run",
+        "pdf_text": "not_run",
+    }
     try:
         build = compiler(tree, entry, work, engine=engine, support=support)
         files.update({"build/" + p: raw for p, raw in build.artifacts.items()})
@@ -110,6 +117,17 @@ def _material(tree, entry, work, engine, support, compiler, loading):
             )
             entry_data = assembly.data
             files["source-map.json"] = json_bytes(assembly.source_map())
+            normalization = _normalize_view(
+                build,
+                tree,
+                assembly,
+                document,
+                references,
+                support,
+                compiler,
+                files,
+                diagnostics,
+            )
     except (OSError, ValueError, RuntimeError, RecursionError) as exc:
         diagnostics.append({"code": "preparation_failed", "message": str(exc)[:800]})
         coverage = {
@@ -126,12 +144,14 @@ def _material(tree, entry, work, engine, support, compiler, loading):
         "compile": "complete" if build_report["success"] else "failed",
         "conversion": "complete" if coverage["complete"] else "partial",
         "references": "complete" if references["complete"] else "partial",
+        "normalized_latex": "complete" if normalization["complete"] else "partial",
         "source_fidelity": "checked_at_publication",
     }
     ready = (
         build_report["success"]
         and coverage["complete"]
         and references["complete"]
+        and normalization["complete"]
         and not diagnostics
     )
     files.update(
@@ -142,6 +162,7 @@ def _material(tree, entry, work, engine, support, compiler, loading):
             "build.json": json_bytes(build_report),
             "coverage.json": json_bytes(coverage),
             "diagnostics.json": json_bytes(diagnostics),
+            "normalization.json": json_bytes(normalization),
         }
     )
     manifest = {
@@ -159,6 +180,7 @@ def _material(tree, entry, work, engine, support, compiler, loading):
             "syntax": bool(document["nodes"]),
             "scientific_extraction": False,
             "arbitrary_macro_expansion": False,
+            "normalized_latex": "normalized.tex" in files,
         },
         "limitations": [
             "Native compilation is one build view; unmapped conditionals remain partial.",
@@ -167,3 +189,36 @@ def _material(tree, entry, work, engine, support, compiler, loading):
         ],
     }
     return files, manifest
+
+
+def _compiled_bbl(build, files):
+    name = Path(build.entry).stem + ".bbl"
+    if name not in build.inputs:
+        return None
+    for path in ("build/files/" + name, "sources/" + name):
+        if path in files:
+            return path, files[path]
+    return None
+
+
+def _normalize_view(
+    build, tree, assembly, document, references, support, compiler, files, diagnostics
+):
+    report = {"complete": False, "native_compile": "not_run", "pdf_text": "not_run"}
+    try:
+        data, mapping, report = normalize_latex(
+            assembly.text, document, references, _compiled_bbl(build, files)
+        )
+        files["normalized.tex"] = data
+        files["normalized-map.json"] = json_bytes(mapping)
+        files.update(verify_roundtrip(build, tree, data, report, support, compiler))
+    except (OSError, ValueError, RuntimeError, RecursionError) as exc:
+        report["error"] = str(exc)[:800]
+    if not report["complete"]:
+        diagnostics.append(
+            {
+                "code": "normalized_latex_roundtrip_failed",
+                "message": "Derived LaTeX failed syntax, recompilation or per-page PDF text checks.",
+            }
+        )
+    return report
