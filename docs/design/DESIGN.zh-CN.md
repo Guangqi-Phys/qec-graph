@@ -373,13 +373,20 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 材料合同来自 [Human.md](Human.md)：保留全文、数学内容、作者结构、图表及其条件、
 引用、附件和精确原文访问。准备不生成 QEC 记录、定理判断、证明依赖、九问答案或模型请求。
 
-新流程为 `tools/prepare_compiled.py`：归档校验与安全解包 → 入口/构建配置 → 隔离的原生编译
-→ 可选原生分支观测 → 无损 TeX 语法转换与引用适配 → 统一 LaTeX 导出 → 隔离重编译与材料验收 → 日志式原子发布。
-编译前不做静态正文准备或 AI 处理。入口歧义使用显式 `--entry`；包名不决定论文身份。
+流程为 `tools/prepare_compiled.py`：归档校验与安全解包 → 入口/构建配置 → 隔离原生编译
+→ 可选的已验证字节投影 → 可选原生分支观测 → 来源语法与引用适配 → 统一来源导出
+→ 隔离重编译与材料验收 → 日志式发布。入口探测可通过临时识别视图读取非 UTF-8 输入
+的 ASCII TeX 边界和字面 Harvmac 入口，编译器始终接收原始字节。
+编译前不运行静态正文准备或 AI。
+入口歧义使用显式 `--entry`；包名不决定论文身份。
 
 | 模块 | 职责 |
 | --- | --- |
 | `preparation/build.py` | 编译未改写的工程副本；限定引擎、保留同一 job 的已有 BBL、必要时执行 BibTeX/Biber，收集 FLS 实际输入/输出和依赖哈希 |
+| `preparation/entries.py` | 用临时识别视图选择原生构建入口；不改编译输入，不按文件名猜歧义入口 |
+| `preparation/projection.py` | 原编译后转写实际消费的非 UTF-8 字节，记录可逆段和原始字节定位，要求相同原生输入/PDF 文字 |
+| `preparation/harvmac.py`、`harvmac_refs.py` | 适配固定且实际消费的 Harvmac 原生语法、原文结构和编译书目；不换引擎或文档类 |
+| `preparation/capabilities.py` | 分别推导正文、书目和交叉引用的完整性；保留整体 ready 的严格判据 |
 | `preparation/compatibility.py` | 仅对确切已知文档类哈希和原生失败，用有记录的构建前导重试；保留首次失败日志、原始源码字节与 job 名称 |
 | `preparation/sandbox.py` | 子进程不继承凭据；限制工具、进程组、目录和网络；macOS 使用 sandbox-exec，Linux 使用 bubblewrap；没有无隔离回退 |
 | `preparation/references.py` | 适配经典 AUX 与 Biblatex BCF/BBL；保留字面 BIB、BBL 变体、refsection、排序上下文、显示标签及来源；重复或缺失 key 明示 |
@@ -425,6 +432,29 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 后面的重定义不会改变前面的调用。替换体仍是不透明的原文。braket 包有明确的一参数
 语法适配。这些操作不执行任意宏，也不推断数学含义。
 
+字节投影只处理实际消费的文本输入，限 `pdflatex`、`pdftex`、`latex`、`etex` 字节引擎。
+合法 UTF-8 原样复制；不能解码的字节逐个写为 `^^hh`，并记录有界的复制/转写映射。
+不猜 Unicode 字符或 Latin-1 编码；源码显式改变 catcode 时不支持。派生副本须编译成功、
+消费相同的原始输入集合、逐页 PDF 文字与原构建相等；证据缺失或失败保持 partial。
+原始字节始终保留在 `sources/` 和输入包中。
+
+变化文件的 `source_spans.layer=projected`；其 UTF-8 字符、字节、行号和哈希指向
+`projected-sources/`。每个定位还含 `original_source` 的原始哈希与包围的**原始字节范围**，
+不编造原始 Unicode 字符坐标。`source-projection.json` 保存完整变换和原生比较；打开时
+重算允许变换及定位。精确引句须组合 normalized → entry → 工作来源 → 原始字节的映射；
+投影字符串不能冒充原文引句。未变化文件维持原定位。`read_material` 同时返回来源投影和
+组装映射。
+
+Harvmac 支持要求实际消费依赖 SHA-256 为
+`65ff913ce13af190558fc07d161e90cf74f50ccd693ca95bb00dee2920535f1f`、使用字节式 plain 引擎，
+以及字面 Harvmac 输入/标题/结束标记和无重定义的核心语法。未知版本或核心重定义保持
+partial。适配器保留全部 TeX 字节，导出仍为原生语法，同时提供统一目录字段、显式
+`harvmac_eqn` 显示数学内容和来源绑定的标签候选。`\ifa` 等由公式定义的控制词按标签
+宏处理。字面文献定义只绑定到实际消费 `refs.tmp` 中唯一匹配的条目；处理 TeX 控制词后的
+空白，但不合并词或 token。引用范围仅在编译编号序列完整且无歧义时展开，原始表达式和
+端点保留。被引用的重复标签仍返回歧义。适配语法依据 Paul Ginsparg 的 Harvmac
+（CC BY 3.0），未复制其 TeX 实现。
+
 `content.json.conditional_views` 保存条件范围、类别和是否选择了分支。导言条件保留为
 不透明语法及观测；除下述窄类别外，未知正文条件仍阻止 ready。确切的 captions-off/newpage 条件、书目内部
 的 DOI/姓名格式辅助声明按排版结构保留，不选择分支。对有限的字面假条件（`\if 0` 后有
@@ -452,13 +482,14 @@ Multibib 调用同样保留。源码语法不完整时，统一视图只复制�
 | `original.package`、`sources/` | 文件输入的原始包，以及所有原始成员/附件；原始哈希和版本与派生产物分开 |
 | `build/`、`build.json` | 实际生成的相关 PDF/AUX/BBL/BCF/FLS/SyncTeX 与日志；确切命令、退出状态、工具版本输出、实际输入/输出、支持文件与依赖哈希 |
 | `build-view.json`、`build-view/` | 可选原生分支探针：原始/插桩身份、精确标记、插桩源码与原生构建/PDF 文字证据 |
-| `entry.tex`、`content.json` | 原生编译之后创建的原字节组装，以及 `qecgraph.prepared_syntax/1`：有序语法父子节点、目录、段落范围、数学、作者环境、表格、资产和引用发生位置 |
+| `source-projection.json`、`projected-sources/`、`projection-build/` | 可选可逆字节转写、完整映射/哈希、隔离原生构建及必需的 PDF 文字证据；原始文件独立保留 |
+| `entry.tex`、`content.json` | 原生编译之后对已验证工作来源创建的原字节组装，以及 `qecgraph.prepared_syntax/1`：有序语法父子节点、目录、段落范围、数学、作者环境、表格、资产和引用发生位置 |
 | `normalized.tex`、`normalized-map.json` | 派生 LaTeX 及完整的 Unicode codepoint 到 `entry.tex` 映射；区分原样复制、明确格式改写和编译文献插入；精确引句仍使用原始来源 |
 | `normalization.json`、`normalized-build/` | 独立的语法/重编译/PDF 文字结果、确切命令与依赖绑定、转换数量、派生构建日志/PDF，以及可用时的比较文字 |
 | `references.json` | `qecgraph.prepared_references/1`：编译 key、作用域绑定、原始 BIB 与实际使用的 BBL 文本、上下文、字面存在的标识符、冲突和缺项 |
 | `source-map.json` | 转换成功时的组装到原文映射；节点另外保留精确原始范围和哈希 |
 | `coverage.json`、`diagnostics.json` | 转换限制、非活动/未参与阅读的文件清单、opaque 内容、带 key 的缺失/歧义引用、重复标签观测、原生分支与大小写资产观测，以及各阶段失败 |
-| `manifest.json` | `qecgraph.prepare/3`、`compile-prepare-v14`、来源/包哈希、产物哈希、能力、独立阶段、非阻断 `warnings` 和 ready/partial 状态 |
+| `manifest.json` | `qecgraph.prepare/3`、`compile-prepare-v18`、来源/包哈希、产物哈希、能力、独立阶段、非阻断 `warnings`、独立核验的 `preparation_capabilities` 和严格的 ready/partial 状态 |
 
 ready 要求原生编译成功、支持的语法转换完整、适用引用/交叉引用可解析，并独立验证来源保真；资产调用须无歧义，且没有阻断性诊断。
 统一视图还须通过语法检查和原生重编译；观察到 PDF 文字不一致会阻止 ready。
@@ -467,13 +498,16 @@ PDF 文字一致不能证明像素一致或数学等价。
 退出 0 表示 ready；退出 2 表示显式 partial 材料；退出 1 表示输入/配置/发布错误。
 已有 ready 产物的 partial 重试写到 `<out>.attempt`。发布沿用写锁、备份/日志恢复。
 原文坐标为 UTF-8 解码后的 Unicode codepoint 半开区间、1-based 行号，并分别保留字节范围；
-排版文本、PDF 位置和 SyncTeX 提示不能充当精确原文引句。非 UTF-8 来源仍归档并明确 partial。
+排版文本、PDF 位置和 SyncTeX 提示不能充当精确原文引句。非 UTF-8 来源仍归档，只有有界字节投影和其他判据均通过才能 ready。
 仅大小写资产匹配、经验证的原生分支观测、绘图内部条件或未被引用的重复标签等非阻断
 观测会写入 `manifest.warnings`；它们不把 ready 变成可移植性或科学正确性的声明。
-编译成功或 JSON 校验通过不证明科学正确性。
+`preparation_capabilities` 分别报告 `body_syntax`、`bibliography_bindings` 和
+`cross_reference_bindings`，并列出未解析引用及候选 ID。正文语法完整但存在被引用的重复
+标签时，可记录正文能力，同时维持整体 partial；只读验收独立核对这些声明，不猜依赖边
+或唯一目标。编译成功或 JSON 校验通过不证明科学正确性。
 `content.json` 的范围仍指向 `entry.tex`，不能套到 `normalized.tex` 上。
 
-新 `compile-prepare-v14` 产物要求严格文档边界，不再使用 v10 的唯一文档标记回退。
+新 `compile-prepare-v18` 产物要求严格文档边界，不再使用 v10 的唯一文档标记回退。
 原文编译成功后，可对实际消费来源中独占行的字面 `\ifdefined\control` 和
 `\ifx\control\control` 做独立副本插桩编译。只有原生日志稳定观测到单一分支、探针
 编译成功且逐页去空白 PDF 文字与原构建相等时，才能选择该分支。行内/动态条件、未执行
@@ -517,6 +551,9 @@ python tools/report_preparation.py \
 原生工具、不推断科学金标，也不声称独立测试、静态检查或 machine 评测已经通过。
 
 可选 `--engine` 和可重复的 `--support-dir` 明示引擎/依赖选择；支持文件复制到隔离副本并记录哈希。
+作者包内文件优先，其次为显式支持文件，再次为系统文件；程序自己的
+`TEXINPUTS`/`BIBINPUTS`/`BSTINPUTS` 保证搜索顺序，FLS 记录实际消费。
+编译中若显式支持文件被改写，构建失败。
 不自动下载依赖、修改系统 TeX、上传来源或执行 AI 修复。Linux 隔离和科学金标仍需独立实测；
 工程回放结果不构成 §16.8 的 Usable 验收。
 

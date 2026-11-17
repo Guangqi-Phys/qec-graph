@@ -1,19 +1,20 @@
 {
-  "bibliography_complete": 45,
-  "code_revision": "3ab90cfb606335ba39e8008147a3ec3e0c720511",
+  "bibliography_complete": 46,
+  "body_syntax_complete": 46,
+  "code_revision": "ac3ab22fac56c9b31e3eb2fdf215d38b5ba7768d",
   "comparison": {
     "after": {
       "compiled": 46,
       "failed": 1,
-      "normalized_recompiled": 45,
-      "normalized_text_equal": 45,
+      "normalized_recompiled": 46,
+      "normalized_text_equal": 46,
       "papers": 48,
-      "partial": 6,
-      "ready": 41,
-      "source_fidelity": 45
+      "partial": 4,
+      "ready": 43,
+      "source_fidelity": 46
     },
-    "baseline_code_revision": "59a0b9fcead7a367a2514d50d8263a8be76e55b7",
-    "baseline_rule_version": "compile-prepare-v10",
+    "baseline_code_revision": "9f4f537b593df2dd92871f67663557a0a4bdcf48",
+    "baseline_rule_version": "compile-prepare-v14",
     "before": {
       "compiled": 46,
       "failed": 1,
@@ -24,27 +25,30 @@
       "ready": 41,
       "source_fidelity": 45
     },
-    "gate_change_note": "Current preparation additionally requires declared environment syntax, verified native guard evidence, and recorder-bound include expansion. These are mechanical coverage counts, not scientific extraction quality.",
-    "newly_ready": [],
+    "gate_change_note": "Current preparation adds verified byte projection, pinned native Harvmac grammar, independent per-part capabilities and effective explicit dependency selection. The overall ready gate remains strict. Counts describe mechanical coverage, not scientific extraction quality.",
+    "newly_ready": [
+      "2209.05640v1",
+      "hep-th/9407087v1"
+    ],
     "ready_regressions": []
   },
   "counts": {
     "compiled": 46,
     "failed": 1,
-    "normalized_recompiled": 45,
-    "normalized_text_equal": 45,
+    "normalized_recompiled": 46,
+    "normalized_text_equal": 46,
     "papers": 48,
-    "partial": 6,
-    "ready": 41,
-    "source_fidelity": 45
+    "partial": 4,
+    "ready": 43,
+    "source_fidelity": 46
   },
   "criteria": "Native compilation, complete supported source syntax and reference bindings, exact source mapping, and normalized syntax/recompilation. Observed guards additionally require matching instrumented PDF text and validated native log evidence. Ready is not portability or scientific correctness.",
-  "date": "2026-11-17T04:43:23.488901+00:00",
+  "date": "2026-11-17T05:38:45.869637+00:00",
   "generator": {
     "baseline": {
-      "commit": "59a0b9fcead7a367a2514d50d8263a8be76e55b7",
+      "commit": "9f4f537b593df2dd92871f67663557a0a4bdcf48",
       "path": "validation/preparation_acceptance.json",
-      "sha256": "054718c3eafd8ceed25a57aa26ca1a8fd85a611cec9c642498a13857de9fd2dd"
+      "sha256": "780e7099cc4a85713e492973ef901411749bc82b7d03c5e949ecd58c7a0f2561"
     },
     "command": "tools/report_preparation.py"
   },
@@ -55,8 +59,8 @@
     "tex_inputs": 47
   },
   "machine_evaluation": {
-    "evidence_path": "build/preparation-v14/machine-evaluation.json",
-    "evidence_sha256": "6942c85d341d5b3b8e13bc61709b427bb4bc61859fdc411128e27a41a2a146fc",
+    "evidence_path": "build/preparation-v18/machine-evaluation.json",
+    "evidence_sha256": "99aa5f719421c1713ab04eed879634cd3c40cc10349399a08dc89dfb184c06be",
     "result": {
       "accepted": false,
       "command": [
@@ -67,26 +71,21 @@
         "--release",
         "aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22",
         "--out",
-        "build/preparation-v14/machine-evaluation-raw.json"
+        "build/preparation-v18/machine-evaluation-raw.json"
       ],
-      "copied_machine_only": true,
       "error": "Traceback (most recent call last):\n  File \"/Users/guangqi/Workspace/qec-graph/tools/reproduce_knowledge.py\", line 155, in <module>\n    raise SystemExit(main())\n                     ~~~~^^\n  File \"/Users/guangqi/Workspace/qec-graph/tools/reproduce_knowledge.py\", line 140, in main\n    session = WorkspaceSession(args.machine, args.release, profile='research', max_chars=1000000)\n  File \"/Users/guangqi/Workspace/qec-graph/qecgraph/workspace_query.py\", line 45, in __init__\n    self.state, self.release = self.registry.read(release_id, verify=False)\n                               ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/guangqi/Workspace/qec-graph/qecgraph/registry.py\", line 83, in read\n    raise ManagedDataError(state_path, 'Registry state schema mismatch')\nqecgraph.core.transactions.ManagedDataError: Registry state schema mismatch: /Users/guangqi/Workspace/qec-graph/build/preparation-v10/machine-copy/states/aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22.json\n",
       "exit": 1,
       "fixed_state_sha256": "e9cccd58ebfbbea1a8539d7198c3640a385bdfb2f5bfef95534b74d794cc8a60",
-      "human_or_private_inputs_read": false,
-      "log_sha256": "6cc9fd602f9021ffa5873039083ba3d2943c9167e2cd3038aac306fb0043c671",
       "model_calls": 0,
-      "original_database_modified": false,
-      "original_database_writes": 0,
       "original_machine_state_unchanged_and_equal": true,
       "release": "aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22",
       "status": "blocked_registry_schema"
     }
   },
   "model_calls": 0,
-  "nonempty_syntax_bundles_validated": 45,
-  "normalization_complete": 44,
-  "normalization_files": 45,
+  "nonempty_syntax_bundles_validated": 46,
+  "normalization_complete": 46,
+  "normalization_files": 46,
   "original_bundles_validated": 47,
   "ready_papers": [
     "0903.0566v1",
@@ -104,6 +103,7 @@
     "2202.13641v1",
     "2207.06431v1",
     "2209.01119v1",
+    "2209.05640v1",
     "2303.15933v1",
     "2308.02321v1",
     "2308.07915v1",
@@ -126,6 +126,7 @@
     "2607.00262v1",
     "2607.29382v2",
     "2609.22572v1",
+    "hep-th/9407087v1",
     "quant-ph/0001106v1",
     "quant-ph/0110143v1",
     "quant-ph/9604034v1",
@@ -157,10 +158,20 @@
       "normalization_file": false,
       "package_sha256": "6d8398d5b0712b696ea25a5801b5cb950e82d57aa32c3f82a91ca5f7400d0039",
       "paper": "1804.03719v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "partial",
+        "body_syntax": "partial",
+        "cross_reference_bindings": "partial",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [
         "compile_failed"
       ],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "5338df77b5cd3a9da9f6a192a49b190856adf34eaffe5009540b81567dc0f85b",
       "stages": {
         "compile": "failed",
@@ -201,10 +212,30 @@
       "normalization_file": true,
       "package_sha256": "621e0d1abccfdfa76f951fafff447f619f718f46611c247baa78dcb3b03fba87",
       "paper": "2012.04068v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "partial",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": [
+          {
+            "candidates": [
+              "syntax:2bd043b70ce8081838ba6235",
+              "syntax:b6757016255ae80318381c2e"
+            ],
+            "key": "lm:alpha-beta-exp",
+            "node": "syntax:f70a94792a10e6c4cc7dd3eb",
+            "status": "ambiguous"
+          }
+        ]
+      },
       "reasons": [
         "conversion_diagnostics"
       ],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "f08f66547c4f1d4fa1328fc19c56d0803b5c2b0e3f6b3d62d9e0eb4666ba5492",
       "stages": {
         "compile": "complete",
@@ -249,10 +280,84 @@
       "normalization_file": true,
       "package_sha256": "130d0eeada4f97430739d23efc1008b0571ddf38ed639aa339945aeb4a8c689e",
       "paper": "2102.06132v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "partial",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": [
+          {
+            "candidates": [
+              "syntax:f817e63db7d1c95769bd9a02",
+              "syntax:36deafe132ea62cf6c388c4e"
+            ],
+            "key": "fig:bitfliplep",
+            "node": "syntax:c74a616aed22acfa2c288efa",
+            "status": "ambiguous"
+          },
+          {
+            "candidates": [
+              "syntax:f817e63db7d1c95769bd9a02",
+              "syntax:36deafe132ea62cf6c388c4e"
+            ],
+            "key": "fig:bitfliplep",
+            "node": "syntax:dfa1ae8a7c46fc5859e2d408",
+            "status": "ambiguous"
+          },
+          {
+            "candidates": [
+              "syntax:24ad9c7a32b2eb2822280939",
+              "syntax:6975df7b80fbca6ab38f86fe"
+            ],
+            "key": "pij-approx",
+            "node": "syntax:8b4a95b47c219dcf538023c6",
+            "status": "ambiguous"
+          },
+          {
+            "candidates": [
+              "syntax:24ad9c7a32b2eb2822280939",
+              "syntax:6975df7b80fbca6ab38f86fe"
+            ],
+            "key": "pij-approx",
+            "node": "syntax:081a23d68fe070863c37edd7",
+            "status": "ambiguous"
+          },
+          {
+            "candidates": [
+              "syntax:24ad9c7a32b2eb2822280939",
+              "syntax:6975df7b80fbca6ab38f86fe"
+            ],
+            "key": "pij-approx",
+            "node": "syntax:693c5a938d428f2675958b34",
+            "status": "ambiguous"
+          },
+          {
+            "candidates": [
+              "syntax:24ad9c7a32b2eb2822280939",
+              "syntax:6975df7b80fbca6ab38f86fe"
+            ],
+            "key": "pij-approx",
+            "node": "syntax:ca2ae8011d3dc405582ff43f",
+            "status": "ambiguous"
+          },
+          {
+            "candidates": [
+              "syntax:24ad9c7a32b2eb2822280939",
+              "syntax:6975df7b80fbca6ab38f86fe"
+            ],
+            "key": "pij-approx",
+            "node": "syntax:79482864318613ccb8beab79",
+            "status": "ambiguous"
+          }
+        ]
+      },
       "reasons": [
         "conversion_diagnostics"
       ],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "ce40f29a2dba887e520ccc5646abe24900e6f8117213c98b858b63e68e4914ca",
       "stages": {
         "compile": "complete",
@@ -270,48 +375,6 @@
       "warnings": [
         "duplicate_labels"
       ]
-    },
-    {
-      "diagnostic_codes": [
-        "preparation_failed"
-      ],
-      "engine": "pdflatex",
-      "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
-      "entry": "main.tex",
-      "entry_selection": "configured",
-      "environment_declaration_count": 0,
-      "exit": 2,
-      "native_guard_view": {
-        "observed_guards": 0,
-        "verified": false
-      },
-      "nodes": 0,
-      "normalization": {
-        "complete": false,
-        "native_compile": "not_run",
-        "pdf_text": "not_run",
-        "syntax_parse": null,
-        "transformations": null
-      },
-      "normalization_file": false,
-      "package_sha256": "de7844219c8bd68dc03ee8e2683e60e2323bbb32261398f8e9c993d478f6eaad",
-      "paper": "2209.05640v1",
-      "reasons": [
-        "conversion_failed"
-      ],
-      "source_fidelity": true,
-      "source_tree_sha256": "a2e0501ce4384a2b7e268f24ef0a784ecb7d5cfe94fda4eb2913bb680d4bab68",
-      "stages": {
-        "compile": "complete",
-        "conversion": "partial",
-        "normalized_latex": "partial",
-        "references": "partial",
-        "source_fidelity": "checked_at_publication"
-      },
-      "status": "partial",
-      "unmapped_conditions": [],
-      "unresolved_cross_references": [],
-      "warnings": []
     },
     {
       "diagnostic_codes": [
@@ -341,10 +404,57 @@
       "normalization_file": true,
       "package_sha256": "d0dc3ffbb467a71630efa6b930913d19ee3d5356c42412930bc43dbd96306b2e",
       "paper": "2308.07915v2",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "partial",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": [
+          {
+            "candidates": [
+              "syntax:b788df6988c37f02dfe58f81",
+              "syntax:b7700be5d9c14a61eac08a16"
+            ],
+            "key": "ABC2",
+            "node": "syntax:4664911d60b1fd0841bde8f6",
+            "status": "ambiguous"
+          },
+          {
+            "candidates": [
+              "syntax:26dd13c671bfc7fc86840997",
+              "syntax:24793d4afba66a4486daf3cf"
+            ],
+            "key": "alpha_beta_gamma_delta",
+            "node": "syntax:4d8708bda8954c1d386920f4",
+            "status": "ambiguous"
+          },
+          {
+            "candidates": [
+              "syntax:b788df6988c37f02dfe58f81",
+              "syntax:b7700be5d9c14a61eac08a16"
+            ],
+            "key": "ABC2",
+            "node": "syntax:04457c986d0fbf2d5a963751",
+            "status": "ambiguous"
+          },
+          {
+            "candidates": [
+              "syntax:26dd13c671bfc7fc86840997",
+              "syntax:24793d4afba66a4486daf3cf"
+            ],
+            "key": "alpha_beta_gamma_delta",
+            "node": "syntax:ad63a33fcdc89b670ad5907c",
+            "status": "ambiguous"
+          }
+        ]
+      },
       "reasons": [
         "conversion_diagnostics"
       ],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "ca32c6b767f29a6823b88b9fa97555994db22ed2ebb592f9053161e430f0a2ef",
       "stages": {
         "compile": "complete",
@@ -363,63 +473,6 @@
         "duplicate_labels",
         "native_guard_observation"
       ]
-    },
-    {
-      "diagnostic_codes": [
-        "normalized_latex_roundtrip_failed",
-        "syntax_incomplete",
-        "unclosed_conditional"
-      ],
-      "engine": "etex",
-      "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
-      "entry": "9407087.tex",
-      "entry_selection": "configured",
-      "environment_declaration_count": 0,
-      "exit": 2,
-      "native_guard_view": {
-        "observed_guards": 0,
-        "verified": false
-      },
-      "nodes": 8392,
-      "normalization": {
-        "complete": false,
-        "native_compile": "complete",
-        "pdf_text": "equal",
-        "syntax_parse": "partial",
-        "transformations": {}
-      },
-      "normalization_file": true,
-      "package_sha256": "9a84cef701c8a76e3cd734ebe5b113f1839e991276e012aee236794dc8353d55",
-      "paper": "hep-th/9407087v1",
-      "reasons": [
-        "conditional_view_not_mapped",
-        "conversion_diagnostics",
-        "nonstandard_document_body",
-        "unresolved_directives"
-      ],
-      "source_fidelity": true,
-      "source_tree_sha256": "b6f3f4cf2aa17dc7b58ceaadf0fd203598533118bd1d6953b8f43fd164f43944",
-      "stages": {
-        "compile": "complete",
-        "conversion": "partial",
-        "normalized_latex": "partial",
-        "references": "complete",
-        "source_fidelity": "checked_at_publication"
-      },
-      "status": "partial",
-      "unmapped_conditions": [
-        {
-          "branch_selected": false,
-          "kind": "unmapped",
-          "range": [
-            66573,
-            94498
-          ],
-          "region": "body"
-        }
-      ],
-      "unresolved_cross_references": [],
-      "warnings": []
     }
   ],
   "replay": {
@@ -429,7 +482,7 @@
       "--manifest",
       "test-sources/arxiv-sources/manifest.json",
       "--out",
-      "build/preparation-v14/final",
+      "build/preparation-v18/final",
       "--entries",
       "validation/preparation_entries.json",
       "--support-dir",
@@ -442,7 +495,7 @@
       "2"
     ],
     "cases_sha256": "f0b3a3b8cf7a4f8641bd48db14cc1255a4637cdd5f111e604cb7685a6363fbbd",
-    "code_revision": "3ab90cfb606335ba39e8008147a3ec3e0c720511",
+    "code_revision": "ac3ab22fac56c9b31e3eb2fdf215d38b5ba7768d",
     "entries_sha256": "8e180d1330e36ebcd69f4d447efd43d789caa22ee11b1591c63f015eaf920a74",
     "execution_sources": {
       "qecgraph/__init__.py": "5164f48c394fbae38de8081269c4e4e15bd74ca8bc28368280c5a6d7c27f3918",
@@ -504,27 +557,32 @@
       "qecgraph/mcp/ai_tools.py": "88f825a441bc35d010faee59dd26125cc4d0a2883667eb250cc1bf2285b65700",
       "qecgraph/mcp/server.py": "f360de382149ba26bfe889d9a3c152f07999acb952108f270d9caedcbe27a6d0",
       "qecgraph/mcp_server.py": "60c1815f39ca5185ce5dd26cd90b010745a6c594a0dee07bdbb234d0acb00b2b",
-      "qecgraph/preparation/__init__.py": "aee37564164608136e46a494e03130989df2a0cb515a6cce0b95f69d2495e85e",
-      "qecgraph/preparation/acceptance.py": "3e0d5415c0acde0e70a3f0a81d59b1fef895d62f651bb5940f28fc5fa431d70c",
+      "qecgraph/preparation/__init__.py": "2f68ac553396ea47435a7d23c4899a7e62d735d2dd7330ce900462b51f2448cb",
+      "qecgraph/preparation/acceptance.py": "16ebdf736ef7fff07738bc3888117e6072b5f94f2a4025ca53466200346c5041",
       "qecgraph/preparation/branches.py": "af755328992d9ceeb1dc67c975f1a45e30a70a92440135e8931b3817a2023384",
-      "qecgraph/preparation/build.py": "16e182443c09203dc5325545a48f38cdf822bbf00240dcd91f6d8e2260402224",
+      "qecgraph/preparation/build.py": "bf70cd224a48b2be1e49c64f4cc70ed5d34f4cabbb2781329d4e875ee63a7c1a",
       "qecgraph/preparation/build_view.py": "df4b3d8b734545aae6701d62522068a9c28d9a0d1aecd5eb08b8d1f69937020d",
+      "qecgraph/preparation/capabilities.py": "4c8286dc50d5901dde2fa1620590998397f62621b6bc68145a81fbafd8381d28",
       "qecgraph/preparation/citations.py": "1b48325daa5a30b036e1500f146ab211f58c3c254fc5c06528b40f502a039a03",
       "qecgraph/preparation/compatibility.py": "dad4cf2986294e91f02cc3671cb3d3a4f4d607d547b7947c47b24753fb768faf",
       "qecgraph/preparation/conditions.py": "11fe47b8a9edd6773bf85db49cf3e4ea440aa21ff114076ed6ea664260e4e4b9",
-      "qecgraph/preparation/contract.py": "47a4d447f4f8af4bded9ff57037a09866c26d532134cffe77a61f9692b8af7f4",
-      "qecgraph/preparation/convert.py": "c18aa689d39fce58900e69e2b836e26f1096e25ee745e8c1846636e91f66f9fa",
+      "qecgraph/preparation/contract.py": "a4ccccc7b4726c7b770d97b90b978ec87436928e66c6879b0f2d79d3254ae879",
+      "qecgraph/preparation/convert.py": "080f4e1ce411b9dbfe4ba831d8d7381cf219cdbf9815478629f8f212f048c75b",
       "qecgraph/preparation/crossrefs.py": "db7677a2087ed86915d16d4b3ec65fcb4b06451a3e0d72d4ba910b8c8ba7e6ae",
+      "qecgraph/preparation/entries.py": "226a4541b9535961c27acfef133b40916e659252ae33638287a91dad73ca5687",
       "qecgraph/preparation/environments.py": "a2091f74ccde24dd663fe5aaefe3f719dfd3b695f21f0e2c75eef007ef13139b",
       "qecgraph/preparation/guard_syntax.py": "151aa53577d73e7336d5a90f61c09e66a230d8ea3a3495908422114b3538ff91",
-      "qecgraph/preparation/normalized.py": "e3c1e5ad18d76baf81a0a7d746c67d84c04c07184e96395ebac924d31cfa4995",
+      "qecgraph/preparation/harvmac.py": "1a001038cfd57c86e4794e85e0a3153ced5fbd6eedc1120cf62db503757cd6d2",
+      "qecgraph/preparation/harvmac_refs.py": "31969cae6c2679c60729c2f477c77a12f9a47a7d1274101f512c76ca2cd57152",
+      "qecgraph/preparation/normalized.py": "a61c99b12aa721be249e79cbb463de4166bc217fa78ec0723f82b56f18883530",
       "qecgraph/preparation/options.py": "b76bcc9d7c0c79c03106f7346f48e85a8b38683b154a9c97cfc0d9ea02ad5f6f",
-      "qecgraph/preparation/pipeline.py": "d39e55afa48176800527da96136f2d5268a4eb6f7667ec9bea7db34003c3c8f9",
-      "qecgraph/preparation/references.py": "ddde980282ac6bebc0e34ac4561bab21f3d41a5a68f7924bf5bf76778dd479ff",
+      "qecgraph/preparation/pipeline.py": "bb2529d93df79db920b606e34385454de9fc915e1ec4057a41b627068e96c4f0",
+      "qecgraph/preparation/projection.py": "0b8421ac37c9c784f3ec51ecc3386065729c1110f89a115a831621a5bbb5c8a2",
+      "qecgraph/preparation/references.py": "e4809fe7f6ce8bace883b0786a9730a82600072476e64bce68368910381f05b0",
       "qecgraph/preparation/roundtrip.py": "8650e1ce0712a4685c2b3b2693935d2064caf5f7b139f13ca4a0e444e684c16a",
-      "qecgraph/preparation/sandbox.py": "b02695e0a9bfa80fe82a84ceac5e2357a7750e99de8d31497d02d08b7d12d069",
+      "qecgraph/preparation/sandbox.py": "04795d4c445041f13ae63e26fb5d651fec169c06ea940fd6ce710c65934b14e3",
       "qecgraph/preparation/scopes.py": "d1a74a089fc1a4252fc247a115373e84202967d8d4d08aab886be5763dc8475b",
-      "qecgraph/preparation/view_contract.py": "0395be577cc9e9297586bb9dfb74fc8af72c15b462804d598502d72979bb204c",
+      "qecgraph/preparation/view_contract.py": "50a61078d07d921575bb4f7cfbdba3a7899d2999d49250a7eefcc11daee980bc",
       "qecgraph/query.py": "b3acbc498d2333a39823611262e9091775321bb5aeda5026f667dc160fea0be2",
       "qecgraph/registry.py": "8ae7da35a4dc1633b6e83b55d975a3731454862f91e6efcd2de658adf8c0d36f",
       "qecgraph/render/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -562,14 +620,14 @@
       "qecgraph/workspace_publication.py": "d90aeede5710e53c7c41643594d2fd2332af99d297422425a34e10bd1f0bcc8a",
       "qecgraph/workspace_query.py": "a7587d8716029f36c74586eb1c99b6722629236a8bedd69adb802ff8031e914a",
       "tools/prepare_compiled.py": "895fd42b4a9d4d67fe2476821b98a64dd03aca89a58045809d4e73b284f704d1",
-      "tools/reproduce_preparation.py": "4b8724ee54f64f80ff4e3dcd49516e4bfb8f8d64f89b8f93bff9c0fb7eef6b21"
+      "tools/reproduce_preparation.py": "b55dbf1fdea12b6702be3ab97b3e99e78626d7db4d0f0be8c9730cd801673de8"
     },
     "platform": "macOS-27.2.1-arm64-arm-64bit-Mach-O",
     "python": "3.15.2",
-    "results_sha256": "24b92e5f3ff03f6f3192fa6242685bfcc406da273cb3e7aceb54641989027360",
-    "root": "build/preparation-v14/final",
-    "rule_version": "compile-prepare-v14",
-    "started_at": "2026-11-17T04:43:23.488901+00:00"
+    "results_sha256": "d85d5cf8a1146e05b9377f102764b7678b6cf7b7255ed121feb24b956a4139c1",
+    "root": "build/preparation-v18/final",
+    "rule_version": "compile-prepare-v18",
+    "started_at": "2026-11-17T05:38:45.869637+00:00"
   },
   "rows": [
     {
@@ -597,8 +655,18 @@
       "normalization_file": true,
       "package_sha256": "256ea08a5d91cc3bc50fc14a271e77e337e2345a50a7b50f6568d48450a0ca65",
       "paper": "0903.0566v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "8e33c5def4b6de0239e836a647f277929ff5b58a906d2dddb9361eeb26fe9fb6",
       "stages": {
         "compile": "complete",
@@ -645,8 +713,18 @@
       "normalization_file": true,
       "package_sha256": "f597aae24ddd562b8e5e8c7fe82d91a9a83a494afeee169fbb8496eb55b0ffdc",
       "paper": "1208.2317v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "736e53bef596e413138f56ba6ff8f4aa0d780cf2a7eec0386a3d654c0f750335",
       "stages": {
         "compile": "complete",
@@ -686,8 +764,18 @@
       "normalization_file": true,
       "package_sha256": "700cba0ce6979f58181aaa22b2edaedcfd352586399d8cf40ec118c04a95afb0",
       "paper": "1302.3428v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "82f6a1884a3da491561b1b88cf855df3528f0b381ec99d659f19c573f94d54cc",
       "stages": {
         "compile": "complete",
@@ -726,10 +814,20 @@
       "normalization_file": false,
       "package_sha256": "6d8398d5b0712b696ea25a5801b5cb950e82d57aa32c3f82a91ca5f7400d0039",
       "paper": "1804.03719v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "partial",
+        "body_syntax": "partial",
+        "cross_reference_bindings": "partial",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [
         "compile_failed"
       ],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "5338df77b5cd3a9da9f6a192a49b190856adf34eaffe5009540b81567dc0f85b",
       "stages": {
         "compile": "failed",
@@ -768,8 +866,18 @@
       "normalization_file": true,
       "package_sha256": "01e3d3abec16b93f103d00e9fdc3712cd0bb61c5b46ddacbce71d4acb5186f7e",
       "paper": "1907.02554v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "ca7e1ac4caab18f8fe166abba69c8a6a789e67c793b25d55fe2ed27134b9bf5a",
       "stages": {
         "compile": "complete",
@@ -808,8 +916,18 @@
       "normalization_file": true,
       "package_sha256": "db4ba929252c87ab094d5e9d35debe03174701dd1d63b3a71af86851551a1bdd",
       "paper": "1907.11157v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "6fd119b8f92b7636e87ba1c78bb39db241b60606a5cf1d9d982e9de837786948",
       "stages": {
         "compile": "complete",
@@ -848,8 +966,18 @@
       "normalization_file": true,
       "package_sha256": "8c48a66a14f447ffc8481a8732687d9e79d2be542835e3a252060523bef5397a",
       "paper": "2009.07851v3",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "3e783e0bbe0d11d13b30818b7662e52a221f8a51023aaa4965913df090092895",
       "stages": {
         "compile": "complete",
@@ -890,10 +1018,30 @@
       "normalization_file": true,
       "package_sha256": "621e0d1abccfdfa76f951fafff447f619f718f46611c247baa78dcb3b03fba87",
       "paper": "2012.04068v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "partial",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": [
+          {
+            "candidates": [
+              "syntax:2bd043b70ce8081838ba6235",
+              "syntax:b6757016255ae80318381c2e"
+            ],
+            "key": "lm:alpha-beta-exp",
+            "node": "syntax:f70a94792a10e6c4cc7dd3eb",
+            "status": "ambiguous"
+          }
+        ]
+      },
       "reasons": [
         "conversion_diagnostics"
       ],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "f08f66547c4f1d4fa1328fc19c56d0803b5c2b0e3f6b3d62d9e0eb4666ba5492",
       "stages": {
         "compile": "complete",
@@ -936,8 +1084,18 @@
       "normalization_file": true,
       "package_sha256": "24195340a2be98ff90506b83164f1ac1ff5fc86a054fad8d4a52f1c78456d837",
       "paper": "2012.09271v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "4aa46d2d5cb10c994d29c3ebc2e15491366b12fb0b9a6e862126cc73b7415853",
       "stages": {
         "compile": "complete",
@@ -978,10 +1136,84 @@
       "normalization_file": true,
       "package_sha256": "130d0eeada4f97430739d23efc1008b0571ddf38ed639aa339945aeb4a8c689e",
       "paper": "2102.06132v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "partial",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": [
+          {
+            "candidates": [
+              "syntax:f817e63db7d1c95769bd9a02",
+              "syntax:36deafe132ea62cf6c388c4e"
+            ],
+            "key": "fig:bitfliplep",
+            "node": "syntax:c74a616aed22acfa2c288efa",
+            "status": "ambiguous"
+          },
+          {
+            "candidates": [
+              "syntax:f817e63db7d1c95769bd9a02",
+              "syntax:36deafe132ea62cf6c388c4e"
+            ],
+            "key": "fig:bitfliplep",
+            "node": "syntax:dfa1ae8a7c46fc5859e2d408",
+            "status": "ambiguous"
+          },
+          {
+            "candidates": [
+              "syntax:24ad9c7a32b2eb2822280939",
+              "syntax:6975df7b80fbca6ab38f86fe"
+            ],
+            "key": "pij-approx",
+            "node": "syntax:8b4a95b47c219dcf538023c6",
+            "status": "ambiguous"
+          },
+          {
+            "candidates": [
+              "syntax:24ad9c7a32b2eb2822280939",
+              "syntax:6975df7b80fbca6ab38f86fe"
+            ],
+            "key": "pij-approx",
+            "node": "syntax:081a23d68fe070863c37edd7",
+            "status": "ambiguous"
+          },
+          {
+            "candidates": [
+              "syntax:24ad9c7a32b2eb2822280939",
+              "syntax:6975df7b80fbca6ab38f86fe"
+            ],
+            "key": "pij-approx",
+            "node": "syntax:693c5a938d428f2675958b34",
+            "status": "ambiguous"
+          },
+          {
+            "candidates": [
+              "syntax:24ad9c7a32b2eb2822280939",
+              "syntax:6975df7b80fbca6ab38f86fe"
+            ],
+            "key": "pij-approx",
+            "node": "syntax:ca2ae8011d3dc405582ff43f",
+            "status": "ambiguous"
+          },
+          {
+            "candidates": [
+              "syntax:24ad9c7a32b2eb2822280939",
+              "syntax:6975df7b80fbca6ab38f86fe"
+            ],
+            "key": "pij-approx",
+            "node": "syntax:79482864318613ccb8beab79",
+            "status": "ambiguous"
+          }
+        ]
+      },
       "reasons": [
         "conversion_diagnostics"
       ],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "ce40f29a2dba887e520ccc5646abe24900e6f8117213c98b858b63e68e4914ca",
       "stages": {
         "compile": "complete",
@@ -1025,8 +1257,18 @@
       "normalization_file": true,
       "package_sha256": "c722b60c4d3080c8b81a77011c7edfe04664b3ed75bfeeee277fa3da2a157228",
       "paper": "2103.02202v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "d882e8fe5351874013b7ba359eea936309023b37d38f6397d8037c5b7addcb12",
       "stages": {
         "compile": "complete",
@@ -1065,8 +1307,18 @@
       "normalization_file": true,
       "package_sha256": "f9ffda354a0e4855a99366ea515a7b725d67274ebdf198d671a7f85f478029a3",
       "paper": "2103.06309v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "7623533e63404f1b5817a9994ae5f14e03ac17dc282cad42c981f647753fdccc",
       "stages": {
         "compile": "complete",
@@ -1105,8 +1357,18 @@
       "normalization_file": true,
       "package_sha256": "969797ee6ecb5871a0b11155858af794d631a0303547d2a0c8428997b7e5c6f4",
       "paper": "2104.01180v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "f1bd996d71368782de566614cdf8134dab3cd43619f33eebb2c94a72b5a848ed",
       "stages": {
         "compile": "complete",
@@ -1145,8 +1407,18 @@
       "normalization_file": true,
       "package_sha256": "f7af32eb9738b5ba342fc2fcc47605544236ebd6fe9acccba118f3c3d1cf8dee",
       "paper": "2111.05176v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "14a6252bcc8b5f5b62d8ded5217a5955a41f55e8449b67160b1eceec95d42e94",
       "stages": {
         "compile": "complete",
@@ -1187,8 +1459,18 @@
       "normalization_file": true,
       "package_sha256": "b86af2d81370fce30c762389b1ffa971a5fd747922cdf24e5e555af4af081783",
       "paper": "2201.08309v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "7aace52456347b1b419a837ff46f7969705a2b35d71fc031cf5f18de32eac889",
       "stages": {
         "compile": "complete",
@@ -1229,8 +1511,18 @@
       "normalization_file": true,
       "package_sha256": "80bdb36621180b25c80353838a9b29fff7531352c53813e81014fea1792400e5",
       "paper": "2202.13641v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "3e480f4f69db4576cfe5ae8a1081b6466529e7e3ff193d55dd1caba7e45ba08e",
       "stages": {
         "compile": "complete",
@@ -1269,8 +1561,18 @@
       "normalization_file": true,
       "package_sha256": "39fee3c6dc8a9032b3d93d34cf8de4184820bdbf5d9448329733ab1a22762309",
       "paper": "2207.06431v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "2a23a8ed823097dad94cb9a4c9ef1e547dafa5f52eeb6ae3b08240ea819b1bff",
       "stages": {
         "compile": "complete",
@@ -1309,8 +1611,18 @@
       "normalization_file": true,
       "package_sha256": "4f3f49fdf8947eadd831dc1e397b567beb4609bb23f14a867a9948a7bec6df66",
       "paper": "2209.01119v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "32196b38d4a3c8c63546d90cd090b64aed5e8d2d96dbf701841599777ecdfa17",
       "stages": {
         "compile": "complete",
@@ -1327,43 +1639,51 @@
       ]
     },
     {
-      "diagnostic_codes": [
-        "preparation_failed"
-      ],
+      "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
       "entry": "main.tex",
-      "entry_selection": "configured",
+      "entry_selection": "automatic",
       "environment_declaration_count": 0,
-      "exit": 2,
+      "exit": 0,
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
       },
-      "nodes": 0,
+      "nodes": 11967,
       "normalization": {
-        "complete": false,
-        "native_compile": "not_run",
-        "pdf_text": "not_run",
-        "syntax_parse": null,
-        "transformations": null
+        "complete": true,
+        "native_compile": "complete",
+        "pdf_text": "equal",
+        "syntax_parse": "complete",
+        "transformations": {
+          "math_delimiter": 1424
+        }
       },
-      "normalization_file": false,
+      "normalization_file": true,
       "package_sha256": "de7844219c8bd68dc03ee8e2683e60e2323bbb32261398f8e9c993d478f6eaad",
       "paper": "2209.05640v1",
-      "reasons": [
-        "conversion_failed"
-      ],
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
+      "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": true,
       "source_tree_sha256": "a2e0501ce4384a2b7e268f24ef0a784ecb7d5cfe94fda4eb2913bb680d4bab68",
       "stages": {
         "compile": "complete",
-        "conversion": "partial",
-        "normalized_latex": "partial",
-        "references": "partial",
+        "conversion": "complete",
+        "normalized_latex": "complete",
+        "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
-      "status": "partial",
+      "status": "ready",
       "unmapped_conditions": [],
       "unresolved_cross_references": [],
       "warnings": []
@@ -1393,8 +1713,18 @@
       "normalization_file": true,
       "package_sha256": "caad7becc67a31426b5d8d7547779be24fa645dcdc24141434501c2b33cfa2f1",
       "paper": "2303.15933v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "660930ccd3405e98d7b7a449585e163fb11dee8020feca405b6c778f760ac21e",
       "stages": {
         "compile": "complete",
@@ -1433,8 +1763,18 @@
       "normalization_file": true,
       "package_sha256": "9a958f85a621f43c7d3aa9e206293f7a96800be46de6def98bb5d6706a7b97dc",
       "paper": "2308.02321v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "ad3c62be7a9ade23c8b34c037d5f3c4daeb4d06dd7b5e0a9840081405b082e29",
       "stages": {
         "compile": "complete",
@@ -1473,8 +1813,18 @@
       "normalization_file": true,
       "package_sha256": "7d3408adda52719fd9c4411d8a626421dfa72feece374acbad5bf11fa5644d17",
       "paper": "2308.07915v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "e5d6030f6346fb2461973ef0f9b53c03824b76fa7d74ca0fbe31bc431e83fce6",
       "stages": {
         "compile": "complete",
@@ -1516,10 +1866,57 @@
       "normalization_file": true,
       "package_sha256": "d0dc3ffbb467a71630efa6b930913d19ee3d5356c42412930bc43dbd96306b2e",
       "paper": "2308.07915v2",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "partial",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": [
+          {
+            "candidates": [
+              "syntax:b788df6988c37f02dfe58f81",
+              "syntax:b7700be5d9c14a61eac08a16"
+            ],
+            "key": "ABC2",
+            "node": "syntax:4664911d60b1fd0841bde8f6",
+            "status": "ambiguous"
+          },
+          {
+            "candidates": [
+              "syntax:26dd13c671bfc7fc86840997",
+              "syntax:24793d4afba66a4486daf3cf"
+            ],
+            "key": "alpha_beta_gamma_delta",
+            "node": "syntax:4d8708bda8954c1d386920f4",
+            "status": "ambiguous"
+          },
+          {
+            "candidates": [
+              "syntax:b788df6988c37f02dfe58f81",
+              "syntax:b7700be5d9c14a61eac08a16"
+            ],
+            "key": "ABC2",
+            "node": "syntax:04457c986d0fbf2d5a963751",
+            "status": "ambiguous"
+          },
+          {
+            "candidates": [
+              "syntax:26dd13c671bfc7fc86840997",
+              "syntax:24793d4afba66a4486daf3cf"
+            ],
+            "key": "alpha_beta_gamma_delta",
+            "node": "syntax:ad63a33fcdc89b670ad5907c",
+            "status": "ambiguous"
+          }
+        ]
+      },
       "reasons": [
         "conversion_diagnostics"
       ],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "ca32c6b767f29a6823b88b9fa97555994db22ed2ebb592f9053161e430f0a2ef",
       "stages": {
         "compile": "complete",
@@ -1564,8 +1961,18 @@
       "normalization_file": true,
       "package_sha256": "ff7e1c7054f88935970319e2ac131de67d0a65d688c0ef492e275d55efa7a9f2",
       "paper": "2408.13687v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "a28c11fcbf4e580519aaff52881569cae149ede6f54070124dc7fd7149332eda",
       "stages": {
         "compile": "complete",
@@ -1604,8 +2011,18 @@
       "normalization_file": true,
       "package_sha256": "e6269e71c69b61e317a2bcd4a803bab9b6d6532d2a3fe4e5d908fb412c344787",
       "paper": "2410.02885v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "86d8c41efbef64f30fbc56fb9451218776acfbffceee3b5d879f5a2a4cc30715",
       "stages": {
         "compile": "complete",
@@ -1645,8 +2062,18 @@
       "normalization_file": true,
       "package_sha256": "eee7394f81deebacca404e0e95c84694287670691228f6b73afce00e298a9cc7",
       "paper": "2411.11822v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "ed34fb64e38b8efd6e354232f9ae2dbca66b2e33200f657c7714c06b63b5e19a",
       "stages": {
         "compile": "complete",
@@ -1687,8 +2114,18 @@
       "normalization_file": true,
       "package_sha256": "8cba24a512a54698d110bc81f3efcd655b7f4e5c7934c0700dac8954c3aaf2ca",
       "paper": "2412.14256v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "75c1490cf79d885a92734199991e3e6f502b3adf9a081d26dc8cea628b63e65d",
       "stages": {
         "compile": "complete",
@@ -1727,8 +2164,18 @@
       "normalization_file": true,
       "package_sha256": "686d73f31e3684c5c5192192daeb7ffeda0d5a66f532a4b7d7895f8a9376e865",
       "paper": "2509.03613v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "b5f6dd46aa965552ec465b3086b3d4fc17cca66b1794d890f44331f045b06f39",
       "stages": {
         "compile": "complete",
@@ -1767,8 +2214,18 @@
       "normalization_file": true,
       "package_sha256": "414b5291ec22e54bee82e61f97e5cfda03f0eb79d99d42e4daaf457bff599c72",
       "paper": "2510.06495v2",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "dfebe8ce54b6ea52e685af0bc0c1990d11568d501b8807d59d0871460cf0e79a",
       "stages": {
         "compile": "complete",
@@ -1807,8 +2264,18 @@
       "normalization_file": true,
       "package_sha256": "9f93e3ff14a4a27ed7884cd698c48bddb00fe424119ae1574c2ed17c174c089b",
       "paper": "2511.01062v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "65d737f3fe91249bc35bc24454ca3bc25f5d19f0aa5405595ac78b6c039a2b38",
       "stages": {
         "compile": "complete",
@@ -1847,8 +2314,18 @@
       "normalization_file": true,
       "package_sha256": "bac94519760b3f83c9ebb9999612713ab5523367b8c70122c948c56eb5b3b478",
       "paper": "2511.01062v2",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "9435bbbb1f63ec0fa76aabdcaee280243fcc825236f5cc6738f91493e696f9f1",
       "stages": {
         "compile": "complete",
@@ -1887,8 +2364,18 @@
       "normalization_file": true,
       "package_sha256": "937cf5e26e6ebd61ec1912aeb52548e1396febc25226ccf0b256b871b2d9f80b",
       "paper": "2512.07737v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "b2238af7f9436bf3da3f122c45e0b9ffacb7d679fd38f5c88e7cb769657a4fc3",
       "stages": {
         "compile": "complete",
@@ -1927,8 +2414,18 @@
       "normalization_file": true,
       "package_sha256": "d0e9f8936a687fd9f90b026891004d0ca68732b92aa2db9c5e1c5c66c54dd3af",
       "paper": "2605.29137v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "8b3aa762f1f6d2ef89225be26c27db3d09dd05deeed3d871efd94151f7c56d1e",
       "stages": {
         "compile": "complete",
@@ -1969,8 +2466,18 @@
       "normalization_file": true,
       "package_sha256": "f21b456235b3e23ba4cb4431cf5f166dff192f02e2ddabf69095ebc43e0606b1",
       "paper": "2605.29554v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "d975299327c251dced72c1a08cf4a22666404d02da3a61503f990a8b05d31549",
       "stages": {
         "compile": "complete",
@@ -2009,8 +2516,18 @@
       "normalization_file": true,
       "package_sha256": "0674026d677625396ef510e6b1e1edf3c9006f9ea7a22c36e51616b6bdc23141",
       "paper": "2605.29774v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "488d262dea0c9084b90f16871685e4162b7fba12e6004dcf2de704586161c9df",
       "stages": {
         "compile": "complete",
@@ -2049,8 +2566,18 @@
       "normalization_file": true,
       "package_sha256": "f180d4f1b277f4d4e73ff08dc8a25fc9953b8dbf17da51e83a4098c88eca173b",
       "paper": "2605.30298v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "929f6b316151ad0ebeece3e135351f7b1dfce32f53821bdc1fbb28312f9fb4d0",
       "stages": {
         "compile": "complete",
@@ -2089,8 +2616,18 @@
       "normalization_file": true,
       "package_sha256": "71472bc4545e8a30beedefc968fab90ddfc1dff28166cc2584a3b814d03865a2",
       "paper": "2606.00045v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "d7d11f60d2d706207a43445f34629beb4f4c5f5113e1e80e770a7ef4812c0537",
       "stages": {
         "compile": "complete",
@@ -2129,8 +2666,18 @@
       "normalization_file": true,
       "package_sha256": "ba189214d54f3f9fc786f1720ba5e5235d15d683b6734fec3f5a24a3a998c7a4",
       "paper": "2606.30447v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "fae65333a04c88abe13fcd3601d208f31fe4a402d4f3610d8a1dec54b4d9b9fa",
       "stages": {
         "compile": "complete",
@@ -2169,8 +2716,18 @@
       "normalization_file": true,
       "package_sha256": "fa67a91955643baeb91331b7f724f421fb2ecdb0166519e1712a7648f4303c8b",
       "paper": "2607.00222v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "6af9dc0ef4c3ac264540fab9307ad0ac37b3803c0f0d0aff6cd82e85fddfd9bb",
       "stages": {
         "compile": "complete",
@@ -2209,8 +2766,18 @@
       "normalization_file": true,
       "package_sha256": "941063b27e9cf951aa1626b7f65b92f40b34a3625d39ba89213676f63a90f240",
       "paper": "2607.00262v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "6e05786def73a339352362efceb0de747083b691a8748f68266ce5fcb73755ba",
       "stages": {
         "compile": "complete",
@@ -2249,8 +2816,18 @@
       "normalization_file": true,
       "package_sha256": "5097bbbf80685c973281afe92127c5e0e609e1b407371d3970a93408192bd339",
       "paper": "2607.29382v2",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "f96681728c5b5ea983767659aa4ff9529b0c689e8ad08708d596d5626abef96d",
       "stages": {
         "compile": "complete",
@@ -2289,8 +2866,18 @@
       "normalization_file": true,
       "package_sha256": "12bb3e1bf392956808f34d0a09820795c179f01b3333d4477a0c87ad9a3bf1cc",
       "paper": "2609.22572v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "2a823f670f3c924473ef150db1f0c56b904b1ec11987894f8366550b3d4154f6",
       "stages": {
         "compile": "complete",
@@ -2305,61 +2892,62 @@
       "warnings": []
     },
     {
-      "diagnostic_codes": [
-        "normalized_latex_roundtrip_failed",
-        "syntax_incomplete",
-        "unclosed_conditional"
-      ],
+      "diagnostic_codes": [],
       "engine": "etex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
       "entry": "9407087.tex",
-      "entry_selection": "configured",
+      "entry_selection": "automatic",
       "environment_declaration_count": 0,
-      "exit": 2,
+      "exit": 0,
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
       },
-      "nodes": 8392,
+      "nodes": 8391,
       "normalization": {
-        "complete": false,
+        "complete": true,
         "native_compile": "complete",
         "pdf_text": "equal",
-        "syntax_parse": "partial",
+        "syntax_parse": "complete",
         "transformations": {}
       },
       "normalization_file": true,
       "package_sha256": "9a84cef701c8a76e3cd734ebe5b113f1839e991276e012aee236794dc8353d55",
       "paper": "hep-th/9407087v1",
-      "reasons": [
-        "conditional_view_not_mapped",
-        "conversion_diagnostics",
-        "nonstandard_document_body",
-        "unresolved_directives"
-      ],
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
+      "reasons": [],
+      "source_dialect": {
+        "dependency": {
+          "path": "/usr/local/texlive/2026/texmf-dist/tex/plain/harvmac/harvmac.tex",
+          "sha256": "65ff913ce13af190558fc07d161e90cf74f50ccd693ca95bb00dee2920535f1f",
+          "size": 15860
+        },
+        "grammar_version": 1,
+        "name": "harvmac"
+      },
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "b6f3f4cf2aa17dc7b58ceaadf0fd203598533118bd1d6953b8f43fd164f43944",
       "stages": {
         "compile": "complete",
-        "conversion": "partial",
-        "normalized_latex": "partial",
+        "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
-      "status": "partial",
-      "unmapped_conditions": [
-        {
-          "branch_selected": false,
-          "kind": "unmapped",
-          "range": [
-            66573,
-            94498
-          ],
-          "region": "body"
-        }
-      ],
+      "status": "ready",
+      "unmapped_conditions": [],
       "unresolved_cross_references": [],
-      "warnings": []
+      "warnings": [
+        "duplicate_labels"
+      ]
     },
     {
       "diagnostic_codes": [],
@@ -2387,8 +2975,18 @@
       "normalization_file": true,
       "package_sha256": "525bb123ba15c14b05ae36d09da433858f3d198e6b250a09ce43a833e209af74",
       "paper": "quant-ph/0001106v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "96c96b3314df6567c7322a5c81251f2b1eb90481225f8fafbcea97f689713473",
       "stages": {
         "compile": "complete",
@@ -2427,8 +3025,18 @@
       "normalization_file": true,
       "package_sha256": "70bf59629e09a0e71e71e9fe1c6be4323aa3c0fe2c48629fda49cdc2b71cf7a1",
       "paper": "quant-ph/0110143v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "0ea2895fdb84730f788aad00792becb6d447b6e580613f1d40163cd57c90dea7",
       "stages": {
         "compile": "complete",
@@ -2467,8 +3075,18 @@
       "normalization_file": true,
       "package_sha256": "153b7dfa555b0d21148c2ef383b426c4d5a9eb4117b7d2fb33db8c6569bb202a",
       "paper": "quant-ph/9604034v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "986bdbd251491872504483632005edd40d4411069e3da6aa34fba12a95beb8d3",
       "stages": {
         "compile": "complete",
@@ -2507,8 +3125,18 @@
       "normalization_file": true,
       "package_sha256": "895def913b9e8bcb511297698487f35ab3baf581ca3f4e630057990beeab780a",
       "paper": "quant-ph/9605021v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
       "reasons": [],
+      "source_dialect": null,
       "source_fidelity": true,
+      "source_projection_verified": false,
       "source_tree_sha256": "19ce6a3c318bd9b212f86f9ee7196c9429af31f743c85c38229b5d6ec24a7eb6",
       "stages": {
         "compile": "complete",
@@ -2523,13 +3151,14 @@
       "warnings": []
     }
   ],
-  "rule_version": "compile-prepare-v14",
+  "rule_version": "compile-prepare-v18",
   "schema": "qecgraph.preparation_acceptance/1",
   "scientific_acceptance": {
     "accepted": false,
     "reason": "No independent scientific gold or extraction is evaluated by this preparation report."
   },
   "scope": "Offline preparation only; zero model calls, no scientific extraction or original-database writes",
+  "source_projections_verified": 1,
   "status": "Mechanical preparation evidence; scientific usability is not accepted",
   "syntax_probes": {
     "cases": [

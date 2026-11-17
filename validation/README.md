@@ -30,17 +30,18 @@ it ran. A passing test does not make a paper's theorem true, a distance bound
 mathematically verified, or a Lean declaration semantically matched.
 
 The current [preparation acceptance report](preparation_acceptance.json) is generated
-from the full `compile-prepare-v14` replay, with every material bundle reopened,
+from the full `compile-prepare-v18` replay, with every material bundle reopened,
 counts and source-bound syntax probes recalculated, and corpus/code snapshots
 checked. Use `report_preparation.py` without `--check` to create a report first;
 repeat the same arguments with `--check` to detect drift without compilation or
 model calls. The committed report's `replay.argv` records the actual support paths,
-entry hints and probe configuration; the comparison pins the v10 baseline at
-`59a0b9f`. Native tool outcomes remain in the bundles, not copied test-suite claims.
+entry hints and probe configuration; the comparison pins the v14 baseline at
+`9f4f537`. Native tool outcomes remain in the bundles, not copied test-suite claims.
 
-This corpus contains 47 TeX inputs and one PDF negative case. Coverage counts and
+This corpus contains 47 TeX inputs and one PDF negative case. The report also lists
+body completeness, verified projections and native dialects. Coverage counts and
 remaining failures are mechanical preparation evidence, not scientific answer gold
-or mathematical validation. [Review 04](../docs/reviews/review-2026-11-17-compile-prepare-testing/04-preparation-hardening-and-remaining-work.zh-CN.md)
+or mathematical validation. [Review 05](../docs/reviews/review-2026-11-17-compile-prepare-testing/05-native-dialects-byte-projection-and-capabilities.zh-CN.md)
 records the comparable before/after numbers, executed checks, dependency provenance
 and outstanding work. The case-only asset match remains non-portable to a
 case-sensitive filesystem. The pinned machine-copy evaluation remains unaccepted

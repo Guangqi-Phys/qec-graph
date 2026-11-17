@@ -50,12 +50,23 @@ scientific extraction. See [the material contract](../docs/design/DESIGN.md#54-o
 ```sh
 python tools/prepare_compiled.py /path/to/source-tree --entry main.tex --out build/material/paper
 python tools/prepare_compiled.py --out build/material/paper --check
+python tools/prepare_compiled.py /path/to/source-tree --entry main.tex \
+  --support-dir /path/to/pinned-dependencies --out build/material/paper
 python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/material-replay
 python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifest.json \
   --replay build/material-replay --out build/preparation-acceptance.json
 python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifest.json \
   --replay build/material-replay --out build/preparation-acceptance.json --check
 ```
+
+After original compilation, supported invalid UTF-8 bytes can pass a reversible
+spelling and an additional native/PDF-text check; retain `source-projection.json`,
+`projected-sources/` and original byte locators. A pinned native Harvmac adapter
+keeps the source dialect while writing the common syntax/bibliography JSON.
+`manifest.preparation_capabilities` separates body, bibliography and cross-reference
+completeness without promoting overall partial material. `--support-dir` searches
+author package files, explicit support, then system files; changed supplied
+dependencies fail the build. Pin support contents and retain their hashes.
 
 `--engine` selects a local engine; repeat `--support-dir` for explicit, hashed
 support files. There are no dependency downloads or system TeX changes. Exit 0

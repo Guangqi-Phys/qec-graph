@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Extend offline preparation through `compile-prepare-v18` with verified reversible byte spelling and original byte locators, native entry sniffing, pinned Harvmac grammar, source-bound equations/outlines and bibliography bindings to consumed runtime text. Preserve native source bytes and reject unsupported grammar or mismatched comparison evidence.
+- Report body, bibliography and cross-reference capabilities independently while retaining strict overall readiness and ambiguous targets. Include these capabilities and projection/dialect evidence in generated acceptance reports.
+- Make explicit TeX support effective through deterministic search paths (author sources, supplied support, system), reject support mutation during compilation, and add real search-priority coverage.
 - Harden compile-first preparation through `compile-prepare-v14`: require consumed source declarations for environment label options, observe supported guards with isolated native instrumentation and matching PDF text, and bind include expansion to actual FLS inputs. Retain and independently validate original bytes, branch evidence and normalized header edit mappings.
 - Resolve wildcard bibliographies against emitted entries in their own scopes; diagnose absent evidence and ambiguous inline bibliography scopes. Add deterministic acceptance generation/checking with code/corpus identity checks, material revalidation, source probes and pinned-baseline comparisons.
 - Fix source-map revalidation for include argument tuples serialized as JSON arrays; add a regression from the real-corpus replay.

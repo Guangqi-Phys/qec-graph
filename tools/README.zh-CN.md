@@ -44,6 +44,8 @@ AUX/BBL/BCF 引用绑定。不调用 AI、不执行科研抽取。详见[材料�
 ```sh
 python tools/prepare_compiled.py /path/to/source-tree --entry main.tex --out build/material/paper
 python tools/prepare_compiled.py --out build/material/paper --check
+python tools/prepare_compiled.py /path/to/source-tree --entry main.tex \
+  --support-dir /path/to/pinned-dependencies --out build/material/paper
 python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/material-replay
 python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifest.json \
   --replay build/material-replay --out build/preparation-acceptance.json
@@ -55,6 +57,13 @@ python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifes
 不修改系统 TeX。退出 0 表示 ready，2 表示显式 partial，1 表示输入/配置或发布失败。
 partial 重试保留旧 ready 并写到 `.attempt`。`--check` 不重建，只验收产物和精确原文范围。
 macOS 使用 sandbox-exec；Linux 要求 bubblewrap。隔离不支持时不会执行无约束 TeX。
+编译成功后，受支持的非 UTF-8 字节可经可逆转写与额外原生/PDF 文字核验进入准备层，
+保存 `source-projection.json`、`projected-sources/` 和原始字节定位。Harvmac 使用已确认
+依赖版本的原生语法适配，TeX 导出保留原方言，结构与书目写入共用 JSON 合同。
+`manifest.preparation_capabilities` 分开报告正文、书目及交叉引用；整体 partial 不会被
+能力字段改为 ready。`--support-dir` 的搜索顺序为作者包内文件、显式支持、系统文件，
+编译若改写显式依赖则失败；支持目录需固定内容并保留哈希。
+
 `report_preparation.py` 只读完整回放和归档材料，重新计算计数及来源 probe；拒绝代码/语料
 哈希过时、缺失输入或摘要与材料不一致。回放使用 `--cases` 时，报告也须传相同 `--cases`。
 可用 `--baseline-revision <commit>` 固定比较基线，`--machine-evaluation <json>` 附加

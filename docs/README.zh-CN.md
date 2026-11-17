@@ -82,6 +82,7 @@ flowchart TD
 
 - [当前编译优先准备验收及剩余 partial 明细](../validation/preparation_acceptance.json)
 - [2026-11-17 准备流程加固与未完成事项（04）](reviews/review-2026-11-17-compile-prepare-testing/04-preparation-hardening-and-remaining-work.zh-CN.md)
+- [2026-11-17 原生方言、字节投影和分项能力（05）](reviews/review-2026-11-17-compile-prepare-testing/05-native-dialects-byte-projection-and-capabilities.zh-CN.md)
 
 当前文档树没有重定向页或归档页。被替代的设计页和用户指南保留在 Git history 中。
 带日期的评审、回复与决策记录永久保留在 `docs/reviews/`，不得在文档或项目清理中删除。

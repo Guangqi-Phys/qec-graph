@@ -346,16 +346,22 @@ author structure, tables/figures and their conditions, references, assets and ex
 original-source access. Preparation produces no QEC records, theorem judgments,
 proof dependencies, nine-question answers or model requests.
 
-The new workflow is `tools/prepare_compiled.py`: archive verification and safe
-unpacking → entry/build configuration → isolated native compilation → lossless
-optional native guard observation → TeX syntax conversion and citation adaptation → normalized LaTeX export → isolated
-recompilation and material validation → journaled publication. No static body
-preparation or AI pass runs before compilation.
+The workflow is `tools/prepare_compiled.py`: archive verification and safe
+unpacking → entry/build configuration → isolated native compilation → optional
+verified byte projection → optional native guard observation → source syntax and
+citation adaptation → normalized source export → isolated recompilation and
+material validation → journaled publication. Entry sniffing can recognize ASCII
+TeX boundaries in non-UTF-8 input and literal Harvmac entries; the compiler always
+receives original bytes. No static body preparation or AI runs before compilation.
 Entry ambiguity requires an explicit `--entry`; a package name is not a paper identity.
 
 | Module | Responsibility |
 | --- | --- |
 | `preparation/build.py` | Build the unchanged engineering copy; choose an allowlisted engine, preserve the same job's supplied BBL, run BibTeX/Biber when needed, collect actual FLS inputs/outputs and dependency hashes |
+| `preparation/entries.py` | Select a native build entry using a disposable recognition view; never rewrite the compiler input or resolve ambiguous roots by filename |
+| `preparation/projection.py` | After original compilation, spell consumed invalid UTF-8 bytes as TeX hexadecimal input, record reversible segments and original byte locators, and require matching native inputs/PDF text |
+| `preparation/harvmac.py`, `harvmac_refs.py` | Adapt a pinned, consumed native Harvmac grammar, original structure and compiled bibliography without changing the engine or replacing the class |
+| `preparation/capabilities.py` | Derive body, bibliography and cross-reference completeness separately; preserve the strict overall ready gate |
 | `preparation/compatibility.py` | Retry only an exact known class hash and native failure with a recorded build preamble; retain the failed log and preserve source bytes/job name |
 | `preparation/sandbox.py` | Credential-free child environment, bounded tools/process groups, restricted files and network; macOS sandbox-exec or Linux bubblewrap; no unsandboxed fallback |
 | `preparation/references.py` | Classic AUX and Biblatex BCF/BBL bindings; retain literal BIB entries and BBL variants, refsections, sorting contexts, display labels and exact provenance; duplicate/missing keys remain explicit |
@@ -416,6 +422,37 @@ Later renewals cannot change earlier calls. Declaration replacement text remains
 opaque; the braket package has an explicit one-argument grammar adapter. This does
 not execute user macros or infer their mathematical meaning.
 
+Byte projection is limited to consumed textual inputs and byte-oriented engines
+(`pdflatex`, `pdftex`, `latex`, `etex`). Valid UTF-8 is copied; each undecodable
+byte gets an explicit `^^hh` spelling, with a bounded copy/escape segment map. No
+Unicode glyph or Latin-1 encoding is guessed. Explicit source catcode changes
+are unsupported. The projected copy must compile, consume the same original input
+set and match original per-page PDF text; unavailable or failed evidence leaves
+partial material. Original bytes remain under `sources/` and in the input package.
+
+For changed files, `source_spans.layer=projected` and their UTF-8 characters,
+bytes, lines and hash address `projected-sources/`. Each locator also carries an
+`original_source` hash and enclosing **original byte range**, not invented original
+Unicode coordinates. `source-projection.json` records the complete transformation
+and native comparison; reopening recomputes allowed transformations and locators.
+Compose normalized → entry → working source → original bytes for quotations;
+projected strings are not verbatim source quotations. Unchanged files retain their
+original locators. `read_material` returns both source projection and assembly map.
+
+Native Harvmac support requires the consumed dependency SHA-256
+`65ff913ce13af190558fc07d161e90cf74f50ccd693ca95bb00dee2920535f1f`, a byte-oriented
+plain engine, literal Harvmac input/title/terminator, and unshadowed core grammar.
+Unknown versions or core redefinitions remain partial. The adapter preserves all
+TeX bytes and exports native syntax unchanged, with ordinary outline fields,
+explicit `harvmac_eqn` display-math payloads and source-bound label candidates.
+Generated controls such as `\ifa` are label macros rather than assumed conditions.
+Literal bibliography definitions bind only to uniquely matching consumed `refs.tmp`
+entries; TeX control-word spacing is normalized without merging words or tokens.
+Citation ranges expand only against an unambiguous complete sequence of compiled
+bibliography numbers; their original expression and endpoints remain explicit.
+Duplicate referenced labels remain ambiguous. This adapter follows Harvmac by
+Paul Ginsparg (CC BY 3.0); it copies no TeX implementation.
+
 `content.json.conditional_views` retains the guard range, category and whether a
 branch was selected. Preamble guards remain opaque syntax with observations;
 unknown body guards remain blockers, except the narrow categories below. The exact
@@ -430,7 +467,7 @@ not become body prose. The raw TeX and normalized view retain these bytes, inclu
 malformed syntax that TeX never executes. Consumers must honor the prepared syntax
 and inactive metadata rather than treat every raw-source token as active content.
 
-New `compile-prepare-v14` output requires strict document boundaries. The v10
+New `compile-prepare-v18` output requires strict document boundaries. The v10
 unique-document-marker fallback is not used for new conversion. Supported literal,
 line-bounded `\ifdefined\control` and `\ifx\control\control` guards in consumed
 sources can instead be observed by compiling a separately instrumented copy after
@@ -482,13 +519,14 @@ stays explicit. There is no AI rewriting, scientific classification or theorem i
 | `original.package`, `sources/` | Exact input package when supplied as a file, and every original member/asset; original hashes and versions remain distinct from derived artifacts |
 | `build/`, `build.json` | Relevant PDF/AUX/BBL/BCF/FLS/SyncTeX and logs when produced; exact commands, exits, tool version output, actual inputs/outputs, support and dependency hashes |
 | `build-view.json`, `build-view/` | Optional native guard probe: original/instrumented identities, precise markers, retained source instrumentation and native build/PDF-text evidence |
-| `entry.tex`, `content.json` | A byte-copy assembly created after native compilation and `qecgraph.prepared_syntax/1`: ordered syntax parents/children, outline, paragraph ranges, math, authored environments, tables, assets and reference occurrences |
+| `source-projection.json`, `projected-sources/`, `projection-build/` | Optional reversible byte spelling, full maps/hashes, isolated native build and required PDF-text evidence; originals remain separate |
+| `entry.tex`, `content.json` | A byte-copy assembly of verified working sources created after native compilation and `qecgraph.prepared_syntax/1`: ordered syntax parents/children, outline, paragraph ranges, math, authored environments, tables, assets and reference occurrences |
 | `normalized.tex`, `normalized-map.json` | Derived LaTeX and a full Unicode-codepoint mapping to `entry.tex`; distinguish copied text, explicit format rewrites and compiled bibliography insertions; exact quotations still use original source |
 | `normalization.json`, `normalized-build/` | Independent syntax/recompilation/PDF-text outcomes, exact commands and dependency bindings, transformation counts, derived build logs/PDF and comparison text when available |
 | `references.json` | `qecgraph.prepared_references/1`: emitted keys, scoped bindings, original BIB and consumed BBL text, contexts, identifiers present literally, conflicts and missing data |
 | `source-map.json` | Assembly-to-original mapping when conversion succeeds; nodes separately retain exact original spans and their hashes |
 | `coverage.json`, `diagnostics.json` | Conversion limits, inactive/uncompiled file inventory, opaque content, missing/ambiguous references with keys, duplicate-label observations, guarded-boundary and case-only-asset observations, and stage failures |
-| `manifest.json` | `qecgraph.prepare/3`, `compile-prepare-v14`, source/package hashes, artifact hashes, capabilities, independent stages, non-blocking `warnings` and `ready`/`partial` state |
+| `manifest.json` | `qecgraph.prepare/3`, `compile-prepare-v18`, source/package hashes, artifact hashes, capabilities, independent stages, non-blocking `warnings`, independently checked `preparation_capabilities` and strict `ready`/`partial` state |
 
 A ready handoff requires successful native compilation, complete supported syntax
 conversion, resolved applicable citations/cross-references, and independently verified
@@ -501,11 +539,15 @@ an input/configuration/publication error. A partial retry of a ready output goes
 `<out>.attempt`. Publication uses a writer lock and the existing backup/journal recovery.
 Source quotation coordinates are UTF-8 Unicode codepoint half-open ranges and 1-based
 lines, with separate byte ranges. Rendered text, PDF positions and SyncTeX hints never
-become exact original quotations. Non-UTF-8 source stays archived and explicitly partial.
+become exact original quotations. Non-UTF-8 source stays archived; it is partial unless its bounded byte projection and all other gates pass.
 Non-blocking observations such as a case-only asset match, a verified native guard
 observation, a drawing-only conditional or an unreferenced duplicate label are listed in
 `manifest.warnings`; they do not turn readiness into a portability or scientific claim.
-A successful compiler or a JSON validator does not establish scientific correctness.
+`preparation_capabilities` separately reports `body_syntax`, `bibliography_bindings`
+and `cross_reference_bindings`, plus unresolved references and candidate IDs. A paper
+with complete syntax but duplicate referenced labels can expose the former while
+remaining overall partial. Reading independently checks these claims; no dependency
+edge or unique target is guessed. A successful compiler or a JSON validator does not establish scientific correctness.
 `content.json` ranges continue to address `entry.tex`; they must not be applied to
 `normalized.tex`. `read_material` exposes both texts, the normalization report and
 the verified mapping. Older `qecgraph.prepare/3` v2/v3 bundles remain readable;
@@ -538,7 +580,10 @@ baseline provenance. It does not run native tools, infer scientific gold or clai
 that the separate unit/static/machine evaluations passed.
 
 Optional `--engine` and repeatable `--support-dir` make engine/dependency choices
-explicit; support files are copied and hashed in the isolated build. There is no
+explicit; support files are copied and hashed in the isolated build. Author package
+files take precedence, followed by explicit support and system files. Program-owned
+`TEXINPUTS`/`BIBINPUTS`/`BSTINPUTS` enforce this order; FLS records actual consumption.
+The build rejects a supplied dependency changed by compilation. There is no
 automatic dependency download, system TeX modification, source upload or AI repair.
 Linux isolation and scientific gold-label acceptance require their own executed checks;
 engineering replay results do not establish Usable (§16.8).
