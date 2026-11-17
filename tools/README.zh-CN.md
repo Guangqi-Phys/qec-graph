@@ -11,7 +11,7 @@
 | 发布 | `check_distribution.py`、`qec-graph.spec` | 分发包元数据检查和 PyInstaller spec |
 | 性能 | `bench.py` | 生成增量负载和固定来源基准 |
 | 知识证据 | `reproduce_knowledge.py` | 对比完整阅读、原文搜索和任务上下文；不执行 LLM |
-| 离线准备 | `prepare_compiled.py`、`reproduce_preparation.py`、`prepare_arxiv.py` | 先编译的来源材料与固定语料回放；保留静态兼容工具 |
+| 离线准备 | `prepare_compiled.py`、`reproduce_preparation.py`、`report_preparation.py`、`prepare_arxiv.py` | 先编译的来源材料与固定语料回放；保留静态兼容工具 |
 
 标准门禁：
 
@@ -45,12 +45,21 @@ AUX/BBL/BCF 引用绑定。不调用 AI、不执行科研抽取。详见[材料�
 python tools/prepare_compiled.py /path/to/source-tree --entry main.tex --out build/material/paper
 python tools/prepare_compiled.py --out build/material/paper --check
 python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/material-replay
+python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifest.json \
+  --replay build/material-replay --out build/preparation-acceptance.json
+python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifest.json \
+  --replay build/material-replay --out build/preparation-acceptance.json --check
 ```
 
 `--engine` 选择本地引擎；可重复 `--support-dir` 指定并记录支持文件哈希。不下载依赖、
 不修改系统 TeX。退出 0 表示 ready，2 表示显式 partial，1 表示输入/配置或发布失败。
 partial 重试保留旧 ready 并写到 `.attempt`。`--check` 不重建，只验收产物和精确原文范围。
 macOS 使用 sandbox-exec；Linux 要求 bubblewrap。隔离不支持时不会执行无约束 TeX。
+`report_preparation.py` 只读完整回放和归档材料，重新计算计数及来源 probe；拒绝代码/语料
+哈希过时、缺失输入或摘要与材料不一致。回放使用 `--cases` 时，报告也须传相同 `--cases`。
+可用 `--baseline-revision <commit>` 固定比较基线，`--machine-evaluation <json>` 附加
+独立评测的成功或失败证据；`--check` 不编译、不修改报告、不调用模型。
+
 交付为带 `content.json` 的 `qecgraph.prepare/3`，不是研究记录或 workspace 快照；尚无任意宏展开。
 
 流程导出 `normalized.tex` 和 `normalized-map.json`，再用同一引擎/支持文件重编译派生副本。

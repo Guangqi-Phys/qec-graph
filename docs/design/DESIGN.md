@@ -348,7 +348,7 @@ proof dependencies, nine-question answers or model requests.
 
 The new workflow is `tools/prepare_compiled.py`: archive verification and safe
 unpacking → entry/build configuration → isolated native compilation → lossless
-TeX syntax conversion and citation adaptation → normalized LaTeX export → isolated
+optional native guard observation → TeX syntax conversion and citation adaptation → normalized LaTeX export → isolated
 recompilation and material validation → journaled publication. No static body
 preparation or AI pass runs before compilation.
 Entry ambiguity requires an explicit `--entry`; a package name is not a paper identity.
@@ -360,13 +360,16 @@ Entry ambiguity requires an explicit `--entry`; a package name is not a paper id
 | `preparation/sandbox.py` | Credential-free child environment, bounded tools/process groups, restricted files and network; macOS sandbox-exec or Linux bubblewrap; no unsandboxed fallback |
 | `preparation/references.py` | Classic AUX and Biblatex BCF/BBL bindings; retain literal BIB entries and BBL variants, refsections, sorting contexts, display labels and exact provenance; duplicate/missing keys remain explicit |
 | `preparation/scopes.py`, `citations.py`, `crossrefs.py` | Keep document/bibliography namespaces distinct; locate literal calls, AUX-confirmed wrappers and exact generated-note payloads; imported AUX targets remain metadata |
-| `preparation/conditions.py`, `branches.py` | Record guard categories and narrow lexical inactive ranges after compilation; never choose unknown prose branches |
+| `preparation/conditions.py`, `branches.py`, `guard_syntax.py` | Classify guards, project verified branch observations and narrow lexical inactive ranges without altering original source |
+| `preparation/build_view.py`, `view_contract.py` | Instrument a separate copy after compilation; require stable native branch logs and equal PDF text, then independently validate instrumentation and source-view projection |
+| `preparation/environments.py`, `options.py` | Check consumed literal environment declarations and top-level option fields before binding environment labels |
 | `preparation/convert.py`, `source/syntax.py` | Preserve author syntax, paragraph reading ranges, heading hierarchy, math TeX, environments, footnotes, table cells/spans, asset links and textual cross-references; keep declaration bodies opaque |
 | `preparation/normalized.py` | Export a derived single-entry LaTeX view; normalize supported math delimiters, expand runtime-bound literal citation wrappers and inline consumed classic BBL only for supported standard classes; verify every copy/edit mapping |
 | `preparation/roundtrip.py` | Recompile the derived engineering copy using the original engine/support files; compare per-page non-whitespace PDF text when pdftotext is available; retain both build outcomes |
 | `preparation/contract.py` | Independent byte/codepoint/line, hash, hierarchy and full source-tiling checks; read a verified material handoff without compilation |
 | `preparation/pipeline.py` | Compile first, then convert, bind originals, validate and publish; failed/partial attempts retain a prior ready material |
 | `source/prepare.py` | Shared journaled publication and the retained static preparation compatibility API; no automatic fallback from the compile-first route |
+| `preparation/acceptance.py`, `tools/report_preparation.py` | Generate/check mechanical acceptance by reopening all frozen-corpus bundles and independently recalculating counts, source probes and the baseline comparison |
 
 The main representation is source-mapped TeX syntax JSON, with the original TeX
 available throughout. It does not depend on HTML/MathML or attempt to recover author
@@ -390,11 +393,22 @@ A literal label wrapper binds its actual argument to an emitted AUX label, retai
 both its call and definition; the AUX is not a substitute for missing source prose.
 Reference and label keys follow TeX argument tokenization: runs of whitespace collapse,
 so `\label{eq:a  b}` and `\ref{eq:a b}` address the same key. A literal environment
-option `label={key}` (the tcolorbox convention) becomes a label only when a unique AUX
-`\newlabel{key}` was emitted; an unconfirmed option stays unresolved. A case-only
+option `label={key}` becomes a label only when a consumed original `.tex`/`.sty`/`.cls`
+contains a unique supported `newtcolorbox` declaration forwarding
+its first optional argument as a standalone `#1` option, and AUX uniquely emitted
+`\newlabel{key}`. Literal argument counts 1–4 with a default are supported; dynamic,
+conditional or shadowed declarations remain unsupported. Declaration source spans,
+raw TeX and hashes are retained. Nested or duplicate `label` fields do not bind.
+An unconfirmed option stays unresolved. A case-only
 `\includegraphics` match is accepted only when the build FLS consumed that path, and
 `asset_case_mismatch` records that the package is not portable to case-sensitive
 filesystems.
+
+A literal `\nocite{*}` expands to actual emitted BBL/AUX entries within its bibliography
+scope, with an exact source call span. Missing emitted evidence is an explicit
+`wildcard_bibliography_unobserved` limitation, not an empty-list success. An inline
+`\bibitem` may bind to a non-primary scope only when the emitted scope is unique;
+repeated keys across scopes remain ambiguous.
 
 The preparation grammar learns argument counts from literal top-level declarations
 and document-level declaration aliases, at the declaration's source position.
@@ -416,18 +430,32 @@ not become body prose. The raw TeX and normalized view retain these bytes, inclu
 malformed syntax that TeX never executes. Consumers must honor the prepared syntax
 and inactive metadata rather than treat every raw-source token as active content.
 
-A document boundary is normally found without crossing an undecidable branch. When
-that strict scan finds no body and the successful native build has exactly one
-`\begin{document}`/`\end{document}` pair, a fallback masks only the conditional
-control words, records the boundary, and leaves every branch in the source. The guard
-is not treated as a selected prose branch. A directive inside the observed setup
-guard that the assembler actually resolved is recorded as an observation, not body
-loss; an unresolved directive still blocks ready. A conditional wholly inside a
-preserved `tikzpicture`, `picture`, `circuitikz`, `quantikz`, `forest` or `tikzcd`
-payload is recorded as `drawing_payload` and does not block reading. Other unmapped
-body guards remain blockers. These rules are `compile-prepare-v10`; environment
-label options and case-insensitive asset binding are separate additive fields, and
-older `prepare/3` bundles stay readable.
+New `compile-prepare-v14` output requires strict document boundaries. The v10
+unique-document-marker fallback is not used for new conversion. Supported literal,
+line-bounded `\ifdefined\control` and `\ifx\control\control` guards in consumed
+sources can instead be observed by compiling a separately instrumented copy after
+the unchanged original succeeds. A guard is selected only if its markers consistently
+report one branch, the probe compiles and its per-page non-whitespace PDF text
+matches the original. Inline/dynamic guards, unexecuted guards, context-dependent
+results or failed/missing comparisons provide no branch selection. The probe is
+bounded to 128 guards; it is not a general TeX interpreter.
+
+Assembly scans an offset-preserving active view but copies original bytes and only
+expands original files present in the native FLS input set. A resolved path absent
+from that set remains a `not_consumed` directive; unresolved active directives block
+ready. `inactive_ranges`, observed header/branch ranges and source maps identify
+which bytes are inactive. The normalized copy rewrites only an observed conditional
+header to `\iftrue`/`\iffalse`, with a checked edit mapping; both branch bodies remain
+archived. `build-view.json` binds the original and instrumented trees, retained
+markers, build outcome and PDF-text hashes. Reading a bundle revalidates those
+observations and the original-source projection without executing TeX. Refreshing
+artifact hashes alone cannot make a forged branch choice valid.
+
+A conditional wholly inside preserved `tikzpicture`, `picture`, `circuitikz`,
+`quantikz`, `forest` or `tikzcd` payload is recorded as `drawing_payload`; a drawing
+loop does not select one global branch. Other unmapped body guards remain blockers.
+The new evidence fields are additive; legacy `prepare/3` materials remain readable
+under their recorded rule version, which does not upgrade their evidence to v14.
 
 Native compatibility is deliberately narrow: the pinned Quantumarticle 4.2 class
 hash may retry its observed undefined `\@afterenddocumenthook` failure with the old
@@ -453,13 +481,14 @@ stays explicit. There is no AI rewriting, scientific classification or theorem i
 | --- | --- |
 | `original.package`, `sources/` | Exact input package when supplied as a file, and every original member/asset; original hashes and versions remain distinct from derived artifacts |
 | `build/`, `build.json` | Relevant PDF/AUX/BBL/BCF/FLS/SyncTeX and logs when produced; exact commands, exits, tool version output, actual inputs/outputs, support and dependency hashes |
+| `build-view.json`, `build-view/` | Optional native guard probe: original/instrumented identities, precise markers, retained source instrumentation and native build/PDF-text evidence |
 | `entry.tex`, `content.json` | A byte-copy assembly created after native compilation and `qecgraph.prepared_syntax/1`: ordered syntax parents/children, outline, paragraph ranges, math, authored environments, tables, assets and reference occurrences |
 | `normalized.tex`, `normalized-map.json` | Derived LaTeX and a full Unicode-codepoint mapping to `entry.tex`; distinguish copied text, explicit format rewrites and compiled bibliography insertions; exact quotations still use original source |
 | `normalization.json`, `normalized-build/` | Independent syntax/recompilation/PDF-text outcomes, exact commands and dependency bindings, transformation counts, derived build logs/PDF and comparison text when available |
 | `references.json` | `qecgraph.prepared_references/1`: emitted keys, scoped bindings, original BIB and consumed BBL text, contexts, identifiers present literally, conflicts and missing data |
 | `source-map.json` | Assembly-to-original mapping when conversion succeeds; nodes separately retain exact original spans and their hashes |
 | `coverage.json`, `diagnostics.json` | Conversion limits, inactive/uncompiled file inventory, opaque content, missing/ambiguous references with keys, duplicate-label observations, guarded-boundary and case-only-asset observations, and stage failures |
-| `manifest.json` | `qecgraph.prepare/3`, `compile-prepare-v10`, source/package hashes, artifact hashes, capabilities, independent stages, non-blocking `warnings` and `ready`/`partial` state |
+| `manifest.json` | `qecgraph.prepare/3`, `compile-prepare-v14`, source/package hashes, artifact hashes, capabilities, independent stages, non-blocking `warnings` and `ready`/`partial` state |
 
 A ready handoff requires successful native compilation, complete supported syntax
 conversion, resolved applicable citations/cross-references, and independently verified
@@ -473,8 +502,8 @@ an input/configuration/publication error. A partial retry of a ready output goes
 Source quotation coordinates are UTF-8 Unicode codepoint half-open ranges and 1-based
 lines, with separate byte ranges. Rendered text, PDF positions and SyncTeX hints never
 become exact original quotations. Non-UTF-8 source stays archived and explicitly partial.
-Non-blocking observations such as a case-only asset match, an observed guarded document
-boundary, a drawing-only conditional or an unreferenced duplicate label are listed in
+Non-blocking observations such as a case-only asset match, a verified native guard
+observation, a drawing-only conditional or an unreferenced duplicate label are listed in
 `manifest.warnings`; they do not turn readiness into a portability or scientific claim.
 A successful compiler or a JSON validator does not establish scientific correctness.
 `content.json` ranges continue to address `entry.tex`; they must not be applied to
@@ -490,6 +519,23 @@ python tools/prepare_compiled.py --out build/prepared/paper --recover
 python tools/reproduce_preparation.py \
   --manifest test-sources/arxiv-sources/manifest.json --out build/preparation-replay
 ```
+
+Generate the acceptance report after a complete frozen-corpus replay, then check it
+without recompiling. Use a pinned Git commit for the baseline report:
+
+```sh
+python tools/report_preparation.py \
+  --manifest test-sources/arxiv-sources/manifest.json --replay build/preparation-replay \
+  --cases validation/preparation_cases.json --baseline-revision 59a0b9f \
+  --out validation/preparation_acceptance.json
+# Repeat the same arguments with --check to verify the saved report.
+```
+
+The generator rejects changed corpus bytes, missing/duplicate input rows, stale
+executable-source hashes, material/summary mismatches and false probe claims. The
+report records exact replay arguments, code/config hashes, remaining partials and
+baseline provenance. It does not run native tools, infer scientific gold or claim
+that the separate unit/static/machine evaluations passed.
 
 Optional `--engine` and repeatable `--support-dir` make engine/dependency choices
 explicit; support files are copied and hashed in the isolated build. There is no

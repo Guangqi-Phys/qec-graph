@@ -12,7 +12,7 @@ tooling, not part of the installed `qecgraph` package.
 | Release | `check_distribution.py`, `qec-graph.spec` | Distribution metadata checks and PyInstaller spec |
 | Performance | `bench.py` | Generated incremental workload and pinned-source benchmark |
 | Knowledge evidence | `reproduce_knowledge.py` | Compare complete reading, source search and task context; no LLM execution |
-| Offline preparation | `prepare_compiled.py`, `reproduce_preparation.py`, `prepare_arxiv.py` | Compile-first source material and fixed-corpus replay; retain the static compatibility tool |
+| Offline preparation | `prepare_compiled.py`, `reproduce_preparation.py`, `report_preparation.py`, `prepare_arxiv.py` | Compile-first source material and fixed-corpus replay; retain the static compatibility tool |
 
 The standard gates are:
 
@@ -51,6 +51,10 @@ scientific extraction. See [the material contract](../docs/design/DESIGN.md#54-o
 python tools/prepare_compiled.py /path/to/source-tree --entry main.tex --out build/material/paper
 python tools/prepare_compiled.py --out build/material/paper --check
 python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/material-replay
+python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifest.json \
+  --replay build/material-replay --out build/preparation-acceptance.json
+python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifest.json \
+  --replay build/material-replay --out build/preparation-acceptance.json --check
 ```
 
 `--engine` selects a local engine; repeat `--support-dir` for explicit, hashed
@@ -59,7 +63,12 @@ means ready, 2 means explicit partial material, and 1 means an input/configurati
 or publication failure. A partial retry retains a ready output and writes `.attempt`.
 `--check` verifies artifacts and exact original spans without rebuilding. macOS
 uses sandbox-exec; Linux requires bubblewrap. Unsupported isolation never falls
-back to unrestricted TeX. The handoff is `qecgraph.prepare/3` with `content.json`,
+back to unrestricted TeX. `report_preparation.py` reopens every archived bundle and
+recalculates counts and source probes; stale code/corpus hashes, missing inputs or
+summary/material disagreement are rejected. Pass the same `--cases` used by the
+replay. `--baseline-revision <commit>` pins the comparison and
+`--machine-evaluation <json>` attaches separate success/failure evidence. `--check`
+does not compile, modify the report or call a model. The handoff is `qecgraph.prepare/3` with `content.json`,
 not a research record or workspace snapshot; arbitrary macro expansion is unavailable.
 
 The workflow exports `normalized.tex` and `normalized-map.json`, then recompiles

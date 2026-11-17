@@ -374,7 +374,7 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 引用、附件和精确原文访问。准备不生成 QEC 记录、定理判断、证明依赖、九问答案或模型请求。
 
 新流程为 `tools/prepare_compiled.py`：归档校验与安全解包 → 入口/构建配置 → 隔离的原生编译
-→ 无损 TeX 语法转换与引用适配 → 统一 LaTeX 导出 → 隔离重编译与材料验收 → 日志式原子发布。
+→ 可选原生分支观测 → 无损 TeX 语法转换与引用适配 → 统一 LaTeX 导出 → 隔离重编译与材料验收 → 日志式原子发布。
 编译前不做静态正文准备或 AI 处理。入口歧义使用显式 `--entry`；包名不决定论文身份。
 
 | 模块 | 职责 |
@@ -384,13 +384,16 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 | `preparation/sandbox.py` | 子进程不继承凭据；限制工具、进程组、目录和网络；macOS 使用 sandbox-exec，Linux 使用 bubblewrap；没有无隔离回退 |
 | `preparation/references.py` | 适配经典 AUX 与 Biblatex BCF/BBL；保留字面 BIB、BBL 变体、refsection、排序上下文、显示标签及来源；重复或缺失 key 明示 |
 | `preparation/scopes.py`、`citations.py`、`crossrefs.py` | 区分文档/书目命名空间；定位字面调用、AUX 确认的包装宏与精确脚注内容；外部 AUX 目标仅为元数据 |
-| `preparation/conditions.py`、`branches.py` | 编译后记录条件类别与有限的字面非活动范围；不猜测未知正文分支 |
+| `preparation/conditions.py`、`branches.py`、`guard_syntax.py` | 记录条件类别，投影已验证分支和有限的字面非活动范围，不改原文 |
+| `preparation/build_view.py`、`view_contract.py` | 原始编译后单独插桩编译；要求稳定原生日志与相同 PDF 文字，独立核验插桩及来源投影 |
+| `preparation/environments.py`、`options.py` | 核验实际消费的原始环境声明与顶层选项字段，再绑定环境标签 |
 | `preparation/convert.py`、`source/syntax.py` | 保留作者语法、段落阅读范围、标题层级、数学 TeX、环境、脚注、表格单元格/合并、资产关联及文本交叉引用；宏定义体不当正文解释 |
 | `preparation/normalized.py` | 导出派生的单入口 LaTeX；统一支持的数学定界符，展开运行时 key 已确认的字面引用宏，仅对支持的标准文档类内联实际使用的经典 BBL；校验每段复制/改写映射 |
 | `preparation/roundtrip.py` | 用原引擎/支持文件重新编译派生工程；pdftotext 可用时比较逐页去空白文字，保留两次构建的结果 |
 | `preparation/contract.py` | 独立检查字节/字符/行、哈希、层级和全文覆盖；只读验收材料包时不编译 |
 | `preparation/pipeline.py` | 先编译、再转换，绑定原始材料、验收并发布；失败/partial 尝试保留已有 ready 材料 |
 | `source/prepare.py` | 共用日志式原子发布与保留的静态准备兼容 API；编译路线不会自动回退到它 |
+| `preparation/acceptance.py`、`tools/report_preparation.py` | 重新打开完整固定语料的材料包，重算计数、来源 probe 和基线差异，生成/检查机械验收报告 |
 
 主格式为带来源映射的 TeX 语法 JSON，始终可以访问原始 TeX。不依赖 HTML/MathML，也不
 试图从 PDF 恢复全部作者结构。TeX 编译提供运行时引用观测；**尚未实现**任意宏展开成
@@ -407,9 +410,16 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 未定位或未绑定的调用仍为 partial。字面标签包装宏的实参必须得到 AUX 确认，并同时保留
 调用与定义位置；不能用 AUX 记录冒充缺失的原文。标签和引用 key 按 TeX 参数词法折叠连续
 空白，因此 `\label{eq:a  b}` 与 `\ref{eq:a b}` 指向同一 key。环境选项
-`label={key}`（tcolorbox 约定）只有在 AUX 唯一发出 `\newlabel{key}` 时才成为标签；
-未确认的选项保持未解析。仅大小写不同的 `\includegraphics` 目标只有在构建 FLS 实际
+`label={key}` 只有在实际消费的原始 `.tex`/`.sty`/`.cls` 中，存在唯一且受支持的
+`newtcolorbox` 声明，把首个可选参数作为独立 `#1` 选项转交，
+并且 AUX 唯一发出 `\newlabel{key}` 时才成为标签。仅支持有默认值、字面参数数为
+1–4 的声明；动态、条件内或有重定义歧义的声明不支持。声明保留精确来源、原始 TeX 和
+哈希；嵌套或重复的 `label` 字段不绑定。未确认的选项保持未解析。仅大小写不同的 `\includegraphics` 目标只有在构建 FLS 实际
 读取该路径时才接受，并记录 `asset_case_mismatch`，不声称可移植到大小写敏感文件系统。
+
+字面 `\nocite{*}` 按书目作用域展开为 BBL/AUX 实际发出的条目，并绑定精确调用位置。
+没有运行时条目证据时明确报 `wildcard_bibliography_unobserved`，不能以空列表通过。
+原始内联 `\bibitem` 仅在编译作用域唯一时绑定非主书目；跨作用域同 key 保持歧义。
 
 准备语法从明确的顶层声明、正文顶层的声明别名中读取参数个数，并绑定声明发生位置；
 后面的重定义不会改变前面的调用。替换体仍是不透明的原文。braket 包有明确的一参数
@@ -441,13 +451,14 @@ Multibib 调用同样保留。源码语法不完整时，统一视图只复制�
 | --- | --- |
 | `original.package`、`sources/` | 文件输入的原始包，以及所有原始成员/附件；原始哈希和版本与派生产物分开 |
 | `build/`、`build.json` | 实际生成的相关 PDF/AUX/BBL/BCF/FLS/SyncTeX 与日志；确切命令、退出状态、工具版本输出、实际输入/输出、支持文件与依赖哈希 |
+| `build-view.json`、`build-view/` | 可选原生分支探针：原始/插桩身份、精确标记、插桩源码与原生构建/PDF 文字证据 |
 | `entry.tex`、`content.json` | 原生编译之后创建的原字节组装，以及 `qecgraph.prepared_syntax/1`：有序语法父子节点、目录、段落范围、数学、作者环境、表格、资产和引用发生位置 |
 | `normalized.tex`、`normalized-map.json` | 派生 LaTeX 及完整的 Unicode codepoint 到 `entry.tex` 映射；区分原样复制、明确格式改写和编译文献插入；精确引句仍使用原始来源 |
 | `normalization.json`、`normalized-build/` | 独立的语法/重编译/PDF 文字结果、确切命令与依赖绑定、转换数量、派生构建日志/PDF，以及可用时的比较文字 |
 | `references.json` | `qecgraph.prepared_references/1`：编译 key、作用域绑定、原始 BIB 与实际使用的 BBL 文本、上下文、字面存在的标识符、冲突和缺项 |
 | `source-map.json` | 转换成功时的组装到原文映射；节点另外保留精确原始范围和哈希 |
-| `coverage.json`、`diagnostics.json` | 转换限制、非活动/未参与阅读的文件清单、opaque 内容、带 key 的缺失/歧义引用、重复标签观测、受保护文档边界与大小写资产观测，以及各阶段失败 |
-| `manifest.json` | `qecgraph.prepare/3`、`compile-prepare-v10`、来源/包哈希、产物哈希、能力、独立阶段、非阻断 `warnings` 和 ready/partial 状态 |
+| `coverage.json`、`diagnostics.json` | 转换限制、非活动/未参与阅读的文件清单、opaque 内容、带 key 的缺失/歧义引用、重复标签观测、原生分支与大小写资产观测，以及各阶段失败 |
+| `manifest.json` | `qecgraph.prepare/3`、`compile-prepare-v14`、来源/包哈希、产物哈希、能力、独立阶段、非阻断 `warnings` 和 ready/partial 状态 |
 
 ready 要求原生编译成功、支持的语法转换完整、适用引用/交叉引用可解析，并独立验证来源保真；资产调用须无歧义，且没有阻断性诊断。
 统一视图还须通过语法检查和原生重编译；观察到 PDF 文字不一致会阻止 ready。
@@ -457,19 +468,28 @@ PDF 文字一致不能证明像素一致或数学等价。
 已有 ready 产物的 partial 重试写到 `<out>.attempt`。发布沿用写锁、备份/日志恢复。
 原文坐标为 UTF-8 解码后的 Unicode codepoint 半开区间、1-based 行号，并分别保留字节范围；
 排版文本、PDF 位置和 SyncTeX 提示不能充当精确原文引句。非 UTF-8 来源仍归档并明确 partial。
-仅大小写资产匹配、观测到的受保护文档边界、绘图内部条件或未被引用的重复标签等非阻断
+仅大小写资产匹配、经验证的原生分支观测、绘图内部条件或未被引用的重复标签等非阻断
 观测会写入 `manifest.warnings`；它们不把 ready 变成可移植性或科学正确性的声明。
 编译成功或 JSON 校验通过不证明科学正确性。
 `content.json` 的范围仍指向 `entry.tex`，不能套到 `normalized.tex` 上。
 
-文档边界通常不跨越不可判定分支。若严格扫描找不到正文，而成功的原生构建中恰好只有一对
-`\begin{document}`/`\end{document}`，回退逻辑只遮蔽条件控制词、记录边界，并保留所有
-分支原文；不把该条件当作已选择的正文分支。若组装器实际解析了观测到的导言保护内的
-指令，则记为观测而不是正文缺失；仍未解析的指令继续阻止 ready。完整位于保留的
-`tikzpicture`、`picture`、`circuitikz`、`quantikz`、`forest` 或 `tikzcd` 载荷内的
-条件记为 `drawing_payload`，不阻止阅读；其他未映射正文条件仍是阻断项。这些规则属于
-`compile-prepare-v10`；环境标签选项和大小写资产绑定是独立附加字段，旧 `prepare/3`
-材料仍可读取。
+新 `compile-prepare-v14` 产物要求严格文档边界，不再使用 v10 的唯一文档标记回退。
+原文编译成功后，可对实际消费来源中独占行的字面 `\ifdefined\control` 和
+`\ifx\control\control` 做独立副本插桩编译。只有原生日志稳定观测到单一分支、探针
+编译成功且逐页去空白 PDF 文字与原构建相等时，才能选择该分支。行内/动态条件、未执行
+条件、随执行上下文变化的结果或比较失败/缺失都不提供选择。最多观测 128 个条件；
+这不是通用 TeX 解释器。
+
+组装器扫描保持字符偏移的活动视图，但复制原始字节，且只展开 FLS 确认实际消费的
+原始文件。存在但未消费的目标保留为 `not_consumed` 指令；活动区未解析指令仍阻止 ready。
+`inactive_ranges`、观测头部/分支范围与 source map 标明非活动字节。统一副本仅把已观测
+条件头部改成 `\iftrue`/`\iffalse`，并逐段核验编辑映射；两侧分支原文仍保留。
+`build-view.json` 绑定原始/插桩文件树、精确标记、构建结果和 PDF 文字哈希；只读打开时
+独立重查这些证据和原文投影，无需再运行 TeX。仅刷新产物哈希不能使伪造分支通过。
+
+完整位于保留的 `tikzpicture`、`picture`、`circuitikz`、`quantikz`、`forest` 或 `tikzcd`
+载荷内的条件仍记为 `drawing_payload`，绘图循环不选择全局单一分支。其他未映射正文
+条件继续阻断。新证据字段是附加字段；旧 `prepare/3` 按原记录规则读取，不升级为 v14 证据。
 `read_material` 返回两种文本、统一格式报告及已验证映射。旧 `qecgraph.prepare/3` v2/v3
 材料仍可读取；v4 及之后的 ready 材料必须包含额外的统一格式产物并通过检查。
 
@@ -481,6 +501,20 @@ python tools/prepare_compiled.py --out build/prepared/paper --recover
 python tools/reproduce_preparation.py \
   --manifest test-sources/arxiv-sources/manifest.json --out build/preparation-replay
 ```
+
+完整固定语料回放后生成验收报告；用固定 Git commit 读取基线报告：
+
+```sh
+python tools/report_preparation.py \
+  --manifest test-sources/arxiv-sources/manifest.json --replay build/preparation-replay \
+  --cases validation/preparation_cases.json --baseline-revision 59a0b9f \
+  --out validation/preparation_acceptance.json
+# Repeat the same arguments with --check to verify the saved report.
+```
+
+生成器拒绝语料字节变化、遗漏/重复输入、过时执行代码哈希、材料与摘要不符、伪造 probe
+结果。报告记录精确回放参数、代码/配置哈希、剩余 partial 和基线来源。生成器本身不运行
+原生工具、不推断科学金标，也不声称独立测试、静态检查或 machine 评测已经通过。
 
 可选 `--engine` 和可重复的 `--support-dir` 明示引擎/依赖选择；支持文件复制到隔离副本并记录哈希。
 不自动下载依赖、修改系统 TeX、上传来源或执行 AI 修复。Linux 隔离和科学金标仍需独立实测；
