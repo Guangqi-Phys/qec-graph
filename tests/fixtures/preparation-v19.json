@@ -1,0 +1,644 @@
+{
+  "ambiguous": {
+    "compiler_calls": 2,
+    "manifest": {
+      "artifacts": {
+        "build-view.json": "c275f3745819a23e5cde861bd5f240a6acc6cf3f984edcb1bc1377975d409cd1",
+        "build.json": "8921a5aaa9cea2d25b712104ccfcb18fd2ad9effd004c42d65d7a3a2fd68f5d1",
+        "content.json": "0c82181b92ca2eda9801dfdaa9242e853d55d0f6da89793518e21c77da8843a9",
+        "coverage.json": "59d4c8b1166bffe1df56c14cfe6214341c5ad7cc926965dd4d9fc1a37ed9b283",
+        "diagnostics.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "entry.tex": "1de093ff8d64d58bb71588ca951e00669771e16e7b59d07bf5ae48d16a891151",
+        "normalization.json": "61fed89087df0cf29640549272fbd98b863eda19cb8dbdb32cc70ea8443c3f10",
+        "normalized-map.json": "3c4b0b5c7fb65af52f9917125c94ad4c37982d68eac06f6d105054bbce00cca3",
+        "normalized.tex": "1de093ff8d64d58bb71588ca951e00669771e16e7b59d07bf5ae48d16a891151",
+        "references.json": "2221adef086295d72ce4cbca4aa45db483c5242832f71c3f2e4335ee79e1e28b",
+        "source-map.json": "fe67d23f8c35d585caae1cf31c32209e82cb15c608e15ce74d791397d0f8091d",
+        "sources/main.tex": "1de093ff8d64d58bb71588ca951e00669771e16e7b59d07bf5ae48d16a891151"
+      },
+      "capabilities": {
+        "arbitrary_macro_expansion": false,
+        "normalized_latex": true,
+        "originals": true,
+        "scientific_extraction": false,
+        "syntax": true
+      },
+      "entry": "main.tex",
+      "limitations": [
+        "Native compilation is one build view; unmapped conditionals remain partial.",
+        "The normalized handoff preserves original TeX syntax; it is not rendered semantic text.",
+        "No theorem truth, experiment binding, numeric curve extraction or nine-question answers are produced."
+      ],
+      "loading": {},
+      "model_calls": 0,
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "partial",
+        "cross_reference_preparation": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": [
+          {
+            "candidates": [
+              "syntax:68d45473e1d3dc14a83500b1",
+              "syntax:bb6737e2abb820e4755cd419"
+            ],
+            "key": "x",
+            "node": "syntax:73e41bd8b58d5336c774b8fa",
+            "status": "ambiguous"
+          }
+        ]
+      },
+      "rule_version": "compile-prepare-v19",
+      "schema": "qecgraph.prepare/3",
+      "source_tree_sha256": "bd418e631f3f81a590479341c18edbc15ca74825542debf044d497aaee787d7c",
+      "sources": [
+        {
+          "path": "main.tex",
+          "sha256": "1de093ff8d64d58bb71588ca951e00669771e16e7b59d07bf5ae48d16a891151",
+          "size_bytes": 86
+        }
+      ],
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "normalized_latex": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "status": "ready",
+      "warnings": [
+        "cross_reference_ambiguous",
+        "duplicate_labels"
+      ]
+    }
+  },
+  "bibliography": {
+    "compiler_calls": 2,
+    "manifest": {
+      "artifacts": {
+        "build-view.json": "2776a80151a8fcef709641d62bc9909e4b3f94f7f7040d01ca55f9ad5806085c",
+        "build.json": "b2ef6299dc609f63538882a3784b61f3b0d0011496a9ccaf75683bcac815ce15",
+        "build/files/main.aux": "27877e9cbbd7161231152196e79e8c362395ee9593eab1ec29e5481a350fdadc",
+        "build/files/main.bbl": "e0037f65822ded311b6866131b9aa47253c85b32d0dce6fe54fb32ede6fcb359",
+        "content.json": "990f6442ed15a377d809d2318f6052267375a655a19de92353bffdc89b645237",
+        "coverage.json": "d49331b77c2dee99238c3dc144019672a54a73630c3213d0779fbd92557ba046",
+        "diagnostics.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "entry.tex": "2a31164bf9630e5e54f3d8949ed5150101001cbe2d06358585cd163cc6b3c205",
+        "normalization.json": "787c22b8b38d60aa4d39753bd450bb5bbe458263ac4b456ca2aee1d600793e14",
+        "normalized-build/files/main.aux": "27877e9cbbd7161231152196e79e8c362395ee9593eab1ec29e5481a350fdadc",
+        "normalized-build/files/main.bbl": "e0037f65822ded311b6866131b9aa47253c85b32d0dce6fe54fb32ede6fcb359",
+        "normalized-map.json": "07218894e62df6595f2abebf4c574de04573e94ace663ef143640a616008e974",
+        "normalized.tex": "d34dcf443fa66d997e7b7fee3e64f320bf9d8989f765e419710b1b458b9e5ed3",
+        "references.json": "aea35607ffe4c24b6b684727f41a9f955182c2bc2ce8494775165f46d4719822",
+        "source-map.json": "d3bb71e14dc658a8beb81b34fcdb4057ad5c0349aa08098794a8b3b6b9a4ed1c",
+        "sources/main.tex": "2a31164bf9630e5e54f3d8949ed5150101001cbe2d06358585cd163cc6b3c205",
+        "sources/refs.bib": "335b1aeb881a46190075fc4f90240376dedf9943e3061901b2e39f48f6082960"
+      },
+      "capabilities": {
+        "arbitrary_macro_expansion": false,
+        "normalized_latex": true,
+        "originals": true,
+        "scientific_extraction": false,
+        "syntax": true
+      },
+      "entry": "main.tex",
+      "limitations": [
+        "Native compilation is one build view; unmapped conditionals remain partial.",
+        "The normalized handoff preserves original TeX syntax; it is not rendered semantic text.",
+        "No theorem truth, experiment binding, numeric curve extraction or nine-question answers are produced."
+      ],
+      "loading": {},
+      "model_calls": 0,
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
+      "rule_version": "compile-prepare-v19",
+      "schema": "qecgraph.prepare/3",
+      "source_tree_sha256": "ca021d226fbe7a57b6b84f66384c3cdd5d033ea0f856c638f4637e8e1c2b400c",
+      "sources": [
+        {
+          "path": "main.tex",
+          "sha256": "2a31164bf9630e5e54f3d8949ed5150101001cbe2d06358585cd163cc6b3c205",
+          "size_bytes": 110
+        },
+        {
+          "path": "refs.bib",
+          "sha256": "335b1aeb881a46190075fc4f90240376dedf9943e3061901b2e39f48f6082960",
+          "size_bytes": 65
+        }
+      ],
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "normalized_latex": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "status": "ready",
+      "warnings": []
+    }
+  },
+  "byte_projection_failed": {
+    "compiler_calls": 2,
+    "manifest": {
+      "artifacts": {
+        "build.json": "8921a5aaa9cea2d25b712104ccfcb18fd2ad9effd004c42d65d7a3a2fd68f5d1",
+        "content.json": "1285e1c0874d9f2efca3872849b34d09dcaa988786c52c76a1e3a8fda49c14eb",
+        "coverage.json": "63ce84700a0b590033249800c10ca781250ce5916384ec60e2fa363f4cdd07b2",
+        "diagnostics.json": "83be3a2d4baa3ee141a336297843bc9ab2691d4ad5083f58c440b1dcf94a18e4",
+        "entry.tex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "normalization.json": "eb4111d9a15cbb471f8a6b5e2c197495e530034cce582e2440b7eb3b9e899008",
+        "projected-sources/main.tex": "ad34faa33f559a7b13a46b53ced840dac0be09308931053661b2ef00794013b3",
+        "references.json": "c86515169bea283836329fe215159acce8bf3efe50baa9dacfd8d0819249de3f",
+        "source-projection.json": "1d12771c99ca48ba12dddfdc56fcf54e248d9f1fc254176f34351772ad32502b",
+        "sources/main.tex": "4a2fd1e4649ddca3e7cad6071bfdb9464cd5d54a6f4b96460d096d50a30a51ed"
+      },
+      "capabilities": {
+        "arbitrary_macro_expansion": false,
+        "normalized_latex": false,
+        "originals": true,
+        "scientific_extraction": false,
+        "syntax": false
+      },
+      "entry": "main.tex",
+      "limitations": [
+        "Native compilation is one build view; unmapped conditionals remain partial.",
+        "The normalized handoff preserves original TeX syntax; it is not rendered semantic text.",
+        "No theorem truth, experiment binding, numeric curve extraction or nine-question answers are produced."
+      ],
+      "loading": {},
+      "model_calls": 0,
+      "preparation_capabilities": {
+        "bibliography_bindings": "partial",
+        "body_syntax": "partial",
+        "cross_reference_bindings": "partial",
+        "cross_reference_preparation": "partial",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
+      "rule_version": "compile-prepare-v19",
+      "schema": "qecgraph.prepare/3",
+      "source_tree_sha256": "0cc05b753397afc5446914197b02dd4267bfeeeb99379ac86ed6837090c3110b",
+      "sources": [
+        {
+          "path": "main.tex",
+          "sha256": "4a2fd1e4649ddca3e7cad6071bfdb9464cd5d54a6f4b96460d096d50a30a51ed",
+          "size_bytes": 60
+        }
+      ],
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "normalized_latex": "partial",
+        "references": "partial",
+        "source_fidelity": "checked_at_publication"
+      },
+      "status": "partial",
+      "warnings": []
+    }
+  },
+  "compile_exception": {
+    "compiler_calls": 1,
+    "manifest": {
+      "artifacts": {
+        "build.json": "463c542c66a50d8d1e4769f67cbd9830fd6ead43d36080132d2c72b770c64a28",
+        "build/logs/last-command.log": "27915aa621279e51c406521835fca56072a2387bbbc3c41166f499cbc7ce78c9",
+        "content.json": "1285e1c0874d9f2efca3872849b34d09dcaa988786c52c76a1e3a8fda49c14eb",
+        "coverage.json": "532fb484902f17f97498febef259bd57d1728eb9a94f2d0900ce4feeb448673f",
+        "diagnostics.json": "63645bff93c4d4c236101acb4cbcfc016995e7fdad6dde3c3a0e7b0854c93890",
+        "entry.tex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "normalization.json": "eb4111d9a15cbb471f8a6b5e2c197495e530034cce582e2440b7eb3b9e899008",
+        "references.json": "c86515169bea283836329fe215159acce8bf3efe50baa9dacfd8d0819249de3f",
+        "sources/main.tex": "cd02121102d49338c5047fe3030390b63d938400d900cfbf8f442785fffb989f"
+      },
+      "capabilities": {
+        "arbitrary_macro_expansion": false,
+        "normalized_latex": false,
+        "originals": true,
+        "scientific_extraction": false,
+        "syntax": false
+      },
+      "entry": "main.tex",
+      "limitations": [
+        "Native compilation is one build view; unmapped conditionals remain partial.",
+        "The normalized handoff preserves original TeX syntax; it is not rendered semantic text.",
+        "No theorem truth, experiment binding, numeric curve extraction or nine-question answers are produced."
+      ],
+      "loading": {},
+      "model_calls": 0,
+      "preparation_capabilities": {
+        "bibliography_bindings": "partial",
+        "body_syntax": "partial",
+        "cross_reference_bindings": "partial",
+        "cross_reference_preparation": "partial",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
+      "rule_version": "compile-prepare-v19",
+      "schema": "qecgraph.prepare/3",
+      "source_tree_sha256": "ead7213d07813324bbc9f95e9f63e599260157e9e59b49251e223b9892725324",
+      "sources": [
+        {
+          "path": "main.tex",
+          "sha256": "cd02121102d49338c5047fe3030390b63d938400d900cfbf8f442785fffb989f",
+          "size_bytes": 58
+        }
+      ],
+      "stages": {
+        "compile": "failed",
+        "conversion": "partial",
+        "normalized_latex": "partial",
+        "references": "partial",
+        "source_fidelity": "checked_at_publication"
+      },
+      "status": "partial",
+      "warnings": []
+    }
+  },
+  "compile_failed": {
+    "compiler_calls": 1,
+    "manifest": {
+      "artifacts": {
+        "build.json": "d2da22c975c72690fc5935c9e71fe16557b8ece99bf96973f3608389d19cae7e",
+        "content.json": "1285e1c0874d9f2efca3872849b34d09dcaa988786c52c76a1e3a8fda49c14eb",
+        "coverage.json": "532fb484902f17f97498febef259bd57d1728eb9a94f2d0900ce4feeb448673f",
+        "diagnostics.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "entry.tex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "normalization.json": "eb4111d9a15cbb471f8a6b5e2c197495e530034cce582e2440b7eb3b9e899008",
+        "references.json": "c86515169bea283836329fe215159acce8bf3efe50baa9dacfd8d0819249de3f",
+        "sources/main.tex": "cd02121102d49338c5047fe3030390b63d938400d900cfbf8f442785fffb989f"
+      },
+      "capabilities": {
+        "arbitrary_macro_expansion": false,
+        "normalized_latex": false,
+        "originals": true,
+        "scientific_extraction": false,
+        "syntax": false
+      },
+      "entry": "main.tex",
+      "limitations": [
+        "Native compilation is one build view; unmapped conditionals remain partial.",
+        "The normalized handoff preserves original TeX syntax; it is not rendered semantic text.",
+        "No theorem truth, experiment binding, numeric curve extraction or nine-question answers are produced."
+      ],
+      "loading": {},
+      "model_calls": 0,
+      "preparation_capabilities": {
+        "bibliography_bindings": "partial",
+        "body_syntax": "partial",
+        "cross_reference_bindings": "partial",
+        "cross_reference_preparation": "partial",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
+      "rule_version": "compile-prepare-v19",
+      "schema": "qecgraph.prepare/3",
+      "source_tree_sha256": "ead7213d07813324bbc9f95e9f63e599260157e9e59b49251e223b9892725324",
+      "sources": [
+        {
+          "path": "main.tex",
+          "sha256": "cd02121102d49338c5047fe3030390b63d938400d900cfbf8f442785fffb989f",
+          "size_bytes": 58
+        }
+      ],
+      "stages": {
+        "compile": "failed",
+        "conversion": "partial",
+        "normalized_latex": "partial",
+        "references": "partial",
+        "source_fidelity": "checked_at_publication"
+      },
+      "status": "partial",
+      "warnings": []
+    }
+  },
+  "complete": {
+    "compiler_calls": 2,
+    "manifest": {
+      "artifacts": {
+        "build-view.json": "bd3c46183fef66d83baa1ed929209fd91348e1cf3fc9106a8c1ada1c83deb653",
+        "build.json": "8921a5aaa9cea2d25b712104ccfcb18fd2ad9effd004c42d65d7a3a2fd68f5d1",
+        "content.json": "b7161886a48fc06d73ffd0b0e8394e0c3d6631bec20f19c33ed8306dcbaefc56",
+        "coverage.json": "d49331b77c2dee99238c3dc144019672a54a73630c3213d0779fbd92557ba046",
+        "diagnostics.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "entry.tex": "0601316848e1ee8257fe323c2bd83361bfa1778cb5d77eda43d0b87d8acd220d",
+        "normalization.json": "1a22e783f0e66fc93cb2684376a911279c6f24272a59992d0002c48b557d95fc",
+        "normalized-map.json": "7624de5fd790ff3480a1a4caed9c0ef9572cab8899aa4144a600cd22bda7d84b",
+        "normalized.tex": "2c0339dc99932a626bcfa9dc0f02e503080e522cfd8245d9101f387f360071be",
+        "references.json": "2221adef086295d72ce4cbca4aa45db483c5242832f71c3f2e4335ee79e1e28b",
+        "source-map.json": "40cc3772b4b01362e1ab5de8f4bc072b22b0c5512ab60d54d61080c3966822e2",
+        "sources/main.tex": "0601316848e1ee8257fe323c2bd83361bfa1778cb5d77eda43d0b87d8acd220d"
+      },
+      "capabilities": {
+        "arbitrary_macro_expansion": false,
+        "normalized_latex": true,
+        "originals": true,
+        "scientific_extraction": false,
+        "syntax": true
+      },
+      "entry": "main.tex",
+      "limitations": [
+        "Native compilation is one build view; unmapped conditionals remain partial.",
+        "The normalized handoff preserves original TeX syntax; it is not rendered semantic text.",
+        "No theorem truth, experiment binding, numeric curve extraction or nine-question answers are produced."
+      ],
+      "loading": {},
+      "model_calls": 0,
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
+      "rule_version": "compile-prepare-v19",
+      "schema": "qecgraph.prepare/3",
+      "source_tree_sha256": "37cdc8548452789938307b6f03479ad2f4946a4495eca5d2e19b9c239067d10e",
+      "sources": [
+        {
+          "path": "main.tex",
+          "sha256": "0601316848e1ee8257fe323c2bd83361bfa1778cb5d77eda43d0b87d8acd220d",
+          "size_bytes": 102
+        }
+      ],
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "normalized_latex": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "status": "ready",
+      "warnings": []
+    }
+  },
+  "derived_failed": {
+    "compiler_calls": 2,
+    "manifest": {
+      "artifacts": {
+        "build-view.json": "31ae06416e3fac617cb45b65ca23904de90289cda3387e5911b625885c28f0df",
+        "build.json": "8921a5aaa9cea2d25b712104ccfcb18fd2ad9effd004c42d65d7a3a2fd68f5d1",
+        "content.json": "33435b19ac1860094177d18628d9e257db0947675f31ed3021fa401bc48ef13b",
+        "coverage.json": "d49331b77c2dee99238c3dc144019672a54a73630c3213d0779fbd92557ba046",
+        "diagnostics.json": "b23c253763e96af1e774527e1faf8947a77fd1a44236b9328518713a7d177c17",
+        "entry.tex": "610d321f4e958504112622868ae7db6a1970df8fc38e8e87734c0125250c063c",
+        "normalization.json": "3537c395ec0fbddc289df25cdc285bb24575b265b45d7487264937b70a0cc4c0",
+        "normalized-map.json": "84a79f9904e1cda6de0d0fe53ebe85d7cc834ed37707bfea071534d735f13944",
+        "normalized.tex": "ffbfa1ebd8f3a984708cb6ca82369fcfad74d408d52876167506c95aaeba5a25",
+        "references.json": "2221adef086295d72ce4cbca4aa45db483c5242832f71c3f2e4335ee79e1e28b",
+        "source-map.json": "62fac09106600dcf697779cfeba8a6e2b8221d9d9d39543f254a2208ba126dd7",
+        "sources/main.tex": "610d321f4e958504112622868ae7db6a1970df8fc38e8e87734c0125250c063c"
+      },
+      "capabilities": {
+        "arbitrary_macro_expansion": false,
+        "normalized_latex": true,
+        "originals": true,
+        "scientific_extraction": false,
+        "syntax": true
+      },
+      "entry": "main.tex",
+      "limitations": [
+        "Native compilation is one build view; unmapped conditionals remain partial.",
+        "The normalized handoff preserves original TeX syntax; it is not rendered semantic text.",
+        "No theorem truth, experiment binding, numeric curve extraction or nine-question answers are produced."
+      ],
+      "loading": {},
+      "model_calls": 0,
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
+      "rule_version": "compile-prepare-v19",
+      "schema": "qecgraph.prepare/3",
+      "source_tree_sha256": "ea7e96049d4fdedb0a30a15228d7bbd7e87190143d895d4d2379089e8afcb780",
+      "sources": [
+        {
+          "path": "main.tex",
+          "sha256": "610d321f4e958504112622868ae7db6a1970df8fc38e8e87734c0125250c063c",
+          "size_bytes": 57
+        }
+      ],
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "normalized_latex": "partial",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "status": "partial",
+      "warnings": []
+    }
+  },
+  "inactive": {
+    "compiler_calls": 2,
+    "manifest": {
+      "artifacts": {
+        "build-view.json": "a8fa8ce3f493ba039ccefab72818a3489e1e5cd5d51e9076387e283bf9e6d90f",
+        "build.json": "8921a5aaa9cea2d25b712104ccfcb18fd2ad9effd004c42d65d7a3a2fd68f5d1",
+        "content.json": "a3bfcc07b2f14d01fffc25776247abe787a78f6d3ceab7a08f9741e4d1da0a7c",
+        "coverage.json": "9db71d0633cc5c7111f420bc986164d230c24520d27f2231600a88771dc1e66e",
+        "diagnostics.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "entry.tex": "8db62ef7dc4f2caf8f02d144d0f877181159f347b20f125c60d6324542c384e1",
+        "normalization.json": "0a936780a86e0074c45ce91a9176842c02cac34c9e11f7de302680c100c0cbbe",
+        "normalized-map.json": "1a46975aba483500d459df3a3cc01cbc83ca65c0ac675245fa4f45332627c6dd",
+        "normalized.tex": "8db62ef7dc4f2caf8f02d144d0f877181159f347b20f125c60d6324542c384e1",
+        "references.json": "2221adef086295d72ce4cbca4aa45db483c5242832f71c3f2e4335ee79e1e28b",
+        "source-map.json": "345dfbed7dbb4d577b82d411d66b68eeeebaa37c7fa1862e9be9136b99319017",
+        "sources/main.tex": "8db62ef7dc4f2caf8f02d144d0f877181159f347b20f125c60d6324542c384e1"
+      },
+      "capabilities": {
+        "arbitrary_macro_expansion": false,
+        "normalized_latex": true,
+        "originals": true,
+        "scientific_extraction": false,
+        "syntax": true
+      },
+      "entry": "main.tex",
+      "limitations": [
+        "Native compilation is one build view; unmapped conditionals remain partial.",
+        "The normalized handoff preserves original TeX syntax; it is not rendered semantic text.",
+        "No theorem truth, experiment binding, numeric curve extraction or nine-question answers are produced."
+      ],
+      "loading": {},
+      "model_calls": 0,
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
+      "rule_version": "compile-prepare-v19",
+      "schema": "qecgraph.prepare/3",
+      "source_tree_sha256": "2a0a15b5962775a24003ff90a5241e7cb3629639b3f57832ebf751d0def94550",
+      "sources": [
+        {
+          "path": "main.tex",
+          "sha256": "8db62ef7dc4f2caf8f02d144d0f877181159f347b20f125c60d6324542c384e1",
+          "size_bytes": 80
+        }
+      ],
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "normalized_latex": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "status": "ready",
+      "warnings": []
+    }
+  },
+  "missing": {
+    "compiler_calls": 2,
+    "manifest": {
+      "artifacts": {
+        "build-view.json": "6f4181a0dd9eda46c4aadcf5a267f04af63369444c95417c978bd79b8dc031bd",
+        "build.json": "8921a5aaa9cea2d25b712104ccfcb18fd2ad9effd004c42d65d7a3a2fd68f5d1",
+        "content.json": "2ed91089a669510dc1450ab6b1abdde3241b36cf633a0f72039952a3f9321ce7",
+        "coverage.json": "c4992c1497b54f6a4d891f056564a03e94265dd437a297fd1d36ad4fe6171a80",
+        "diagnostics.json": "525b99303eb90e81a924fc94926ceb4e9cc909cfe181425c04727361092530af",
+        "entry.tex": "c84db8e6f722b38987cdf4b15ea2a0f686423ca3eac24102f8fecd25e24d5f4c",
+        "normalization.json": "f05e208338bee304e4f661708d21ded0f03c911cfd15e18e64861b42f421c77c",
+        "normalized-map.json": "d6fe5dbba09671c9d9e595baea2b6fcaa369995fb1bc95cb13749e4ea83c9956",
+        "normalized.tex": "c84db8e6f722b38987cdf4b15ea2a0f686423ca3eac24102f8fecd25e24d5f4c",
+        "references.json": "2221adef086295d72ce4cbca4aa45db483c5242832f71c3f2e4335ee79e1e28b",
+        "source-map.json": "4d0e238728f30a1bb0471a6a7eabae2a575e33841a4ee7a41a6a0ca1986eab53",
+        "sources/main.tex": "c84db8e6f722b38987cdf4b15ea2a0f686423ca3eac24102f8fecd25e24d5f4c"
+      },
+      "capabilities": {
+        "arbitrary_macro_expansion": false,
+        "normalized_latex": true,
+        "originals": true,
+        "scientific_extraction": false,
+        "syntax": true
+      },
+      "entry": "main.tex",
+      "limitations": [
+        "Native compilation is one build view; unmapped conditionals remain partial.",
+        "The normalized handoff preserves original TeX syntax; it is not rendered semantic text.",
+        "No theorem truth, experiment binding, numeric curve extraction or nine-question answers are produced."
+      ],
+      "loading": {},
+      "model_calls": 0,
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "partial",
+        "cross_reference_preparation": "partial",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": [
+          {
+            "candidates": [],
+            "key": "missing",
+            "node": "syntax:5a2a1a3a48061473b35ad596",
+            "status": "unresolved"
+          }
+        ]
+      },
+      "rule_version": "compile-prepare-v19",
+      "schema": "qecgraph.prepare/3",
+      "source_tree_sha256": "3dcaec7784937f785e9a48c12995633c35872c65067ba34882868b7e6ad4d7b4",
+      "sources": [
+        {
+          "path": "main.tex",
+          "sha256": "c84db8e6f722b38987cdf4b15ea2a0f686423ca3eac24102f8fecd25e24d5f4c",
+          "size_bytes": 66
+        }
+      ],
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "normalized_latex": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "status": "partial",
+      "warnings": []
+    }
+  },
+  "unobserved_guard": {
+    "compiler_calls": 3,
+    "manifest": {
+      "artifacts": {
+        "build-view.json": "eefea201c1474e1e2eaaa4116d9cc5b45d62cac081e31eb80efd000a1750399b",
+        "build-view/inputs/main.tex": "5408f8fa8c2b85c065f94560140891c332ded7bbba1ab193772b4dfa8b6887ed",
+        "build.json": "8921a5aaa9cea2d25b712104ccfcb18fd2ad9effd004c42d65d7a3a2fd68f5d1",
+        "content.json": "4ef7eb0e8872c5efe654977202428c1d38da257181ce1effc34fb243b7c1876c",
+        "coverage.json": "53361c7ffc45553b5178f02b7e86ad7cd754c2ff3d9130010abff238a480bcae",
+        "diagnostics.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "entry.tex": "10d04f0f9e6cd559d8c25262716983ed82479ee9615b5a768d5a4094a381d26c",
+        "normalization.json": "ea89d03a54605467ed3266a829b08388eda45b453a9ccbbec4c0b36031237997",
+        "normalized-map.json": "790cf25bdfb99292c195e785721272943514a820c9e8fdf8c6318735469474d6",
+        "normalized.tex": "10d04f0f9e6cd559d8c25262716983ed82479ee9615b5a768d5a4094a381d26c",
+        "references.json": "2221adef086295d72ce4cbca4aa45db483c5242832f71c3f2e4335ee79e1e28b",
+        "source-map.json": "d8ece0ac9042f772940e5cc752d10c6c7d4c8fa14b9ca3750c949ba7b142afb7",
+        "sources/main.tex": "10d04f0f9e6cd559d8c25262716983ed82479ee9615b5a768d5a4094a381d26c"
+      },
+      "capabilities": {
+        "arbitrary_macro_expansion": false,
+        "normalized_latex": true,
+        "originals": true,
+        "scientific_extraction": false,
+        "syntax": true
+      },
+      "entry": "main.tex",
+      "limitations": [
+        "Native compilation is one build view; unmapped conditionals remain partial.",
+        "The normalized handoff preserves original TeX syntax; it is not rendered semantic text.",
+        "No theorem truth, experiment binding, numeric curve extraction or nine-question answers are produced."
+      ],
+      "loading": {},
+      "model_calls": 0,
+      "preparation_capabilities": {
+        "bibliography_bindings": "complete",
+        "body_syntax": "partial",
+        "cross_reference_bindings": "partial",
+        "cross_reference_preparation": "partial",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
+      "rule_version": "compile-prepare-v19",
+      "schema": "qecgraph.prepare/3",
+      "source_tree_sha256": "21296bb4fbb705ef724bb237a01b812617f5785d3424b29d611f8f9aeb6e427a",
+      "sources": [
+        {
+          "path": "main.tex",
+          "sha256": "10d04f0f9e6cd559d8c25262716983ed82479ee9615b5a768d5a4094a381d26c",
+          "size_bytes": 103
+        }
+      ],
+      "stages": {
+        "compile": "complete",
+        "conversion": "partial",
+        "normalized_latex": "complete",
+        "references": "complete",
+        "source_fidelity": "checked_at_publication"
+      },
+      "status": "partial",
+      "warnings": []
+    }
+  }
+}
