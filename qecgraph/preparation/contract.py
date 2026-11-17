@@ -72,6 +72,9 @@ def safe_path(name: str) -> str:
 def validate_material(files: dict[str, bytes]) -> dict:
     """Validate bytes, tree, token tiling and exact source locators, without TeX."""
     manifest = _check_manifest(files)
+    from .projection import check_projection
+
+    check_projection(files)
     document = json.loads(files["content.json"])
     nodes = document["nodes"]
     identifiers = {node["id"] for node in nodes}
@@ -130,7 +133,6 @@ def _check_environment_declarations(files, document, text, source_indices):
         return
     from .environments import label_declarations
     from .crossrefs import _environment_labels
-    from ..source.package import SourceTree
 
     records = document["environment_label_declarations"]
     for record in records:
@@ -140,15 +142,11 @@ def _check_environment_declarations(files, document, text, source_indices):
             )
     build = json.loads(files.get("build.json", b"{}"))
     paths = build.get("inputs", [r["origin"]["path"] for r in records])
-    tree = SourceTree(
-        "tex",
-        {
-            p.removeprefix("sources/"): raw
-            for p, raw in files.items()
-            if p.startswith("sources/")
-        },
-    )
-    if label_declarations(tree, paths) != records:
+    from .projection import working_tree, decorate_origins
+
+    expected_records = label_declarations(working_tree(files), paths)
+    decorate_origins(expected_records, files)
+    if expected_records != records:
         raise ValueError(
             "Environment label declarations do not match consumed source grammar"
         )
@@ -214,7 +212,7 @@ def _check_reference_origins(files, source_indices):
     for field in ("entries", "original_bib_entries", "external_labels"):
         for record in references.get(field, []):
             span = record.get("origin", {})
-            if span.get("layer") == "original":
+            if span.get("layer") in {"original", "projected"}:
                 if _source_piece(files, span, source_indices) != record["raw_tex"]:
                     raise ValueError(
                         "Reference metadata does not copy its original source"
@@ -334,9 +332,15 @@ def read_material(root: Path) -> dict:
 
 
 def _source_piece(files, span, source_indices):
-    key = (safe_path(span["path"]), span["encoding"])
+    projected = span.get("layer") == "projected"
+    prefix = "projected-sources/" if projected else "sources/"
+    key = (prefix + safe_path(span["path"]), span["encoding"])
     if key not in source_indices:
-        source_indices[key] = SourceIndex(files["sources/" + key[0]], key[1])
+        source_indices[key] = SourceIndex(files[key[0]], key[1])
+    if projected:
+        from .projection import check_locator
+
+        check_locator(span, files, source_indices[key].text)
     source = source_indices[key]
     if source.sha256 != span["sha256"]:
         raise ValueError("Source locator hash changed")

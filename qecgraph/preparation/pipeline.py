@@ -19,6 +19,7 @@ from ..source.normalization import load_for_preparation
 from ..source.prepare import select_entry, publish_artifacts, _check_output_root
 from ..core.transactions import writer_lock
 from .capabilities import preparation_capabilities
+from .projection import prepare_projection, decorate_origins
 from ..source.package import read_bounded, Limits
 
 _WARNING_CODES = frozenset(
@@ -128,19 +129,20 @@ def _material(tree, entry, work, engine, support, compiler, loading):
         }
         diagnostics.extend(build.diagnostics)
         if build.success:
-            view, view_files = _observe_view(build, tree, support, compiler)
+            working = prepare_projection(build, tree, support, compiler, files)
+            view, view_files = _observe_view(build, working, support, compiler)
             references = adapt_references(
-                build, tree, source_views=scan_views(tree, view)
+                build, working, source_views=scan_views(working, view)
             )
             files.update(view_files)
             assembly, document, coverage = convert_source(
-                tree, entry, references, used_files=build.inputs, build_view=view
+                working, entry, references, used_files=build.inputs, build_view=view
             )
             entry_data = assembly.data
             files["source-map.json"] = json_bytes(assembly.source_map())
             normalization = _normalize_view(
                 build,
-                tree,
+                working,
                 assembly,
                 document,
                 references,
@@ -149,6 +151,17 @@ def _material(tree, entry, work, engine, support, compiler, loading):
                 files,
                 diagnostics,
             )
+            decorate_origins(document, files)
+            decorate_origins(references, files)
+            if "source-projection.json" in files:
+                document["source_projection_sha256"] = digest(
+                    files["source-projection.json"]
+                )
+                document["capabilities"]["source_spans"] = (
+                    "projected_with_original_byte_ranges"
+                )
+            decorate_origins(document, files)
+            decorate_origins(references, files)
     except (OSError, ValueError, RuntimeError, RecursionError) as exc:
         diagnostics.append({"code": "preparation_failed", "message": str(exc)[:800]})
         coverage = {

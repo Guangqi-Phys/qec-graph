@@ -10,6 +10,7 @@ from .build_view import SCHEMA, _candidates, _instrument, _bibliography, _observ
 from .contract import digest, json_bytes
 from .guard_syntax import scan_views, project_view
 from .branches import syntax_view
+from .projection import working_tree, decorate_origins
 from ..source.assembly import assemble_files, EntryCoordinates, document_bounds
 from ..source.package import SourceTree
 
@@ -26,14 +27,7 @@ def check_view(files, document, text):
     view = json.loads(raw)
     if view["schema"] != SCHEMA:
         raise ValueError("Unsupported native build-view schema")
-    tree = SourceTree(
-        "tex",
-        {
-            p.removeprefix("sources/"): raw
-            for p, raw in files.items()
-            if p.startswith("sources/")
-        },
-    )
+    tree = working_tree(files)
     if view["source_tree_sha256"] != tree.digest:
         raise ValueError("Native build view belongs to another original source tree")
     if view["guards"]:
@@ -116,6 +110,7 @@ def _check_projection(files, document, text, tree, view):
     ):
         raise ValueError("Build-view assembly does not match original-source mapping")
     masks, guards = project_view(assembly, view)
+    decorate_origins(guards, files)
     coordinates = EntryCoordinates(assembly)
     parse_text, inactive = syntax_view(
         coordinates.copy_text(),

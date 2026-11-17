@@ -21,6 +21,49 @@ from qecgraph.source.package import SourceTree
     "Set QECGRAPH_TEST_TEX=1 for isolated local TeX checks",
 )
 class LocalCompilerTests(unittest.TestCase):
+    def test_invalid_byte_projection_preserves_original_and_rejects_forged_spelling(
+        self,
+    ):
+        from qecgraph.preparation.contract import validate_material, json_bytes
+
+        original = (
+            rb"\UseRawInputEncoding\documentclass{article}\begin{document}"
+            b"Body.\\begin{thebibliography}{1}\\bibitem{k}Pages 1\xa8C--2."
+            rb"\end{thebibliography}\end{document}"
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "input"
+            source.mkdir()
+            (source / "main.tex").write_bytes(original)
+            result = prepare_material(source, root / "out", entry="main.tex")
+            self.assertEqual(result["status"], "ready", result)
+            material = read_material(root / "out")
+            self.assertIn("^^a8", material["entry_tex"])
+            projected = [
+                s
+                for n in material["document"]["nodes"]
+                for s in n["source_spans"]
+                if s["layer"] == "projected"
+            ]
+            self.assertTrue(projected)
+            self.assertTrue(
+                all(
+                    s["original_source"]["sha256"] == digest(original)
+                    for s in projected
+                )
+            )
+            manifest = material["manifest"]
+            files = {p: (root / "out" / p).read_bytes() for p in manifest["artifacts"]}
+            files["projected-sources/main.tex"] = files[
+                "projected-sources/main.tex"
+            ].replace(b"^^a8", b"^^a9")
+            manifest["artifacts"] = {p: digest(raw) for p, raw in files.items()}
+            files["manifest.json"] = json_bytes(manifest)
+            with self.assertRaisesRegex(ValueError, "Projected source bytes"):
+                validate_material(files)
+            self.assertEqual((source / "main.tex").read_bytes(), original)
+
     def test_false_literal_branch_and_known_legacy_hook_round_trip(self):
         cls = rb"\NeedsTeXFormat{LaTeX2e}\ProvidesClass{quantumarticle}\LoadClass{article}\AtEndDocument{\@afterenddocumenthook}"
         original = rb"""\documentclass{quantumarticle}\begin{document}Visible.
