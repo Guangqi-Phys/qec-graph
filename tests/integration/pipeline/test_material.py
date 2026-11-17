@@ -10,6 +10,32 @@ from qecgraph.preparation.pipeline import prepare_material
 
 
 class MaterialPipelineTests(unittest.TestCase):
+    def test_byte_projection_without_matching_pdf_text_stays_partial(self):
+        self.calls, self.succeeds = [], True
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "main.tex"
+            raw = (
+                rb"\documentclass{article}\begin{document}"
+                + b"Text \xa8."
+                + rb"\end{document}"
+            )
+            source.write_bytes(raw)
+
+            def different(original, derived, report):
+                report["pdf_text"] = "different"
+
+            out = Path(temp) / "material"
+            with patch(
+                "qecgraph.preparation.projection._compare_pdf_text",
+                side_effect=different,
+            ):
+                result = prepare_material(source, out, compiler=self.compiler)
+            self.assertEqual(result["status"], "partial")
+            material = read_material(out)
+            self.assertFalse(material["source_projection"]["verified"])
+            self.assertEqual(material["document"]["nodes"], [])
+            self.assertEqual((out / "sources/main.tex").read_bytes(), raw)
+
     def test_duplicate_labels_preserve_body_capability_without_claiming_ready(self):
         self.calls, self.succeeds = [], True
         with tempfile.TemporaryDirectory() as temp:

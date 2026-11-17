@@ -12,6 +12,42 @@ from qecgraph.source.package import SourceTree
 
 
 class CompilationTests(unittest.TestCase):
+    def test_compilation_cannot_silently_rewrite_explicit_support(self):
+        self.commands, self.aux = [], ""
+        self.original = rb"\documentclass{article}\begin{document}Body.\end{document}"
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            support = root / "support"
+            support.mkdir()
+            (support / "a.sty").write_bytes(b"original support")
+            work = root / "build"
+            work.mkdir()
+
+            def runner(folder, cwd, command, **options):
+                result = self.fake(folder, cwd, command, **options)
+                if "-recorder" in command:
+                    (folder / "texmf/tex/generic/qecgraph/a.sty").write_bytes(
+                        b"changed"
+                    )
+                return result
+
+            with patch(
+                "qecgraph.preparation.build.tool", side_effect=lambda n: "/trusted/" + n
+            ):
+                build = compile_tree(
+                    SourceTree("tex", {"main.tex": self.original}),
+                    "main.tex",
+                    work,
+                    support=[support],
+                    runner=runner,
+                )
+            self.assertFalse(build.success)
+            self.assertIn(
+                "support_changed_during_build", [d["code"] for d in build.diagnostics]
+            )
+            self.assertEqual((support / "a.sty").read_bytes(), b"original support")
+            self.assertEqual(build.artifacts["support/a.sty"], b"original support")
+
     def test_legacy_hook_retry_is_hash_bound_and_keeps_failed_log(self):
         raw = b"fixture class"
         tree = SourceTree(

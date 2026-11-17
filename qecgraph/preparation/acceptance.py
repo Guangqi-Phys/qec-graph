@@ -137,6 +137,13 @@ def generate_report(manifest_path, replay, *, cases_path=None, baseline=None):
         "original_bundles_validated": sum(r["status"] != "failed" for r in rows),
         "nonempty_syntax_bundles_validated": counts(rows)["source_fidelity"],
         "model_calls": 0,
+        "body_syntax_complete": sum(
+            r.get("preparation_capabilities", {}).get("body_syntax") == "complete"
+            for r in rows
+        ),
+        "source_projections_verified": sum(
+            r.get("source_projection_verified", False) for r in rows
+        ),
         "syntax_probes": probes,
         "rows": rows,
         "ready_papers": sorted(r["paper"] for r in rows if r["status"] == "ready"),
@@ -235,6 +242,11 @@ def _verified_row(replay, row, sample):
         "entry": manifest["entry"],
         "source_fidelity": check["source_fidelity"],
         "nodes": check["nodes"],
+        "preparation_capabilities": manifest.get("preparation_capabilities", {}),
+        "source_dialect": document.get("dialect"),
+        "source_projection_verified": bool(
+            (material.get("source_projection") or {}).get("verified")
+        ),
         "warnings": manifest.get("warnings", []),
         "diagnostic_codes": sorted({d["code"] for d in diagnostics}),
         "normalization_file": bool(material["normalized_map"]),
@@ -324,5 +336,5 @@ def _comparison(baseline, report):
         "after": report["counts"],
         "newly_ready": sorted(after - before),
         "ready_regressions": sorted(before - after),
-        "gate_change_note": "Current preparation additionally requires declared environment syntax, verified native guard evidence, and recorder-bound include expansion. These are mechanical coverage counts, not scientific extraction quality.",
+        "gate_change_note": "Current preparation adds verified byte projection, pinned native Harvmac grammar, independent per-part capabilities and effective explicit dependency selection. The overall ready gate remains strict. Counts describe mechanical coverage, not scientific extraction quality.",
     }

@@ -21,6 +21,32 @@ from qecgraph.source.package import SourceTree
     "Set QECGRAPH_TEST_TEX=1 for isolated local TeX checks",
 )
 class LocalCompilerTests(unittest.TestCase):
+    def test_explicit_support_is_consumed_before_system_packages(self):
+        from qecgraph.preparation.build import tool
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            (root / "project").mkdir()
+            support = root / "texmf/tex/generic/qecgraph"
+            support.mkdir(parents=True)
+            (support / "array.sty").write_text("% explicit support selection probe")
+            result = sandbox.run(
+                root,
+                root / "project",
+                [tool("kpsewhich"), "--progname=pdflatex", "array.sty"],
+            )
+            self.assertEqual(result["exit"], 0)
+            self.assertIn(
+                b"<build>/texmf/tex/generic/qecgraph/array.sty", result["log"]
+            )
+            (root / "project/array.sty").write_text("% author source takes precedence")
+            result = sandbox.run(
+                root,
+                root / "project",
+                [tool("kpsewhich"), "--progname=pdflatex", "array.sty"],
+            )
+            self.assertIn(b"./array.sty", result["log"])
+
     def test_harvmac_keeps_native_math_outline_and_compiled_bibliography(self):
         original = rb"""\input harvmac
 \Title{Native}{A native source}

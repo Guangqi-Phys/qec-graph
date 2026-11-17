@@ -6,7 +6,7 @@ import unittest
 from qecgraph.preparation.convert import convert_source
 from qecgraph.preparation.entries import select_build_entry
 from qecgraph.preparation.harvmac import identify, HARVMAC_SHA256
-from qecgraph.preparation.harvmac_refs import _payload
+from qecgraph.preparation.harvmac_refs import _payload, _range_keys
 from qecgraph.source.package import SourceTree
 
 
@@ -77,3 +77,12 @@ See \ifa.
         )
         self.assertNotEqual(_payload("John AB"), _payload("JohnA B"))
         self.assertNotEqual(_payload(r"\pl abc"), _payload(r"\plabc"))
+
+    def test_citation_range_requires_a_unique_complete_compiled_number_sequence(self):
+        bindings = {
+            k: {"status": "resolved", "display_tex": f"[{i}]"}
+            for i, k in enumerate(("a", "b", "c"), 1)
+        }
+        self.assertEqual(_range_keys("a", "c", bindings), ["a", "b", "c"])
+        del bindings["b"]
+        self.assertIsNone(_range_keys("a", "c", bindings))

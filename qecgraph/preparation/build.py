@@ -91,7 +91,7 @@ def _support(build, folders):
             if not source.is_file():
                 continue
             relative = source.relative_to(folder).as_posix()
-            target = build.root / "texmf/tex/qecgraph" / safe_path(relative)
+            target = build.root / "texmf/tex/generic/qecgraph" / safe_path(relative)
             raw = source.read_bytes()
             if (
                 len(raw) > 16 << 20
@@ -249,6 +249,7 @@ def compile_tree(
         ok = _pdf(build, job, runner)
     build.success = ok and (project / (job + ".pdf")).is_file()
     _check_source_copy(build, tree)
+    _check_support_copy(build)
     _record_files(build, tree, job)
     if not build.success:
         build.diagnostics.append(
@@ -274,6 +275,30 @@ def _check_source_copy(build, tree):
                     "code": "source_changed_during_build",
                     "path": path,
                     "message": "Compilation changed an input source; the original is retained.",
+                }
+            )
+
+
+def _check_support_copy(build):
+    for path, original in list(build.artifacts.items()):
+        if not path.startswith("support/"):
+            continue
+        target = (
+            build.root
+            / "texmf/tex/generic/qecgraph"
+            / safe_path(path.removeprefix("support/"))
+        )
+        if (
+            target.is_symlink()
+            or not target.is_file()
+            or target.read_bytes() != original
+        ):
+            build.success = False
+            build.diagnostics.append(
+                {
+                    "code": "support_changed_during_build",
+                    "path": path,
+                    "message": "Compilation changed an explicitly supplied dependency.",
                 }
             )
 

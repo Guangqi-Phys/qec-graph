@@ -1,10 +1,14 @@
-"""Source-preserving grammar for an explicitly identified native Harvmac build."""
+"""Source-preserving grammar for an explicitly identified native Harvmac build.
+
+Based on the documented grammar of Harvmac by Paul Ginsparg (CC BY 3.0).
+No Harvmac TeX implementation is copied; the consumed dependency hash is pinned.
+"""
 
 from dataclasses import replace
 from pathlib import PurePosixPath
 import re
 
-from pylatexenc.macrospec import MacroSpec
+from pylatexenc.macrospec import MacroSpec, MacroStandardArgsParser
 
 from .contract import digest
 from .options import mask_comments
@@ -173,8 +177,14 @@ def parse_view(text):
 
 def context(text):
     result = declaration_context(source_text=text)
-    specs = [MacroSpec(n, args_parser=a) for n, a in _SIGNATURES.items()]
-    specs += [MacroSpec(n, args_parser="") for n in generated_names(text)]
+    specs = [
+        MacroSpec(n, args_parser=MacroStandardArgsParser(a))
+        for n, a in _SIGNATURES.items()
+    ]
+    specs += [
+        MacroSpec(n, args_parser=MacroStandardArgsParser(""))
+        for n in generated_names(text)
+    ]
     result.add_context_category("native-harvmac", macros=specs, prepend=True)
     return result
 
@@ -198,7 +208,7 @@ def check_dialect(files, document):
         return
     import json
     from types import SimpleNamespace
-    from .projection import working_tree
+    from .projection import working_tree, decorate_origins
     from .harvmac_refs import adapt, compiled_entries, cross_references
 
     report = json.loads(files["build.json"])
@@ -216,6 +226,7 @@ def check_dialect(files, document):
     expected = adapt(
         build, tree, {"diagnostics": diagnostics}, compiled=compiled_entries(raw)
     )
+    decorate_origins(expected, files)
     if any(current.get(k) != v for k, v in expected.items()):
         raise ValueError(
             "Harvmac bibliography does not match consumed source and compiled text"

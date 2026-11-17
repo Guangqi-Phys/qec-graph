@@ -38,9 +38,11 @@ def adapt(build, tree, result, *, compiled=None):
     observed = {
         c["origin"]["chars"][0] for b in bindings for c in b["compiled_entries"]
     }
-    complete = all(b["status"] == "resolved" for b in bindings) and len(
-        observed
-    ) == len(compiled)
+    complete = (
+        all(b["status"] == "resolved" for b in bindings)
+        and len(observed) == len(compiled)
+        and not result["diagnostics"]
+    )
     result.update(
         mode="harvmac",
         entries=originals,
@@ -111,7 +113,7 @@ def compiled_entries(raw):
 
 
 def _key(argument):
-    match = re.fullmatch(r"\\([A-Za-z@]+)", argument.strip())
+    match = re.fullmatch(r"\\([A-Za-z@]+)", (argument or "").strip())
     return match[1] if match else None
 
 
@@ -128,6 +130,22 @@ def citations(nodes, references, diagnostics):
             keys = re.findall(r"\\([A-Za-z@]+)", args[0])
         else:
             continue
+        literal_keys = list(keys)
+        expression = args[0]
+        interval = re.fullmatch(
+            r"\{\s*\\([A-Za-z@]+)\s*-\s*\\([A-Za-z@]+)\s*\}", expression
+        )
+        expansion = None
+        if interval:
+            expansion = "unresolved"
+            expanded = _range_keys(interval[1], interval[2], bindings)
+            if expanded is None:
+                diagnostics.append(
+                    {"code": "harvmac_citation_range_unbound", "node": node["id"]}
+                )
+            else:
+                keys = expanded
+                expansion = "compiled_bibliography_sequence"
         unresolved = [
             k for k in keys if bindings.get(k, {}).get("status") != "resolved"
         ]
@@ -143,6 +161,9 @@ def citations(nodes, references, diagnostics):
             {
                 "node": node["id"],
                 "keys": keys,
+                "literal_keys": literal_keys,
+                "key_expression_tex": expression,
+                "range_expansion": expansion,
                 "section": "0",
                 "origin": "native_harvmac_grammar",
                 "region": node["region"],
@@ -150,6 +171,21 @@ def citations(nodes, references, diagnostics):
             }
         )
     return result
+
+
+def _range_keys(first, last, bindings):
+    numbers = {}
+    for key, binding in bindings.items():
+        display = re.fullmatch(r"\[([0-9]+)\]", binding.get("display_tex") or "")
+        if binding["status"] == "resolved" and display:
+            numbers[key] = int(display[1])
+    if first not in numbers or last not in numbers:
+        return None
+    start, end = numbers[first], numbers[last]
+    selected = sorted((n, k) for k, n in numbers.items() if start <= n <= end)
+    if [n for n, _ in selected] != list(range(start, end + 1)) or start > end:
+        return None
+    return [k for _, k in selected]
 
 
 def cross_references(nodes):
