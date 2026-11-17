@@ -12,6 +12,7 @@ from .contract import SCHEMA, digest, json_bytes, validate_material
 from .convert import convert_source
 from .references import adapt_references
 from .build_view import observe_branches
+from .guard_syntax import scan_views
 from .normalized import normalize_latex
 from .roundtrip import verify_roundtrip
 from ..source.normalization import load_for_preparation
@@ -126,8 +127,10 @@ def _material(tree, entry, work, engine, support, compiler, loading):
         }
         diagnostics.extend(build.diagnostics)
         if build.success:
-            references = adapt_references(build, tree)
             view, view_files = _observe_view(build, tree, support, compiler)
+            references = adapt_references(
+                build, tree, source_views=scan_views(tree, view)
+            )
             files.update(view_files)
             assembly, document, coverage = convert_source(
                 tree, entry, references, used_files=build.inputs, build_view=view

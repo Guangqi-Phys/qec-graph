@@ -28,6 +28,11 @@ def locate_citations(nodes, references, diagnostics, text, assembly, tree):
     result, located = _literal_calls(
         nodes, required, revtex, node_scopes, scope_commands(references)
     )
+    wildcard_calls, wildcard_keys = _wildcard_calls(
+        nodes, references, required, node_scopes
+    )
+    result.extend(wildcard_calls)
+    located.update(wildcard_keys)
     wrapped, wrapped_keys = _wrapper_calls(
         nodes, required, text, assembly, tree, node_scopes
     )
@@ -47,6 +52,40 @@ def locate_citations(nodes, references, diagnostics, text, assembly, tree):
             }
         )
     return result
+
+
+def _wildcard_calls(nodes, references, required, node_scopes):
+    extra = scope_commands(references)
+    wildcards = set(references.get("wildcard_sections", []))
+    result, located = [], set()
+    for node in nodes:
+        if node["kind"] != "macro" or node["region"] not in {"body", "preamble"}:
+            continue
+        if node["name"] != "nocite" and not (
+            node["name"] in extra and node["name"].startswith("nocite")
+        ):
+            continue
+        args = [a for a in node["arguments"] if a and a.startswith("{")]
+        scope = extra.get(node["name"], node_scopes[node["id"]])
+        if (
+            not args
+            or scope not in wildcards
+            or "*"
+            not in {k.strip() for k in _split_keys(_without_comments(args[-1][1:-1]))}
+        ):
+            continue
+        keys = sorted(k for s, k in required if s == scope)
+        located.update((scope, k) for k in keys)
+        result.append(
+            {
+                "node": node["id"],
+                "section": scope,
+                "keys": keys,
+                "origin": "compiled_nocite_wildcard",
+                "source_spans": node["source_spans"],
+            }
+        )
+    return result, located
 
 
 def _node_scopes(nodes, references, diagnostics):

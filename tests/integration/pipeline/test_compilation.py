@@ -105,6 +105,30 @@ Visible $x$.
                 loaded["document"]["labels"][0]["declaration"], declaration["origin"]
             )
 
+    def test_nocite_wildcard_and_subdirectory_entry_keep_runtime_bibliography(self):
+        original = rb"\documentclass{article}\begin{document}Body.\nocite{*}\bibliographystyle{plain}\bibliography{refs}\end{document}"
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "input"
+            (source / "sub").mkdir(parents=True)
+            (source / "sub/main.tex").write_bytes(original)
+            (source / "refs.bib").write_text(
+                "@article{a,author={Ada Example},title={First},journal={Test},year={2020}}\n@article{b,author={Ben Example},title={Second},journal={Test},year={2021}}"
+            )
+            result = prepare_material(source, root / "out", entry="sub/main.tex")
+            self.assertEqual(result["status"], "ready", result)
+            loaded = read_material(root / "out")
+            self.assertEqual(
+                [r["key"] for r in loaded["references"]["bindings"]], ["a", "b"]
+            )
+            call = next(
+                c
+                for c in loaded["document"]["citations"]
+                if c["origin"] == "compiled_nocite_wildcard"
+            )
+            self.assertEqual(call["keys"], ["a", "b"])
+            self.assertEqual(loaded["normalization"]["pdf_text"], "equal")
+
     def test_custom_citation_and_bibtex_are_resolved_without_source_edits(self):
         original = rb"""\documentclass{article}
 \newcommand{\citeRef}[1]{\cite{ref:#1}}

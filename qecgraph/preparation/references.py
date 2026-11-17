@@ -91,8 +91,8 @@ def _record(key, section, context, path, raw, start, end, original):
     }
 
 
-def _entries(path, raw, original):
-    text = raw.decode()
+def _entries(path, raw, original, *, scan_text=None):
+    text = raw.decode() if scan_text is None else scan_text
     section, context = "0", None
     events = list(
         commands(
@@ -134,7 +134,7 @@ def _entries(path, raw, original):
             yield _record(arg[0], section, context, path, raw, start, end, original)
 
 
-def _bcf_requests(raw):
+def _bcf_requests(raw, *, include_wildcards=False):
     if b"<!DOCTYPE" in raw or b"<!ENTITY" in raw:
         raise ValueError("BCF document types and entities are unsupported")
     requested = set()
@@ -144,13 +144,13 @@ def _bcf_requests(raw):
                 if (
                     item.tag.endswith("}citekey")
                     and item.text
-                    and item.text.strip() != "*"
+                    and (include_wildcards or item.text.strip() != "*")
                 ):
                     requested.add((section.get("number", "0"), item.text.strip()))
     return requested
 
 
-def adapt_references(build, tree):
+def adapt_references(build, tree, *, source_views=None):
     """Only FLS-listed files are treated as consumed build evidence."""
     project = build.root / "project"
     job = Path(build.entry).stem
@@ -161,37 +161,58 @@ def adapt_references(build, tree):
     controls, originals = _originals(build, tree, diagnostics)
     bcf = project / (job + ".bcf")
     scopes = reference_scopes(build, tree, aux)
-    for scope in scopes:
-        if scope["kind"] == "unassigned" and any(
-            _classic_requests(aux[p], controls) for p in scope["aux"]
-        ):
-            diagnostics.append(
-                {"code": "unassigned_bibliography_scope", "aux": scope["aux"]}
-            )
+    _unassigned_scopes(scopes, aux, controls, diagnostics)
     active = {
         s["id"]: "\n".join(aux[p] for p in s["aux"]) for s in scopes if s["active"]
     }
     text = "\n".join(active.values())
     biblatex = bcf.is_file() and not bcf.is_symlink()
     if biblatex:
-        requested = _bcf_requests(bcf.read_bytes())
+        requested = _bcf_requests(bcf.read_bytes(), include_wildcards=True)
         labels = {}
     else:
         _scope_entries(entries, scopes)
         requested = {
             (scope, key)
             for scope, body in active.items()
-            for _, key in _classic_requests(body, controls)
+            for _, key in _classic_requests(body, controls, include_wildcards=True)
         }
         labels = _scope_labels(active)
-        _inline_entries(build, tree, entries, active.get("0", ""))
+        _inline_entries(build, tree, entries, labels, diagnostics, source_views or {})
+    requested, wildcards = _expand_wildcards(requested, entries, labels, diagnostics)
     result = _resolve(
         requested, entries, originals, text, diagnostics, controls, biblatex, labels
     )
+    result["wildcard_sections"] = sorted(wildcards)
     result["scopes"] = scopes
     result["external_labels"] = imported_labels(scopes, aux, tree)
     result["observed_labels"] = observed_labels(scopes, aux)
     return result
+
+
+def _unassigned_scopes(scopes, aux, controls, diagnostics):
+    for scope in scopes:
+        if scope["kind"] == "unassigned" and any(
+            _classic_requests(aux[p], controls, include_wildcards=True)
+            for p in scope["aux"]
+        ):
+            diagnostics.append(
+                {"code": "unassigned_bibliography_scope", "aux": scope["aux"]}
+            )
+
+
+def _expand_wildcards(requested, entries, labels, diagnostics):
+    wildcards = {scope for scope, key in requested if key == "*"}
+    result = {(scope, key) for scope, key in requested if key != "*"}
+    emitted = {(r["section"], r["key"]) for r in entries} | set(labels)
+    for scope in wildcards:
+        expanded = {(s, key) for s, key in emitted if s == scope}
+        if not expanded:
+            diagnostics.append(
+                {"code": "wildcard_bibliography_unobserved", "section": scope}
+            )
+        result.update(expanded)
+    return result, wildcards
 
 
 def _scope_entries(entries, scopes):
@@ -211,7 +232,7 @@ def _scope_labels(active):
     return labels
 
 
-def _classic_requests(text, controls):
+def _classic_requests(text, controls, *, include_wildcards=False):
     requested = set()
     for name, _, stop in commands(text, {"citation"}):
         arg = group(text, stop)
@@ -219,26 +240,45 @@ def _classic_requests(text, controls):
             requested.update(
                 ("0", key.strip())
                 for key in arg[0].split(",")
-                if key.strip() not in controls | {"*"}
+                if key.strip() not in controls
+                and (include_wildcards or key.strip() != "*")
             )
     return requested
 
 
-def _inline_entries(build, tree, entries, aux):
-    bound = set()
-    for _, _, stop in commands(aux, {"bibcite"}):
-        arg = group(aux, stop)
-        if arg:
-            bound.add(arg[0])
+def _inline_entries(build, tree, entries, labels, diagnostics, source_views):
+    from .branches import syntax_view
+
+    bound = {}
+    for scope, key in labels:
+        bound.setdefault(key, set()).add(scope)
     for path in build.inputs:
         if path not in tree.files or Path(path).suffix not in {".tex", ""}:
             continue
         try:
-            for entry in _entries(path, tree.files[path], True):
-                if entry["key"] in bound:
-                    entries.append(entry)
+            scan_text = syntax_view(source_views.get(path, tree.files[path].decode()))[
+                0
+            ]
+            for entry in _entries(path, tree.files[path], True, scan_text=scan_text):
+                _bind_inline(entry, bound, entries, diagnostics)
         except UnicodeDecodeError:
             continue
+
+
+def _bind_inline(entry, bound, entries, diagnostics):
+    scopes = bound.get(entry["key"], set())
+    if len(scopes) == 1:
+        entry["section"] = next(iter(scopes))
+        entries.append(entry)
+    elif scopes:
+        diagnostics.append(
+            {
+                "code": "inline_bibliography_scope_ambiguous",
+                "key": entry["key"],
+                "scopes": sorted(scopes),
+                "origin": entry["origin"],
+            }
+        )
 
 
 def _resolve(

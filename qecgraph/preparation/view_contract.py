@@ -104,8 +104,12 @@ def _check_pdf_text(files, view):
 
 
 def _check_projection(files, document, text, tree, view):
+    build = json.loads(files["build.json"])
     assembly = assemble_files(
-        tree.files, document["entry"], scan_views=scan_views(tree, view)
+        tree.files,
+        document["entry"],
+        scan_views=scan_views(tree, view),
+        allowed_inputs=build.get("inputs"),
     )
     if assembly.text != text or assembly.source_map() != json.loads(
         files["source-map.json"]

@@ -1102,9 +1102,10 @@ def _unique_dirs(values: list[str]) -> list[str]:
 
 
 class Assembler:
-    def __init__(self, files: Mapping[str, bytes], *, scan_views=None):
+    def __init__(self, files: Mapping[str, bytes], *, scan_views=None, allowed_inputs=None):
         self.files = dict(files)
         self.scan_views = scan_views or {}
+        self.allowed_inputs = set(allowed_inputs) if allowed_inputs is not None else None
         self.events: list[DirectiveEvent] = []
         self.diagnostics: list[dict] = []
         self.scopes: list[dict[str, object]] = [{}]
@@ -1122,6 +1123,12 @@ class Assembler:
         result = AssemblyResult(clean_entry, data, segments, events,
                                 [*local_diagnostics, *(diagnostics or [])])
         return result
+
+    def _input_outcome(self, target, outcome):
+        if (outcome == "resolved" and self.allowed_inputs is not None
+                and target not in self.allowed_inputs):
+            return "not_consumed"
+        return outcome
 
     def _scan_view(self, path: str, start: int, original: str) -> str:
         if path not in self.scan_views:
@@ -1217,6 +1224,7 @@ class Assembler:
                 continue
             (target, target_range, stripped, preamble_dropped, outcome, candidates,
              child_context) = resolution
+            outcome = self._input_outcome(target, outcome)
             if outcome != "resolved":
                 add_original(start, stop)
                 event = _replace(event, outcome=outcome, out_byte_end=len(output),
@@ -1461,8 +1469,8 @@ def _shift_event(event: DirectiveEvent, byte_offset: int, char_offset: int) -> D
     return _replace(event, **fields)
 
 
-def assemble_files(files: Mapping[str, bytes], entry: str, *, scan_views=None) -> AssemblyResult:
-    return Assembler(files, scan_views=scan_views).assemble(entry)
+def assemble_files(files: Mapping[str, bytes], entry: str, *, scan_views=None, allowed_inputs=None) -> AssemblyResult:
+    return Assembler(files, scan_views=scan_views, allowed_inputs=allowed_inputs).assemble(entry)
 
 
 def _section_metadata(latex: str, raw_level: int | None) -> tuple[str, bool]:

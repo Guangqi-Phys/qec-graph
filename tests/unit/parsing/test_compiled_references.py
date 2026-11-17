@@ -46,6 +46,51 @@ class CompiledReferenceTests(unittest.TestCase):
                 self.assertTrue(result["complete"], result)
                 self.assertEqual({b["section"] for b in result["bindings"]}, expected)
 
+    def test_nocite_wildcard_expands_observed_entries_and_does_not_pass_vacuously(self):
+        files = {
+            "main.aux": rb"\citation{*}\bibcite{a}{1}\bibcite{b}{2}",
+            "main.bbl": rb"\bibitem{a}First.\bibitem{b}Second.",
+        }
+        result = self.adapt(files, list(files))
+        self.assertTrue(result["complete"], result)
+        self.assertEqual([b["key"] for b in result["bindings"]], ["a", "b"])
+        self.assertEqual(result["wildcard_sections"], ["0"])
+        empty = self.adapt({"main.aux": rb"\citation{*}\bibdata{absent}"}, ["main.aux"])
+        self.assertFalse(empty["complete"])
+        self.assertEqual(
+            empty["diagnostics"][0]["code"], "wildcard_bibliography_unobserved"
+        )
+
+    def test_biblatex_wildcard_respects_refsection(self):
+        files = {
+            "main.bcf": b'<bcf:controlfile xmlns:bcf="test"><bcf:section number="1"><bcf:citekey>*</bcf:citekey></bcf:section></bcf:controlfile>',
+            "main.bbl": rb"\refsection{1}\entry{a}{article}{}A\endentry\endrefsection\refsection{2}\entry{b}{article}{}B\endentry\endrefsection",
+        }
+        result = self.adapt(files, ["main.bbl"])
+        self.assertTrue(result["complete"], result)
+        self.assertEqual(
+            [(b["section"], b["key"]) for b in result["bindings"]], [("1", "a")]
+        )
+
+    def test_inline_bibliography_can_bind_a_unique_nonprimary_scope(self):
+        files = {
+            "main.tex": rb"\usepackage{bibunits}\begin{bibunit}\bibitem{a}First.\end{bibunit}",
+            "main.aux": b"",
+            "bu1.aux": rb"\citation{a}\bibcite{a}{1}",
+        }
+        result = self.adapt(files, list(files))
+        self.assertTrue(result["complete"], result)
+        self.assertEqual(result["bindings"][0]["section"], "bibunit:1")
+        self.assertEqual(
+            result["bindings"][0]["entries"][0]["origin"]["path"], "main.tex"
+        )
+        files["bu2.aux"] = rb"\citation{a}\bibcite{a}{2}"
+        ambiguous = self.adapt(files, list(files))
+        self.assertFalse(ambiguous["complete"])
+        self.assertEqual(
+            ambiguous["diagnostics"][0]["code"], "inline_bibliography_scope_ambiguous"
+        )
+
     def adapt(self, files, inputs):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

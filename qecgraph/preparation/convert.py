@@ -181,7 +181,10 @@ def convert_source(tree, entry, references, *, used_files=(), build_view=None):
     numbering observations remain separate from exact original TeX source spans.
     """
     assembly = assemble_files(
-        tree.files, entry, scan_views=scan_views(tree, build_view)
+        tree.files,
+        entry,
+        scan_views=scan_views(tree, build_view),
+        allowed_inputs=set(used_files) if used_files else None,
     )
     text = assembly.text
     coordinates = EntryCoordinates(assembly)

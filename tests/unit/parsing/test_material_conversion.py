@@ -309,6 +309,19 @@ Selected.
             )
         )
 
+    def test_nocite_wildcard_retains_a_source_call_for_all_emitted_keys(self):
+        raw = rb"\documentclass{article}\begin{document}\nocite{*}\end{document}"
+        refs = {
+            "bindings": [
+                {"section": "0", "key": k, "status": "resolved"} for k in ["a", "b"]
+            ],
+            "wildcard_sections": ["0"],
+        }
+        _, doc, coverage = self.convert({"main.tex": raw}, refs)
+        self.assertTrue(coverage["complete"], coverage)
+        self.assertEqual(doc["citations"][0]["origin"], "compiled_nocite_wildcard")
+        self.assertEqual(doc["citations"][0]["keys"], ["a", "b"])
+
     def test_tex_key_whitespace_collapses_like_tex_arguments(self):
         raw = rb"\documentclass{article}\begin{document}\begin{equation}\label{eq:a  b}x\end{equation}See \eqref{eq:a b}.\end{document}"
         _, doc, coverage = self.convert({"main.tex": raw})

@@ -71,6 +71,21 @@ class BuildViewTests(unittest.TestCase):
         self.assertTrue(view["guards"][0]["selected"])
         self.assertEqual(view["guards"][0]["observations"], ["T"])
 
+    def test_recorder_excluded_include_does_not_become_active_source(self):
+        raw = rb"\documentclass{article}\begin{document}\input{unused}Visible.\end{document}"
+        tree = SourceTree(
+            "tex",
+            {"main.tex": raw, "unused.tex": rb"\label{uncompiled}Uncompiled prose."},
+        )
+        assembly, doc, coverage = convert_source(
+            tree, "main.tex", {"bindings": []}, used_files=["main.tex"]
+        )
+        self.assertFalse(coverage["complete"])
+        self.assertIn("unresolved_directives", coverage["reasons"])
+        self.assertNotIn(b"Uncompiled prose", assembly.data)
+        self.assertEqual(doc["labels"], [])
+        self.assertEqual(assembly.events[0].outcome, "not_consumed")
+
     def test_unsupported_operands_and_inline_guards_are_not_instrumented(self):
         for raw in [
             rb"\ifdefined\flag T\else F\fi",
