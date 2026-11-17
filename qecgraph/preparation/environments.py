@@ -3,6 +3,7 @@
 from collections import Counter
 from pathlib import PurePosixPath
 import re
+from typing import cast
 
 from pylatexenc.latexwalker import LatexWalker, LatexMacroNode, LatexWalkerParseError
 from pylatexenc.macrospec import MacroSpec
@@ -64,8 +65,9 @@ def _source_declarations(path, raw, text):
             "renewtcolorbox",
         }:
             continue
-        if any(a <= node.pos < b for a, b in [*inactive, *uncertain]) or (
-            body is not None and node.pos >= body
+        position = cast(int, node.pos)
+        if any(a <= position < b for a, b in [*inactive, *uncertain]) or (
+            body is not None and position >= body
         ):
             continue
         record = _declaration(node, path, raw, text)
