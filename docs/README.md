@@ -84,6 +84,7 @@ Review records and maintainer decisions use Chinese. Implementation and generate
 knowledge content use English. Original sources and quotations preserve their language.
 
 - [Current compile-first preparation acceptance and remaining partial cases](../validation/preparation_acceptance.json)
+- [2026-11-17 preparation hardening and remaining work (review 04, Chinese)](reviews/review-2026-11-17-compile-prepare-testing/04-preparation-hardening-and-remaining-work.zh-CN.md)
 
 There are no redirect-only or archive pages. Superseded design and user pages
 live in Git history. Dated review records remain in `docs/reviews/` and must not

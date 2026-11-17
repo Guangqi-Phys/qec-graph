@@ -13,6 +13,7 @@
 |---|---|
 | 单元、集成和契约测试 | `python -m unittest discover -s tests` |
 | 编译优先准备，零模型 | `python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/preparation-replay --entries validation/preparation_entries.json --cases validation/preparation_cases.json` |
+| 重算/检查准备验收 | `python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifest.json --replay build/preparation-replay --cases validation/preparation_cases.json --out build/preparation-acceptance.json --check` |
 | 端到端抽取和查询复现 | `python tools/reproduce.py --out build/reproduce` |
 | 直接阅读 / 搜索 / 任务上下文证据 | `python tools/reproduce_knowledge.py --out build/knowledge-synthetic.json --include-payloads` |
 | 已登记真实来源阅读（只读） | `python tools/reproduce_knowledge.py --machine /path/to/machine --out build/knowledge-real.json --include-payloads` |
@@ -25,17 +26,18 @@
 检查只对实际运行它的源码修订和环境构成证据。测试通过不代表论文定理为真、
 距离界已被数学验证，或 Lean 声明已语义匹配。
 
-当前[准备验收报告](preparation_acceptance.json)在 `compile-prepare-v10` 下记录
-47 篇 TeX 和一个 PDF 反例：46 篇可编译（45 篇有非空语法），45 篇文献绑定完整，
-41 篇满足全部准备判据，其余 6 篇 TeX 保持 partial 并逐篇列出原因。
-45 份派生 LaTeX 可重新编译且逐页去空白 PDF 文字相同，44 份通过完整统一格式阶段。
-新规则覆盖 TeX 参数空白归一化的 key、经 AUX 确认的环境 `label=...` 选项、
-唯一受条件包裹的文档边界、绘图内部条件，以及有构建证据的大小写资产匹配；
-最后一种明确依赖大小写不敏感文件系统，不能声称可移植。
-五篇论文的 20 个来源绑定语法检查通过；这是机械检查，不是独立人工金标。
-三个显式入口配置保存在 `preparation_entries.json`，历史 TeX 依赖的 URL/哈希和命令
-写在报告里。固定 machine 的评测因注册表 schema 不兼容而未验收。
-原始数据库和 Human.md 均未修改。
+当前[准备验收报告](preparation_acceptance.json)由完整 `compile-prepare-v14` 回放自动生成，
+逐包重新打开材料、重算计数和来源绑定语法 probe，并核对语料/代码快照。
+先运行不带 `--check` 的 `report_preparation.py` 生成报告，再用相同参数加 `--check`
+检查漂移；检查不编译、不调用模型。已提交报告的 `replay.argv` 保存实际支持文件路径、
+入口和 probe 配置；比较基线固定为 v10 的 `59a0b9f`。原生工具结果保留在材料包中，
+不会复制旧测试套件的通过声明。
+
+固定语料为 47 篇 TeX 和一个 PDF 反例；覆盖数和失败原因是机械准备证据，
+不是科学答案金标或数学验收。[04 总结](../docs/reviews/review-2026-11-17-compile-prepare-testing/04-preparation-hardening-and-remaining-work.zh-CN.md)
+记录可比前后数字、实际检查、依赖来源及未完成事项。大小写资产匹配仍不能声称可移植到
+大小写敏感文件系统。固定 machine 副本评测仍因注册表 schema 不兼容而未验收。
+Human.md 和原始数据库均未修改。
 
 `validation/retrieval_qa.json` 包含八道绑定评审中五篇论文固定来源的工程问题。
 锚点在查看检索片段后选择，所以这是导航 smoke，不是独立相关性金标。运行
@@ -46,8 +48,9 @@
 
 复杂度回归门禁为 `python tools/check_complexity.py`；修改
 `validation/complexity_baseline.json` 必须明确评审。基线记录旧债务，不代表现有函数简单。
-准备报告包含 16 个遗漏旧复杂度上限的明确评审：逐项对照起始版本 `3ef28ae`，
-没有放行复杂度增长。新增编译/准备函数的复杂度均不超过 10。
+当前门禁保留 85 个复杂度超过 10 的历史函数，没有新增回归。此前 16 个遗漏上限的
+明确评审保留在 `59a0b9f:validation/preparation_acceptance.json`，不冒充本次的新验收。
+新增编译/准备函数的复杂度均不超过 10。
 
 ## 添加证据
 

@@ -15,6 +15,7 @@ results so stale reports cannot be mistaken for a claim about the current code.
 |---|---|
 | Unit, integration and contract tests | `python -m unittest discover -s tests` |
 | Compile-first preparation, zero AI | `python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/preparation-replay --entries validation/preparation_entries.json --cases validation/preparation_cases.json` |
+| Recalculate/check preparation acceptance | `python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifest.json --replay build/preparation-replay --cases validation/preparation_cases.json --out build/preparation-acceptance.json --check` |
 | End-to-end extraction and query reproduction | `python tools/reproduce.py --out build/reproduce` |
 | Direct reading / search / task context evidence | `python tools/reproduce_knowledge.py --out build/knowledge-synthetic.json --include-payloads` |
 | Registered real-source reading (read-only) | `python tools/reproduce_knowledge.py --machine /path/to/machine --out build/knowledge-real.json --include-payloads` |
@@ -28,21 +29,23 @@ A check is evidence only for the exact source revision and environment in which
 it ran. A passing test does not make a paper's theorem true, a distance bound
 mathematically verified, or a Lean declaration semantically matched.
 
-The current [preparation acceptance report](preparation_acceptance.json) records
-47 TeX inputs plus a PDF negative case under `compile-prepare-v10`: 46 compile
-(45 with non-empty syntax), 45 have complete bibliography bindings, and 41 meet
-the full preparation gate. The other 6 TeX inputs remain partial with enumerated
-causes. Forty-five derived LaTeX files recompile and pass per-page non-whitespace
-PDF text comparison; 44 pass the complete normalization stage. The new rules cover
-TeX argument whitespace in keys, AUX-confirmed environment `label=...` options,
-unique guard-wrapped document boundaries, drawing-only conditionals, and a
-build-evidenced case-only asset match. The last case is explicitly non-portable to
-a case-sensitive filesystem. Twenty source-bound syntax probes pass on five papers;
-they are mechanical checks, not independent human gold. Three explicit entry
-overrides are versioned in `preparation_entries.json`; historical TeX support
-URLs/hashes and commands are in the report. The pinned machine evaluation remains
-unaccepted because its registry schema is incompatible. No original database or
-Human.md was changed.
+The current [preparation acceptance report](preparation_acceptance.json) is generated
+from the full `compile-prepare-v14` replay, with every material bundle reopened,
+counts and source-bound syntax probes recalculated, and corpus/code snapshots
+checked. Use `report_preparation.py` without `--check` to create a report first;
+repeat the same arguments with `--check` to detect drift without compilation or
+model calls. The committed report's `replay.argv` records the actual support paths,
+entry hints and probe configuration; the comparison pins the v10 baseline at
+`59a0b9f`. Native tool outcomes remain in the bundles, not copied test-suite claims.
+
+This corpus contains 47 TeX inputs and one PDF negative case. Coverage counts and
+remaining failures are mechanical preparation evidence, not scientific answer gold
+or mathematical validation. [Review 04](../docs/reviews/review-2026-11-17-compile-prepare-testing/04-preparation-hardening-and-remaining-work.zh-CN.md)
+records the comparable before/after numbers, executed checks, dependency provenance
+and outstanding work. The case-only asset match remains non-portable to a
+case-sensitive filesystem. The pinned machine-copy evaluation remains unaccepted
+because its registry schema is incompatible. Human.md and the original database
+are unchanged.
 
 `validation/retrieval_qa.json` contains eight source-bound engineering questions for the
 review's five-paper release. Anchors were selected after viewing retrieved passages;
@@ -56,8 +59,9 @@ and per-skill precision samples remain outstanding.
 The complexity regression gate is `python tools/check_complexity.py`. Changes to
 `validation/complexity_baseline.json` require explicit review; it records legacy
 debt and does not mean the existing functions are simple.
-The preparation report includes the explicit review of 16 omitted legacy ceilings:
-each is checked against starting revision `3ef28ae`, with no increase accepted.
+The current gate retains 85 legacy functions over complexity 10, with no new
+regressions. The earlier explicit review of 16 omitted ceilings is retained at
+`59a0b9f:validation/preparation_acceptance.json`; it is not a new validation claim.
 New compilation/preparation functions remain at complexity 10 or below.
 
 ## Adding evidence
