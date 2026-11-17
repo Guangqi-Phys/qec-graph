@@ -7,7 +7,7 @@ import re
 from types import SimpleNamespace
 
 from .build_view import SCHEMA, _candidates, _instrument, _bibliography, _observations
-from .contract import digest
+from .contract import digest, json_bytes
 from .guard_syntax import scan_views, project_view
 from .branches import syntax_view
 from ..source.assembly import assemble_files, EntryCoordinates, document_bounds
@@ -111,8 +111,8 @@ def _check_projection(files, document, text, tree, view):
         scan_views=scan_views(tree, view),
         allowed_inputs=build.get("inputs"),
     )
-    if assembly.text != text or assembly.source_map() != json.loads(
-        files["source-map.json"]
+    if assembly.text != text or json_bytes(assembly.source_map()) != json_bytes(
+        json.loads(files["source-map.json"])
     ):
         raise ValueError("Build-view assembly does not match original-source mapping")
     masks, guards = project_view(assembly, view)
@@ -120,6 +120,7 @@ def _check_projection(files, document, text, tree, view):
     parse_text, inactive = syntax_view(
         coordinates.copy_text(),
         [(coordinates.to_parse(a), coordinates.to_parse(b)) for a, b in masks],
+        allow_observed_bounds=False,
     )
     inactive = [[coordinates.to_entry(a), coordinates.to_entry(b)] for a, b in inactive]
     if document["observed_guards"] != guards or document["inactive_ranges"] != inactive:

@@ -10,6 +10,37 @@ from qecgraph.preparation.pipeline import prepare_material
 
 
 class MaterialPipelineTests(unittest.TestCase):
+    def test_reopen_compares_macro_include_arguments_in_json_form(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "source"
+            source.mkdir()
+            (source / "main.tex").write_text(
+                r"\documentclass{article}\newcommand{\PART}{part}"
+                r"\begin{document}\input{\PART}\end{document}"
+            )
+            (source / "part.tex").write_text("Included body.")
+
+            def compiler(tree, entry, work, **kwargs):
+                tree.materialize(work / "project")
+                return Build(
+                    entry,
+                    "pdflatex",
+                    work,
+                    success=True,
+                    inputs=["main.tex", "part.tex"],
+                )
+
+            out = root / "material"
+            prepare_material(source, out, compiler=compiler)
+            loaded = read_material(out)
+            self.assertIn("Included body.", loaded["entry_tex"])
+            source_map = json.loads((out / "source-map.json").read_bytes())
+            event = next(
+                e for e in source_map["directives"] if e["kind"] == "input"
+            )
+            self.assertEqual(event["expanded_args"], ["part"])
+
     def compiler(self, tree, entry, root, **kwargs):
         self.calls.append("compile")
         tree.materialize(root / "project")
