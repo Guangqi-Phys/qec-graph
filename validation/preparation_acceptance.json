@@ -1,9 +1,21 @@
 {
   "bibliography_complete": 46,
   "body_syntax_complete": 46,
-  "code_revision": "ac3ab22fac56c9b31e3eb2fdf215d38b5ba7768d",
+  "code_revision": "8cc1d99f45c554def10b4cf908f4f74e1c370b99",
   "comparison": {
     "after": {
+      "compiled": 46,
+      "failed": 1,
+      "normalized_recompiled": 46,
+      "normalized_text_equal": 46,
+      "papers": 48,
+      "partial": 1,
+      "ready": 46,
+      "source_fidelity": 46
+    },
+    "baseline_code_revision": "ff69adf08a3015843a9aff6724e1309ca942769a",
+    "baseline_rule_version": "compile-prepare-v18",
+    "before": {
       "compiled": 46,
       "failed": 1,
       "normalized_recompiled": 46,
@@ -13,22 +25,11 @@
       "ready": 43,
       "source_fidelity": 46
     },
-    "baseline_code_revision": "9f4f537b593df2dd92871f67663557a0a4bdcf48",
-    "baseline_rule_version": "compile-prepare-v14",
-    "before": {
-      "compiled": 46,
-      "failed": 1,
-      "normalized_recompiled": 45,
-      "normalized_text_equal": 45,
-      "papers": 48,
-      "partial": 6,
-      "ready": 41,
-      "source_fidelity": 45
-    },
-    "gate_change_note": "Current preparation adds verified byte projection, pinned native Harvmac grammar, independent per-part capabilities and effective explicit dependency selection. The overall ready gate remains strict. Counts describe mechanical coverage, not scientific extraction quality.",
+    "gate_change_note": "The user-approved v19 preparation gate accepts cross-reference ambiguity with every known candidate retained and independently checked. Unique binding remains partial; missing targets and all other prerequisites still block ready. Newly ready papers reflect this preparation policy change, not resolved author intent or improved scientific extraction quality.",
     "newly_ready": [
-      "2209.05640v1",
-      "hep-th/9407087v1"
+      "2012.04068v1",
+      "2102.06132v1",
+      "2308.07915v2"
     ],
     "ready_regressions": []
   },
@@ -38,17 +39,17 @@
     "normalized_recompiled": 46,
     "normalized_text_equal": 46,
     "papers": 48,
-    "partial": 4,
-    "ready": 43,
+    "partial": 1,
+    "ready": 46,
     "source_fidelity": 46
   },
-  "criteria": "Native compilation, complete supported source syntax and reference bindings, exact source mapping, and normalized syntax/recompilation. Observed guards additionally require matching instrumented PDF text and validated native log evidence. Ready is not portability or scientific correctness.",
-  "date": "2026-11-17T05:38:45.869637+00:00",
+  "criteria": "Native compilation, complete supported source syntax and bibliography bindings, exact source mapping, and normalized syntax/recompilation. Cross-references may remain ambiguous with all known candidates preserved; missing targets still block ready. Observed guards additionally require matching instrumented PDF text and validated native log evidence. Ready is not unique cross-reference resolution, portability or scientific correctness.",
+  "date": "2026-11-17T06:14:00.337086+00:00",
   "generator": {
     "baseline": {
-      "commit": "9f4f537b593df2dd92871f67663557a0a4bdcf48",
+      "commit": "ff69adf08a3015843a9aff6724e1309ca942769a",
       "path": "validation/preparation_acceptance.json",
-      "sha256": "780e7099cc4a85713e492973ef901411749bc82b7d03c5e949ecd58c7a0f2561"
+      "sha256": "181b38b6145740d6832a5de056ddd081af83952b44d4dd422e053c32b16cc373"
     },
     "command": "tools/report_preparation.py"
   },
@@ -59,8 +60,8 @@
     "tex_inputs": 47
   },
   "machine_evaluation": {
-    "evidence_path": "build/preparation-v18/machine-evaluation.json",
-    "evidence_sha256": "99aa5f719421c1713ab04eed879634cd3c40cc10349399a08dc89dfb184c06be",
+    "evidence_path": "build/preparation-v19/machine-evaluation.json",
+    "evidence_sha256": "dbf5f8f4394188a4ed7c154cc20f3609f3c319e96b9fa1145dc8b2cbd9e08703",
     "result": {
       "accepted": false,
       "command": [
@@ -71,7 +72,7 @@
         "--release",
         "aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22",
         "--out",
-        "build/preparation-v18/machine-evaluation-raw.json"
+        "build/preparation-v19/machine-evaluation-raw.json"
       ],
       "error": "Traceback (most recent call last):\n  File \"/Users/guangqi/Workspace/qec-graph/tools/reproduce_knowledge.py\", line 155, in <module>\n    raise SystemExit(main())\n                     ~~~~^^\n  File \"/Users/guangqi/Workspace/qec-graph/tools/reproduce_knowledge.py\", line 140, in main\n    session = WorkspaceSession(args.machine, args.release, profile='research', max_chars=1000000)\n  File \"/Users/guangqi/Workspace/qec-graph/qecgraph/workspace_query.py\", line 45, in __init__\n    self.state, self.release = self.registry.read(release_id, verify=False)\n                               ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/guangqi/Workspace/qec-graph/qecgraph/registry.py\", line 83, in read\n    raise ManagedDataError(state_path, 'Registry state schema mismatch')\nqecgraph.core.transactions.ManagedDataError: Registry state schema mismatch: /Users/guangqi/Workspace/qec-graph/build/preparation-v10/machine-copy/states/aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22.json\n",
       "exit": 1,
@@ -87,6 +88,11 @@
   "normalization_complete": 46,
   "normalization_files": 46,
   "original_bundles_validated": 47,
+  "preserved_reference_ambiguity": [
+    "2012.04068v1",
+    "2102.06132v1",
+    "2308.07915v2"
+  ],
   "ready_papers": [
     "0903.0566v1",
     "1208.2317v1",
@@ -94,7 +100,9 @@
     "1907.02554v1",
     "1907.11157v1",
     "2009.07851v3",
+    "2012.04068v1",
     "2012.09271v1",
+    "2102.06132v1",
     "2103.02202v1",
     "2103.06309v1",
     "2104.01180v1",
@@ -107,6 +115,7 @@
     "2303.15933v1",
     "2308.02321v1",
     "2308.07915v1",
+    "2308.07915v2",
     "2408.13687v1",
     "2410.02885v1",
     "2411.11822v1",
@@ -162,6 +171,7 @@
         "bibliography_bindings": "partial",
         "body_syntax": "partial",
         "cross_reference_bindings": "partial",
+        "cross_reference_preparation": "partial",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -184,295 +194,6 @@
       "unmapped_conditions": [],
       "unresolved_cross_references": [],
       "warnings": []
-    },
-    {
-      "diagnostic_codes": [
-        "cross_reference_ambiguous"
-      ],
-      "engine": "pdflatex",
-      "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
-      "entry": "main.tex",
-      "entry_selection": "automatic",
-      "environment_declaration_count": 0,
-      "exit": 2,
-      "native_guard_view": {
-        "observed_guards": 0,
-        "verified": false
-      },
-      "nodes": 17006,
-      "normalization": {
-        "complete": true,
-        "native_compile": "complete",
-        "pdf_text": "equal",
-        "syntax_parse": "complete",
-        "transformations": {
-          "math_delimiter": 3154
-        }
-      },
-      "normalization_file": true,
-      "package_sha256": "621e0d1abccfdfa76f951fafff447f619f718f46611c247baa78dcb3b03fba87",
-      "paper": "2012.04068v1",
-      "preparation_capabilities": {
-        "bibliography_bindings": "complete",
-        "body_syntax": "complete",
-        "cross_reference_bindings": "partial",
-        "schema": "qecgraph.preparation_capabilities/1",
-        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
-        "unresolved_cross_references": [
-          {
-            "candidates": [
-              "syntax:2bd043b70ce8081838ba6235",
-              "syntax:b6757016255ae80318381c2e"
-            ],
-            "key": "lm:alpha-beta-exp",
-            "node": "syntax:f70a94792a10e6c4cc7dd3eb",
-            "status": "ambiguous"
-          }
-        ]
-      },
-      "reasons": [
-        "conversion_diagnostics"
-      ],
-      "source_dialect": null,
-      "source_fidelity": true,
-      "source_projection_verified": false,
-      "source_tree_sha256": "f08f66547c4f1d4fa1328fc19c56d0803b5c2b0e3f6b3d62d9e0eb4666ba5492",
-      "stages": {
-        "compile": "complete",
-        "conversion": "partial",
-        "normalized_latex": "complete",
-        "references": "complete",
-        "source_fidelity": "checked_at_publication"
-      },
-      "status": "partial",
-      "unmapped_conditions": [],
-      "unresolved_cross_references": [
-        "lm:alpha-beta-exp"
-      ],
-      "warnings": [
-        "duplicate_labels"
-      ]
-    },
-    {
-      "diagnostic_codes": [
-        "cross_reference_ambiguous"
-      ],
-      "engine": "pdflatex",
-      "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
-      "entry": "main.tex",
-      "entry_selection": "automatic",
-      "environment_declaration_count": 0,
-      "exit": 2,
-      "native_guard_view": {
-        "observed_guards": 0,
-        "verified": false
-      },
-      "nodes": 7817,
-      "normalization": {
-        "complete": true,
-        "native_compile": "complete",
-        "pdf_text": "equal",
-        "syntax_parse": "complete",
-        "transformations": {
-          "math_delimiter": 976
-        }
-      },
-      "normalization_file": true,
-      "package_sha256": "130d0eeada4f97430739d23efc1008b0571ddf38ed639aa339945aeb4a8c689e",
-      "paper": "2102.06132v1",
-      "preparation_capabilities": {
-        "bibliography_bindings": "complete",
-        "body_syntax": "complete",
-        "cross_reference_bindings": "partial",
-        "schema": "qecgraph.preparation_capabilities/1",
-        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
-        "unresolved_cross_references": [
-          {
-            "candidates": [
-              "syntax:f817e63db7d1c95769bd9a02",
-              "syntax:36deafe132ea62cf6c388c4e"
-            ],
-            "key": "fig:bitfliplep",
-            "node": "syntax:c74a616aed22acfa2c288efa",
-            "status": "ambiguous"
-          },
-          {
-            "candidates": [
-              "syntax:f817e63db7d1c95769bd9a02",
-              "syntax:36deafe132ea62cf6c388c4e"
-            ],
-            "key": "fig:bitfliplep",
-            "node": "syntax:dfa1ae8a7c46fc5859e2d408",
-            "status": "ambiguous"
-          },
-          {
-            "candidates": [
-              "syntax:24ad9c7a32b2eb2822280939",
-              "syntax:6975df7b80fbca6ab38f86fe"
-            ],
-            "key": "pij-approx",
-            "node": "syntax:8b4a95b47c219dcf538023c6",
-            "status": "ambiguous"
-          },
-          {
-            "candidates": [
-              "syntax:24ad9c7a32b2eb2822280939",
-              "syntax:6975df7b80fbca6ab38f86fe"
-            ],
-            "key": "pij-approx",
-            "node": "syntax:081a23d68fe070863c37edd7",
-            "status": "ambiguous"
-          },
-          {
-            "candidates": [
-              "syntax:24ad9c7a32b2eb2822280939",
-              "syntax:6975df7b80fbca6ab38f86fe"
-            ],
-            "key": "pij-approx",
-            "node": "syntax:693c5a938d428f2675958b34",
-            "status": "ambiguous"
-          },
-          {
-            "candidates": [
-              "syntax:24ad9c7a32b2eb2822280939",
-              "syntax:6975df7b80fbca6ab38f86fe"
-            ],
-            "key": "pij-approx",
-            "node": "syntax:ca2ae8011d3dc405582ff43f",
-            "status": "ambiguous"
-          },
-          {
-            "candidates": [
-              "syntax:24ad9c7a32b2eb2822280939",
-              "syntax:6975df7b80fbca6ab38f86fe"
-            ],
-            "key": "pij-approx",
-            "node": "syntax:79482864318613ccb8beab79",
-            "status": "ambiguous"
-          }
-        ]
-      },
-      "reasons": [
-        "conversion_diagnostics"
-      ],
-      "source_dialect": null,
-      "source_fidelity": true,
-      "source_projection_verified": false,
-      "source_tree_sha256": "ce40f29a2dba887e520ccc5646abe24900e6f8117213c98b858b63e68e4914ca",
-      "stages": {
-        "compile": "complete",
-        "conversion": "partial",
-        "normalized_latex": "complete",
-        "references": "complete",
-        "source_fidelity": "checked_at_publication"
-      },
-      "status": "partial",
-      "unmapped_conditions": [],
-      "unresolved_cross_references": [
-        "fig:bitfliplep",
-        "pij-approx"
-      ],
-      "warnings": [
-        "duplicate_labels"
-      ]
-    },
-    {
-      "diagnostic_codes": [
-        "cross_reference_ambiguous"
-      ],
-      "engine": "pdflatex",
-      "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
-      "entry": "arXiv_v2.tex",
-      "entry_selection": "automatic",
-      "environment_declaration_count": 0,
-      "exit": 2,
-      "native_guard_view": {
-        "observed_guards": 3,
-        "verified": true
-      },
-      "nodes": 15585,
-      "normalization": {
-        "complete": true,
-        "native_compile": "complete",
-        "pdf_text": "equal",
-        "syntax_parse": "complete",
-        "transformations": {
-          "math_delimiter": 2864,
-          "observed_conditional_header": 3
-        }
-      },
-      "normalization_file": true,
-      "package_sha256": "d0dc3ffbb467a71630efa6b930913d19ee3d5356c42412930bc43dbd96306b2e",
-      "paper": "2308.07915v2",
-      "preparation_capabilities": {
-        "bibliography_bindings": "complete",
-        "body_syntax": "complete",
-        "cross_reference_bindings": "partial",
-        "schema": "qecgraph.preparation_capabilities/1",
-        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
-        "unresolved_cross_references": [
-          {
-            "candidates": [
-              "syntax:b788df6988c37f02dfe58f81",
-              "syntax:b7700be5d9c14a61eac08a16"
-            ],
-            "key": "ABC2",
-            "node": "syntax:4664911d60b1fd0841bde8f6",
-            "status": "ambiguous"
-          },
-          {
-            "candidates": [
-              "syntax:26dd13c671bfc7fc86840997",
-              "syntax:24793d4afba66a4486daf3cf"
-            ],
-            "key": "alpha_beta_gamma_delta",
-            "node": "syntax:4d8708bda8954c1d386920f4",
-            "status": "ambiguous"
-          },
-          {
-            "candidates": [
-              "syntax:b788df6988c37f02dfe58f81",
-              "syntax:b7700be5d9c14a61eac08a16"
-            ],
-            "key": "ABC2",
-            "node": "syntax:04457c986d0fbf2d5a963751",
-            "status": "ambiguous"
-          },
-          {
-            "candidates": [
-              "syntax:26dd13c671bfc7fc86840997",
-              "syntax:24793d4afba66a4486daf3cf"
-            ],
-            "key": "alpha_beta_gamma_delta",
-            "node": "syntax:ad63a33fcdc89b670ad5907c",
-            "status": "ambiguous"
-          }
-        ]
-      },
-      "reasons": [
-        "conversion_diagnostics"
-      ],
-      "source_dialect": null,
-      "source_fidelity": true,
-      "source_projection_verified": false,
-      "source_tree_sha256": "ca32c6b767f29a6823b88b9fa97555994db22ed2ebb592f9053161e430f0a2ef",
-      "stages": {
-        "compile": "complete",
-        "conversion": "partial",
-        "normalized_latex": "complete",
-        "references": "complete",
-        "source_fidelity": "checked_at_publication"
-      },
-      "status": "partial",
-      "unmapped_conditions": [],
-      "unresolved_cross_references": [
-        "ABC2",
-        "alpha_beta_gamma_delta"
-      ],
-      "warnings": [
-        "duplicate_labels",
-        "native_guard_observation"
-      ]
     }
   ],
   "replay": {
@@ -482,7 +203,7 @@
       "--manifest",
       "test-sources/arxiv-sources/manifest.json",
       "--out",
-      "build/preparation-v18/final",
+      "build/preparation-v19/final",
       "--entries",
       "validation/preparation_entries.json",
       "--support-dir",
@@ -495,7 +216,7 @@
       "2"
     ],
     "cases_sha256": "f0b3a3b8cf7a4f8641bd48db14cc1255a4637cdd5f111e604cb7685a6363fbbd",
-    "code_revision": "ac3ab22fac56c9b31e3eb2fdf215d38b5ba7768d",
+    "code_revision": "8cc1d99f45c554def10b4cf908f4f74e1c370b99",
     "entries_sha256": "8e180d1330e36ebcd69f4d447efd43d789caa22ee11b1591c63f015eaf920a74",
     "execution_sources": {
       "qecgraph/__init__.py": "5164f48c394fbae38de8081269c4e4e15bd74ca8bc28368280c5a6d7c27f3918",
@@ -557,18 +278,18 @@
       "qecgraph/mcp/ai_tools.py": "88f825a441bc35d010faee59dd26125cc4d0a2883667eb250cc1bf2285b65700",
       "qecgraph/mcp/server.py": "f360de382149ba26bfe889d9a3c152f07999acb952108f270d9caedcbe27a6d0",
       "qecgraph/mcp_server.py": "60c1815f39ca5185ce5dd26cd90b010745a6c594a0dee07bdbb234d0acb00b2b",
-      "qecgraph/preparation/__init__.py": "2f68ac553396ea47435a7d23c4899a7e62d735d2dd7330ce900462b51f2448cb",
-      "qecgraph/preparation/acceptance.py": "16ebdf736ef7fff07738bc3888117e6072b5f94f2a4025ca53466200346c5041",
+      "qecgraph/preparation/__init__.py": "5ada7f26fcee67decbc8e8f6d08709bef321fa59f3255b5835291f5e9b3a5e7d",
+      "qecgraph/preparation/acceptance.py": "96a6ed174b7a8ff6cc38fa0af628a32b7ee215e60f83af1a6e36140ddaf76f5b",
       "qecgraph/preparation/branches.py": "af755328992d9ceeb1dc67c975f1a45e30a70a92440135e8931b3817a2023384",
       "qecgraph/preparation/build.py": "bf70cd224a48b2be1e49c64f4cc70ed5d34f4cabbb2781329d4e875ee63a7c1a",
       "qecgraph/preparation/build_view.py": "df4b3d8b734545aae6701d62522068a9c28d9a0d1aecd5eb08b8d1f69937020d",
-      "qecgraph/preparation/capabilities.py": "4c8286dc50d5901dde2fa1620590998397f62621b6bc68145a81fbafd8381d28",
+      "qecgraph/preparation/capabilities.py": "b36ddd4ccbbabeff4a50719bb89507e697e1fa2f620d9916a398bb17a4fb03d8",
       "qecgraph/preparation/citations.py": "1b48325daa5a30b036e1500f146ab211f58c3c254fc5c06528b40f502a039a03",
       "qecgraph/preparation/compatibility.py": "dad4cf2986294e91f02cc3671cb3d3a4f4d607d547b7947c47b24753fb768faf",
       "qecgraph/preparation/conditions.py": "11fe47b8a9edd6773bf85db49cf3e4ea440aa21ff114076ed6ea664260e4e4b9",
-      "qecgraph/preparation/contract.py": "a4ccccc7b4726c7b770d97b90b978ec87436928e66c6879b0f2d79d3254ae879",
-      "qecgraph/preparation/convert.py": "080f4e1ce411b9dbfe4ba831d8d7381cf219cdbf9815478629f8f212f048c75b",
-      "qecgraph/preparation/crossrefs.py": "db7677a2087ed86915d16d4b3ec65fcb4b06451a3e0d72d4ba910b8c8ba7e6ae",
+      "qecgraph/preparation/contract.py": "14364bf8b6f468e5db1c10af3cb10ad528000a341a1c3d87f914a25bb89071ee",
+      "qecgraph/preparation/convert.py": "936b1cadda223d7b363f572ee20f5eff2ce545210d008516438f9382c6322970",
+      "qecgraph/preparation/crossrefs.py": "0098bea159cd530b3a5b44accfd1ca23a7b41c98ee2a52d07bee15fdd039c2e6",
       "qecgraph/preparation/entries.py": "226a4541b9535961c27acfef133b40916e659252ae33638287a91dad73ca5687",
       "qecgraph/preparation/environments.py": "a2091f74ccde24dd663fe5aaefe3f719dfd3b695f21f0e2c75eef007ef13139b",
       "qecgraph/preparation/guard_syntax.py": "151aa53577d73e7336d5a90f61c09e66a230d8ea3a3495908422114b3538ff91",
@@ -576,7 +297,7 @@
       "qecgraph/preparation/harvmac_refs.py": "31969cae6c2679c60729c2f477c77a12f9a47a7d1274101f512c76ca2cd57152",
       "qecgraph/preparation/normalized.py": "a61c99b12aa721be249e79cbb463de4166bc217fa78ec0723f82b56f18883530",
       "qecgraph/preparation/options.py": "b76bcc9d7c0c79c03106f7346f48e85a8b38683b154a9c97cfc0d9ea02ad5f6f",
-      "qecgraph/preparation/pipeline.py": "bb2529d93df79db920b606e34385454de9fc915e1ec4057a41b627068e96c4f0",
+      "qecgraph/preparation/pipeline.py": "98e0ce7d07da05fbb89ac889d10830f98f90d0036be8344f82e41788a0fdd1b7",
       "qecgraph/preparation/projection.py": "0b8421ac37c9c784f3ec51ecc3386065729c1110f89a115a831621a5bbb5c8a2",
       "qecgraph/preparation/references.py": "e4809fe7f6ce8bace883b0786a9730a82600072476e64bce68368910381f05b0",
       "qecgraph/preparation/roundtrip.py": "8650e1ce0712a4685c2b3b2693935d2064caf5f7b139f13ca4a0e444e684c16a",
@@ -624,10 +345,10 @@
     },
     "platform": "macOS-27.2.1-arm64-arm-64bit-Mach-O",
     "python": "3.15.2",
-    "results_sha256": "d85d5cf8a1146e05b9377f102764b7678b6cf7b7255ed121feb24b956a4139c1",
-    "root": "build/preparation-v18/final",
-    "rule_version": "compile-prepare-v18",
-    "started_at": "2026-11-17T05:38:45.869637+00:00"
+    "results_sha256": "57b5b70f725fcb2050fd31f56c2474ce2868aea1086614022f4676201895113e",
+    "root": "build/preparation-v19/final",
+    "rule_version": "compile-prepare-v19",
+    "started_at": "2026-11-17T06:14:00.337086+00:00"
   },
   "rows": [
     {
@@ -659,6 +380,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -717,6 +439,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -768,6 +491,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -818,6 +542,7 @@
         "bibliography_bindings": "partial",
         "body_syntax": "partial",
         "cross_reference_bindings": "partial",
+        "cross_reference_preparation": "partial",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -870,6 +595,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -920,6 +646,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -970,6 +697,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -992,15 +720,13 @@
       "warnings": []
     },
     {
-      "diagnostic_codes": [
-        "cross_reference_ambiguous"
-      ],
+      "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
       "entry": "main.tex",
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
-      "exit": 2,
+      "exit": 0,
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -1022,6 +748,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "partial",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": [
@@ -1036,26 +763,25 @@
           }
         ]
       },
-      "reasons": [
-        "conversion_diagnostics"
-      ],
+      "reasons": [],
       "source_dialect": null,
       "source_fidelity": true,
       "source_projection_verified": false,
       "source_tree_sha256": "f08f66547c4f1d4fa1328fc19c56d0803b5c2b0e3f6b3d62d9e0eb4666ba5492",
       "stages": {
         "compile": "complete",
-        "conversion": "partial",
+        "conversion": "complete",
         "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
-      "status": "partial",
+      "status": "ready",
       "unmapped_conditions": [],
       "unresolved_cross_references": [
         "lm:alpha-beta-exp"
       ],
       "warnings": [
+        "cross_reference_ambiguous",
         "duplicate_labels"
       ]
     },
@@ -1088,6 +814,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -1110,15 +837,13 @@
       "warnings": []
     },
     {
-      "diagnostic_codes": [
-        "cross_reference_ambiguous"
-      ],
+      "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
       "entry": "main.tex",
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
-      "exit": 2,
+      "exit": 0,
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -1140,6 +865,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "partial",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": [
@@ -1208,27 +934,26 @@
           }
         ]
       },
-      "reasons": [
-        "conversion_diagnostics"
-      ],
+      "reasons": [],
       "source_dialect": null,
       "source_fidelity": true,
       "source_projection_verified": false,
       "source_tree_sha256": "ce40f29a2dba887e520ccc5646abe24900e6f8117213c98b858b63e68e4914ca",
       "stages": {
         "compile": "complete",
-        "conversion": "partial",
+        "conversion": "complete",
         "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
-      "status": "partial",
+      "status": "ready",
       "unmapped_conditions": [],
       "unresolved_cross_references": [
         "fig:bitfliplep",
         "pij-approx"
       ],
       "warnings": [
+        "cross_reference_ambiguous",
         "duplicate_labels"
       ]
     },
@@ -1261,6 +986,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -1311,6 +1037,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -1361,6 +1088,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -1411,6 +1139,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -1463,6 +1192,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -1515,6 +1245,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -1565,6 +1296,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -1615,6 +1347,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -1667,6 +1400,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -1717,6 +1451,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -1767,6 +1502,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -1817,6 +1553,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -1839,15 +1576,13 @@
       "warnings": []
     },
     {
-      "diagnostic_codes": [
-        "cross_reference_ambiguous"
-      ],
+      "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
       "entry": "arXiv_v2.tex",
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
-      "exit": 2,
+      "exit": 0,
       "native_guard_view": {
         "observed_guards": 3,
         "verified": true
@@ -1870,6 +1605,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "partial",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": [
@@ -1911,27 +1647,26 @@
           }
         ]
       },
-      "reasons": [
-        "conversion_diagnostics"
-      ],
+      "reasons": [],
       "source_dialect": null,
       "source_fidelity": true,
       "source_projection_verified": false,
       "source_tree_sha256": "ca32c6b767f29a6823b88b9fa97555994db22ed2ebb592f9053161e430f0a2ef",
       "stages": {
         "compile": "complete",
-        "conversion": "partial",
+        "conversion": "complete",
         "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
-      "status": "partial",
+      "status": "ready",
       "unmapped_conditions": [],
       "unresolved_cross_references": [
         "ABC2",
         "alpha_beta_gamma_delta"
       ],
       "warnings": [
+        "cross_reference_ambiguous",
         "duplicate_labels",
         "native_guard_observation"
       ]
@@ -1965,6 +1700,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2015,6 +1751,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2066,6 +1803,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2118,6 +1856,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2168,6 +1907,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2218,6 +1958,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2268,6 +2009,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2318,6 +2060,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2368,6 +2111,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2418,6 +2162,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2470,6 +2215,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2520,6 +2266,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2570,6 +2317,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2620,6 +2368,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2670,6 +2419,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2720,6 +2470,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2770,6 +2521,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2820,6 +2572,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2870,6 +2623,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2918,6 +2672,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -2979,6 +2734,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -3029,6 +2785,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -3079,6 +2836,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -3129,6 +2887,7 @@
         "bibliography_bindings": "complete",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
         "schema": "qecgraph.preparation_capabilities/1",
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
         "unresolved_cross_references": []
@@ -3151,7 +2910,7 @@
       "warnings": []
     }
   ],
-  "rule_version": "compile-prepare-v18",
+  "rule_version": "compile-prepare-v19",
   "schema": "qecgraph.preparation_acceptance/1",
   "scientific_acceptance": {
     "accepted": false,

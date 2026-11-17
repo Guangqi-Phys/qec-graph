@@ -386,7 +386,7 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 | `preparation/entries.py` | 用临时识别视图选择原生构建入口；不改编译输入，不按文件名猜歧义入口 |
 | `preparation/projection.py` | 原编译后转写实际消费的非 UTF-8 字节，记录可逆段和原始字节定位，要求相同原生输入/PDF 文字 |
 | `preparation/harvmac.py`、`harvmac_refs.py` | 适配固定且实际消费的 Harvmac 原生语法、原文结构和编译书目；不换引擎或文档类 |
-| `preparation/capabilities.py` | 分别推导正文、书目和交叉引用的完整性；保留整体 ready 的严格判据 |
+| `preparation/capabilities.py` | 分别推导正文、书目、引用候选准备和唯一引用绑定的完整性 |
 | `preparation/compatibility.py` | 仅对确切已知文档类哈希和原生失败，用有记录的构建前导重试；保留首次失败日志、原始源码字节与 job 名称 |
 | `preparation/sandbox.py` | 子进程不继承凭据；限制工具、进程组、目录和网络；macOS 使用 sandbox-exec，Linux 使用 bubblewrap；没有无隔离回退 |
 | `preparation/references.py` | 适配经典 AUX 与 Biblatex BCF/BBL；保留字面 BIB、BBL 变体、refsection、排序上下文、显示标签及来源；重复或缺失 key 明示 |
@@ -489,9 +489,9 @@ Multibib 调用同样保留。源码语法不完整时，统一视图只复制�
 | `references.json` | `qecgraph.prepared_references/1`：编译 key、作用域绑定、原始 BIB 与实际使用的 BBL 文本、上下文、字面存在的标识符、冲突和缺项 |
 | `source-map.json` | 转换成功时的组装到原文映射；节点另外保留精确原始范围和哈希 |
 | `coverage.json`、`diagnostics.json` | 转换限制、非活动/未参与阅读的文件清单、opaque 内容、带 key 的缺失/歧义引用、重复标签观测、原生分支与大小写资产观测，以及各阶段失败 |
-| `manifest.json` | `qecgraph.prepare/3`、`compile-prepare-v18`、来源/包哈希、产物哈希、能力、独立阶段、非阻断 `warnings`、独立核验的 `preparation_capabilities` 和严格的 ready/partial 状态 |
+| `manifest.json` | `qecgraph.prepare/3`、`compile-prepare-v19`、来源/包哈希、产物哈希、能力、独立阶段、非阻断 `warnings`、独立核验的 `preparation_capabilities` 和严格的 ready/partial 状态 |
 
-ready 要求原生编译成功、支持的语法转换完整、适用引用/交叉引用可解析，并独立验证来源保真；资产调用须无歧义，且没有阻断性诊断。
+ready 要求原生编译成功、支持的语法转换完整、适用书目引用已绑定、交叉引用候选已保留，并独立验证来源保真；资产调用须无歧义，且没有阻断性诊断。
 统一视图还须通过语法检查和原生重编译；观察到 PDF 文字不一致会阻止 ready。
 缺少 pdftotext 时明确记录为未执行的可选比较，不标记为文字一致。
 PDF 文字一致不能证明像素一致或数学等价。
@@ -499,15 +499,19 @@ PDF 文字一致不能证明像素一致或数学等价。
 已有 ready 产物的 partial 重试写到 `<out>.attempt`。发布沿用写锁、备份/日志恢复。
 原文坐标为 UTF-8 解码后的 Unicode codepoint 半开区间、1-based 行号，并分别保留字节范围；
 排版文本、PDF 位置和 SyncTeX 提示不能充当精确原文引句。非 UTF-8 来源仍归档，只有有界字节投影和其他判据均通过才能 ready。
-仅大小写资产匹配、经验证的原生分支观测、绘图内部条件或未被引用的重复标签等非阻断
+仅大小写资产匹配、经验证的原生分支观测、绘图内部条件或重复标签等非阻断
 观测会写入 `manifest.warnings`；它们不把 ready 变成可移植性或科学正确性的声明。
-`preparation_capabilities` 分别报告 `body_syntax`、`bibliography_bindings` 和
-`cross_reference_bindings`，并列出未解析引用及候选 ID。正文语法完整但存在被引用的重复
-标签时，可记录正文能力，同时维持整体 partial；只读验收独立核对这些声明，不猜依赖边
-或唯一目标。编译成功或 JSON 校验通过不证明科学正确性。
+在 `cross_reference_policy=preserve_ambiguity/1` 下，被引用的重复标签只要保留全部已知
+候选，就视为准备完成：继续保存 `status=ambiguous`、全部候选节点/外部目标、key 和来源位置。
+`cross_reference_ambiguous` 降为非阻断观测/警告；缺失目标（`unresolved`）仍阻止 ready，
+不替作者选择意图目标。`preparation_capabilities` 分别报告 `body_syntax`、
+`bibliography_bindings`、`cross_reference_preparation` 和 `cross_reference_bindings`，
+并列出未解析引用及候选 ID。ready 论文的引用准备可以完整，而唯一绑定仍为 partial。
+只读验收重建支持的标签/引用候选，即使刷新产物哈希，也会拒绝删除候选或伪造唯一解析。
+不带此策略的旧材料保持原版本的含义。不猜依赖边或唯一目标。编译成功或 JSON 校验通过不证明科学正确性。
 `content.json` 的范围仍指向 `entry.tex`，不能套到 `normalized.tex` 上。
 
-新 `compile-prepare-v18` 产物要求严格文档边界，不再使用 v10 的唯一文档标记回退。
+新 `compile-prepare-v19` 产物要求严格文档边界，不再使用 v10 的唯一文档标记回退。
 原文编译成功后，可对实际消费来源中独占行的字面 `\ifdefined\control` 和
 `\ifx\control\control` 做独立副本插桩编译。只有原生日志稳定观测到单一分支、探针
 编译成功且逐页去空白 PDF 文字与原构建相等时，才能选择该分支。行内/动态条件、未执行
@@ -541,7 +545,7 @@ python tools/reproduce_preparation.py \
 ```sh
 python tools/report_preparation.py \
   --manifest test-sources/arxiv-sources/manifest.json --replay build/preparation-replay \
-  --cases validation/preparation_cases.json --baseline-revision 59a0b9f \
+  --cases validation/preparation_cases.json --baseline-revision ff69adf \
   --out validation/preparation_acceptance.json
 # Repeat the same arguments with --check to verify the saved report.
 ```

@@ -26,16 +26,17 @@
 检查只对实际运行它的源码修订和环境构成证据。测试通过不代表论文定理为真、
 距离界已被数学验证，或 Lean 声明已语义匹配。
 
-当前[准备验收报告](preparation_acceptance.json)由完整 `compile-prepare-v18` 回放自动生成，
+当前[准备验收报告](preparation_acceptance.json)由完整 `compile-prepare-v19` 回放自动生成，
 逐包重新打开材料、重算计数和来源绑定语法 probe，并核对语料/代码快照。
 先运行不带 `--check` 的 `report_preparation.py` 生成报告，再用相同参数加 `--check`
 检查漂移；检查不编译、不调用模型。已提交报告的 `replay.argv` 保存实际支持文件路径、
-入口和 probe 配置；比较基线固定为 v14 的 `9f4f537`。原生工具结果保留在材料包中，
+入口和 probe 配置；比较基线固定为 v18 的 `ff69adf`。原生工具结果保留在材料包中，
 不会复制旧测试套件的通过声明。
 
-固定语料为 47 篇 TeX 和一个 PDF 反例；报告另列正文完整数、可逆投影数和原生方言。
+固定语料为 47 篇 TeX 和一个 PDF 反例；v19 为 46 ready、1 篇 TeX partial、
+1 个预期 PDF 失败。新增 ready 的三篇保留引用歧义，唯一引用绑定数没有增加；报告另列正文完整数、可逆投影数和原生方言。
 覆盖数和失败原因是机械准备证据，
-不是科学答案金标或数学验收。[05 总结](../docs/reviews/review-2026-11-17-compile-prepare-testing/05-native-dialects-byte-projection-and-capabilities.zh-CN.md)
+不是科学答案金标或数学验收。[06 总结](../docs/reviews/review-2026-11-17-compile-prepare-testing/06-preserved-reference-ambiguity-acceptance.zh-CN.md)
 记录可比前后数字、实际检查、依赖来源及未完成事项。大小写资产匹配仍不能声称可移植到
 大小写敏感文件系统。固定 machine 副本评测仍因注册表 schema 不兼容而未验收。
 Human.md 和原始数据库均未修改。

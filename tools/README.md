@@ -63,8 +63,10 @@ After original compilation, supported invalid UTF-8 bytes can pass a reversible
 spelling and an additional native/PDF-text check; retain `source-projection.json`,
 `projected-sources/` and original byte locators. A pinned native Harvmac adapter
 keeps the source dialect while writing the common syntax/bibliography JSON.
-`manifest.preparation_capabilities` separates body, bibliography and cross-reference
-completeness without promoting overall partial material. `--support-dir` searches
+`manifest.preparation_capabilities` separates body, bibliography, reference preparation
+and unique bindings. v19 accepts preserved cross-reference ambiguity as prepared;
+`status=ambiguous` and all candidates remain, unique bindings stay partial, and missing
+targets still block ready. `--support-dir` searches
 author package files, explicit support, then system files; changed supplied
 dependencies fail the build. Pin support contents and retain their hashes.
 

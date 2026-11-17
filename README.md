@@ -35,6 +35,8 @@ bundle with `normalized.tex`, independently checked source mappings, derived
 recompilation evidence and explicit `ready`/`partial` status. Author classes and
 remaining dependencies are retained. Bibliography/document scopes, source macro
 argument shapes and supported inactive-source ranges are explicit in the handoff.
+Cross-reference ambiguity is prepared with all candidates preserved; missing targets
+still block ready. Ready does not promise a unique target for every reference.
 It makes no model requests or
 scientific records. See [preparation boundaries and artifacts](docs/design/DESIGN.md#54-offline-source-preparation).
 The workspace commands below retain their existing import/extraction behavior.

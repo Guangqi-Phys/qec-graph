@@ -361,7 +361,7 @@ Entry ambiguity requires an explicit `--entry`; a package name is not a paper id
 | `preparation/entries.py` | Select a native build entry using a disposable recognition view; never rewrite the compiler input or resolve ambiguous roots by filename |
 | `preparation/projection.py` | After original compilation, spell consumed invalid UTF-8 bytes as TeX hexadecimal input, record reversible segments and original byte locators, and require matching native inputs/PDF text |
 | `preparation/harvmac.py`, `harvmac_refs.py` | Adapt a pinned, consumed native Harvmac grammar, original structure and compiled bibliography without changing the engine or replacing the class |
-| `preparation/capabilities.py` | Derive body, bibliography and cross-reference completeness separately; preserve the strict overall ready gate |
+| `preparation/capabilities.py` | Derive body, bibliography, prepared reference candidates and unique reference bindings separately |
 | `preparation/compatibility.py` | Retry only an exact known class hash and native failure with a recorded build preamble; retain the failed log and preserve source bytes/job name |
 | `preparation/sandbox.py` | Credential-free child environment, bounded tools/process groups, restricted files and network; macOS sandbox-exec or Linux bubblewrap; no unsandboxed fallback |
 | `preparation/references.py` | Classic AUX and Biblatex BCF/BBL bindings; retain literal BIB entries and BBL variants, refsections, sorting contexts, display labels and exact provenance; duplicate/missing keys remain explicit |
@@ -467,7 +467,7 @@ not become body prose. The raw TeX and normalized view retain these bytes, inclu
 malformed syntax that TeX never executes. Consumers must honor the prepared syntax
 and inactive metadata rather than treat every raw-source token as active content.
 
-New `compile-prepare-v18` output requires strict document boundaries. The v10
+New `compile-prepare-v19` output requires strict document boundaries. The v10
 unique-document-marker fallback is not used for new conversion. Supported literal,
 line-bounded `\ifdefined\control` and `\ifx\control\control` guards in consumed
 sources can instead be observed by compiling a separately instrumented copy after
@@ -526,10 +526,10 @@ stays explicit. There is no AI rewriting, scientific classification or theorem i
 | `references.json` | `qecgraph.prepared_references/1`: emitted keys, scoped bindings, original BIB and consumed BBL text, contexts, identifiers present literally, conflicts and missing data |
 | `source-map.json` | Assembly-to-original mapping when conversion succeeds; nodes separately retain exact original spans and their hashes |
 | `coverage.json`, `diagnostics.json` | Conversion limits, inactive/uncompiled file inventory, opaque content, missing/ambiguous references with keys, duplicate-label observations, guarded-boundary and case-only-asset observations, and stage failures |
-| `manifest.json` | `qecgraph.prepare/3`, `compile-prepare-v18`, source/package hashes, artifact hashes, capabilities, independent stages, non-blocking `warnings`, independently checked `preparation_capabilities` and strict `ready`/`partial` state |
+| `manifest.json` | `qecgraph.prepare/3`, `compile-prepare-v19`, source/package hashes, artifact hashes, capabilities, independent stages, non-blocking `warnings`, independently checked `preparation_capabilities` and strict `ready`/`partial` state |
 
 A ready handoff requires successful native compilation, complete supported syntax
-conversion, resolved applicable citations/cross-references, and independently verified
+conversion, bound applicable bibliography citations, preserved cross-reference candidates, and independently verified
 source fidelity, including unambiguous asset links and no blocking diagnostics.
 The normalized view must also pass syntax and native recompilation;
 an observed PDF-text mismatch blocks ready. A missing pdftotext is explicitly recorded
@@ -541,12 +541,19 @@ Source quotation coordinates are UTF-8 Unicode codepoint half-open ranges and 1-
 lines, with separate byte ranges. Rendered text, PDF positions and SyncTeX hints never
 become exact original quotations. Non-UTF-8 source stays archived; it is partial unless its bounded byte projection and all other gates pass.
 Non-blocking observations such as a case-only asset match, a verified native guard
-observation, a drawing-only conditional or an unreferenced duplicate label are listed in
+observation, a drawing-only conditional or a duplicate label are listed in
 `manifest.warnings`; they do not turn readiness into a portability or scientific claim.
-`preparation_capabilities` separately reports `body_syntax`, `bibliography_bindings`
-and `cross_reference_bindings`, plus unresolved references and candidate IDs. A paper
-with complete syntax but duplicate referenced labels can expose the former while
-remaining overall partial. Reading independently checks these claims; no dependency
+Under `cross_reference_policy=preserve_ambiguity/1`, repeated referenced labels are
+prepared when all known candidates are retained: `status=ambiguous`, every candidate
+node/external target, key and source location remain available.
+`cross_reference_ambiguous` is a non-blocking observation/warning. Missing targets
+(`unresolved`) still block ready. No author-intended target is selected.
+`preparation_capabilities` separately reports `body_syntax`, `bibliography_bindings`,
+`cross_reference_preparation` and `cross_reference_bindings`, plus unresolved references
+and candidate IDs. A ready paper may have complete reference preparation while unique
+bindings remain partial. Reading reconstructs supported label/reference candidates
+and rejects removed candidates or forged resolution even if artifact hashes are updated.
+Older bundles without this policy retain their original versioned meaning. No dependency
 edge or unique target is guessed. A successful compiler or a JSON validator does not establish scientific correctness.
 `content.json` ranges continue to address `entry.tex`; they must not be applied to
 `normalized.tex`. `read_material` exposes both texts, the normalization report and
@@ -568,7 +575,7 @@ without recompiling. Use a pinned Git commit for the baseline report:
 ```sh
 python tools/report_preparation.py \
   --manifest test-sources/arxiv-sources/manifest.json --replay build/preparation-replay \
-  --cases validation/preparation_cases.json --baseline-revision 59a0b9f \
+  --cases validation/preparation_cases.json --baseline-revision ff69adf \
   --out validation/preparation_acceptance.json
 # Repeat the same arguments with --check to verify the saved report.
 ```

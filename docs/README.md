@@ -86,6 +86,7 @@ knowledge content use English. Original sources and quotations preserve their la
 - [Current compile-first preparation acceptance and remaining partial cases](../validation/preparation_acceptance.json)
 - [2026-11-17 preparation hardening and remaining work (review 04, Chinese)](reviews/review-2026-11-17-compile-prepare-testing/04-preparation-hardening-and-remaining-work.zh-CN.md)
 - [2026-11-17 native dialects, byte projection and capabilities (review 05, Chinese)](reviews/review-2026-11-17-compile-prepare-testing/05-native-dialects-byte-projection-and-capabilities.zh-CN.md)
+- [2026-11-17 preserved reference ambiguity acceptance (review 06, Chinese)](reviews/review-2026-11-17-compile-prepare-testing/06-preserved-reference-ambiguity-acceptance.zh-CN.md)
 
 There are no redirect-only or archive pages. Superseded design and user pages
 live in Git history. Dated review records remain in `docs/reviews/` and must not
