@@ -21,6 +21,7 @@ from ..source.syntax import declaration_context
 from .crossrefs import cross_references as _cross_references
 from .conditions import conditional_views
 from .branches import syntax_view
+from .environments import label_declarations
 
 HEADINGS = {
     "part": 0,
@@ -206,11 +207,13 @@ def convert_source(tree, entry, references, *, used_files=()):
     citations = _citations(nodes, references, diagnostics, text, assembly, tree)
     assets = _assets(tree, nodes, set(used_files))
     _record_asset_issues(nodes, diagnostics)
+    declarations = label_declarations(tree, set(used_files) or source_names)
     labels, cross_references = _cross_references(
         nodes,
         references.get("external_labels", []),
         references.get("observed_labels", []),
         text,
+        declarations,
     )
     _record_cross_reference_issues(cross_references, diagnostics)
     _record_duplicate_labels(labels, observations)
@@ -220,9 +223,7 @@ def convert_source(tree, entry, references, *, used_files=()):
         reasons.append("conversion_diagnostics")
     if body_start is None:
         reasons.append("nonstandard_document_body")
-    _record_view_observations(
-        views, syntax.guarded_bounds, nodes, observations
-    )
+    _record_view_observations(views, syntax.guarded_bounds, nodes, observations)
     conditional_ranges = [v["range"] for v in views if v["kind"] == "unmapped"]
     if conditional_ranges:
         # A native build is one view. Never silently treat every source branch as active.
@@ -236,6 +237,7 @@ def convert_source(tree, entry, references, *, used_files=()):
         "outline": outline,
         "citations": citations,
         "assets": assets,
+        "environment_label_declarations": declarations,
         "body_range": [body_start, body_end],
         "conditional_ranges": conditional_ranges,
         "conditional_views": views,
@@ -271,7 +273,6 @@ def convert_source(tree, entry, references, *, used_files=()):
     )
 
 
-
 def _record_asset_issues(nodes, diagnostics):
     unresolved = [
         node["id"]
@@ -280,9 +281,7 @@ def _record_asset_issues(nodes, diagnostics):
         and "asset_targets" in node
     ]
     if unresolved:
-        diagnostics.append(
-            {"code": "asset_target_unresolved", "nodes": unresolved}
-        )
+        diagnostics.append({"code": "asset_target_unresolved", "nodes": unresolved})
 
 
 def _record_cross_reference_issues(cross_references, diagnostics):
@@ -310,9 +309,7 @@ def _record_cross_reference_issues(cross_references, diagnostics):
 
 def _record_duplicate_labels(labels, observations):
     duplicates = sorted(
-        (key, count)
-        for key, count in _label_counts(labels).items()
-        if count > 1
+        (key, count) for key, count in _label_counts(labels).items() if count > 1
     )
     if duplicates:
         observations.append(
@@ -334,9 +331,7 @@ def _record_view_observations(views, guarded_bounds, nodes, observations):
                 }
             )
         elif view["kind"] == "drawing_payload":
-            observations.append(
-                {"code": "drawing_conditional", "range": view["range"]}
-            )
+            observations.append({"code": "drawing_conditional", "range": view["range"]})
     if guarded_bounds:
         observations.append({"code": "guarded_document_bounds"})
     case_assets = [
@@ -348,16 +343,12 @@ def _record_view_observations(views, guarded_bounds, nodes, observations):
         observations.append({"code": "asset_case_mismatch", "nodes": case_assets})
 
 
-def _preamble_directives(
-    diagnostics, events, entry, text, body_start, setup_ranges
-):
+def _preamble_directives(diagnostics, events, entry, text, body_start, setup_ranges):
     """Classify setup-guard directives without treating assembled includes as lost."""
     if body_start is None or not setup_ranges:
         return diagnostics, []
     resolved = {
-        (event.path, event.line)
-        for event in events
-        if event.outcome == "resolved"
+        (event.path, event.line) for event in events if event.outcome == "resolved"
     }
     body_line = text.count("\n", 0, body_start) + 1
     guard_lines = [

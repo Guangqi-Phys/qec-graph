@@ -18,15 +18,17 @@ from ..source.prepare import select_entry, publish_artifacts, _check_output_root
 from ..core.transactions import writer_lock
 from ..source.package import read_bounded, Limits
 
-_WARNING_CODES = frozenset({
-    "asset_case_mismatch",
-    "conditional_directive_resolved",
-    "document_boundary_guard",
-    "drawing_conditional",
-    "duplicate_labels",
-    "guarded_document_bounds",
-    "preamble_directive_in_conditional",
-})
+_WARNING_CODES = frozenset(
+    {
+        "asset_case_mismatch",
+        "conditional_directive_resolved",
+        "document_boundary_guard",
+        "drawing_conditional",
+        "duplicate_labels",
+        "guarded_document_bounds",
+        "preamble_directive_in_conditional",
+    }
+)
 
 
 def prepare_material(

@@ -4,6 +4,7 @@ from collections import Counter
 import re
 
 from .references import group
+from .options import fields, mask_comments
 
 
 def _tex_key(value):
@@ -11,7 +12,9 @@ def _tex_key(value):
     return re.sub(r"\s+", " ", value).strip()
 
 
-def cross_references(nodes, external_labels=(), observed_labels=(), text=""):
+def cross_references(
+    nodes, external_labels=(), observed_labels=(), text="", declarations=()
+):
     labels, references = [], []
     for node in nodes:
         if node["kind"] != "macro" or node["name"] not in {
@@ -35,7 +38,7 @@ def cross_references(nodes, external_labels=(), observed_labels=(), text=""):
         }
         (labels if node["name"] == "label" else references).append(row)
     labels.extend(_wrapper_labels(nodes, observed_labels, text))
-    labels.extend(_environment_labels(nodes, observed_labels, text))
+    labels.extend(_environment_labels(nodes, observed_labels, text, declarations))
     for row in references:
         row["targets"] = []
         for key in row["keys"]:
@@ -59,70 +62,59 @@ def cross_references(nodes, external_labels=(), observed_labels=(), text=""):
     return labels, references
 
 
-def _environment_labels(nodes, observations, text):
-    """Bind ``label={key}`` in a literal environment option to an emitted AUX key.
-
-    This is the tcolorbox/newtcolorbox convention: the environment creates the
-    label from a key/value option, so no source ``\\label`` call exists.  AUX
-    confirmation is still mandatory and a key emitted more than once is left
-    ambiguous rather than assigned to this environment.
-    """
-    if not text:
-        return []
+def _environment_labels(nodes, observations, text, declarations=()):
+    """Require a consumed source declaration and a unique runtime label."""
+    declared = {d["environment"]: d for d in declarations if d["supports_label_option"]}
     counts = Counter(item["key"] for item in observations)
     result = []
     for node in nodes:
         if node["kind"] != "environment" or node["region"] != "body":
             continue
-        start, end = node["range"]
-        header = re.match(
-            r"\s*\\begin\s*\{\s*" + re.escape(node["name"] or "") + r"\s*\}",
-            text[start:end],
+        declaration = declared.get(node["name"])
+        if declaration is None:
+            continue
+        option = _label_option(node, text)
+        if option is None or counts.get(_tex_key(option[0])) != 1:
+            continue
+        value, start, end = option
+        key = _tex_key(value)
+        result.append(
+            {
+                "node": node["id"],
+                "keys": [key],
+                "command": "begin:" + node["name"],
+                "region": node["region"],
+                "origin": "environment_option_verified_by_aux",
+                "environment": node["name"],
+                "source_spans": node["source_spans"],
+                "label_chars": [start, end],
+                "declaration": declaration["origin"],
+                "observations": [item for item in observations if item["key"] == key],
+            }
         )
-        if header is None:
-            continue
-        optional = group(text, start + header.end(), "[")
-        if optional is None:
-            continue
-        body, _, bracket_start, _ = optional
-        for match in re.finditer(r"(?<![A-Za-z@])label\s*=\s*", body):
-            value = _option_value(body, match.end())
-            if value is None:
-                continue
-            key = _tex_key(value)
-            if counts.get(key) != 1:
-                continue
-            result.append(
-                {
-                    "node": node["id"],
-                    "keys": [key],
-                    "command": "begin:" + node["name"],
-                    "region": node["region"],
-                    "origin": "environment_option_verified_by_aux",
-                    "environment": node["name"],
-                    "source_spans": node["source_spans"],
-                    "label_chars": [
-                        bracket_start + 1 + match.start(),
-                        bracket_start + 1 + match.end(),
-                    ],
-                    "observations": [
-                        item for item in observations if item["key"] == key
-                    ],
-                }
-            )
     return result
 
 
-def _option_value(body, position):
-    while position < len(body) and body[position].isspace():
-        position += 1
-    if position >= len(body):
+def _label_option(node, text):
+    start, end = node["range"]
+    header = re.match(
+        r"\\begin\s*\{\s*" + re.escape(node["name"]) + r"\s*\}", text[start:end]
+    )
+    optional = group(text, start + header.end(), "[") if header else None
+    if optional is None:
         return None
-    if body[position] == "{":
-        value = group(body, position)
-        return value[0] if value else None
-    match = re.match(r"[^,\]]+", body[position:])
-    return match[0].strip() if match else None
+    body, _, bracket_start, _ = optional
+    values = []
+    for a, b, field in fields(mask_comments(body)):
+        match = re.fullmatch(r"\s*label\s*=\s*(.*?)\s*", field, re.S)
+        if match:
+            value = match[1]
+            value = (
+                value[1:-1] if value.startswith("{") and value.endswith("}") else value
+            )
+            if not any(c in value for c in "\\#{}"):
+                values.append((value, bracket_start + 1 + a, bracket_start + 1 + b))
+    return values[0] if len(values) == 1 else None
 
 
 def _wrapper_labels(nodes, observations, text):

@@ -309,7 +309,6 @@ Selected.
             )
         )
 
-
     def test_tex_key_whitespace_collapses_like_tex_arguments(self):
         raw = rb"\documentclass{article}\begin{document}\begin{equation}\label{eq:a  b}x\end{equation}See \eqref{eq:a b}.\end{document}"
         _, doc, coverage = self.convert({"main.tex": raw})
@@ -318,7 +317,7 @@ Selected.
         self.assertEqual(doc["cross_references"][0]["targets"][0]["status"], "resolved")
 
     def test_environment_label_option_requires_aux_and_resolves_cref(self):
-        raw = rb"\documentclass{article}\begin{document}\begin{defbox}[label={def:kernel}]{Kernel}Body\end{defbox}See \cref{def:kernel}.\end{document}"
+        raw = rb"\documentclass{article}\newtcolorbox{defbox}[2][]{#1,title=#2}\begin{document}\begin{defbox}[label={def:kernel}]{Kernel}Body\end{defbox}See \cref{def:kernel}.\end{document}"
         refs = {
             "bindings": [],
             "observed_labels": [{"key": "def:kernel"}],
@@ -353,9 +352,7 @@ Selected.
         self.assertEqual(assembly.data, raw)
         self.assertIsNotNone(doc["body_range"][0])
         self.assertIsNotNone(doc["body_range"][1])
-        self.assertEqual(
-            doc["conditional_views"][0]["kind"], "document_setup_guard"
-        )
+        self.assertEqual(doc["conditional_views"][0]["kind"], "document_setup_guard")
         self.assertFalse(doc["conditional_views"][0]["branch_selected"])
         self.assertTrue(any(n["kind"] == "chars" for n in doc["nodes"]))
 
@@ -380,7 +377,10 @@ Selected.
         self.assertEqual(node["asset_targets"]["match"], "case_insensitive")
         self.assertTrue(any(a["used_in_build"] for a in doc["assets"]))
         self.assertTrue(
-            any(item["code"] == "asset_case_mismatch" for item in coverage["observations"])
+            any(
+                item["code"] == "asset_case_mismatch"
+                for item in coverage["observations"]
+            )
         )
 
     def test_ambiguous_cross_reference_reports_keys_and_duplicate_observation(self):
@@ -388,11 +388,15 @@ Selected.
         _, _, coverage = self.convert({"main.tex": raw})
         self.assertFalse(coverage["complete"])
         diagnostic = next(
-            d for d in coverage["diagnostics"] if d["code"] == "cross_reference_ambiguous"
+            d
+            for d in coverage["diagnostics"]
+            if d["code"] == "cross_reference_ambiguous"
         )
         self.assertEqual(diagnostic["occurrences"][0]["keys"], ["dup"])
         duplicate = next(
-            item for item in coverage["observations"] if item["code"] == "duplicate_labels"
+            item
+            for item in coverage["observations"]
+            if item["code"] == "duplicate_labels"
         )
         self.assertEqual(duplicate["labels"], [{"key": "dup", "count": 2}])
 

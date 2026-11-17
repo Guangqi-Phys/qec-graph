@@ -94,6 +94,7 @@ def validate_material(files: dict[str, bytes]) -> dict:
             raise ValueError("Material node does not copy its original source")
     _validate_roots(document, by_id, len(text))
     _check_reference_origins(files, source_indices)
+    _check_environment_declarations(files, document, text, source_indices)
     _check_normalized(files, document, text)
     if manifest["status"] == "ready":
         if not (
@@ -108,6 +109,48 @@ def validate_material(files: dict[str, bytes]) -> dict:
         "nodes": len(nodes),
         "ready_for_extraction": manifest["status"] == "ready",
     }
+
+
+def _check_environment_declarations(files, document, text, source_indices):
+    if "environment_label_declarations" not in document:
+        return
+    from .environments import label_declarations
+    from .crossrefs import _environment_labels
+    from ..source.package import SourceTree
+
+    records = document["environment_label_declarations"]
+    for record in records:
+        if _source_piece(files, record["origin"], source_indices) != record["raw_tex"]:
+            raise ValueError(
+                "Environment declaration does not copy its original source"
+            )
+    build = json.loads(files.get("build.json", b"{}"))
+    paths = build.get("inputs", [r["origin"]["path"] for r in records])
+    tree = SourceTree(
+        "tex",
+        {
+            p.removeprefix("sources/"): raw
+            for p, raw in files.items()
+            if p.startswith("sources/")
+        },
+    )
+    if label_declarations(tree, paths) != records:
+        raise ValueError(
+            "Environment label declarations do not match consumed source grammar"
+        )
+    references = json.loads(files.get("references.json", b"{}"))
+    expected = _environment_labels(
+        document["nodes"], references.get("observed_labels", []), text, records
+    )
+    actual = [
+        row
+        for row in document.get("labels", [])
+        if row.get("origin") == "environment_option_verified_by_aux"
+    ]
+    if actual != expected:
+        raise ValueError(
+            "Environment option labels do not match declaration and AUX evidence"
+        )
 
 
 def _check_normalized(files, document, text):

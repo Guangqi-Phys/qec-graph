@@ -6,15 +6,17 @@ from .branches import literal_false_ranges
 from ..source.assembly import condition_regions, _skip_definition, _definition_event
 
 
-DRAWING_ENVIRONMENTS = frozenset({
-    "tikzpicture",
-    "pgfpicture",
-    "picture",
-    "circuitikz",
-    "quantikz",
-    "forest",
-    "tikzcd",
-})
+DRAWING_ENVIRONMENTS = frozenset(
+    {
+        "tikzpicture",
+        "pgfpicture",
+        "picture",
+        "circuitikz",
+        "quantikz",
+        "forest",
+        "tikzcd",
+    }
+)
 
 
 def conditional_views(text, nodes, start, end):
@@ -23,9 +25,8 @@ def conditional_views(text, nodes, start, end):
     literal = literal_false_ranges(text)
     for a, b in [*inactive, *uncertain]:
         raw = text[a:b]
-        boundary = (
-            (start is not None and a < start < b)
-            or (end is not None and a < end < b)
+        boundary = (start is not None and a < start < b) or (
+            end is not None and a < end < b
         )
         region = (
             "document_boundary"
