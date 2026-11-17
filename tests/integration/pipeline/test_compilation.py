@@ -46,6 +46,65 @@ End.\end{document}\end{now}"""
             self.assertEqual((source / "main.tex").read_bytes(), original)
             self.assertEqual((source / "quantumarticle.cls").read_bytes(), cls)
 
+    def test_runtime_guard_view_skips_missing_include_and_rejects_forged_choice(self):
+        from qecgraph.preparation.contract import validate_material, json_bytes
+
+        original = rb"""\ifx\mainflag\undefined
+\documentclass{article}
+\def\mainflag{}
+\begin{document}
+\fi
+\ifdefined\mainflag
+Visible $x$.
+\else
+\input{absent}\end{broken}\cite{ghost}
+\fi
+\end{document}"""
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "input"
+            source.mkdir()
+            (source / "main.tex").write_bytes(original)
+            result = prepare_material(source, root / "out", entry="main.tex")
+            self.assertEqual(result["status"], "ready", result)
+            loaded = read_material(root / "out")
+            self.assertEqual(loaded["document"]["citations"], [])
+            self.assertEqual(len(loaded["document"]["observed_guards"]), 2)
+            self.assertIn(r"\input{absent}", loaded["entry_tex"])
+            self.assertIn(r"\iftrue", loaded["normalized_tex"])
+            manifest = json.loads((root / "out/manifest.json").read_bytes())
+            files = {p: (root / "out" / p).read_bytes() for p in manifest["artifacts"]}
+            view = json.loads(files["build-view.json"])
+            view["guards"][0]["selected"] = False
+            files["build-view.json"] = json_bytes(view)
+            document = loaded["document"]
+            document["build_view_sha256"] = digest(files["build-view.json"])
+            files["content.json"] = json_bytes(document)
+            manifest["artifacts"] = {p: digest(raw) for p, raw in files.items()}
+            files["manifest.json"] = json_bytes(manifest)
+            with self.assertRaisesRegex(ValueError, "TeX log"):
+                validate_material(files)
+            self.assertEqual((source / "main.tex").read_bytes(), original)
+
+    def test_source_class_declaration_and_aux_jointly_bind_box_labels(self):
+        cls = rb"\NeedsTeXFormat{LaTeX2e}\ProvidesClass{boxed}\LoadClass{article}\RequirePackage{tcolorbox}\newtcolorbox[auto counter]{sourcebox}[1][]{#1}"
+        original = rb"\documentclass{boxed}\begin{document}\begin{sourcebox}[label={box:source}]Body.\end{sourcebox}See \ref{box:source}.\end{document}"
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "input"
+            source.mkdir()
+            (source / "main.tex").write_bytes(original)
+            (source / "boxed.cls").write_bytes(cls)
+            result = prepare_material(source, root / "out", entry="main.tex")
+            self.assertEqual(result["status"], "ready", result)
+            loaded = read_material(root / "out")
+            declaration = loaded["document"]["environment_label_declarations"][0]
+            self.assertEqual(declaration["origin"]["path"], "boxed.cls")
+            self.assertEqual(declaration["origin"]["sha256"], digest(cls))
+            self.assertEqual(
+                loaded["document"]["labels"][0]["declaration"], declaration["origin"]
+            )
+
     def test_custom_citation_and_bibtex_are_resolved_without_source_edits(self):
         original = rb"""\documentclass{article}
 \newcommand{\citeRef}[1]{\cite{ref:#1}}

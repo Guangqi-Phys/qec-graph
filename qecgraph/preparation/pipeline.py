@@ -11,6 +11,7 @@ from .build import compile_tree
 from .contract import SCHEMA, digest, json_bytes, validate_material
 from .convert import convert_source
 from .references import adapt_references
+from .build_view import observe_branches
 from .normalized import normalize_latex
 from .roundtrip import verify_roundtrip
 from ..source.normalization import load_for_preparation
@@ -21,6 +22,7 @@ from ..source.package import read_bounded, Limits
 _WARNING_CODES = frozenset(
     {
         "asset_case_mismatch",
+        "native_guard_observation",
         "conditional_directive_resolved",
         "document_boundary_guard",
         "drawing_conditional",
@@ -125,8 +127,10 @@ def _material(tree, entry, work, engine, support, compiler, loading):
         diagnostics.extend(build.diagnostics)
         if build.success:
             references = adapt_references(build, tree)
+            view, view_files = _observe_view(build, tree, support, compiler)
+            files.update(view_files)
             assembly, document, coverage = convert_source(
-                tree, entry, references, used_files=build.inputs
+                tree, entry, references, used_files=build.inputs, build_view=view
             )
             entry_data = assembly.data
             files["source-map.json"] = json_bytes(assembly.source_map())
@@ -209,6 +213,22 @@ def _material(tree, entry, work, engine, support, compiler, loading):
         ),
     }
     return files, manifest
+
+
+def _observe_view(build, tree, support, compiler):
+    try:
+        view, artifacts = observe_branches(build, tree, support, compiler)
+    except (OSError, ValueError, RuntimeError, RecursionError) as exc:
+        view = {
+            "schema": "qecgraph.build_view/1",
+            "source_tree_sha256": tree.digest,
+            "guards": [],
+            "verified": False,
+            "error": str(exc)[:800],
+        }
+        artifacts = {}
+    artifacts["build-view.json"] = json_bytes(view)
+    return view, artifacts
 
 
 def _compiled_bbl(build, files):

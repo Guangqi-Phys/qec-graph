@@ -1102,8 +1102,9 @@ def _unique_dirs(values: list[str]) -> list[str]:
 
 
 class Assembler:
-    def __init__(self, files: Mapping[str, bytes]):
+    def __init__(self, files: Mapping[str, bytes], *, scan_views=None):
         self.files = dict(files)
+        self.scan_views = scan_views or {}
         self.events: list[DirectiveEvent] = []
         self.diagnostics: list[dict] = []
         self.scopes: list[dict[str, object]] = [{}]
@@ -1122,6 +1123,14 @@ class Assembler:
                                 [*local_diagnostics, *(diagnostics or [])])
         return result
 
+    def _scan_view(self, path: str, start: int, original: str) -> str:
+        if path not in self.scan_views:
+            return original
+        full = self.scan_views[path]
+        if len(full) != len(self.files[path].decode("utf-8")):
+            raise ValueError("Assembly scan view must preserve source codepoint offsets")
+        return full[start:start + len(original)]
+
     def _assemble_range(self, rel: str, base: int, end: int,
                         stack: tuple[str, ...], *, whole: bool, context: str = ""
                         ) -> tuple[bytes, list[Segment], list[DirectiveEvent], list[dict]]:
@@ -1134,9 +1143,10 @@ class Assembler:
                              0, end - base, 0, end - base)],
                     [], [{"code": "unsupported_encoding", "path": rel}])
         base_char = len(raw[:base].decode("utf-8"))
-        _, body_start, _ = document_bounds(text)
+        scan_text = self._scan_view(rel, base_char, text)
+        _, body_start, _ = document_bounds(scan_text)
         preamble_end = body_start
-        items, diagnostics = _scan(text)
+        items, diagnostics = _scan(scan_text)
         for diagnostic in diagnostics:
             diagnostic["path"] = rel
         output = bytearray()
@@ -1451,8 +1461,8 @@ def _shift_event(event: DirectiveEvent, byte_offset: int, char_offset: int) -> D
     return _replace(event, **fields)
 
 
-def assemble_files(files: Mapping[str, bytes], entry: str) -> AssemblyResult:
-    return Assembler(files).assemble(entry)
+def assemble_files(files: Mapping[str, bytes], entry: str, *, scan_views=None) -> AssemblyResult:
+    return Assembler(files, scan_views=scan_views).assemble(entry)
 
 
 def _section_metadata(latex: str, raw_level: int | None) -> tuple[str, bool]:

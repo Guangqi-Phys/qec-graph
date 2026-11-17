@@ -19,10 +19,11 @@ DRAWING_ENVIRONMENTS = frozenset(
 )
 
 
-def conditional_views(text, nodes, start, end):
+def conditional_views(text, nodes, start, end, *, observed_guards=()):
     inactive, uncertain = condition_regions(text)
     views = []
     literal = literal_false_ranges(text)
+    observed = {g["header_range"][0]: g for g in observed_guards}
     for a, b in [*inactive, *uncertain]:
         raw = text[a:b]
         boundary = (start is not None and a < start < b) or (
@@ -38,14 +39,12 @@ def conditional_views(text, nodes, start, end):
             else "body"
         )
         kind = "unmapped"
-        if any(x == a for x, _ in literal):
+        if a in observed:
+            kind = "native_observed_branch"
+        elif any(x == a for x, _ in literal):
             kind = "literal_false_guard"
         elif region == "document_boundary":
-            kind = (
-                "document_setup_guard"
-                if re.search(r"\\begin\s*\{\s*document\s*\}", raw)
-                else "document_tail_guard"
-            )
+            kind = "unmapped"
         elif region != "body":
             kind = region + "_syntax_preserved"
         elif _layout_guard(raw):
@@ -59,7 +58,8 @@ def conditional_views(text, nodes, start, end):
                 "range": [a, b],
                 "region": region,
                 "kind": kind,
-                "branch_selected": kind == "literal_false_guard",
+                "branch_selected": kind
+                in {"literal_false_guard", "native_observed_branch"},
             }
         )
     return views

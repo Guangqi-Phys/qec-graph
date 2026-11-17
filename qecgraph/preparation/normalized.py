@@ -53,7 +53,9 @@ def normalize_latex(text, document, references, bibliography=None):
         "schema": PROFILE,
         "transformations": dict(Counter(e["operation"] for e in edits)),
         "source_mapping": "verified",
-        "syntax_parse": _syntax_check(normalized),
+        "syntax_parse": _syntax_check(
+            normalized, legacy_bounds="observed_guards" not in document
+        ),
         "document_coordinate_space": "entry.tex",
         "complete": False,
         "native_compile": "not_run",
@@ -69,8 +71,8 @@ def normalize_latex(text, document, references, bibliography=None):
     return normalized.encode(), mapping, report
 
 
-def _syntax_check(text):
-    text, _ = syntax_view(text)
+def _syntax_check(text, *, legacy_bounds=False):
+    text, _ = syntax_view(text, allow_observed_bounds=legacy_bounds)
     try:
         _, start, length = LatexWalker(
             text,
@@ -116,10 +118,31 @@ def _format_edits(text, document, references, bibliography):
     if not document.get("syntax_complete", True):
         return []
     return (
-        _math_edits(text, document)
+        _guard_edits(text, document)
+        + _math_edits(text, document)
         + _cite_edits(text, document, references)
         + _bbl_edits(document, references, bibliography)
     )
+
+
+def _guard_edits(text, document):
+    result = []
+    for guard in document.get("observed_guards", []):
+        start, end = guard["header_range"]
+        if (
+            type(guard["selected"]) is not bool
+            or text[start:end] != guard["header_tex"]
+        ):
+            raise ValueError("Observed guard header does not match the source view")
+        result.append(
+            {
+                "input_range": [start, end],
+                "operation": "observed_conditional_header",
+                "replacement": r"\iftrue" if guard["selected"] else r"\iffalse",
+                "guard": guard["id"],
+            }
+        )
+    return result
 
 
 def _plain_math_context(node, by_id):

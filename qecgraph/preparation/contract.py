@@ -95,6 +95,9 @@ def validate_material(files: dict[str, bytes]) -> dict:
     _validate_roots(document, by_id, len(text))
     _check_reference_origins(files, source_indices)
     _check_environment_declarations(files, document, text, source_indices)
+    from .view_contract import check_view
+
+    check_view(files, document, text)
     _check_normalized(files, document, text)
     if manifest["status"] == "ready":
         if not (

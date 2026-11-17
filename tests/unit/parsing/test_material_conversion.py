@@ -345,16 +345,14 @@ Selected.
             ["cross_reference_unresolved"],
         )
 
-    def test_guarded_document_boundaries_are_observed_without_picking_prose(self):
+    def test_unique_guarded_document_marker_pair_is_not_execution_evidence(self):
         raw = rb"\ifx\compilefullpaper\undefined\documentclass{article}\begin{document}Visible.\end{document}\fi"
         assembly, doc, coverage = self.convert({"main.tex": raw})
-        self.assertTrue(coverage["complete"], coverage)
+        self.assertFalse(coverage["complete"])
         self.assertEqual(assembly.data, raw)
-        self.assertIsNotNone(doc["body_range"][0])
-        self.assertIsNotNone(doc["body_range"][1])
-        self.assertEqual(doc["conditional_views"][0]["kind"], "document_setup_guard")
-        self.assertFalse(doc["conditional_views"][0]["branch_selected"])
-        self.assertTrue(any(n["kind"] == "chars" for n in doc["nodes"]))
+        self.assertIsNone(doc["body_range"][0])
+        self.assertIn("conditional_view_not_mapped", coverage["reasons"])
+        self.assertEqual(doc["observed_guards"], [])
 
     def test_drawing_loop_conditional_is_opaque_and_non_blocking(self):
         raw = rb"\documentclass{article}\begin{document}\begin{tikzpicture}\foreach \i in {1}{\ifodd\i A\else B\fi}\end{tikzpicture}Body.\end{document}"
@@ -400,7 +398,7 @@ Selected.
         )
         self.assertEqual(duplicate["labels"], [{"key": "dup", "count": 2}])
 
-    def test_preamble_directive_inside_guarded_document_is_explicit_not_body_loss(self):
+    def test_resolved_include_does_not_prove_its_guard_was_executed(self):
         raw = (
             b"\\ifx\\compilefullpaper\\undefined\n"
             b"\\documentclass{article}\n"
@@ -410,12 +408,12 @@ Selected.
         assembly, doc, coverage = self.convert(
             {"main.tex": raw, "preamble.tex": b"\\newcommand{\\x}{X}\n"}
         )
-        self.assertTrue(coverage["complete"], coverage)
+        self.assertFalse(coverage["complete"])
         self.assertIn(b"\\newcommand{\\x}{X}", assembly.data)
         self.assertTrue(
             any(
-                item["code"] == "conditional_directive_resolved"
-                for item in coverage["observations"]
+                item["code"] == "directive_in_conditional"
+                for item in coverage["diagnostics"]
             )
         )
-        self.assertTrue(doc["body_range"][0] is not None)
+        self.assertIsNone(doc["body_range"][0])

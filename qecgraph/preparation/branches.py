@@ -4,7 +4,7 @@ import re
 
 from ..source.assembly import (
     condition_regions,
-    document_bounds_observed,
+    document_bounds,
     _conditional_bounds,
 )
 
@@ -32,11 +32,19 @@ def literal_false_ranges(text):
     return result
 
 
-def syntax_view(text):
+def syntax_view(text, extra_ranges=(), *, allow_observed_bounds=False):
     """Comment-mask inactive bytes at unchanged codepoint offsets; keep raw source."""
-    ranges = literal_false_ranges(text)
+    ranges = list(extra_ranges)
     masked = _mask(text, ranges)
-    _, _, end = document_bounds_observed(masked)
+    ranges.extend(literal_false_ranges(masked))
+    ranges.extend(_static_ranges(masked))
+    masked = _mask(text, ranges)
+    if allow_observed_bounds:
+        from ..source.assembly import document_bounds_observed
+
+        _, _, end = document_bounds_observed(masked)
+    else:
+        _, _, end = document_bounds(masked)
     closing = (
         re.match(r"\\end\s*\{\s*document\s*\}", masked[end:])
         if end is not None
@@ -46,6 +54,21 @@ def syntax_view(text):
     if text[tail:].strip():
         ranges.append((tail, len(text)))
     return _mask(text, ranges), ranges
+
+
+def _static_ranges(text):
+    inactive, _ = condition_regions(text)
+    result = []
+    for start, end in inactive:
+        if text[end : end + 3] == r"\fi":
+            tail = _line_end(text, end + 3)
+        elif text[end - 5 : end] == r"\else":
+            tail = _line_end(text, end)
+        else:
+            tail = None
+        if tail is not None:
+            result.append((start, tail))
+    return result
 
 
 def _mask(text, ranges):

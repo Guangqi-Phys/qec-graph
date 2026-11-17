@@ -15,13 +15,13 @@ from ..source.assembly import (
     EntryCoordinates,
     entry_source_spans,
     document_bounds,
-    document_bounds_observed,
 )
 from ..source.syntax import declaration_context
 from .crossrefs import cross_references as _cross_references
 from .conditions import conditional_views
 from .branches import syntax_view
 from .environments import label_declarations
+from .guard_syntax import scan_views, project_view
 
 HEADINGS = {
     "part": 0,
@@ -66,7 +66,9 @@ def _token_name(node):
 
 
 class _Syntax:
-    def __init__(self, tree, assembly, coordinates, parse_text, inactive=()):
+    def __init__(
+        self, tree, assembly, coordinates, parse_text, inactive=(), legacy_bounds=False
+    ):
         self.tree, self.assembly, self.coordinates, self.parse_text = (
             tree,
             assembly,
@@ -76,9 +78,7 @@ class _Syntax:
         self.text, self.tree_hash = assembly.text, tree.digest
         self.nodes, self.indices, self.source_names = [], {}, set()
         strict = document_bounds(parse_text)
-        observed = document_bounds_observed(parse_text)
-        _, start, end = observed
-        self.guarded_bounds = strict[1] is None and observed[1] is not None
+        _, start, end = strict
         self.body_start = coordinates.to_entry(start) if start is not None else None
         self.body_end = coordinates.to_entry(end) if end is not None else None
         self.inactive = inactive
@@ -174,16 +174,23 @@ def _parse_nodes(text, diagnostics, extra_citations=()):
     ).get_latex_nodes()[0]
 
 
-def convert_source(tree, entry, references, *, used_files=()):
+def convert_source(tree, entry, references, *, used_files=(), build_view=None):
     """Preserve all source tokens, math and author markup in a versioned material tree.
 
     This adapter does not promise arbitrary macro expansion. Runtime citation and
     numbering observations remain separate from exact original TeX source spans.
     """
-    assembly = assemble_files(tree.files, entry)
+    assembly = assemble_files(
+        tree.files, entry, scan_views=scan_views(tree, build_view)
+    )
     text = assembly.text
     coordinates = EntryCoordinates(assembly)
-    parse_text, inactive = syntax_view(coordinates.copy_text())
+    view_masks, observed_guards = project_view(assembly, build_view)
+    parse_text, inactive = syntax_view(
+        coordinates.copy_text(),
+        [(coordinates.to_parse(a), coordinates.to_parse(b)) for a, b in view_masks],
+        allow_observed_bounds=False,
+    )
     observations = [
         d for d in assembly.diagnostics if d["code"] == "conditionals_present"
     ]
@@ -195,14 +202,9 @@ def convert_source(tree, entry, references, *, used_files=()):
     roots = syntax.roots(parsed, diagnostics)
     nodes, source_names = syntax.nodes, syntax.source_names
     body_start, body_end = syntax.body_start, syntax.body_end
-    views = conditional_views(text, nodes, body_start, body_end)
-    setup_ranges = [
-        view["range"] for view in views if view["kind"] == "document_setup_guard"
-    ]
-    diagnostics, preamble_directives = _preamble_directives(
-        diagnostics, assembly.events, entry, text, body_start, setup_ranges
+    views = conditional_views(
+        text, nodes, body_start, body_end, observed_guards=observed_guards
     )
-    observations.extend(preamble_directives)
     outline = _outline(nodes)
     citations = _citations(nodes, references, diagnostics, text, assembly, tree)
     assets = _assets(tree, nodes, set(used_files))
@@ -223,7 +225,7 @@ def convert_source(tree, entry, references, *, used_files=()):
         reasons.append("conversion_diagnostics")
     if body_start is None:
         reasons.append("nonstandard_document_body")
-    _record_view_observations(views, syntax.guarded_bounds, nodes, observations)
+    _record_view_observations(views, nodes, observations)
     conditional_ranges = [v["range"] for v in views if v["kind"] == "unmapped"]
     if conditional_ranges:
         # A native build is one view. Never silently treat every source branch as active.
@@ -241,6 +243,10 @@ def convert_source(tree, entry, references, *, used_files=()):
         "body_range": [body_start, body_end],
         "conditional_ranges": conditional_ranges,
         "conditional_views": views,
+        "observed_guards": observed_guards,
+        "build_view_sha256": digest(json_bytes(build_view))
+        if build_view is not None
+        else None,
         "inactive_ranges": [
             [coordinates.to_entry(a), coordinates.to_entry(b)] for a, b in inactive
         ],
@@ -320,20 +326,14 @@ def _record_duplicate_labels(labels, observations):
         )
 
 
-def _record_view_observations(views, guarded_bounds, nodes, observations):
+def _record_view_observations(views, nodes, observations):
     for view in views:
-        if view["kind"] in {"document_setup_guard", "document_tail_guard"}:
+        if view["kind"] == "native_observed_branch":
             observations.append(
-                {
-                    "code": "document_boundary_guard",
-                    "kind": view["kind"],
-                    "range": view["range"],
-                }
+                {"code": "native_guard_observation", "range": view["range"]}
             )
         elif view["kind"] == "drawing_payload":
             observations.append({"code": "drawing_conditional", "range": view["range"]})
-    if guarded_bounds:
-        observations.append({"code": "guarded_document_bounds"})
     case_assets = [
         node["id"]
         for node in nodes
@@ -341,49 +341,6 @@ def _record_view_observations(views, guarded_bounds, nodes, observations):
     ]
     if case_assets:
         observations.append({"code": "asset_case_mismatch", "nodes": case_assets})
-
-
-def _preamble_directives(diagnostics, events, entry, text, body_start, setup_ranges):
-    """Classify setup-guard directives without treating assembled includes as lost."""
-    if body_start is None or not setup_ranges:
-        return diagnostics, []
-    resolved = {
-        (event.path, event.line) for event in events if event.outcome == "resolved"
-    }
-    body_line = text.count("\n", 0, body_start) + 1
-    guard_lines = [
-        (
-            text.count("\n", 0, start) + 1,
-            text.count("\n", 0, max(start, end - 1)) + 1,
-        )
-        for start, end in setup_ranges
-    ]
-    kept, notes = [], []
-    for diagnostic in diagnostics:
-        lines = diagnostic.get("lines") or []
-        if (
-            diagnostic.get("code") == "directive_in_conditional"
-            and diagnostic.get("path") == entry
-            and lines
-            and max(lines) < body_line
-            and all(
-                any(first <= line <= last for first, last in guard_lines)
-                for line in lines
-            )
-        ):
-            observed = all((entry, line) in resolved for line in lines)
-            notes.append(
-                {
-                    "code": "conditional_directive_resolved"
-                    if observed
-                    else "preamble_directive_in_conditional",
-                    "path": diagnostic["path"],
-                    "lines": lines,
-                }
-            )
-        else:
-            kept.append(diagnostic)
-    return kept, notes
 
 
 def _label_counts(labels):
