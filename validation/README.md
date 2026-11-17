@@ -29,15 +29,20 @@ it ran. A passing test does not make a paper's theorem true, a distance bound
 mathematically verified, or a Lean declaration semantically matched.
 
 The current [preparation acceptance report](preparation_acceptance.json) records
-47 TeX inputs plus a PDF negative case: 45 compile, 40 have complete bibliography
-bindings, and 22 meet the full preparation gate. The other 25 TeX inputs remain
-partial. Forty derived LaTeX files recompile, 39 pass per-page non-whitespace PDF
-text comparison, and 36 pass the complete normalization stage. Four earlier
-conditional false positives are fixed. Twenty source-bound syntax probes pass on five papers; they are mechanical
-checks, not independent human gold. Three explicit entry overrides are versioned
-in `preparation_entries.json`; historical TeX support URLs/hashes and commands are
-in the report. The pinned machine evaluation remains unaccepted because its
-registry schema is incompatible. No original database or Human.md was changed.
+47 TeX inputs plus a PDF negative case under `compile-prepare-v10`: 46 compile
+(45 with non-empty syntax), 45 have complete bibliography bindings, and 41 meet
+the full preparation gate. The other 6 TeX inputs remain partial with enumerated
+causes. Forty-five derived LaTeX files recompile and pass per-page non-whitespace
+PDF text comparison; 44 pass the complete normalization stage. The new rules cover
+TeX argument whitespace in keys, AUX-confirmed environment `label=...` options,
+unique guard-wrapped document boundaries, drawing-only conditionals, and a
+build-evidenced case-only asset match. The last case is explicitly non-portable to
+a case-sensitive filesystem. Twenty source-bound syntax probes pass on five papers;
+they are mechanical checks, not independent human gold. Three explicit entry
+overrides are versioned in `preparation_entries.json`; historical TeX support
+URLs/hashes and commands are in the report. The pinned machine evaluation remains
+unaccepted because its registry schema is incompatible. No original database or
+Human.md was changed.
 
 `validation/retrieval_qa.json` contains eight source-bound engineering questions for the
 review's five-paper release. Anchors were selected after viewing retrieved passages;

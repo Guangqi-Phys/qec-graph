@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Extend compile-first preparation with TeX-equivalent label/reference key whitespace, AUX-confirmed environment `label=...` options, unique guard-wrapped document boundaries, drawing-only conditionals, and build-evidenced case-only asset binding. Record key-level ambiguous/missing references and duplicate-label observations, and treat an assembled setup-guard include as an observation rather than body loss. `compile-prepare-v10` raises ready coverage from 37 to 41 of 47 TeX inputs; the case-only asset case is explicitly non-portable.
+- Fix `reproduce_preparation.py --papers --cases` so a selected subset does not fail on unselected syntax-probe papers.
 - Export source-mapped `normalized.tex` with bounded math/citation rewrites and class-aware compiled bibliography insertion. Recompile the derived copy and check per-page non-whitespace PDF text when available; preserve original evidence and report partial failures independently. `compile-prepare-v4` adds these checks without scientific extraction or model calls; existing preparation interfaces stay compatible.
 - Fix conditional detection so math commands and opaque declaration bodies do not block preparation. Preserve actual body conditionals as explicit limits.
 - Separate source preparation from downstream parsing. The `prepare_input` v9 skill proposes source-format plans only; validate derived copies and preserve original bytes, hashes and projections. Retain the existing offline CLI as a compatibility facade.

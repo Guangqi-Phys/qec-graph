@@ -405,14 +405,18 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 支持 ACM BBL 参数前的注释、RevTeX `onlinecite`/`citenum` 及运行时确认的合并 key 前缀。
 生成的 `NoteN` 只与内容唯一匹配的字面脚注绑定，适配器处理 TeX protection/空白写法；
 未定位或未绑定的调用仍为 partial。字面标签包装宏的实参必须得到 AUX 确认，并同时保留
-调用与定义位置；不能用 AUX 记录冒充缺失的原文。
+调用与定义位置；不能用 AUX 记录冒充缺失的原文。标签和引用 key 按 TeX 参数词法折叠连续
+空白，因此 `\label{eq:a  b}` 与 `\ref{eq:a b}` 指向同一 key。环境选项
+`label={key}`（tcolorbox 约定）只有在 AUX 唯一发出 `\newlabel{key}` 时才成为标签；
+未确认的选项保持未解析。仅大小写不同的 `\includegraphics` 目标只有在构建 FLS 实际
+读取该路径时才接受，并记录 `asset_case_mismatch`，不声称可移植到大小写敏感文件系统。
 
 准备语法从明确的顶层声明、正文顶层的声明别名中读取参数个数，并绑定声明发生位置；
 后面的重定义不会改变前面的调用。替换体仍是不透明的原文。braket 包有明确的一参数
 语法适配。这些操作不执行任意宏，也不推断数学含义。
 
 `content.json.conditional_views` 保存条件范围、类别和是否选择了分支。导言条件保留为
-不透明语法及观测；未知正文条件仍阻止 ready。确切的 captions-off/newpage 条件、书目内部
+不透明语法及观测；除下述窄类别外，未知正文条件仍阻止 ready。确切的 captions-off/newpage 条件、书目内部
 的 DOI/姓名格式辅助声明按排版结构保留，不选择分支。对有限的字面假条件（`\if 0` 后有
 空白及已知不等的字面 token），仅建立保持字符位置的解析视图；不推广到 `\if00` 或动态
 操作数。识别到 `\end{document}` 后，TeX 不执行的尾部也原样保留。`inactive_ranges`
@@ -442,8 +446,8 @@ Multibib 调用同样保留。源码语法不完整时，统一视图只复制�
 | `normalization.json`、`normalized-build/` | 独立的语法/重编译/PDF 文字结果、确切命令与依赖绑定、转换数量、派生构建日志/PDF，以及可用时的比较文字 |
 | `references.json` | `qecgraph.prepared_references/1`：编译 key、作用域绑定、原始 BIB 与实际使用的 BBL 文本、上下文、字面存在的标识符、冲突和缺项 |
 | `source-map.json` | 转换成功时的组装到原文映射；节点另外保留精确原始范围和哈希 |
-| `coverage.json`、`diagnostics.json` | 转换限制、非活动/未参与阅读的文件清单、opaque 内容、缺失/歧义引用和各阶段失败 |
-| `manifest.json` | `qecgraph.prepare/3`、`compile-prepare-v9`、来源/包哈希、产物哈希、能力、独立阶段和 ready/partial 状态 |
+| `coverage.json`、`diagnostics.json` | 转换限制、非活动/未参与阅读的文件清单、opaque 内容、带 key 的缺失/歧义引用、重复标签观测、受保护文档边界与大小写资产观测，以及各阶段失败 |
+| `manifest.json` | `qecgraph.prepare/3`、`compile-prepare-v10`、来源/包哈希、产物哈希、能力、独立阶段、非阻断 `warnings` 和 ready/partial 状态 |
 
 ready 要求原生编译成功、支持的语法转换完整、适用引用/交叉引用可解析，并独立验证来源保真；资产调用须无歧义，且没有阻断性诊断。
 统一视图还须通过语法检查和原生重编译；观察到 PDF 文字不一致会阻止 ready。
@@ -453,8 +457,19 @@ PDF 文字一致不能证明像素一致或数学等价。
 已有 ready 产物的 partial 重试写到 `<out>.attempt`。发布沿用写锁、备份/日志恢复。
 原文坐标为 UTF-8 解码后的 Unicode codepoint 半开区间、1-based 行号，并分别保留字节范围；
 排版文本、PDF 位置和 SyncTeX 提示不能充当精确原文引句。非 UTF-8 来源仍归档并明确 partial。
+仅大小写资产匹配、观测到的受保护文档边界、绘图内部条件或未被引用的重复标签等非阻断
+观测会写入 `manifest.warnings`；它们不把 ready 变成可移植性或科学正确性的声明。
 编译成功或 JSON 校验通过不证明科学正确性。
 `content.json` 的范围仍指向 `entry.tex`，不能套到 `normalized.tex` 上。
+
+文档边界通常不跨越不可判定分支。若严格扫描找不到正文，而成功的原生构建中恰好只有一对
+`\begin{document}`/`\end{document}`，回退逻辑只遮蔽条件控制词、记录边界，并保留所有
+分支原文；不把该条件当作已选择的正文分支。若组装器实际解析了观测到的导言保护内的
+指令，则记为观测而不是正文缺失；仍未解析的指令继续阻止 ready。完整位于保留的
+`tikzpicture`、`picture`、`circuitikz`、`quantikz`、`forest` 或 `tikzcd` 载荷内的
+条件记为 `drawing_payload`，不阻止阅读；其他未映射正文条件仍是阻断项。这些规则属于
+`compile-prepare-v10`；环境标签选项和大小写资产绑定是独立附加字段，旧 `prepare/3`
+材料仍可读取。
 `read_material` 返回两种文本、统一格式报告及已验证映射。旧 `qecgraph.prepare/3` v2/v3
 材料仍可读取；v4 及之后的 ready 材料必须包含额外的统一格式产物并通过检查。
 

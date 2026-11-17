@@ -18,6 +18,16 @@ from ..source.prepare import select_entry, publish_artifacts, _check_output_root
 from ..core.transactions import writer_lock
 from ..source.package import read_bounded, Limits
 
+_WARNING_CODES = frozenset({
+    "asset_case_mismatch",
+    "conditional_directive_resolved",
+    "document_boundary_guard",
+    "drawing_conditional",
+    "duplicate_labels",
+    "guarded_document_bounds",
+    "preamble_directive_in_conditional",
+})
+
 
 def prepare_material(
     source: Path,
@@ -188,6 +198,13 @@ def _material(tree, entry, work, engine, support, compiler, loading):
             "The normalized handoff preserves original TeX syntax; it is not rendered semantic text.",
             "No theorem truth, experiment binding, numeric curve extraction or nine-question answers are produced.",
         ],
+        "warnings": sorted(
+            {
+                observation["code"]
+                for observation in coverage.get("observations", [])
+                if observation["code"] in _WARNING_CODES
+            }
+        ),
     }
     return files, manifest
 

@@ -156,3 +156,18 @@ class MaterialPipelineTests(unittest.TestCase):
             self.assertEqual(result["stages"]["normalized_latex"], "partial")
             self.assertEqual((out / "sources/main.tex").read_bytes(), original)
             self.assertTrue(read_material(out)["validation"]["source_fidelity"])
+
+    def test_ready_manifest_lists_non_blocking_observations(self):
+        self.calls, self.succeeds = [], True
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "main.tex"
+            source.write_bytes(
+                rb"\documentclass{article}\begin{document}"
+                rb"\label{dup}One.\label{dup}Two.\end{document}"
+            )
+            out = root / "material"
+            result = prepare_material(source, out, compiler=self.compiler)
+            self.assertEqual(result["status"], "ready")
+            manifest = json.loads((out / "manifest.json").read_bytes())
+            self.assertIn("duplicate_labels", manifest["warnings"])

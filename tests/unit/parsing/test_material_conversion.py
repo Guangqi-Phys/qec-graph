@@ -308,3 +308,110 @@ Selected.
                 for d in coverage["diagnostics"]
             )
         )
+
+
+    def test_tex_key_whitespace_collapses_like_tex_arguments(self):
+        raw = rb"\documentclass{article}\begin{document}\begin{equation}\label{eq:a  b}x\end{equation}See \eqref{eq:a b}.\end{document}"
+        _, doc, coverage = self.convert({"main.tex": raw})
+        self.assertTrue(coverage["complete"], coverage)
+        self.assertEqual(doc["labels"][0]["keys"], ["eq:a b"])
+        self.assertEqual(doc["cross_references"][0]["targets"][0]["status"], "resolved")
+
+    def test_environment_label_option_requires_aux_and_resolves_cref(self):
+        raw = rb"\documentclass{article}\begin{document}\begin{defbox}[label={def:kernel}]{Kernel}Body\end{defbox}See \cref{def:kernel}.\end{document}"
+        refs = {
+            "bindings": [],
+            "observed_labels": [{"key": "def:kernel"}],
+        }
+        from qecgraph.preparation.convert import convert_source
+
+        _, doc, coverage = convert_source(
+            SourceTree("tex", {"main.tex": raw}), "main.tex", refs
+        )
+        self.assertTrue(coverage["complete"], coverage)
+        label = next(
+            item
+            for item in doc["labels"]
+            if item.get("origin") == "environment_option_verified_by_aux"
+        )
+        self.assertEqual(label["keys"], ["def:kernel"])
+        self.assertEqual(doc["cross_references"][0]["targets"][0]["status"], "resolved")
+
+    def test_environment_label_option_without_aux_stays_unresolved(self):
+        raw = rb"\documentclass{article}\begin{document}\begin{defbox}[label={def:kernel}]{Kernel}Body\end{defbox}See \cref{def:kernel}.\end{document}"
+        _, _, coverage = self.convert({"main.tex": raw})
+        self.assertFalse(coverage["complete"])
+        self.assertEqual(
+            [d["code"] for d in coverage["diagnostics"]],
+            ["cross_reference_unresolved"],
+        )
+
+    def test_guarded_document_boundaries_are_observed_without_picking_prose(self):
+        raw = rb"\ifx\compilefullpaper\undefined\documentclass{article}\begin{document}Visible.\end{document}\fi"
+        assembly, doc, coverage = self.convert({"main.tex": raw})
+        self.assertTrue(coverage["complete"], coverage)
+        self.assertEqual(assembly.data, raw)
+        self.assertIsNotNone(doc["body_range"][0])
+        self.assertIsNotNone(doc["body_range"][1])
+        self.assertEqual(
+            doc["conditional_views"][0]["kind"], "document_setup_guard"
+        )
+        self.assertFalse(doc["conditional_views"][0]["branch_selected"])
+        self.assertTrue(any(n["kind"] == "chars" for n in doc["nodes"]))
+
+    def test_drawing_loop_conditional_is_opaque_and_non_blocking(self):
+        raw = rb"\documentclass{article}\begin{document}\begin{tikzpicture}\foreach \i in {1}{\ifodd\i A\else B\fi}\end{tikzpicture}Body.\end{document}"
+        _, doc, coverage = self.convert({"main.tex": raw})
+        self.assertTrue(coverage["complete"], coverage)
+        self.assertEqual(doc["conditional_views"][0]["kind"], "drawing_payload")
+        self.assertFalse(doc["conditional_views"][0]["branch_selected"])
+
+    def test_case_only_asset_match_requires_build_evidence_and_records_warning(self):
+        raw = rb"\documentclass{article}\begin{document}\includegraphics{figs/plot.png}\end{document}"
+        from qecgraph.preparation.convert import convert_source
+
+        tree = SourceTree("tex", {"main.tex": raw, "figs/Plot.png": b"image"})
+        _, doc, coverage = convert_source(
+            tree, "main.tex", {"bindings": []}, used_files={"figs/plot.png"}
+        )
+        self.assertTrue(coverage["complete"], coverage)
+        node = next(n for n in doc["nodes"] if n.get("asset_targets"))
+        self.assertEqual(node["asset_targets"]["paths"], ["figs/Plot.png"])
+        self.assertEqual(node["asset_targets"]["match"], "case_insensitive")
+        self.assertTrue(any(a["used_in_build"] for a in doc["assets"]))
+        self.assertTrue(
+            any(item["code"] == "asset_case_mismatch" for item in coverage["observations"])
+        )
+
+    def test_ambiguous_cross_reference_reports_keys_and_duplicate_observation(self):
+        raw = rb"\documentclass{article}\begin{document}\label{dup}One.\label{dup}Two.\ref{dup}\end{document}"
+        _, _, coverage = self.convert({"main.tex": raw})
+        self.assertFalse(coverage["complete"])
+        diagnostic = next(
+            d for d in coverage["diagnostics"] if d["code"] == "cross_reference_ambiguous"
+        )
+        self.assertEqual(diagnostic["occurrences"][0]["keys"], ["dup"])
+        duplicate = next(
+            item for item in coverage["observations"] if item["code"] == "duplicate_labels"
+        )
+        self.assertEqual(duplicate["labels"], [{"key": "dup", "count": 2}])
+
+    def test_preamble_directive_inside_guarded_document_is_explicit_not_body_loss(self):
+        raw = (
+            b"\\ifx\\compilefullpaper\\undefined\n"
+            b"\\documentclass{article}\n"
+            b"\\input{preamble}\n"
+            b"\\begin{document}\nVisible.\n\\end{document}\n\\fi"
+        )
+        assembly, doc, coverage = self.convert(
+            {"main.tex": raw, "preamble.tex": b"\\newcommand{\\x}{X}\n"}
+        )
+        self.assertTrue(coverage["complete"], coverage)
+        self.assertIn(b"\\newcommand{\\x}{X}", assembly.data)
+        self.assertTrue(
+            any(
+                item["code"] == "conditional_directive_resolved"
+                for item in coverage["observations"]
+            )
+        )
+        self.assertTrue(doc["body_range"][0] is not None)

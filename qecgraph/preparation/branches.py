@@ -2,7 +2,11 @@
 
 import re
 
-from ..source.assembly import condition_regions, _conditional_bounds, document_bounds
+from ..source.assembly import (
+    condition_regions,
+    document_bounds_observed,
+    _conditional_bounds,
+)
 
 
 def literal_false_ranges(text):
@@ -32,7 +36,7 @@ def syntax_view(text):
     """Comment-mask inactive bytes at unchanged codepoint offsets; keep raw source."""
     ranges = literal_false_ranges(text)
     masked = _mask(text, ranges)
-    _, _, end = document_bounds(masked)
+    _, _, end = document_bounds_observed(masked)
     closing = (
         re.match(r"\\end\s*\{\s*document\s*\}", masked[end:])
         if end is not None

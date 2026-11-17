@@ -655,7 +655,7 @@ def _scan(text: str) -> tuple[list, list[dict]]:
     items: list = []
     diagnostics: list[dict] = []
     conditionals = 0
-    uncertain_directives = 0
+    uncertain_directives: list[int] = []
     conditional_names: list[set[str]] = []
     defined_names: set[str] = set()
 
@@ -788,7 +788,9 @@ def _scan(text: str) -> tuple[list, list[dict]]:
                 arguments, after_args = _parse_args(text, after, name)
                 if len(arguments) == (1 if name in ONE_ARG else 2):
                     if uncertain > 0:
-                        uncertain_directives += 1
+                        uncertain_directives.append(
+                            text.count("\n", 0, index) + 1
+                        )
                     items.append(_Directive(
                         name, index, after_args, arguments,
                         text.count("\n", 0, index) + 1))
@@ -802,8 +804,11 @@ def _scan(text: str) -> tuple[list, list[dict]]:
     if conditionals:
         diagnostics.append({"code": "conditionals_present", "count": conditionals})
     if uncertain_directives:
-        diagnostics.append({"code": "directive_in_conditional",
-                            "count": uncertain_directives})
+        diagnostics.append({
+            "code": "directive_in_conditional",
+            "count": len(uncertain_directives),
+            "lines": uncertain_directives,
+        })
     return items, diagnostics
 
 
@@ -920,6 +925,32 @@ def document_bounds(text: str) -> tuple[int | None, int | None, int | None]:
 
     walk(0, len(text))
     return begin_start, body_start, end_start
+
+
+_CONDITIONAL_CONTROL = re.compile(r"\\(?:if[A-Za-z@]*|else|fi)(?![A-Za-z@])")
+_DOCUMENT_BEGIN = re.compile(r"\\begin\s*\{\s*document\s*\}")
+_DOCUMENT_END = re.compile(r"\\end\s*\{\s*document\s*\}")
+
+
+def document_bounds_observed(text: str) -> tuple[int | None, int | None, int | None]:
+    """Locate a unique document whose markers sit inside an uncertain guard.
+
+    The strict :func:`document_bounds` scan skips every conditional branch it
+    cannot decide.  A build-mode guard can therefore wrap ``\\documentclass`` and
+    ``\\begin{document}`` and hide the whole body (observed in real packages).
+    This fallback masks only conditional control words, keeps every byte and
+    accepts the result only when exactly one document marker pair exists.  It is
+    used after a successful native build and never selects a prose branch.
+    """
+    begin, body, end = document_bounds(text)
+    if body is not None:
+        return begin, body, end
+    masked = _CONDITIONAL_CONTROL.sub(lambda match: " " * len(match.group(0)), text)
+    if len(_DOCUMENT_BEGIN.findall(masked)) != 1:
+        return None, None, None
+    if len(_DOCUMENT_END.findall(masked)) > 1:
+        return None, None, None
+    return document_bounds(masked)
 
 
 def condition_regions(text: str) -> tuple[list[tuple[int, int]],

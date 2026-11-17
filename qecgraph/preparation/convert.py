@@ -15,6 +15,7 @@ from ..source.assembly import (
     EntryCoordinates,
     entry_source_spans,
     document_bounds,
+    document_bounds_observed,
 )
 from ..source.syntax import declaration_context
 from .crossrefs import cross_references as _cross_references
@@ -73,7 +74,10 @@ class _Syntax:
         )
         self.text, self.tree_hash = assembly.text, tree.digest
         self.nodes, self.indices, self.source_names = [], {}, set()
-        _, start, end = document_bounds(parse_text)
+        strict = document_bounds(parse_text)
+        observed = document_bounds_observed(parse_text)
+        _, start, end = observed
+        self.guarded_bounds = strict[1] is None and observed[1] is not None
         self.body_start = coordinates.to_entry(start) if start is not None else None
         self.body_end = coordinates.to_entry(end) if end is not None else None
         self.inactive = inactive
@@ -190,44 +194,35 @@ def convert_source(tree, entry, references, *, used_files=()):
     roots = syntax.roots(parsed, diagnostics)
     nodes, source_names = syntax.nodes, syntax.source_names
     body_start, body_end = syntax.body_start, syntax.body_end
+    views = conditional_views(text, nodes, body_start, body_end)
+    setup_ranges = [
+        view["range"] for view in views if view["kind"] == "document_setup_guard"
+    ]
+    diagnostics, preamble_directives = _preamble_directives(
+        diagnostics, assembly.events, entry, text, body_start, setup_ranges
+    )
+    observations.extend(preamble_directives)
     outline = _outline(nodes)
     citations = _citations(nodes, references, diagnostics, text, assembly, tree)
     assets = _assets(tree, nodes, set(used_files))
-    unresolved_assets = [
-        n["id"]
-        for n in nodes
-        if n.get("asset_targets", {}).get("status") != "resolved"
-        and "asset_targets" in n
-    ]
-    if unresolved_assets:
-        diagnostics.append(
-            {"code": "asset_target_unresolved", "nodes": unresolved_assets}
-        )
+    _record_asset_issues(nodes, diagnostics)
     labels, cross_references = _cross_references(
         nodes,
         references.get("external_labels", []),
         references.get("observed_labels", []),
+        text,
     )
-    unresolved = [
-        r
-        for r in cross_references
-        if r["region"] == "body"
-        and any(t["status"] != "resolved" for t in r["targets"])
-    ]
-    if unresolved:
-        diagnostics.append(
-            {
-                "code": "cross_reference_unresolved",
-                "nodes": [r["node"] for r in unresolved],
-            }
-        )
+    _record_cross_reference_issues(cross_references, diagnostics)
+    _record_duplicate_labels(labels, observations)
     coverage = assembly.coverage()
     reasons = list(coverage["reasons"])
     if diagnostics:
         reasons.append("conversion_diagnostics")
     if body_start is None:
         reasons.append("nonstandard_document_body")
-    views = conditional_views(text, nodes, body_start, body_end)
+    _record_view_observations(
+        views, syntax.guarded_bounds, nodes, observations
+    )
     conditional_ranges = [v["range"] for v in views if v["kind"] == "unmapped"]
     if conditional_ranges:
         # A native build is one view. Never silently treat every source branch as active.
@@ -274,6 +269,140 @@ def convert_source(tree, entry, references, *, used_files=()):
             "observations": observations,
         },
     )
+
+
+
+def _record_asset_issues(nodes, diagnostics):
+    unresolved = [
+        node["id"]
+        for node in nodes
+        if node.get("asset_targets", {}).get("status") != "resolved"
+        and "asset_targets" in node
+    ]
+    if unresolved:
+        diagnostics.append(
+            {"code": "asset_target_unresolved", "nodes": unresolved}
+        )
+
+
+def _record_cross_reference_issues(cross_references, diagnostics):
+    body = [row for row in cross_references if row["region"] == "body"]
+    for code, status in (
+        ("cross_reference_unresolved", "unresolved"),
+        ("cross_reference_ambiguous", "ambiguous"),
+    ):
+        rows = [
+            row
+            for row in body
+            if any(target["status"] == status for target in row["targets"])
+        ]
+        if rows:
+            diagnostics.append(
+                {
+                    "code": code,
+                    "nodes": [row["node"] for row in rows],
+                    "occurrences": [
+                        {"node": row["node"], "keys": row["keys"]} for row in rows
+                    ],
+                }
+            )
+
+
+def _record_duplicate_labels(labels, observations):
+    duplicates = sorted(
+        (key, count)
+        for key, count in _label_counts(labels).items()
+        if count > 1
+    )
+    if duplicates:
+        observations.append(
+            {
+                "code": "duplicate_labels",
+                "labels": [{"key": key, "count": count} for key, count in duplicates],
+            }
+        )
+
+
+def _record_view_observations(views, guarded_bounds, nodes, observations):
+    for view in views:
+        if view["kind"] in {"document_setup_guard", "document_tail_guard"}:
+            observations.append(
+                {
+                    "code": "document_boundary_guard",
+                    "kind": view["kind"],
+                    "range": view["range"],
+                }
+            )
+        elif view["kind"] == "drawing_payload":
+            observations.append(
+                {"code": "drawing_conditional", "range": view["range"]}
+            )
+    if guarded_bounds:
+        observations.append({"code": "guarded_document_bounds"})
+    case_assets = [
+        node["id"]
+        for node in nodes
+        if node.get("asset_targets", {}).get("match") == "case_insensitive"
+    ]
+    if case_assets:
+        observations.append({"code": "asset_case_mismatch", "nodes": case_assets})
+
+
+def _preamble_directives(
+    diagnostics, events, entry, text, body_start, setup_ranges
+):
+    """Classify setup-guard directives without treating assembled includes as lost."""
+    if body_start is None or not setup_ranges:
+        return diagnostics, []
+    resolved = {
+        (event.path, event.line)
+        for event in events
+        if event.outcome == "resolved"
+    }
+    body_line = text.count("\n", 0, body_start) + 1
+    guard_lines = [
+        (
+            text.count("\n", 0, start) + 1,
+            text.count("\n", 0, max(start, end - 1)) + 1,
+        )
+        for start, end in setup_ranges
+    ]
+    kept, notes = [], []
+    for diagnostic in diagnostics:
+        lines = diagnostic.get("lines") or []
+        if (
+            diagnostic.get("code") == "directive_in_conditional"
+            and diagnostic.get("path") == entry
+            and lines
+            and max(lines) < body_line
+            and all(
+                any(first <= line <= last for first, last in guard_lines)
+                for line in lines
+            )
+        ):
+            observed = all((entry, line) in resolved for line in lines)
+            notes.append(
+                {
+                    "code": "conditional_directive_resolved"
+                    if observed
+                    else "preamble_directive_in_conditional",
+                    "path": diagnostic["path"],
+                    "lines": lines,
+                }
+            )
+        else:
+            kept.append(diagnostic)
+    return kept, notes
+
+
+def _label_counts(labels):
+    counts = {}
+    for label in labels:
+        if label["region"] != "body":
+            continue
+        for key in label["keys"]:
+            counts[key] = counts.get(key, 0) + 1
+    return counts
 
 
 def _opaque_node(assembly, tree, start, end, nodes, diagnostics):
@@ -418,9 +547,13 @@ def _assets(tree, nodes, used_files):
         if not args:
             continue
         name = args[-1][1:-1]
-        candidates = _asset_candidates(node, name, result)
-        observed = [a for a in candidates if a["used_in_build"]]
-        candidates = observed or candidates
+        candidates, case_insensitive = _asset_candidates(node, name, result)
+        used = {p.casefold() for p in used_files}
+        observed = [a for a in candidates if a["path"].casefold() in used]
+        if case_insensitive and not observed:
+            candidates = []
+        else:
+            candidates = observed or candidates
         node["asset_targets"] = {
             "paths": [a["path"] for a in candidates],
             "status": "resolved"
@@ -428,9 +561,17 @@ def _assets(tree, nodes, used_files):
             else "ambiguous"
             if candidates
             else "unresolved",
+            "match": "case_insensitive"
+            if candidates and case_insensitive
+            else "exact"
+            if candidates
+            else None,
         }
         for asset in candidates:
             asset["call_nodes"].append(node["id"])
+            asset["used_in_build"] = (
+                asset["used_in_build"] or asset["path"].casefold() in used
+            )
     return result
 
 
@@ -445,10 +586,28 @@ def _asset_candidates(node, name, assets):
         if a["path"] in names or str(PurePosixPath(a["path"]).with_suffix("")) in names
     ]
     if candidates:
-        return candidates
-    return [
+        return candidates, False
+    folded = {value.casefold() for value in names}
+    candidates = [
+        a
+        for a in assets
+        if a["path"].casefold() in folded
+        or str(PurePosixPath(a["path"]).with_suffix("")).casefold() in folded
+    ]
+    if candidates:
+        return candidates, True
+    candidates = [
         a
         for a in assets
         if PurePosixPath(a["path"]).name == name
         or PurePosixPath(a["path"]).stem == name
     ]
+    if candidates:
+        return candidates, False
+    candidates = [
+        a
+        for a in assets
+        if PurePosixPath(a["path"]).name.casefold() == name.casefold()
+        or PurePosixPath(a["path"]).stem.casefold() == name.casefold()
+    ]
+    return candidates, bool(candidates)

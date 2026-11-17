@@ -1,10 +1,10 @@
 {
   "status": "Engineering implementation verified; complete corpus and scientific usability are not accepted",
   "date": "2026-11-17",
-  "code_revision": "f9e7690133943af6691d34c2ea373cff4208a7af",
+  "code_revision": "9f602bbc6d5dec6462746afb629c2b43eefe31f6",
   "scope": "Offline compile-assisted LaTeX preparation only; zero model calls, no scientific extraction, workspace migration or original database writes",
   "schema": "qecgraph.prepare/3",
-  "rule_version": "compile-prepare-v9",
+  "rule_version": "compile-prepare-v10",
   "normalized_schema": "qecgraph.normalized_latex/1",
   "environment": {
     "platform": "macOS-27.2.1-arm64-arm-64bit-Mach-O",
@@ -28,9 +28,9 @@
   },
   "counts": {
     "papers": 48,
-    "ready": 37,
+    "ready": 41,
     "compiled": 46,
-    "partial": 10,
+    "partial": 6,
     "failed": 1,
     "source_fidelity": 45,
     "normalized_recompiled": 45,
@@ -42,7 +42,7 @@
   "original_bundles_validated": 47,
   "nonempty_syntax_bundles_validated": 45,
   "model_calls": 0,
-  "criteria": "Ready requires successful original native compilation, complete supported source conversion and reference bindings, independent source fidelity, and normalized LaTeX syntax/recompilation checks. An observed PDF-text mismatch blocks ready. Missing pdftotext is explicit and is not text-equality evidence.",
+  "criteria": "Ready requires successful original native compilation, complete supported source conversion and reference bindings, independent source fidelity, and normalized LaTeX syntax/recompilation checks. An observed PDF-text mismatch blocks ready. Missing pdftotext is explicit and is not text-equality evidence. TeX argument whitespace, AUX-confirmed environment label options, a unique guard-wrapped document boundary, drawing-only conditionals and a build-evidenced case-only asset match are recorded rules, not inferred prose.",
   "normalization_scope": {
     "copied": "Author class, packages, definitions, tables, assets, comments and unknown macros remain. Unresolved structural limitations remain partial.",
     "math": "Dollar delimiters outside macro/group arguments only; mathematics inside arguments retains its authored spelling.",
@@ -53,24 +53,16 @@
     "conditions": "Raw guards and post-document tails remain in both source views. Length-preserving parse masking covers narrow literal-false guards and recognized unexecuted tails; inactive ranges and guard classifications remain explicit. Unknown body branches stay partial.",
     "namespaces": "Root AUX closure, external-document AUX metadata, bibunits and multibib are separate. AUX-confirmed literal citation/label wrappers and uniquely matched generated footnotes retain source origins.",
     "grammar": "Learn position-bound literal macro argument signatures and declaration aliases without executing replacement bodies; braket has a fixed one-argument grammar adapter.",
-    "compatibility": "Only the pinned Quantumarticle 4.2 class hash and observed missing afterenddocument hook trigger the recorded empty-hook build preamble. Original source and class bytes remain unchanged."
+    "compatibility": "Only the pinned Quantumarticle 4.2 class hash and observed missing afterenddocument hook trigger the recorded empty-hook build preamble. Original source and class bytes remain unchanged.",
+    "keys": "Label and reference keys collapse TeX argument whitespace runs. An environment label={key} option binds only to a unique emitted AUX key; unconfirmed options stay unresolved.",
+    "assets": "A case-only asset match requires the build FLS to consume the path; the material records asset_case_mismatch and does not claim portability to case-sensitive filesystems.",
+    "boundaries": "A unique document marker pair inside an uncertain guard is observed after successful native compilation; the guard is preserved and is not treated as a selected prose branch.",
+    "conditionals": "Drawing-only conditionals inside preserved picture environments remain unselected and non-blocking; other unmapped body guards and unresolved body directives still block ready."
   },
   "comparison": {
     "baseline_code_revision": "b4e0b971ae686913d88811f0528f1fd4a8130955",
     "baseline_rule_version": "compile-prepare-v4",
     "before": {
-      "papers": 48,
-      "ready": 22,
-      "compiled": 45,
-      "partial": 25,
-      "failed": 1,
-      "source_fidelity": 44,
-      "normalized_recompiled": 40,
-      "normalized_text_equal": 39,
-      "bibliography_complete": 40,
-      "normalized_complete": 36
-    },
-    "after": {
       "papers": 48,
       "ready": 37,
       "compiled": 46,
@@ -82,25 +74,26 @@
       "bibliography_complete": 45,
       "normalized_complete": 44
     },
+    "after": {
+      "papers": 48,
+      "ready": 41,
+      "compiled": 46,
+      "partial": 6,
+      "failed": 1,
+      "source_fidelity": 45,
+      "normalized_recompiled": 45,
+      "normalized_text_equal": 45,
+      "bibliography_complete": 45,
+      "normalized_complete": 44
+    },
     "newly_ready": [
-      "0903.0566v1",
-      "1208.2317v1",
-      "2012.09271v1",
-      "2103.02202v1",
-      "2201.08309v1",
-      "2207.06431v1",
-      "2410.02885v1",
-      "2412.14256v1",
-      "2511.01062v1",
-      "2511.01062v2",
-      "2606.00045v1",
-      "2607.00222v1",
-      "2607.00262v1",
-      "2607.29382v2",
-      "2609.22572v1"
+      "2111.05176v1",
+      "2411.11822v1",
+      "2605.29137v1",
+      "2605.29554v1"
     ],
     "ready_regressions": [],
-    "note": "Same frozen public corpus, entry overrides, support files, and gates. Ready still requires native compilation and a normalized round trip. Counts are mechanical preparation coverage, not scientific extraction accuracy."
+    "note": "Same frozen public corpus, entry overrides, support files and gates. Ready now includes 2111.05176v1 (case-only asset match, non-portable warning) and 2411.11822v1 (guarded document boundaries plus an assembled setup-guard include). Counts are mechanical preparation coverage, not scientific extraction accuracy."
   },
   "syntax_probes": {
     "scope": "Mechanical syntax/source checks, not scientific accuracy or human acceptance",
@@ -212,10 +205,11 @@
   "checks": {
     "unittest": {
       "command": "python -m coverage run -m unittest discover -s tests -v",
-      "tests": 546,
+      "tests": 574,
       "skipped": 5,
       "passed": true,
-      "code_revision": "5ecae480e608b05ec4fa5fcdab7e47a244e8249c"
+      "code_revision": "9f602bbc6d5dec6462746afb629c2b43eefe31f6+worktree",
+      "note": "Run with the project .venv. The PTY regression test requires a process-level pseudo-terminal; it passed under the wider host access used for this evidence run."
     },
     "real_tex": {
       "command": "QECGRAPH_TEST_TEX=1 python -m unittest tests.integration.pipeline.test_compilation -v",
@@ -226,7 +220,7 @@
     "coverage": {
       "command": "python -m coverage report",
       "passed": true,
-      "percent": 84.69
+      "percent": 85.11
     },
     "ruff": {
       "command": "python -m ruff check qecgraph tests tools",
@@ -240,7 +234,7 @@
       "command": "python -m pyright --pythonpath .venv/bin/python",
       "passed": true,
       "errors": 0,
-      "warnings": 80
+      "warnings": 83
     },
     "complexity": {
       "command": "python tools/check_complexity.py",
@@ -373,17 +367,18 @@
     }
   },
   "machine_evaluation": {
-    "machine_copy": "build/opencode-review/machine-copy",
+    "machine_copy": "build/preparation-v10/machine-copy",
     "release": "aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22",
-    "command": "python tools/reproduce_knowledge.py --machine build/opencode-review/machine-copy --release aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22 --out build/preparation-v9/machine-evaluation.json",
+    "command": "python tools/reproduce_knowledge.py --machine build/preparation-v10/machine-copy --release aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22 --out build/preparation-v10/machine-evaluation.json",
     "accepted": false,
     "error": "Registry state schema mismatch",
     "before_after_metrics": null,
+    "scope": "Only the machine subtree was copied; human notes and credentials were not read. The fixed release predates the current registry state schema.",
     "original_database_modified": false,
     "private_or_human_notes_read": false
   },
   "replay": {
-    "executed_command": ".venv/bin/python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/preparation-v9/accepted --entries validation/preparation_entries.json --support-dir build/compile-first/dependencies --support-dir build/compile-first/historical-revtex --cases validation/preparation_cases.json --jobs 2",
+    "executed_command": ".venv/bin/python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/preparation-v10/full --entries validation/preparation_entries.json --support-dir build/compile-first/dependencies --support-dir build/compile-first/historical-revtex --cases validation/preparation_cases.json --jobs 2",
     "support_files": "Supply the public historical TeX dependencies explicitly; no automatic downloads or system TeX changes.",
     "dependency_provenance": [
       {
@@ -412,17 +407,20 @@
         "source": "Installed /Library/TeX/texbin/biber, extracted with Apple lipo -thin arm64; Biber 2.21."
       }
     ],
-    "recorded_tool_seconds_sum": 588.933,
-    "material_bytes": 1083329526,
-    "note": "Tool seconds are summed per-command elapsed time, not replay wall time. Large materials remain under ignored build/."
+    "recorded_tool_seconds_sum": 730.219,
+    "material_bytes": 1083660694,
+    "note": "Tool seconds are summed per-command elapsed time, not replay wall time. Large materials remain under ignored build/. The full replay used TeX Live 2026 on macOS and the same frozen support files."
   },
   "remaining_acceptance": [
-    "10 of 47 TeX papers remain partial, enumerated with causes and bounded next steps in remaining_partial. The PDF-only negative input is a separate expected configuration failure.",
+    "6 of 47 TeX papers remain partial, enumerated with causes and bounded next steps in remaining_partial. The PDF-only negative input is a separate expected configuration failure.",
     "One original project still fails native compilation; one compiled project has no converted syntax because raw input bytes lack an explicit encoding projection.",
-    "45 normalized candidates recompile and have equal per-page PDF text; one of them still has partial Harvmac syntax. Normalization complete is 44; whole preparation ready is 37.",
+    "45 normalized candidates recompile and have equal per-page PDF text; one of them still has partial Harvmac syntax. Normalization complete is 44; whole preparation ready is 41.",
+    "2111.05176v1 depends on macOS case-insensitive filesystem lookup; the case-only asset match is recorded, but the material is not portable to a case-sensitive build without correcting the source path.",
+    "2201.08309v1 and 2209.01119v1 are ready with explicit duplicate-label observations; no referenced cross-reference is ambiguous in those two papers.",
     "The 20 source probes remain agent-authored mechanical checks on five papers, not independent human scientific gold.",
     "The fixed machine-copy evaluation was rerun and remains unaccepted due to Registry state schema mismatch. No original database writes or private/human-note reads.",
-    "Linux isolation, scientific extraction quality, model quality and Lean were not accepted in this preparation-only work."
+    "Linux isolation, scientific extraction quality, model quality and Lean were not accepted in this preparation-only work.",
+    "Non-blocking preparation observations are listed in manifest.warnings. In particular, 2111.05176v1 carries asset_case_mismatch; 2411.11822v1 carries guarded-boundary and resolved-directive notices; 2605.29137v1 carries drawing_conditional; 2201.08309v1 and 2209.01119v1 carry duplicate_labels."
   ],
   "rows": [
     {
@@ -453,14 +451,21 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "1208.0928v1",
       "package_sha256": "7a0f2a7f3b5394b734b6695b83b3caf72d159bb2a16d14c7236c375b9aca6024",
       "entry_selection": "automatic",
       "status": "failed",
-      "error": "Expected TeX source, not PDF, HTML or binary data"
+      "error": "Expected TeX source, not PDF, HTML or binary data",
+      "diagnostic_codes": [],
+      "unresolved_cross_references": [],
+      "unresolved_assets": [],
+      "conditional_views": [],
+      "manifest_warnings": []
     },
     {
       "paper": "1208.2317v1",
@@ -490,7 +495,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "1302.3428v1",
@@ -521,7 +528,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "1804.03719v1",
@@ -553,7 +562,9 @@
       ],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "1907.02554v1",
@@ -583,7 +594,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "1907.11157v1",
@@ -613,7 +626,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2009.07851v3",
@@ -643,7 +658,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2012.04068v1",
@@ -673,7 +690,7 @@
         }
       },
       "diagnostic_codes": [
-        "cross_reference_unresolved"
+        "cross_reference_ambiguous"
       ],
       "unresolved_cross_references": [
         "lm:alpha-beta-exp"
@@ -689,6 +706,25 @@
           ],
           "region": "body"
         }
+      ],
+      "observations": [
+        {
+          "code": "conditionals_present",
+          "count": 1,
+          "path": "main.tex"
+        },
+        {
+          "code": "duplicate_labels",
+          "labels": [
+            {
+              "count": 2,
+              "key": "lm:alpha-beta-exp"
+            }
+          ]
+        }
+      ],
+      "manifest_warnings": [
+        "duplicate_labels"
       ]
     },
     {
@@ -747,7 +783,15 @@
           ],
           "region": "body"
         }
-      ]
+      ],
+      "observations": [
+        {
+          "code": "conditionals_present",
+          "count": 3,
+          "path": "balanced_product_codes.tex"
+        }
+      ],
+      "manifest_warnings": []
     },
     {
       "paper": "2102.06132v1",
@@ -777,14 +821,36 @@
         }
       },
       "diagnostic_codes": [
-        "cross_reference_unresolved"
+        "cross_reference_ambiguous"
       ],
       "unresolved_cross_references": [
         "fig:bitfliplep",
         "pij-approx"
       ],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [
+        {
+          "code": "duplicate_labels",
+          "labels": [
+            {
+              "count": 2,
+              "key": "fig:bitfliplep"
+            },
+            {
+              "count": 4,
+              "key": "fig:my_label"
+            },
+            {
+              "count": 2,
+              "key": "pij-approx"
+            }
+          ]
+        }
+      ],
+      "manifest_warnings": [
+        "duplicate_labels"
+      ]
     },
     {
       "paper": "2103.02202v1",
@@ -815,17 +881,8 @@
       "unresolved_cross_references": [],
       "unresolved_assets": [],
       "conditional_views": [],
-      "build_compatibility": [
-        {
-          "class_path": "quantumarticle.cls",
-          "class_sha256": "dff601e10b3c4c408f50ca1353e110ff72f83e30f85895e9c2332bd5d4189319",
-          "id": "quantumarticle-4.2-empty-afterenddocument-hook/1",
-          "preamble": "\\makeatletter\\providecommand\\@afterenddocumenthook{}\\makeatother",
-          "scope": "Restore the old empty default hook; keep the author class and all source bytes.",
-          "source_edits": false,
-          "trigger": "undefined_afterenddocument_hook"
-        }
-      ]
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2103.06309v1",
@@ -855,7 +912,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2104.01180v1",
@@ -885,26 +944,26 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2111.05176v1",
       "package_sha256": "f7af32eb9738b5ba342fc2fcc47605544236ebd6fe9acccba118f3c3d1cf8dee",
       "entry_selection": "configured",
-      "exit": 2,
-      "status": "partial",
+      "exit": 0,
+      "status": "ready",
       "stages": {
         "compile": "complete",
-        "conversion": "partial",
+        "conversion": "complete",
         "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 93968,
-      "reasons": [
-        "conversion_diagnostics"
-      ],
+      "reasons": [],
       "normalization": {
         "complete": true,
         "native_compile": "complete",
@@ -914,16 +973,9 @@
           "math_delimiter": 4314
         }
       },
-      "diagnostic_codes": [
-        "asset_target_unresolved"
-      ],
+      "diagnostic_codes": [],
       "unresolved_cross_references": [],
-      "unresolved_assets": [
-        [
-          "[width=\\linewidth]",
-          "{figs/bp_plot.png}"
-        ]
-      ],
+      "unresolved_assets": [],
       "conditional_views": [
         {
           "branch_selected": false,
@@ -934,6 +986,25 @@
           ],
           "region": "body"
         }
+      ],
+      "observations": [
+        {
+          "code": "conditionals_present",
+          "count": 1,
+          "path": "main.tex"
+        },
+        {
+          "code": "asset_case_mismatch",
+          "nodes": [
+            "syntax:d535a45239819aa3d6b1ce3f"
+          ]
+        }
+      ],
+      "portability_warnings": [
+        "asset_case_mismatch"
+      ],
+      "manifest_warnings": [
+        "asset_case_mismatch"
       ]
     },
     {
@@ -964,7 +1035,21 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [
+        {
+          "code": "duplicate_labels",
+          "labels": [
+            {
+              "count": 2,
+              "key": "eqn:qpe_inexactvec"
+            }
+          ]
+        }
+      ],
+      "manifest_warnings": [
+        "duplicate_labels"
+      ]
     },
     {
       "paper": "2202.13641v1",
@@ -994,7 +1079,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2207.06431v1",
@@ -1024,7 +1111,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2209.01119v1",
@@ -1054,7 +1143,21 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [
+        {
+          "code": "duplicate_labels",
+          "labels": [
+            {
+              "count": 2,
+              "key": "obj1_OPFU"
+            }
+          ]
+        }
+      ],
+      "manifest_warnings": [
+        "duplicate_labels"
+      ]
     },
     {
       "paper": "2209.05640v1",
@@ -1086,7 +1189,9 @@
       ],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2303.15933v1",
@@ -1116,7 +1221,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2308.02321v1",
@@ -1146,7 +1253,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2308.07915v1",
@@ -1176,7 +1285,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2308.07915v2",
@@ -1208,7 +1319,7 @@
         }
       },
       "diagnostic_codes": [
-        "cross_reference_unresolved",
+        "cross_reference_ambiguous",
         "directive_in_conditional"
       ],
       "unresolved_cross_references": [
@@ -1244,6 +1355,29 @@
           ],
           "region": "body"
         }
+      ],
+      "observations": [
+        {
+          "code": "conditionals_present",
+          "count": 3,
+          "path": "supplemental_v2.tex"
+        },
+        {
+          "code": "duplicate_labels",
+          "labels": [
+            {
+              "count": 2,
+              "key": "ABC2"
+            },
+            {
+              "count": 2,
+              "key": "alpha_beta_gamma_delta"
+            }
+          ]
+        }
+      ],
+      "manifest_warnings": [
+        "duplicate_labels"
       ]
     },
     {
@@ -1274,7 +1408,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2410.02885v1",
@@ -1304,28 +1440,26 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2411.11822v1",
       "package_sha256": "eee7394f81deebacca404e0e95c84694287670691228f6b73afce00e298a9cc7",
       "entry_selection": "automatic",
-      "exit": 2,
-      "status": "partial",
+      "exit": 0,
+      "status": "ready",
       "stages": {
         "compile": "complete",
-        "conversion": "partial",
+        "conversion": "complete",
         "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 8819,
-      "reasons": [
-        "conditional_view_not_mapped",
-        "conversion_diagnostics",
-        "nonstandard_document_body"
-      ],
+      "reasons": [],
       "normalization": {
         "complete": true,
         "native_compile": "complete",
@@ -1335,30 +1469,72 @@
           "math_delimiter": 886
         }
       },
-      "diagnostic_codes": [
-        "directive_in_conditional"
-      ],
+      "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
       "conditional_views": [
         {
           "branch_selected": false,
-          "kind": "unmapped",
+          "kind": "document_setup_guard",
           "range": [
             29,
             13328
           ],
-          "region": "body"
+          "region": "document_boundary"
         },
         {
           "branch_selected": false,
-          "kind": "unmapped",
+          "kind": "document_tail_guard",
           "range": [
             90920,
             91025
           ],
-          "region": "body"
+          "region": "document_boundary"
         }
+      ],
+      "observations": [
+        {
+          "code": "conditionals_present",
+          "count": 2,
+          "path": "outline.tex"
+        },
+        {
+          "code": "conditionals_present",
+          "count": 1,
+          "path": "header.tex"
+        },
+        {
+          "code": "conditional_directive_resolved",
+          "lines": [
+            6
+          ],
+          "path": "outline.tex"
+        },
+        {
+          "code": "document_boundary_guard",
+          "kind": "document_setup_guard",
+          "range": [
+            29,
+            13328
+          ]
+        },
+        {
+          "code": "document_boundary_guard",
+          "kind": "document_tail_guard",
+          "range": [
+            90920,
+            91025
+          ]
+        },
+        {
+          "code": "guarded_document_bounds"
+        }
+      ],
+      "observations_note": "Document markers are observed after a successful native build; the setup guard is not treated as a selected prose branch.",
+      "manifest_warnings": [
+        "conditional_directive_resolved",
+        "document_boundary_guard",
+        "guarded_document_bounds"
       ]
     },
     {
@@ -1389,7 +1565,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2509.03613v1",
@@ -1419,7 +1597,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2510.06495v2",
@@ -1449,7 +1629,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2511.01062v1",
@@ -1489,7 +1671,15 @@
           ],
           "region": "body"
         }
-      ]
+      ],
+      "observations": [
+        {
+          "code": "conditionals_present",
+          "count": 1,
+          "path": "chapters/intro.tex"
+        }
+      ],
+      "manifest_warnings": []
     },
     {
       "paper": "2511.01062v2",
@@ -1529,7 +1719,15 @@
           ],
           "region": "body"
         }
-      ]
+      ],
+      "observations": [
+        {
+          "code": "conditionals_present",
+          "count": 1,
+          "path": "chapters/intro.tex"
+        }
+      ],
+      "manifest_warnings": []
     },
     {
       "paper": "2512.07737v1",
@@ -1559,27 +1757,26 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2605.29137v1",
       "package_sha256": "d0e9f8936a687fd9f90b026891004d0ca68732b92aa2db9c5e1c5c66c54dd3af",
       "entry_selection": "automatic",
-      "exit": 2,
-      "status": "partial",
+      "exit": 0,
+      "status": "ready",
       "stages": {
         "compile": "complete",
-        "conversion": "partial",
+        "conversion": "complete",
         "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 70128,
-      "reasons": [
-        "conditional_view_not_mapped",
-        "conversion_diagnostics"
-      ],
+      "reasons": [],
       "normalization": {
         "complete": true,
         "native_compile": "complete",
@@ -1589,81 +1786,54 @@
           "math_delimiter": 9766
         }
       },
-      "diagnostic_codes": [
-        "cross_reference_unresolved"
-      ],
-      "unresolved_cross_references": [
-        "box:canonical-basis",
-        "box:coherent-basis",
-        "box:lindblad-noise",
-        "box:modules",
-        "box:operator-properties",
-        "def:Fault-tolerant error-correction gadget",
-        "def:code_adjacency_graph",
-        "def:ideal",
-        "def:kernel",
-        "def:local_stochastic_noise",
-        "def:pauli-channel",
-        "def:polynomial-irreducibility",
-        "def:prime-power-pauli-group",
-        "def:ring",
-        "ex:Decoding1",
-        "ex:Decoding2",
-        "ex:Decoding3",
-        "ex:css-steane-code",
-        "ex:dephasing",
-        "ex:depolarizing",
-        "ex:repetition_SE_circuit",
-        "ex:syndromes",
-        "ex:two-qubit-entangled-state",
-        "ex:two-qubit-joint-state",
-        "exer:stab_subsys_surface_code",
-        "lem:cluster_faults_lower_bound",
-        "lem:connected_cluster_trivial_syndrome",
-        "lem:error_weight_lower_bound_decoding_failure",
-        "lem:faults_in_cluster_probability",
-        "lem:number_of_clusters_upper_bound",
-        "lem:stabilizer_update",
-        "lem:total_error_weight_inequality",
-        "lemma:isomorphism_logical_homology_oplus_cohomology",
-        "lemma:normalizer_cycles",
-        "lemma:stabilizer_boundaries",
-        "post-qm-measurement",
-        "thm:constant_overhead_ftqc_threshold",
-        "thm:isomorphism-thm",
-        "thm:knill-laflamme-condition"
-      ],
+      "diagnostic_codes": [],
+      "unresolved_cross_references": [],
       "unresolved_assets": [],
       "conditional_views": [
         {
           "branch_selected": false,
-          "kind": "unmapped",
+          "kind": "drawing_payload",
           "range": [
             386147,
             386413
           ],
           "region": "body"
         }
+      ],
+      "observations": [
+        {
+          "code": "conditionals_present",
+          "count": 1,
+          "path": "chapters/bosonic-codes/bosonic.tex"
+        },
+        {
+          "code": "drawing_conditional",
+          "range": [
+            386147,
+            386413
+          ]
+        }
+      ],
+      "manifest_warnings": [
+        "drawing_conditional"
       ]
     },
     {
       "paper": "2605.29554v1",
       "package_sha256": "f21b456235b3e23ba4cb4431cf5f166dff192f02e2ddabf69095ebc43e0606b1",
       "entry_selection": "automatic",
-      "exit": 2,
-      "status": "partial",
+      "exit": 0,
+      "status": "ready",
       "stages": {
         "compile": "complete",
-        "conversion": "partial",
+        "conversion": "complete",
         "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 8945,
-      "reasons": [
-        "conversion_diagnostics"
-      ],
+      "reasons": [],
       "normalization": {
         "complete": true,
         "native_compile": "complete",
@@ -1673,14 +1843,8 @@
           "math_delimiter": 396
         }
       },
-      "diagnostic_codes": [
-        "cross_reference_unresolved"
-      ],
-      "unresolved_cross_references": [
-        "eq:resolved system1_1",
-        "eq:resolved system1_2",
-        "eq:resolved system1_3"
-      ],
+      "diagnostic_codes": [],
+      "unresolved_cross_references": [],
       "unresolved_assets": [],
       "conditional_views": [
         {
@@ -1692,7 +1856,15 @@
           ],
           "region": "body"
         }
-      ]
+      ],
+      "observations": [
+        {
+          "code": "conditionals_present",
+          "count": 1,
+          "path": "references.tex"
+        }
+      ],
+      "manifest_warnings": []
     },
     {
       "paper": "2605.29774v1",
@@ -1722,7 +1894,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2605.30298v1",
@@ -1752,7 +1926,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2606.00045v1",
@@ -1782,7 +1958,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2606.30447v1",
@@ -1812,7 +1990,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2607.00222v1",
@@ -1842,7 +2022,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "2607.00262v1",
@@ -1882,7 +2064,15 @@
           ],
           "region": "preamble"
         }
-      ]
+      ],
+      "observations": [
+        {
+          "code": "conditionals_present",
+          "count": 1,
+          "path": "head.tex"
+        }
+      ],
+      "manifest_warnings": []
     },
     {
       "paper": "2607.29382v2",
@@ -1922,7 +2112,15 @@
           ],
           "region": "preamble"
         }
-      ]
+      ],
+      "observations": [
+        {
+          "code": "conditionals_present",
+          "count": 1,
+          "path": "main.tex"
+        }
+      ],
+      "manifest_warnings": []
     },
     {
       "paper": "2609.22572v1",
@@ -1952,7 +2150,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "hep-th/9407087v1",
@@ -1999,7 +2199,9 @@
           ],
           "region": "body"
         }
-      ]
+      ],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "quant-ph/0001106v1",
@@ -2030,7 +2232,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "quant-ph/0110143v1",
@@ -2060,7 +2264,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "quant-ph/9604034v1",
@@ -2090,7 +2296,9 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     },
     {
       "paper": "quant-ph/9605021v1",
@@ -2120,49 +2328,35 @@
       "diagnostic_codes": [],
       "unresolved_cross_references": [],
       "unresolved_assets": [],
-      "conditional_views": []
+      "conditional_views": [],
+      "observations": [],
+      "manifest_warnings": []
     }
   ],
   "native_replay_code_revision": "5ecae480e608b05ec4fa5fcdab7e47a244e8249c",
   "remaining_partial": {
     "1804.03719v1": {
-      "cause": "Legacy RevTeX/array compatibility: native Extra \\or at Eidenbenz_intro.tex:65.",
+      "cause": "Legacy RevTeX4/array compatibility: native Extra \\or at Eidenbenz_intro.tex:65.",
       "next_step": "Use a verified matching historical class/package set. Kernel-only and array-only rollbacks were tested and failed at other incompatible commands; no generic rollback or source edit was accepted."
     },
     "2012.04068v1": {
-      "cause": "Duplicate source label lm:alpha-beta-exp.",
-      "next_step": "Obtain a corrected source or an explicitly reviewed derived label mapping; preserve ambiguity."
+      "cause": "Duplicate source label lm:alpha-beta-exp (two adjacent lemmas); the reference is ambiguous.",
+      "next_step": "Obtain a corrected source or an explicitly reviewed derived label mapping; preserve both targets and the ambiguity."
     },
     "2102.06132v1": {
-      "cause": "Duplicate source labels fig:bitfliplep and pij-approx.",
-      "next_step": "Obtain corrected labels or reviewed disambiguation; never select the first target."
-    },
-    "2111.05176v1": {
-      "cause": "Literal includegraphics target figs/bp_plot.png is absent from the package.",
-      "next_step": "Supply the actual missing asset. FLS consumption of a TeX placeholder is not evidence of the absent image."
+      "cause": "Duplicate source labels fig:bitfliplep (twice) and pij-approx (main and supplement); references are ambiguous. fig:my_label also occurs four times but is unreferenced.",
+      "next_step": "Obtain corrected labels or reviewed disambiguation; never select the first target or discard the duplicate observations."
     },
     "2209.05640v1": {
       "cause": "main.tex uses UseRawInputEncoding and contains one non-UTF-8 byte 0xA8 at byte offset 69892 in bibliography prose.",
       "next_step": "Provide an explicit reversible byte/font encoding projection with exact source mapping; do not guess Latin-1 text or replace invalid bytes."
     },
     "2308.07915v2": {
-      "cause": "Unmapped ifdefined maindocument guards affect included supplement structure; duplicate label observations remain.",
-      "next_step": "Record and verify a single active compile view before expanding conditional includes or resolving labels."
-    },
-    "2411.11822v1": {
-      "cause": "ifx compilefullpaper/undefined guards surround document boundaries and bibliography.",
-      "next_step": "Observe and bind active guards to the actual build, then reconstruct the reading view without deleting original branches."
-    },
-    "2605.29137v1": {
-      "cause": "Drawing-loop ifodd is context-dependent; 39 cross-reference keys use unsupported custom tcolorbox label options rather than missing source labels.",
-      "next_step": "Add AUX-confirmed key/value environment-label syntax and preserve drawing code as an opaque authored payload; do not pick a global loop branch or infer scientific box types."
-    },
-    "2605.29554v1": {
-      "cause": "Three referenced equation keys eq:resolved system1_1/1_2/1_3 have no source label targets.",
-      "next_step": "Obtain corrected source/explicit reviewed target mapping; preserve unresolved keys."
+      "cause": "Duplicate labels ABC2 and alpha_beta_gamma_delta across main and supplement; the inactive ifdefined maindocument branch also retains a missing packages.tex include and unmapped guards.",
+      "next_step": "Correct the duplicate labels or record reviewed disambiguation; bind the maindocument guard before treating the standalone-branch include as lost."
     },
     "hep-th/9407087v1": {
-      "cause": "Plain Harvmac dialect has no standard LaTeX body; unsupported control grammar prevents a complete syntax handoff.",
+      "cause": "Plain Harvmac dialect has no standard LaTeX body; unsupported control grammar and \\end prevent a complete syntax handoff.",
       "next_step": "Add an engine-preserving Harvmac grammar/reading adapter and independent round-trip verification, rather than silently substituting a LaTeX document class."
     }
   },
@@ -2185,5 +2379,10 @@
       "evidence": "Final original and normalized builds complete; per-page PDF text equal; class/source hashes unchanged."
     },
     "original_source_edits": false
+  },
+  "code_worktree": {
+    "state": "uncommitted",
+    "scope": "qecgraph tools tests/unit/parsing/test_material_conversion.py tests/integration/pipeline/test_material.py",
+    "diff_sha256": "3a6302ee79d87d70861f72db80a501ff8cc3fcfd6c92a29308abbea189a6f539"
   }
 }

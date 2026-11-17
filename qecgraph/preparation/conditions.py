@@ -6,28 +6,53 @@ from .branches import literal_false_ranges
 from ..source.assembly import condition_regions, _skip_definition, _definition_event
 
 
+DRAWING_ENVIRONMENTS = frozenset({
+    "tikzpicture",
+    "pgfpicture",
+    "picture",
+    "circuitikz",
+    "quantikz",
+    "forest",
+    "tikzcd",
+})
+
+
 def conditional_views(text, nodes, start, end):
     inactive, uncertain = condition_regions(text)
     views = []
     literal = literal_false_ranges(text)
     for a, b in [*inactive, *uncertain]:
+        raw = text[a:b]
+        boundary = (
+            (start is not None and a < start < b)
+            or (end is not None and a < end < b)
+        )
         region = (
-            "preamble"
+            "document_boundary"
+            if boundary
+            else "preamble"
             if start is not None and b <= start
             else "inactive"
             if end is not None and a >= end
             else "body"
         )
         kind = "unmapped"
-        raw = text[a:b]
         if any(x == a for x, _ in literal):
             kind = "literal_false_guard"
+        elif region == "document_boundary":
+            kind = (
+                "document_setup_guard"
+                if re.search(r"\\begin\s*\{\s*document\s*\}", raw)
+                else "document_tail_guard"
+            )
         elif region != "body":
             kind = region + "_syntax_preserved"
         elif _layout_guard(raw):
             kind = "layout_only"
         elif _inside_bibliography(a, b, nodes) and _bibliography_helpers(raw):
             kind = "bibliography_format_setup"
+        elif _inside_drawing(a, b, nodes):
+            kind = "drawing_payload"
         views.append(
             {
                 "range": [a, b],
@@ -37,6 +62,15 @@ def conditional_views(text, nodes, start, end):
             }
         )
     return views
+
+
+def _inside_drawing(start, end, nodes):
+    return any(
+        node["kind"] == "environment"
+        and node["name"] in DRAWING_ENVIRONMENTS
+        and node["range"][0] <= start < end <= node["range"][1]
+        for node in nodes
+    )
 
 
 def _layout_guard(raw):

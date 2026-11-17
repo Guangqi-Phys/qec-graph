@@ -388,6 +388,13 @@ bind only to a unique matching literal footnote payload, with TeX protection/spa
 normalization recorded by the adapter. Unlocated or unbound calls remain partial.
 A literal label wrapper binds its actual argument to an emitted AUX label, retaining
 both its call and definition; the AUX is not a substitute for missing source prose.
+Reference and label keys follow TeX argument tokenization: runs of whitespace collapse,
+so `\label{eq:a  b}` and `\ref{eq:a b}` address the same key. A literal environment
+option `label={key}` (the tcolorbox convention) becomes a label only when a unique AUX
+`\newlabel{key}` was emitted; an unconfirmed option stays unresolved. A case-only
+`\includegraphics` match is accepted only when the build FLS consumed that path, and
+`asset_case_mismatch` records that the package is not portable to case-sensitive
+filesystems.
 
 The preparation grammar learns argument counts from literal top-level declarations
 and document-level declaration aliases, at the declaration's source position.
@@ -397,7 +404,8 @@ not execute user macros or infer their mathematical meaning.
 
 `content.json.conditional_views` retains the guard range, category and whether a
 branch was selected. Preamble guards remain opaque syntax with observations;
-unknown body guards remain blockers. The exact captions-off/newpage guard and
+unknown body guards remain blockers, except the narrow categories below. The exact
+captions-off/newpage guard and
 bibliography-local DOI/name helper declarations are retained as formatting setup,
 without choosing a branch. A narrow literal-false guard (`\if 0` followed by
 whitespace and a known unequal literal token) has a length-preserving parse view;
@@ -407,6 +415,19 @@ original `entry.tex`; inactive nodes/reading units are explicitly marked and mus
 not become body prose. The raw TeX and normalized view retain these bytes, including
 malformed syntax that TeX never executes. Consumers must honor the prepared syntax
 and inactive metadata rather than treat every raw-source token as active content.
+
+A document boundary is normally found without crossing an undecidable branch. When
+that strict scan finds no body and the successful native build has exactly one
+`\begin{document}`/`\end{document}` pair, a fallback masks only the conditional
+control words, records the boundary, and leaves every branch in the source. The guard
+is not treated as a selected prose branch. A directive inside the observed setup
+guard that the assembler actually resolved is recorded as an observation, not body
+loss; an unresolved directive still blocks ready. A conditional wholly inside a
+preserved `tikzpicture`, `picture`, `circuitikz`, `quantikz`, `forest` or `tikzcd`
+payload is recorded as `drawing_payload` and does not block reading. Other unmapped
+body guards remain blockers. These rules are `compile-prepare-v10`; environment
+label options and case-insensitive asset binding are separate additive fields, and
+older `prepare/3` bundles stay readable.
 
 Native compatibility is deliberately narrow: the pinned Quantumarticle 4.2 class
 hash may retry its observed undefined `\@afterenddocumenthook` failure with the old
@@ -437,8 +458,8 @@ stays explicit. There is no AI rewriting, scientific classification or theorem i
 | `normalization.json`, `normalized-build/` | Independent syntax/recompilation/PDF-text outcomes, exact commands and dependency bindings, transformation counts, derived build logs/PDF and comparison text when available |
 | `references.json` | `qecgraph.prepared_references/1`: emitted keys, scoped bindings, original BIB and consumed BBL text, contexts, identifiers present literally, conflicts and missing data |
 | `source-map.json` | Assembly-to-original mapping when conversion succeeds; nodes separately retain exact original spans and their hashes |
-| `coverage.json`, `diagnostics.json` | Conversion limits, inactive/uncompiled file inventory, opaque content, missing/ambiguous references and stage failures |
-| `manifest.json` | `qecgraph.prepare/3`, `compile-prepare-v9`, source/package hashes, artifact hashes, capabilities, independent stages and `ready`/`partial` state |
+| `coverage.json`, `diagnostics.json` | Conversion limits, inactive/uncompiled file inventory, opaque content, missing/ambiguous references with keys, duplicate-label observations, guarded-boundary and case-only-asset observations, and stage failures |
+| `manifest.json` | `qecgraph.prepare/3`, `compile-prepare-v10`, source/package hashes, artifact hashes, capabilities, independent stages, non-blocking `warnings` and `ready`/`partial` state |
 
 A ready handoff requires successful native compilation, complete supported syntax
 conversion, resolved applicable citations/cross-references, and independently verified
@@ -452,6 +473,9 @@ an input/configuration/publication error. A partial retry of a ready output goes
 Source quotation coordinates are UTF-8 Unicode codepoint half-open ranges and 1-based
 lines, with separate byte ranges. Rendered text, PDF positions and SyncTeX hints never
 become exact original quotations. Non-UTF-8 source stays archived and explicitly partial.
+Non-blocking observations such as a case-only asset match, an observed guarded document
+boundary, a drawing-only conditional or an unreferenced duplicate label are listed in
+`manifest.warnings`; they do not turn readiness into a portability or scientific claim.
 A successful compiler or a JSON validator does not establish scientific correctness.
 `content.json` ranges continue to address `entry.tex`; they must not be applied to
 `normalized.tex`. `read_material` exposes both texts, the normalization report and

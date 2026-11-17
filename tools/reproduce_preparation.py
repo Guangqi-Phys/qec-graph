@@ -135,9 +135,13 @@ def main():
         },
     }
     if args.cases:
-        report["syntax_probes"] = check_cases(
-            args.out, json.loads(args.cases.read_bytes())["cases"]
-        )
+        selected = {row["paper"] for row in rows}
+        cases = [
+            case
+            for case in json.loads(args.cases.read_bytes())["cases"]
+            if case["paper"] in selected
+        ]
+        report["syntax_probes"] = check_cases(args.out, cases)
     (args.out / "results.json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps(report["counts"], indent=2))
     return 0
