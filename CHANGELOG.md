@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Bound preparation read-path work: parse only consumed sources that literally contain a tcolorbox declaration command, cache validated source paths per read, and reuse verified material reads for syntax probes. Reject `\renewcommand`/`\NewDocumentCommand`-shadowed declaration evidence. The v19 gate, material bytes and acceptance counts are unchanged.
 - Refactor preparation into acyclic shared artifact/reference primitives, one native execution adapter, explicit per-attempt material state and independent read validation. Reuse derived-build wiring and scoped AUX/projection indexes while preserving the v19 gate, source bytes, CLI and material schemas. Add architecture guards, v19 artifact characterization and retained-material comparison tooling.
 
 - Accept fully preserved cross-reference ambiguity as preparation-complete in `compile-prepare-v19`, following the preparation-only boundary. Keep ambiguous status, all candidates and warnings; missing targets still block ready. Separately report prepared candidates versus unique bindings and independently reconstruct candidates when reopening material.

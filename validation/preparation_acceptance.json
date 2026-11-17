@@ -1,7 +1,7 @@
 {
   "bibliography_complete": 46,
   "body_syntax_complete": 46,
-  "code_revision": "0497f0402cafcea29a7876af596694285d0125fd",
+  "code_revision": "bf5a577f0d0eb046dadb5ab7c6ed5a5736e04053",
   "comparison": {
     "after": {
       "compiled": 46,
@@ -13,7 +13,7 @@
       "ready": 46,
       "source_fidelity": 46
     },
-    "baseline_code_revision": "d5b25764fc25077531f0ca265ccf6bdb7d530364",
+    "baseline_code_revision": "6056c6a67b695218ba6d00d19dbdb6d4e4369264",
     "baseline_rule_version": "compile-prepare-v19",
     "before": {
       "compiled": 46,
@@ -40,12 +40,12 @@
     "source_fidelity": 46
   },
   "criteria": "Native compilation, complete supported source syntax and bibliography bindings, exact source mapping, and normalized syntax/recompilation. Cross-references may remain ambiguous with all known candidates preserved; missing targets still block ready. Observed guards additionally require matching instrumented PDF text and validated native log evidence. Ready is not unique cross-reference resolution, portability or scientific correctness.",
-  "date": "2026-11-17T07:45:05.449552+00:00",
+  "date": "2026-11-17T08:49:27.395585+00:00",
   "generator": {
     "baseline": {
-      "commit": "d5b25764fc25077531f0ca265ccf6bdb7d530364",
+      "commit": "6056c6a67b695218ba6d00d19dbdb6d4e4369264",
       "path": "validation/preparation_acceptance.json",
-      "sha256": "f277e3112b8d47b042a871ccdd150f458d8011512e65c3c76ba66d13887e4bc2"
+      "sha256": "2699ddcbaccbb4ada3b672f4239918eff6b8607bc3fb3df39c4d2b928cdf2caf"
     },
     "command": "tools/report_preparation.py"
   },
@@ -56,8 +56,8 @@
     "tex_inputs": 47
   },
   "machine_evaluation": {
-    "evidence_path": "build/preparation-refactor/machine-evaluation.json",
-    "evidence_sha256": "ab90cf4b96cd8364babca4ee5b0e9211871234d7e0a2a7ffcb678ff6ba30ff97",
+    "evidence_path": "build/preparation-08/machine-evaluation.json",
+    "evidence_sha256": "a5b2e396c4a3c96aa5690ee2fa92e1de914db39c1662838da4036b03123eba84",
     "result": {
       "accepted": false,
       "command": [
@@ -68,7 +68,7 @@
         "--release",
         "aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22",
         "--out",
-        "build/preparation-refactor/machine-evaluation-raw.json"
+        "build/preparation-08/machine-evaluation-raw.json"
       ],
       "error": "Traceback (most recent call last):\n  File \"/Users/guangqi/Workspace/qec-graph/tools/reproduce_knowledge.py\", line 155, in <module>\n    raise SystemExit(main())\n                     ~~~~^^\n  File \"/Users/guangqi/Workspace/qec-graph/tools/reproduce_knowledge.py\", line 140, in main\n    session = WorkspaceSession(args.machine, args.release, profile='research', max_chars=1000000)\n  File \"/Users/guangqi/Workspace/qec-graph/qecgraph/workspace_query.py\", line 45, in __init__\n    self.state, self.release = self.registry.read(release_id, verify=False)\n                               ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/guangqi/Workspace/qec-graph/qecgraph/registry.py\", line 83, in read\n    raise ManagedDataError(state_path, 'Registry state schema mismatch')\nqecgraph.core.transactions.ManagedDataError: Registry state schema mismatch: /Users/guangqi/Workspace/qec-graph/build/preparation-v10/machine-copy/states/aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22.json\n",
       "exit": 1,
@@ -199,7 +199,7 @@
       "--manifest",
       "test-sources/arxiv-sources/manifest.json",
       "--out",
-      "build/preparation-refactor/final-verified",
+      "build/preparation-08/final",
       "--entries",
       "validation/preparation_entries.json",
       "--support-dir",
@@ -212,7 +212,7 @@
       "2"
     ],
     "cases_sha256": "f0b3a3b8cf7a4f8641bd48db14cc1255a4637cdd5f111e604cb7685a6363fbbd",
-    "code_revision": "0497f0402cafcea29a7876af596694285d0125fd",
+    "code_revision": "bf5a577f0d0eb046dadb5ab7c6ed5a5736e04053",
     "entries_sha256": "8e180d1330e36ebcd69f4d447efd43d789caa22ee11b1591c63f015eaf920a74",
     "execution_sources": {
       "qecgraph/__init__.py": "5164f48c394fbae38de8081269c4e4e15bd74ca8bc28368280c5a6d7c27f3918",
@@ -275,7 +275,7 @@
       "qecgraph/mcp/server.py": "f360de382149ba26bfe889d9a3c152f07999acb952108f270d9caedcbe27a6d0",
       "qecgraph/mcp_server.py": "60c1815f39ca5185ce5dd26cd90b010745a6c594a0dee07bdbb234d0acb00b2b",
       "qecgraph/preparation/__init__.py": "5ada7f26fcee67decbc8e8f6d08709bef321fa59f3255b5835291f5e9b3a5e7d",
-      "qecgraph/preparation/acceptance.py": "e5676c4b1a2ce1273519e29c386ad378cdaaac4c66844d83a2b780d61bb3df30",
+      "qecgraph/preparation/acceptance.py": "73cd192cc0531e806b81b1e15ca56cdee79130576ffcb6dcb83c38a424f8b96c",
       "qecgraph/preparation/artifacts.py": "4de60b151f1f920e7cc744bb1a287b4f9a3cb7162d51778ef15702dd7cbe3dd1",
       "qecgraph/preparation/branches.py": "af755328992d9ceeb1dc67c975f1a45e30a70a92440135e8931b3817a2023384",
       "qecgraph/preparation/build.py": "b62d7f19309be8735c6c147ee9d8e30ac56883a2aac2f1d7711be90b423b4f76",
@@ -284,11 +284,11 @@
       "qecgraph/preparation/citations.py": "e9ae220bc70ea57f8c4a000646684f0bdad0016d433968c9cdf9677091f8809d",
       "qecgraph/preparation/compatibility.py": "aceb884cac910bcc115125f12db0d51f0c532cec436dedbf28b71e47e0c690ce",
       "qecgraph/preparation/conditions.py": "11fe47b8a9edd6773bf85db49cf3e4ea440aa21ff114076ed6ea664260e4e4b9",
-      "qecgraph/preparation/contract.py": "678fc9b8c1393168adcdec1fb70cc984929865a46869b5e7784d16cba169df6d",
+      "qecgraph/preparation/contract.py": "9cf4dcd5b44cc3da9c8de7be787ad17096f9579ed876b950c25a808e1d003eeb",
       "qecgraph/preparation/convert.py": "85fe0ee7c9bdcbb748412abf4855c0fa101fe5bb5781a1604ec3a48709322930",
       "qecgraph/preparation/crossrefs.py": "56449921efd42b50bff5418f8345cf51c096c0c437e4a23964dfcc7cb1b8e82f",
       "qecgraph/preparation/entries.py": "226a4541b9535961c27acfef133b40916e659252ae33638287a91dad73ca5687",
-      "qecgraph/preparation/environments.py": "cdb18b7b9ac69e8b83c4a7bffa8061ba71311a3838845239bbed70702485ce51",
+      "qecgraph/preparation/environments.py": "6401633a0ab413166c23fa249c0698c6af0f32aaddf02a23ee8f9eef7f9cac85",
       "qecgraph/preparation/execution.py": "390445fbe5e041c4ce323a64cd4f86f38130e216ce6f0f567a191496aec012a3",
       "qecgraph/preparation/guard_syntax.py": "79d9f59f513ccb6ba698dac4bc344a73f55af5011c6b20333260990fa7a364e3",
       "qecgraph/preparation/harvmac.py": "ced44c13bb0a22e8bd7d492be5642b981e49d123e72e99200fd3ffb6a64f0cc7",
@@ -345,10 +345,10 @@
     },
     "platform": "macOS-27.2.1-arm64-arm-64bit-Mach-O",
     "python": "3.15.2",
-    "results_sha256": "230a72f4de2a86ea685d7c0a84cf874fdc0534eb41234c0ce9c7cd25b80f8c2a",
-    "root": "build/preparation-refactor/final-verified",
+    "results_sha256": "4c78ec0fa56fbae4339e872d5ef911297c2fd3e6c952da0d6bf1a2432aec39b6",
+    "root": "build/preparation-08/final",
     "rule_version": "compile-prepare-v19",
-    "started_at": "2026-11-17T07:45:05.449552+00:00"
+    "started_at": "2026-11-17T08:49:27.395585+00:00"
   },
   "rows": [
     {
