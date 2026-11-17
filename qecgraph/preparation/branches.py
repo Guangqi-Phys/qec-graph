@@ -38,7 +38,7 @@ def syntax_view(text):
         if end is not None
         else None
     )
-    tail = end + closing.end() if closing is not None else len(text)
+    tail = end + closing.end() if end is not None and closing is not None else len(text)
     if text[tail:].strip():
         ranges.append((tail, len(text)))
     return _mask(text, ranges), ranges
