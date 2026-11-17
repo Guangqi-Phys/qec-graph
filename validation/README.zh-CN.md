@@ -14,6 +14,7 @@
 | 单元、集成和契约测试 | `python -m unittest discover -s tests` |
 | 编译优先准备，零模型 | `python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/preparation-replay --entries validation/preparation_entries.json --cases validation/preparation_cases.json` |
 | 重算/检查准备验收 | `python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifest.json --replay build/preparation-replay --cases validation/preparation_cases.json --out build/preparation-acceptance.json --check` |
+| 稳定准备材料行为保持 | `python tools/compare_preparation.py --baseline /path/to/baseline-replay --current /path/to/current-replay --out build/preparation-comparison.json` |
 | 端到端抽取和查询复现 | `python tools/reproduce.py --out build/reproduce` |
 | 直接阅读 / 搜索 / 任务上下文证据 | `python tools/reproduce_knowledge.py --out build/knowledge-synthetic.json --include-payloads` |
 | 已登记真实来源阅读（只读） | `python tools/reproduce_knowledge.py --machine /path/to/machine --out build/knowledge-real.json --include-payloads` |
@@ -30,13 +31,14 @@
 逐包重新打开材料、重算计数和来源绑定语法 probe，并核对语料/代码快照。
 先运行不带 `--check` 的 `report_preparation.py` 生成报告，再用相同参数加 `--check`
 检查漂移；检查不编译、不调用模型。已提交报告的 `replay.argv` 保存实际支持文件路径、
-入口和 probe 配置；比较基线固定为 v18 的 `ff69adf`。原生工具结果保留在材料包中，
+入口和 probe 配置；比较基线固定为 v19 的 `d5b2576`。原生工具结果保留在材料包中，
 不会复制旧测试套件的通过声明。
 
-固定语料为 47 篇 TeX 和一个 PDF 反例；v19 为 46 ready、1 篇 TeX partial、
-1 个预期 PDF 失败。新增 ready 的三篇保留引用歧义，唯一引用绑定数没有增加；报告另列正文完整数、可逆投影数和原生方言。
+固定语料为 47 篇 TeX 和一个 PDF 反例。架构重构保持 v19 判据和 46 ready / 1 partial，
+除计数外另有稳定材料字节对照。三篇论文保留引用歧义，唯一引用绑定数不变。
+读取性能仅限 07 记录的四个保留包、各三次测量；报告另列正文完整数、可逆投影数和原生方言。
 覆盖数和失败原因是机械准备证据，
-不是科学答案金标或数学验收。[06 总结](../docs/reviews/review-2026-11-17-compile-prepare-testing/06-preserved-reference-ambiguity-acceptance.zh-CN.md)
+不是科学答案金标或数学验收。[07 总结](../docs/reviews/review-2026-11-17-compile-prepare-testing/07-preparation-architecture-and-behavior-preservation.zh-CN.md)
 记录可比前后数字、实际检查、依赖来源及未完成事项。大小写资产匹配仍不能声称可移植到
 大小写敏感文件系统。固定 machine 副本评测仍因注册表 schema 不兼容而未验收。
 Human.md 和原始数据库均未修改。

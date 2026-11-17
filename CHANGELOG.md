@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Refactor preparation into acyclic shared artifact/reference primitives, one native execution adapter, explicit per-attempt material state and independent read validation. Reuse derived-build wiring and scoped AUX/projection indexes while preserving the v19 gate, source bytes, CLI and material schemas. Add architecture guards, v19 artifact characterization and retained-material comparison tooling.
+
 - Accept fully preserved cross-reference ambiguity as preparation-complete in `compile-prepare-v19`, following the preparation-only boundary. Keep ambiguous status, all candidates and warnings; missing targets still block ready. Separately report prepared candidates versus unique bindings and independently reconstruct candidates when reopening material.
 
 - Extend offline preparation through `compile-prepare-v18` with verified reversible byte spelling and original byte locators, native entry sniffing, pinned Harvmac grammar, source-bound equations/outlines and bibliography bindings to consumed runtime text. Preserve native source bytes and reject unsupported grammar or mismatched comparison evidence.

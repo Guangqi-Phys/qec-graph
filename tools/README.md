@@ -12,7 +12,7 @@ tooling, not part of the installed `qecgraph` package.
 | Release | `check_distribution.py`, `qec-graph.spec` | Distribution metadata checks and PyInstaller spec |
 | Performance | `bench.py` | Generated incremental workload and pinned-source benchmark |
 | Knowledge evidence | `reproduce_knowledge.py` | Compare complete reading, source search and task context; no LLM execution |
-| Offline preparation | `prepare_compiled.py`, `reproduce_preparation.py`, `report_preparation.py`, `prepare_arxiv.py` | Compile-first source material and fixed-corpus replay; retain the static compatibility tool |
+| Offline preparation | `prepare_compiled.py`, `reproduce_preparation.py`, `report_preparation.py`, `compare_preparation.py`, `prepare_arxiv.py` | Compile-first source material and fixed-corpus replay; retain the static compatibility tool |
 
 The standard gates are:
 
@@ -57,6 +57,8 @@ python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifes
   --replay build/material-replay --out build/preparation-acceptance.json
 python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifest.json \
   --replay build/material-replay --out build/preparation-acceptance.json --check
+python tools/compare_preparation.py --baseline build/preparation-v19/final \
+  --current build/preparation-refactor/final-verified --out build/preparation-comparison.json
 ```
 
 After original compilation, supported invalid UTF-8 bytes can pass a reversible
@@ -135,3 +137,9 @@ The output directory is managed as a unit: artifacts are staged and published th
 ```bash
 python tools/prepare_arxiv.py --out build/prepared/paper --recover
 ```
+
+For refactors, `compare_preparation.py` independently reopens both retained corpus
+replays and compares stable source/syntax/reference/mapping payloads, diagnostics,
+capabilities and outcomes. It excludes volatile native logs/PDF bytes and verified
+build/projection report hashes, and lists these limits in its output. It returns 2
+for differences and never recompiles or calls a model.

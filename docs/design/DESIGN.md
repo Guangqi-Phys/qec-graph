@@ -357,6 +357,9 @@ Entry ambiguity requires an explicit `--entry`; a package name is not a paper id
 
 | Module | Responsibility |
 | --- | --- |
+| `preparation/artifacts.py`, `reference_syntax.py` | Own shared hashes/JSON/path checks, source coordinate indexes, literal reference readers and source-bound bibliography records; no compilation or material validation |
+| `preparation/execution.py` | Own native command execution, derived-build engine/support wiring and PDF-text comparison; preserve the injectable compiler and sandbox |
+| `preparation/material.py` | Own one attempt's stage results, diagnostics, capability/status calculation and serialized handoff; no I/O or compilation |
 | `preparation/build.py` | Build the unchanged engineering copy; choose an allowlisted engine, preserve the same job's supplied BBL, run BibTeX/Biber when needed, collect actual FLS inputs/outputs and dependency hashes |
 | `preparation/entries.py` | Select a native build entry using a disposable recognition view; never rewrite the compiler input or resolve ambiguous roots by filename |
 | `preparation/projection.py` | After original compilation, spell consumed invalid UTF-8 bytes as TeX hexadecimal input, record reversible segments and original byte locators, and require matching native inputs/PDF text |
@@ -376,6 +379,22 @@ Entry ambiguity requires an explicit `--entry`; a package name is not a paper id
 | `preparation/pipeline.py` | Compile first, then convert, bind originals, validate and publish; failed/partial attempts retain a prior ready material |
 | `source/prepare.py` | Shared journaled publication and the retained static preparation compatibility API; no automatic fallback from the compile-first route |
 | `preparation/acceptance.py`, `tools/report_preparation.py` | Generate/check mechanical acceptance by reopening all frozen-corpus bundles and independently recalculating counts, source probes and the baseline comparison |
+
+Preparation imports form an acyclic graph, including deferred imports. Shared
+primitives do not import the handoff validator; only orchestration and acceptance
+import `contract`. `pipeline` wires the compiler, archive, conversion and publication;
+`Material` owns attempt state, including partially completed stages after failure.
+Native projection, guard observation and normalization use the same derived-build
+adapter with the original engine/support settings. The contract independently checks
+retained evidence and never invokes a native tool or a model. Architecture tests
+protect these boundaries.
+
+Source indexes and parsed projection evidence are cached only within one validation
+call. Each AUX file/encoding is indexed once; every label still checks its full
+locator and copied text. The next read verifies current bytes again. Projection
+origin decoration decodes each source once per traversal. These are behavior-preserving
+refactors: `compile-prepare-v19`, output schemas, stable material bytes and public CLI
+semantics remain unchanged; existing bundles and downstream snapshots are not rebuilt.
 
 The main representation is source-mapped TeX syntax JSON, with the original TeX
 available throughout. It does not depend on HTML/MathML or attempt to recover author
@@ -575,10 +594,22 @@ without recompiling. Use a pinned Git commit for the baseline report:
 ```sh
 python tools/report_preparation.py \
   --manifest test-sources/arxiv-sources/manifest.json --replay build/preparation-replay \
-  --cases validation/preparation_cases.json --baseline-revision ff69adf \
+  --cases validation/preparation_cases.json --baseline-revision d5b2576 \
   --out validation/preparation_acceptance.json
 # Repeat the same arguments with --check to verify the saved report.
 ```
+
+For architecture refactors, compare retained stable payloads as well as counts:
+
+```sh
+python tools/compare_preparation.py --baseline build/preparation-v19/final \
+  --current build/preparation-refactor/final-verified --out build/preparation-comparison.json
+```
+
+This reopens both sets of bundles and compares originals, syntax, references,
+source/normalization maps, coverage, diagnostics, capabilities and preparation outcomes.
+Native PDF/log bytes and verified build/projection report hashes are volatile and
+excluded; the scope is explicit in the report. Exit 2 reports differences.
 
 The generator rejects changed corpus bytes, missing/duplicate input rows, stale
 executable-source hashes, material/summary mismatches and false probe claims. The

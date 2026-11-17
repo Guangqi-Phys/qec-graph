@@ -1,7 +1,7 @@
 {
   "bibliography_complete": 46,
   "body_syntax_complete": 46,
-  "code_revision": "8cc1d99f45c554def10b4cf908f4f74e1c370b99",
+  "code_revision": "0497f0402cafcea29a7876af596694285d0125fd",
   "comparison": {
     "after": {
       "compiled": 46,
@@ -13,24 +13,20 @@
       "ready": 46,
       "source_fidelity": 46
     },
-    "baseline_code_revision": "ff69adf08a3015843a9aff6724e1309ca942769a",
-    "baseline_rule_version": "compile-prepare-v18",
+    "baseline_code_revision": "d5b25764fc25077531f0ca265ccf6bdb7d530364",
+    "baseline_rule_version": "compile-prepare-v19",
     "before": {
       "compiled": 46,
       "failed": 1,
       "normalized_recompiled": 46,
       "normalized_text_equal": 46,
       "papers": 48,
-      "partial": 4,
-      "ready": 43,
+      "partial": 1,
+      "ready": 46,
       "source_fidelity": 46
     },
-    "gate_change_note": "The user-approved v19 preparation gate accepts cross-reference ambiguity with every known candidate retained and independently checked. Unique binding remains partial; missing targets and all other prerequisites still block ready. Newly ready papers reflect this preparation policy change, not resolved author intent or improved scientific extraction quality.",
-    "newly_ready": [
-      "2012.04068v1",
-      "2102.06132v1",
-      "2308.07915v2"
-    ],
+    "gate_change_note": "The versioned preparation gate is unchanged. Counts alone do not establish behavior preservation; compare retained syntax, source mappings, references and failure outcomes. No scientific extraction quality is evaluated.",
+    "newly_ready": [],
     "ready_regressions": []
   },
   "counts": {
@@ -44,12 +40,12 @@
     "source_fidelity": 46
   },
   "criteria": "Native compilation, complete supported source syntax and bibliography bindings, exact source mapping, and normalized syntax/recompilation. Cross-references may remain ambiguous with all known candidates preserved; missing targets still block ready. Observed guards additionally require matching instrumented PDF text and validated native log evidence. Ready is not unique cross-reference resolution, portability or scientific correctness.",
-  "date": "2026-11-17T06:14:00.337086+00:00",
+  "date": "2026-11-17T07:45:05.449552+00:00",
   "generator": {
     "baseline": {
-      "commit": "ff69adf08a3015843a9aff6724e1309ca942769a",
+      "commit": "d5b25764fc25077531f0ca265ccf6bdb7d530364",
       "path": "validation/preparation_acceptance.json",
-      "sha256": "181b38b6145740d6832a5de056ddd081af83952b44d4dd422e053c32b16cc373"
+      "sha256": "f277e3112b8d47b042a871ccdd150f458d8011512e65c3c76ba66d13887e4bc2"
     },
     "command": "tools/report_preparation.py"
   },
@@ -60,8 +56,8 @@
     "tex_inputs": 47
   },
   "machine_evaluation": {
-    "evidence_path": "build/preparation-v19/machine-evaluation.json",
-    "evidence_sha256": "dbf5f8f4394188a4ed7c154cc20f3609f3c319e96b9fa1145dc8b2cbd9e08703",
+    "evidence_path": "build/preparation-refactor/machine-evaluation.json",
+    "evidence_sha256": "ab90cf4b96cd8364babca4ee5b0e9211871234d7e0a2a7ffcb678ff6ba30ff97",
     "result": {
       "accepted": false,
       "command": [
@@ -72,7 +68,7 @@
         "--release",
         "aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22",
         "--out",
-        "build/preparation-v19/machine-evaluation-raw.json"
+        "build/preparation-refactor/machine-evaluation-raw.json"
       ],
       "error": "Traceback (most recent call last):\n  File \"/Users/guangqi/Workspace/qec-graph/tools/reproduce_knowledge.py\", line 155, in <module>\n    raise SystemExit(main())\n                     ~~~~^^\n  File \"/Users/guangqi/Workspace/qec-graph/tools/reproduce_knowledge.py\", line 140, in main\n    session = WorkspaceSession(args.machine, args.release, profile='research', max_chars=1000000)\n  File \"/Users/guangqi/Workspace/qec-graph/qecgraph/workspace_query.py\", line 45, in __init__\n    self.state, self.release = self.registry.read(release_id, verify=False)\n                               ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/guangqi/Workspace/qec-graph/qecgraph/registry.py\", line 83, in read\n    raise ManagedDataError(state_path, 'Registry state schema mismatch')\nqecgraph.core.transactions.ManagedDataError: Registry state schema mismatch: /Users/guangqi/Workspace/qec-graph/build/preparation-v10/machine-copy/states/aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22.json\n",
       "exit": 1,
@@ -203,7 +199,7 @@
       "--manifest",
       "test-sources/arxiv-sources/manifest.json",
       "--out",
-      "build/preparation-v19/final",
+      "build/preparation-refactor/final-verified",
       "--entries",
       "validation/preparation_entries.json",
       "--support-dir",
@@ -216,7 +212,7 @@
       "2"
     ],
     "cases_sha256": "f0b3a3b8cf7a4f8641bd48db14cc1255a4637cdd5f111e604cb7685a6363fbbd",
-    "code_revision": "8cc1d99f45c554def10b4cf908f4f74e1c370b99",
+    "code_revision": "0497f0402cafcea29a7876af596694285d0125fd",
     "entries_sha256": "8e180d1330e36ebcd69f4d447efd43d789caa22ee11b1591c63f015eaf920a74",
     "execution_sources": {
       "qecgraph/__init__.py": "5164f48c394fbae38de8081269c4e4e15bd74ca8bc28368280c5a6d7c27f3918",
@@ -279,31 +275,35 @@
       "qecgraph/mcp/server.py": "f360de382149ba26bfe889d9a3c152f07999acb952108f270d9caedcbe27a6d0",
       "qecgraph/mcp_server.py": "60c1815f39ca5185ce5dd26cd90b010745a6c594a0dee07bdbb234d0acb00b2b",
       "qecgraph/preparation/__init__.py": "5ada7f26fcee67decbc8e8f6d08709bef321fa59f3255b5835291f5e9b3a5e7d",
-      "qecgraph/preparation/acceptance.py": "96a6ed174b7a8ff6cc38fa0af628a32b7ee215e60f83af1a6e36140ddaf76f5b",
+      "qecgraph/preparation/acceptance.py": "e5676c4b1a2ce1273519e29c386ad378cdaaac4c66844d83a2b780d61bb3df30",
+      "qecgraph/preparation/artifacts.py": "4de60b151f1f920e7cc744bb1a287b4f9a3cb7162d51778ef15702dd7cbe3dd1",
       "qecgraph/preparation/branches.py": "af755328992d9ceeb1dc67c975f1a45e30a70a92440135e8931b3817a2023384",
-      "qecgraph/preparation/build.py": "bf70cd224a48b2be1e49c64f4cc70ed5d34f4cabbb2781329d4e875ee63a7c1a",
-      "qecgraph/preparation/build_view.py": "df4b3d8b734545aae6701d62522068a9c28d9a0d1aecd5eb08b8d1f69937020d",
-      "qecgraph/preparation/capabilities.py": "b36ddd4ccbbabeff4a50719bb89507e697e1fa2f620d9916a398bb17a4fb03d8",
-      "qecgraph/preparation/citations.py": "1b48325daa5a30b036e1500f146ab211f58c3c254fc5c06528b40f502a039a03",
-      "qecgraph/preparation/compatibility.py": "dad4cf2986294e91f02cc3671cb3d3a4f4d607d547b7947c47b24753fb768faf",
+      "qecgraph/preparation/build.py": "b62d7f19309be8735c6c147ee9d8e30ac56883a2aac2f1d7711be90b423b4f76",
+      "qecgraph/preparation/build_view.py": "04ee278785999b945ca9b49d6534935e5b26738ba131d146e66137b5f9c635ae",
+      "qecgraph/preparation/capabilities.py": "93e4901ef72af8292d9b909facec1734d2ccc25e090a951309f67f02c63d98a4",
+      "qecgraph/preparation/citations.py": "e9ae220bc70ea57f8c4a000646684f0bdad0016d433968c9cdf9677091f8809d",
+      "qecgraph/preparation/compatibility.py": "aceb884cac910bcc115125f12db0d51f0c532cec436dedbf28b71e47e0c690ce",
       "qecgraph/preparation/conditions.py": "11fe47b8a9edd6773bf85db49cf3e4ea440aa21ff114076ed6ea664260e4e4b9",
-      "qecgraph/preparation/contract.py": "14364bf8b6f468e5db1c10af3cb10ad528000a341a1c3d87f914a25bb89071ee",
-      "qecgraph/preparation/convert.py": "936b1cadda223d7b363f572ee20f5eff2ce545210d008516438f9382c6322970",
-      "qecgraph/preparation/crossrefs.py": "0098bea159cd530b3a5b44accfd1ca23a7b41c98ee2a52d07bee15fdd039c2e6",
+      "qecgraph/preparation/contract.py": "678fc9b8c1393168adcdec1fb70cc984929865a46869b5e7784d16cba169df6d",
+      "qecgraph/preparation/convert.py": "85fe0ee7c9bdcbb748412abf4855c0fa101fe5bb5781a1604ec3a48709322930",
+      "qecgraph/preparation/crossrefs.py": "56449921efd42b50bff5418f8345cf51c096c0c437e4a23964dfcc7cb1b8e82f",
       "qecgraph/preparation/entries.py": "226a4541b9535961c27acfef133b40916e659252ae33638287a91dad73ca5687",
-      "qecgraph/preparation/environments.py": "a2091f74ccde24dd663fe5aaefe3f719dfd3b695f21f0e2c75eef007ef13139b",
-      "qecgraph/preparation/guard_syntax.py": "151aa53577d73e7336d5a90f61c09e66a230d8ea3a3495908422114b3538ff91",
-      "qecgraph/preparation/harvmac.py": "1a001038cfd57c86e4794e85e0a3153ced5fbd6eedc1120cf62db503757cd6d2",
-      "qecgraph/preparation/harvmac_refs.py": "31969cae6c2679c60729c2f477c77a12f9a47a7d1274101f512c76ca2cd57152",
-      "qecgraph/preparation/normalized.py": "a61c99b12aa721be249e79cbb463de4166bc217fa78ec0723f82b56f18883530",
+      "qecgraph/preparation/environments.py": "cdb18b7b9ac69e8b83c4a7bffa8061ba71311a3838845239bbed70702485ce51",
+      "qecgraph/preparation/execution.py": "390445fbe5e041c4ce323a64cd4f86f38130e216ce6f0f567a191496aec012a3",
+      "qecgraph/preparation/guard_syntax.py": "79d9f59f513ccb6ba698dac4bc344a73f55af5011c6b20333260990fa7a364e3",
+      "qecgraph/preparation/harvmac.py": "ced44c13bb0a22e8bd7d492be5642b981e49d123e72e99200fd3ffb6a64f0cc7",
+      "qecgraph/preparation/harvmac_refs.py": "dbd50409992190ab444458dcde41990c162479504beda9a5c234d738274fa6b1",
+      "qecgraph/preparation/material.py": "e9dd3f970642a42e7c24ee378a88199b879301ff1e484d91d801355a88087588",
+      "qecgraph/preparation/normalized.py": "9186a17140be40ff231e4225ce6471727fc106d6734e2e6b0f2843f09c86820e",
       "qecgraph/preparation/options.py": "b76bcc9d7c0c79c03106f7346f48e85a8b38683b154a9c97cfc0d9ea02ad5f6f",
-      "qecgraph/preparation/pipeline.py": "98e0ce7d07da05fbb89ac889d10830f98f90d0036be8344f82e41788a0fdd1b7",
-      "qecgraph/preparation/projection.py": "0b8421ac37c9c784f3ec51ecc3386065729c1110f89a115a831621a5bbb5c8a2",
-      "qecgraph/preparation/references.py": "e4809fe7f6ce8bace883b0786a9730a82600072476e64bce68368910381f05b0",
-      "qecgraph/preparation/roundtrip.py": "8650e1ce0712a4685c2b3b2693935d2064caf5f7b139f13ca4a0e444e684c16a",
+      "qecgraph/preparation/pipeline.py": "2dfc54b9a6c5d09eb0d0cff34d9d8bf0ec0ae1978a099135e1ea4c2c76d82c0e",
+      "qecgraph/preparation/projection.py": "a8871386fc0df06c623d1d141815a6988d3be15598f03ab0d8f3894d67019b0b",
+      "qecgraph/preparation/reference_syntax.py": "95006ddad9786365c22fd20bef05a37732372358a784779cb1ceacfa63dc1179",
+      "qecgraph/preparation/references.py": "068ef3876806bddc477e10f77b3477849d97079628126cbfcfc71a94eb928c8e",
+      "qecgraph/preparation/roundtrip.py": "e9cfae94b0e96dc3c221822fc415e85a26c62250f502a2a9f70798d17eff0d41",
       "qecgraph/preparation/sandbox.py": "04795d4c445041f13ae63e26fb5d651fec169c06ea940fd6ce710c65934b14e3",
-      "qecgraph/preparation/scopes.py": "d1a74a089fc1a4252fc247a115373e84202967d8d4d08aab886be5763dc8475b",
-      "qecgraph/preparation/view_contract.py": "50a61078d07d921575bb4f7cfbdba3a7899d2999d49250a7eefcc11daee980bc",
+      "qecgraph/preparation/scopes.py": "12ab7874b6ef4589c900d25fdcf83f6155a75eb01983966bc39045a27c52b4b4",
+      "qecgraph/preparation/view_contract.py": "4f58964352f2d8971bf5a2a0b1d927666367d277b98f7e9184ecfe0d77c55483",
       "qecgraph/query.py": "b3acbc498d2333a39823611262e9091775321bb5aeda5026f667dc160fea0be2",
       "qecgraph/registry.py": "8ae7da35a4dc1633b6e83b55d975a3731454862f91e6efcd2de658adf8c0d36f",
       "qecgraph/render/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -345,10 +345,10 @@
     },
     "platform": "macOS-27.2.1-arm64-arm-64bit-Mach-O",
     "python": "3.15.2",
-    "results_sha256": "57b5b70f725fcb2050fd31f56c2474ce2868aea1086614022f4676201895113e",
-    "root": "build/preparation-v19/final",
+    "results_sha256": "230a72f4de2a86ea685d7c0a84cf874fdc0534eb41234c0ce9c7cd25b80f8c2a",
+    "root": "build/preparation-refactor/final-verified",
     "rule_version": "compile-prepare-v19",
-    "started_at": "2026-11-17T06:14:00.337086+00:00"
+    "started_at": "2026-11-17T07:45:05.449552+00:00"
   },
   "rows": [
     {

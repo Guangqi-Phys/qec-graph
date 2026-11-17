@@ -16,6 +16,7 @@ results so stale reports cannot be mistaken for a claim about the current code.
 | Unit, integration and contract tests | `python -m unittest discover -s tests` |
 | Compile-first preparation, zero AI | `python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/preparation-replay --entries validation/preparation_entries.json --cases validation/preparation_cases.json` |
 | Recalculate/check preparation acceptance | `python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifest.json --replay build/preparation-replay --cases validation/preparation_cases.json --out build/preparation-acceptance.json --check` |
+| Stable preparation material preservation | `python tools/compare_preparation.py --baseline /path/to/baseline-replay --current /path/to/current-replay --out build/preparation-comparison.json` |
 | End-to-end extraction and query reproduction | `python tools/reproduce.py --out build/reproduce` |
 | Direct reading / search / task context evidence | `python tools/reproduce_knowledge.py --out build/knowledge-synthetic.json --include-payloads` |
 | Registered real-source reading (read-only) | `python tools/reproduce_knowledge.py --machine /path/to/machine --out build/knowledge-real.json --include-payloads` |
@@ -35,15 +36,17 @@ counts and source-bound syntax probes recalculated, and corpus/code snapshots
 checked. Use `report_preparation.py` without `--check` to create a report first;
 repeat the same arguments with `--check` to detect drift without compilation or
 model calls. The committed report's `replay.argv` records the actual support paths,
-entry hints and probe configuration; the comparison pins the v18 baseline at
-`ff69adf`. Native tool outcomes remain in the bundles, not copied test-suite claims.
+entry hints and probe configuration; the comparison pins the v19 baseline at
+`d5b2576`. Native tool outcomes remain in the bundles, not copied test-suite claims.
 
-This corpus contains 47 TeX inputs and one PDF negative case. v19 has 46 ready,
-one TeX partial and one expected PDF failure. Three newly ready papers preserve
-reference ambiguity; unique reference binding counts do not increase. The report also lists
+This corpus contains 47 TeX inputs and one PDF negative case. The architecture
+refactor retains the v19 gate and 46 ready / 1 partial outcomes; stable material
+payload comparison complements counts. Three papers retain reference ambiguity,
+and unique binding counts are unchanged. Local read benchmarks cover four retained
+bundles, with three measurements each as documented in review 07. The report also lists
 body completeness, verified projections and native dialects. Coverage counts and
 remaining failures are mechanical preparation evidence, not scientific answer gold
-or mathematical validation. [Review 06](../docs/reviews/review-2026-11-17-compile-prepare-testing/06-preserved-reference-ambiguity-acceptance.zh-CN.md)
+or mathematical validation. [Review 07](../docs/reviews/review-2026-11-17-compile-prepare-testing/07-preparation-architecture-and-behavior-preservation.zh-CN.md)
 records the comparable before/after numbers, executed checks, dependency provenance
 and outstanding work. The case-only asset match remains non-portable to a
 case-sensitive filesystem. The pinned machine-copy evaluation remains unaccepted

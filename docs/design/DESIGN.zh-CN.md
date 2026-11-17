@@ -382,6 +382,9 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 
 | 模块 | 职责 |
 | --- | --- |
+| `preparation/artifacts.py`、`reference_syntax.py` | 统一哈希/JSON/路径检查、来源坐标索引、字面引用读取和来源绑定的书目记录；不编译、不验收材料 |
+| `preparation/execution.py` | 统一原生命令、派生构建的引擎/支持配置和 PDF 文字比较；保留可注入编译器与隔离 |
+| `preparation/material.py` | 管理一次准备的阶段结果、诊断、能力/完成状态和序列化交付；不做 I/O 或编译 |
 | `preparation/build.py` | 编译未改写的工程副本；限定引擎、保留同一 job 的已有 BBL、必要时执行 BibTeX/Biber，收集 FLS 实际输入/输出和依赖哈希 |
 | `preparation/entries.py` | 用临时识别视图选择原生构建入口；不改编译输入，不按文件名猜歧义入口 |
 | `preparation/projection.py` | 原编译后转写实际消费的非 UTF-8 字节，记录可逆段和原始字节定位，要求相同原生输入/PDF 文字 |
@@ -401,6 +404,17 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 | `preparation/pipeline.py` | 先编译、再转换，绑定原始材料、验收并发布；失败/partial 尝试保留已有 ready 材料 |
 | `source/prepare.py` | 共用日志式原子发布与保留的静态准备兼容 API；编译路线不会自动回退到它 |
 | `preparation/acceptance.py`、`tools/report_preparation.py` | 重新打开完整固定语料的材料包，重算计数、来源 probe 和基线差异，生成/检查机械验收报告 |
+
+准备包的导入形成无环图，包含延迟导入。共用基础工具不依赖材料验收器；只有编排与
+验收报告模块导入 `contract`。`pipeline` 连接编译器、归档、转换与发布，`Material`
+管理单次尝试状态，并在失败后保留已完成阶段。字节投影、条件观测和规范化共用派生
+构建适配器，传递原引擎和支持文件。contract 独立核验保留证据，不执行原生工具或
+模型。架构测试保护这些边界。
+
+来源索引和解析过的投影证据只在一次验收调用内缓存。同一 AUX 文件/编码只建一次
+索引，但每条标签仍校验完整定位和复制文字；下一次读取重新验证当前字节。投影来源
+修饰每次遍历对同一来源只解码一次。这些属于行为保持的重构：`compile-prepare-v19`、
+输出 schema、稳定材料字节和公开 CLI 语义不变，不重建已有材料或后续快照。
 
 主格式为带来源映射的 TeX 语法 JSON，始终可以访问原始 TeX。不依赖 HTML/MathML，也不
 试图从 PDF 恢复全部作者结构。TeX 编译提供运行时引用观测；**尚未实现**任意宏展开成
@@ -545,7 +559,7 @@ python tools/reproduce_preparation.py \
 ```sh
 python tools/report_preparation.py \
   --manifest test-sources/arxiv-sources/manifest.json --replay build/preparation-replay \
-  --cases validation/preparation_cases.json --baseline-revision ff69adf \
+  --cases validation/preparation_cases.json --baseline-revision d5b2576 \
   --out validation/preparation_acceptance.json
 # Repeat the same arguments with --check to verify the saved report.
 ```
@@ -553,6 +567,17 @@ python tools/report_preparation.py \
 生成器拒绝语料字节变化、遗漏/重复输入、过时执行代码哈希、材料与摘要不符、伪造 probe
 结果。报告记录精确回放参数、代码/配置哈希、剩余 partial 和基线来源。生成器本身不运行
 原生工具、不推断科学金标，也不声称独立测试、静态检查或 machine 评测已经通过。
+
+架构重构还应比较保留的稳定产物，不能只比较计数：
+
+```sh
+python tools/compare_preparation.py --baseline build/preparation-v19/final \
+  --current build/preparation-refactor/final-verified --out build/preparation-comparison.json
+```
+
+该工具重新打开两组材料，比较原始来源、语法、引用、来源/规范化映射、覆盖、诊断、
+能力和准备结果。原生 PDF/日志字节及已验证构建/投影报告哈希具有易变性，不参与此
+对照；报告明确列出范围。退出 2 表示存在差异。
 
 可选 `--engine` 和可重复的 `--support-dir` 明示引擎/依赖选择；支持文件复制到隔离副本并记录哈希。
 作者包内文件优先，其次为显式支持文件，再次为系统文件；程序自己的

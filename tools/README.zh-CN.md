@@ -11,7 +11,7 @@
 | 发布 | `check_distribution.py`、`qec-graph.spec` | 分发包元数据检查和 PyInstaller spec |
 | 性能 | `bench.py` | 生成增量负载和固定来源基准 |
 | 知识证据 | `reproduce_knowledge.py` | 对比完整阅读、原文搜索和任务上下文；不执行 LLM |
-| 离线准备 | `prepare_compiled.py`、`reproduce_preparation.py`、`report_preparation.py`、`prepare_arxiv.py` | 先编译的来源材料与固定语料回放；保留静态兼容工具 |
+| 离线准备 | `prepare_compiled.py`、`reproduce_preparation.py`、`report_preparation.py`、`compare_preparation.py`、`prepare_arxiv.py` | 先编译的来源材料与固定语料回放；保留静态兼容工具 |
 
 标准门禁：
 
@@ -51,6 +51,8 @@ python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifes
   --replay build/material-replay --out build/preparation-acceptance.json
 python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifest.json \
   --replay build/material-replay --out build/preparation-acceptance.json --check
+python tools/compare_preparation.py --baseline build/preparation-v19/final \
+  --current build/preparation-refactor/final-verified --out build/preparation-comparison.json
 ```
 
 `--engine` 选择本地引擎；可重复 `--support-dir` 指定并记录支持文件哈希。不下载依赖、
@@ -122,3 +124,7 @@ provider 配置也可设 `reasoning_effort`。默认仍由 provider 决定，不
 ```bash
 python tools/prepare_arxiv.py --out build/prepared/paper --recover
 ```
+
+重构时用 `compare_preparation.py` 独立重新打开两组保留回放，比较稳定的来源、语法、
+引用、映射、诊断、能力和结果。易变的原生日志/PDF 字节和已验证构建/投影报告哈希不
+参与对照，输出明确列出这些限制；存在差异时退出 2，不重新编译或调用模型。
