@@ -356,8 +356,11 @@ Entry ambiguity requires an explicit `--entry`; a package name is not a paper id
 | Module | Responsibility |
 | --- | --- |
 | `preparation/build.py` | Build the unchanged engineering copy; choose an allowlisted engine, preserve the same job's supplied BBL, run BibTeX/Biber when needed, collect actual FLS inputs/outputs and dependency hashes |
+| `preparation/compatibility.py` | Retry only an exact known class hash and native failure with a recorded build preamble; retain the failed log and preserve source bytes/job name |
 | `preparation/sandbox.py` | Credential-free child environment, bounded tools/process groups, restricted files and network; macOS sandbox-exec or Linux bubblewrap; no unsandboxed fallback |
 | `preparation/references.py` | Classic AUX and Biblatex BCF/BBL bindings; retain literal BIB entries and BBL variants, refsections, sorting contexts, display labels and exact provenance; duplicate/missing keys remain explicit |
+| `preparation/scopes.py`, `citations.py`, `crossrefs.py` | Keep document/bibliography namespaces distinct; locate literal calls, AUX-confirmed wrappers and exact generated-note payloads; imported AUX targets remain metadata |
+| `preparation/conditions.py`, `branches.py` | Record guard categories and narrow lexical inactive ranges after compilation; never choose unknown prose branches |
 | `preparation/convert.py`, `source/syntax.py` | Preserve author syntax, paragraph reading ranges, heading hierarchy, math TeX, environments, footnotes, table cells/spans, asset links and textual cross-references; keep declaration bodies opaque |
 | `preparation/normalized.py` | Export a derived single-entry LaTeX view; normalize supported math delimiters, expand runtime-bound literal citation wrappers and inline consumed classic BBL only for supported standard classes; verify every copy/edit mapping |
 | `preparation/roundtrip.py` | Recompile the derived engineering copy using the original engine/support files; compare per-page non-whitespace PDF text when pdftotext is available; retain both build outcomes |
@@ -376,6 +379,42 @@ Conditional checks use the shared declaration-aware scanner: math commands such 
 `\iff`, declared `\ifff` and conditionals inside opaque macro definitions do not
 count as active body branches.
 
+The primary AUX scope follows the root's actual `\@input` closure. Declared
+`externaldocument` AUX files supply separately named imported-label metadata; their
+citations are not merged into the primary paper. `bibunits` and `multibib` keep
+separate key namespaces. ACM BBL argument comments, RevTeX `onlinecite`/`citenum`
+and runtime-confirmed merged-key prefixes are supported. Generated `NoteN` entries
+bind only to a unique matching literal footnote payload, with TeX protection/spacing
+normalization recorded by the adapter. Unlocated or unbound calls remain partial.
+A literal label wrapper binds its actual argument to an emitted AUX label, retaining
+both its call and definition; the AUX is not a substitute for missing source prose.
+
+The preparation grammar learns argument counts from literal top-level declarations
+and document-level declaration aliases, at the declaration's source position.
+Later renewals cannot change earlier calls. Declaration replacement text remains
+opaque; the braket package has an explicit one-argument grammar adapter. This does
+not execute user macros or infer their mathematical meaning.
+
+`content.json.conditional_views` retains the guard range, category and whether a
+branch was selected. Preamble guards remain opaque syntax with observations;
+unknown body guards remain blockers. The exact captions-off/newpage guard and
+bibliography-local DOI/name helper declarations are retained as formatting setup,
+without choosing a branch. A narrow literal-false guard (`\if 0` followed by
+whitespace and a known unequal literal token) has a length-preserving parse view;
+`\if00` and expanded operands are not generalized. The unexecuted tail after a
+recognized `\end{document}` is likewise preserved. `inactive_ranges` address the
+original `entry.tex`; inactive nodes/reading units are explicitly marked and must
+not become body prose. The raw TeX and normalized view retain these bytes, including
+malformed syntax that TeX never executes. Consumers must honor the prepared syntax
+and inactive metadata rather than treat every raw-source token as active content.
+
+Native compatibility is deliberately narrow: the pinned Quantumarticle 4.2 class
+hash may retry its observed undefined `\@afterenddocumenthook` failure with the old
+empty default hook in the build command. `build.json` and `normalization.json`
+record the profile, hash, preamble and both build outcomes. The class and paper are
+not edited. Other failures do not trigger generic source repair or a silent kernel
+rollback; they need a verified compatible dependency set.
+
 `normalized.tex` is a bounded source conversion assisted by compilation, not PDF
 inversion or a universal replacement of author classes. It preserves packages,
 definitions, unknown macros, comments, tables and assets. Dollar math delimiters
@@ -384,7 +423,9 @@ class-specific expansion behavior. A uniquely declared preamble `\newcommand`
 citation wrapper is expanded only with a resolved runtime key, retaining its
 complete replacement body. Classic BBL inlining is restricted to `article`,
 `report` and `book`; deferred RevTeX bibliography/notes and Biblatex remain external
-with their compiled payloads retained. Any remaining include/dependency limitation
+with their compiled payloads retained. Multibib calls are also retained. If source
+syntax is incomplete, the normalized view is copied without format rewrites.
+Any remaining include/dependency limitation
 stays explicit. There is no AI rewriting, scientific classification or theorem inference.
 
 | Artifact | Retained data |
@@ -397,11 +438,12 @@ stays explicit. There is no AI rewriting, scientific classification or theorem i
 | `references.json` | `qecgraph.prepared_references/1`: emitted keys, scoped bindings, original BIB and consumed BBL text, contexts, identifiers present literally, conflicts and missing data |
 | `source-map.json` | Assembly-to-original mapping when conversion succeeds; nodes separately retain exact original spans and their hashes |
 | `coverage.json`, `diagnostics.json` | Conversion limits, inactive/uncompiled file inventory, opaque content, missing/ambiguous references and stage failures |
-| `manifest.json` | `qecgraph.prepare/3`, `compile-prepare-v4`, source/package hashes, artifact hashes, capabilities, independent stages and `ready`/`partial` state |
+| `manifest.json` | `qecgraph.prepare/3`, `compile-prepare-v9`, source/package hashes, artifact hashes, capabilities, independent stages and `ready`/`partial` state |
 
 A ready handoff requires successful native compilation, complete supported syntax
 conversion, resolved applicable citations/cross-references, and independently verified
-source fidelity. The normalized view must also pass syntax and native recompilation;
+source fidelity, including unambiguous asset links and no blocking diagnostics.
+The normalized view must also pass syntax and native recompilation;
 an observed PDF-text mismatch blocks ready. A missing pdftotext is explicitly recorded
 as an unperformed optional comparison, never as text equality. PDF text equality
 does not establish pixel or mathematical equivalence. Exit 0 means ready; exit 2 means explicit partial material; exit 1 means
@@ -414,7 +456,7 @@ A successful compiler or a JSON validator does not establish scientific correctn
 `content.json` ranges continue to address `entry.tex`; they must not be applied to
 `normalized.tex`. `read_material` exposes both texts, the normalization report and
 the verified mapping. Older `qecgraph.prepare/3` v2/v3 bundles remain readable;
-new v4 ready materials require the additional normalized artifacts and checks.
+v4 and later ready materials require the additional normalized artifacts and checks.
 
 ```sh
 python tools/prepare_compiled.py /path/to/source-tree \

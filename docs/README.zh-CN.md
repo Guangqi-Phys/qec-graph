@@ -79,6 +79,6 @@ flowchart TD
 评审记录和维护者决策只用中文。项目实现和生成的知识库内容使用英文。原始来源和逐字
 引文保留原语言。
 
-- [当前编译优先准备验收](../validation/preparation_acceptance.json)
+- [当前编译优先准备验收及剩余 partial 明细](../validation/preparation_acceptance.json)
 
 当前文档树没有重定向页或归档页。被替代的内容只保留在 Git history 中。

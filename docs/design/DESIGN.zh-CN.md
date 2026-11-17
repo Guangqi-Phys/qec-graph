@@ -380,8 +380,11 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 | 模块 | 职责 |
 | --- | --- |
 | `preparation/build.py` | 编译未改写的工程副本；限定引擎、保留同一 job 的已有 BBL、必要时执行 BibTeX/Biber，收集 FLS 实际输入/输出和依赖哈希 |
+| `preparation/compatibility.py` | 仅对确切已知文档类哈希和原生失败，用有记录的构建前导重试；保留首次失败日志、原始源码字节与 job 名称 |
 | `preparation/sandbox.py` | 子进程不继承凭据；限制工具、进程组、目录和网络；macOS 使用 sandbox-exec，Linux 使用 bubblewrap；没有无隔离回退 |
 | `preparation/references.py` | 适配经典 AUX 与 Biblatex BCF/BBL；保留字面 BIB、BBL 变体、refsection、排序上下文、显示标签及来源；重复或缺失 key 明示 |
+| `preparation/scopes.py`、`citations.py`、`crossrefs.py` | 区分文档/书目命名空间；定位字面调用、AUX 确认的包装宏与精确脚注内容；外部 AUX 目标仅为元数据 |
+| `preparation/conditions.py`、`branches.py` | 编译后记录条件类别与有限的字面非活动范围；不猜测未知正文分支 |
 | `preparation/convert.py`、`source/syntax.py` | 保留作者语法、段落阅读范围、标题层级、数学 TeX、环境、脚注、表格单元格/合并、资产关联及文本交叉引用；宏定义体不当正文解释 |
 | `preparation/normalized.py` | 导出派生的单入口 LaTeX；统一支持的数学定界符，展开运行时 key 已确认的字面引用宏，仅对支持的标准文档类内联实际使用的经典 BBL；校验每段复制/改写映射 |
 | `preparation/roundtrip.py` | 用原引擎/支持文件重新编译派生工程；pdftotext 可用时比较逐页去空白文字，保留两次构建的结果 |
@@ -397,11 +400,37 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 条件检查使用共用的声明感知扫描器：数学命令 `\iff`、已声明的 `\ifff`，以及不透明宏定义体
 内部的条件命令，不会被当成正文活动分支。
 
+主 AUX 作用域沿入口实际的 `\@input` 闭包确定。`externaldocument` 的 AUX 只提供独立
+命名的外部标签元数据，其文献引用不混入主文。`bibunits`、`multibib` 分别保留 key 命名空间。
+支持 ACM BBL 参数前的注释、RevTeX `onlinecite`/`citenum` 及运行时确认的合并 key 前缀。
+生成的 `NoteN` 只与内容唯一匹配的字面脚注绑定，适配器处理 TeX protection/空白写法；
+未定位或未绑定的调用仍为 partial。字面标签包装宏的实参必须得到 AUX 确认，并同时保留
+调用与定义位置；不能用 AUX 记录冒充缺失的原文。
+
+准备语法从明确的顶层声明、正文顶层的声明别名中读取参数个数，并绑定声明发生位置；
+后面的重定义不会改变前面的调用。替换体仍是不透明的原文。braket 包有明确的一参数
+语法适配。这些操作不执行任意宏，也不推断数学含义。
+
+`content.json.conditional_views` 保存条件范围、类别和是否选择了分支。导言条件保留为
+不透明语法及观测；未知正文条件仍阻止 ready。确切的 captions-off/newpage 条件、书目内部
+的 DOI/姓名格式辅助声明按排版结构保留，不选择分支。对有限的字面假条件（`\if 0` 后有
+空白及已知不等的字面 token），仅建立保持字符位置的解析视图；不推广到 `\if00` 或动态
+操作数。识别到 `\end{document}` 后，TeX 不执行的尾部也原样保留。`inactive_ranges`
+指向原始 `entry.tex`，对应节点/阅读单元明确标记非活动，不能作为正文。原始及统一 TeX
+仍保留这些字节，包括 TeX 不执行的错误语法。消费者须遵守准备语法及非活动范围，不能
+把所有源码 token 都当成活动内容。
+
+编译兼容适配只覆盖确切的已知情形：固定哈希的 Quantumarticle 4.2 出现未定义的
+`\@afterenddocumenthook` 时，在构建命令中恢复旧的默认空钩子后重试。`build.json` 与
+`normalization.json` 保存适配标识、哈希、前导及两次构建结果；不修改文档类或论文源码。
+其他失败不触发通用源码修补或静默回退内核，仍需验证匹配的依赖组合。
+
 `normalized.tex` 是编译辅助的有限源码转换，不是 PDF 逆向或全面替换作者文档类。
 包、定义、未知宏、注释、表格与资产均保留。仅在宏/分组参数之外统一美元数学定界符；
 参数中的写法可能影响特定宏的展开行为。只有导言区唯一 `\newcommand` 声明、且运行时
 key 已解析的引用包装宏才展开，并保留完整替换体。经典 BBL 内联仅支持 `article`、`report`、
 `book`；RevTeX 的延迟文献/脚注和 Biblatex 保留外部调用及实际编译内容。
+Multibib 调用同样保留。源码语法不完整时，统一视图只复制而不做格式改写。
 剩余 include/依赖限制明示。不进行 AI 重写、科学分类或定理推断。
 
 | 产物 | 保留的数据 |
@@ -414,9 +443,9 @@ key 已解析的引用包装宏才展开，并保留完整替换体。经典 BBL
 | `references.json` | `qecgraph.prepared_references/1`：编译 key、作用域绑定、原始 BIB 与实际使用的 BBL 文本、上下文、字面存在的标识符、冲突和缺项 |
 | `source-map.json` | 转换成功时的组装到原文映射；节点另外保留精确原始范围和哈希 |
 | `coverage.json`、`diagnostics.json` | 转换限制、非活动/未参与阅读的文件清单、opaque 内容、缺失/歧义引用和各阶段失败 |
-| `manifest.json` | `qecgraph.prepare/3`、`compile-prepare-v4`、来源/包哈希、产物哈希、能力、独立阶段和 ready/partial 状态 |
+| `manifest.json` | `qecgraph.prepare/3`、`compile-prepare-v9`、来源/包哈希、产物哈希、能力、独立阶段和 ready/partial 状态 |
 
-ready 要求原生编译成功、支持的语法转换完整、适用引用/交叉引用可解析，并独立验证来源保真。
+ready 要求原生编译成功、支持的语法转换完整、适用引用/交叉引用可解析，并独立验证来源保真；资产调用须无歧义，且没有阻断性诊断。
 统一视图还须通过语法检查和原生重编译；观察到 PDF 文字不一致会阻止 ready。
 缺少 pdftotext 时明确记录为未执行的可选比较，不标记为文字一致。
 PDF 文字一致不能证明像素一致或数学等价。
@@ -427,7 +456,7 @@ PDF 文字一致不能证明像素一致或数学等价。
 编译成功或 JSON 校验通过不证明科学正确性。
 `content.json` 的范围仍指向 `entry.tex`，不能套到 `normalized.tex` 上。
 `read_material` 返回两种文本、统一格式报告及已验证映射。旧 `qecgraph.prepare/3` v2/v3
-材料仍可读取；新 v4 ready 材料必须包含额外的统一格式产物并通过检查。
+材料仍可读取；v4 及之后的 ready 材料必须包含额外的统一格式产物并通过检查。
 
 ```sh
 python tools/prepare_compiled.py /path/to/source-tree \

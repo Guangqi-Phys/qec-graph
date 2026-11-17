@@ -33,7 +33,9 @@ python tools/prepare_compiled.py --out build/prepared/paper --check
 This requires local TeX tools and produces a verified, source-mapped material
 bundle with `normalized.tex`, independently checked source mappings, derived
 recompilation evidence and explicit `ready`/`partial` status. Author classes and
-remaining dependencies are retained. It makes no model requests or
+remaining dependencies are retained. Bibliography/document scopes, source macro
+argument shapes and supported inactive-source ranges are explicit in the handoff.
+It makes no model requests or
 scientific records. See [preparation boundaries and artifacts](docs/design/DESIGN.md#54-offline-source-preparation).
 The workspace commands below retain their existing import/extraction behavior.
 

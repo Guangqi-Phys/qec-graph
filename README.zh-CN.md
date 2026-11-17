@@ -29,6 +29,7 @@ python tools/prepare_compiled.py --out build/prepared/paper --check
 
 需要本地 TeX 工具，产出含 `normalized.tex`、独立来源映射校验和派生文件重编译证据的材料包，
 并明确标注 `ready`/`partial`；作者文档类及剩余依赖仍保留。
+材料包明确记录文档/书目作用域、源码宏参数语法及支持的非活动范围。
 不调用模型、不生成科研记录。参见[准备层边界与产物](docs/design/DESIGN.zh-CN.md#54-离线来源准备)。
 下方工作区命令仍采用现有的导入与抽取行为。
 
