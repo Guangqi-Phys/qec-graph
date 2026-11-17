@@ -2,8 +2,8 @@
 
 import re
 
-from .contract import SourceIndex
-from .references import group, commands
+from .artifacts import SourceIndex
+from .reference_syntax import group, commands
 from ..source.assembly import entry_source_spans
 from ..source.syntax import CITATION_COMMANDS
 

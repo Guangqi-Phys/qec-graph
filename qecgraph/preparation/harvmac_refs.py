@@ -5,7 +5,7 @@ from pathlib import Path
 import re
 
 from .options import mask_comments
-from .references import group, _record
+from .reference_syntax import group, _record
 from ..source.dialects import _syntax
 
 

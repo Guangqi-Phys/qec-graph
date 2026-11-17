@@ -8,7 +8,8 @@ from tempfile import TemporaryDirectory
 
 from . import PREPARATION_VERSION
 from .build import compile_tree
-from .contract import SCHEMA, digest, json_bytes, validate_material
+from .artifacts import SCHEMA, digest, json_bytes
+from .contract import validate_material
 from .convert import convert_source
 from .references import adapt_references
 from .build_view import observe_branches
@@ -23,7 +24,7 @@ from .projection import prepare_projection, decorate_origins
 from .harvmac import identify
 from .entries import select_build_entry
 from ..source.package import read_bounded, Limits
-from .crossrefs import CROSS_REFERENCE_POLICY
+from .artifacts import CROSS_REFERENCE_POLICY
 
 _WARNING_CODES = frozenset(
     {

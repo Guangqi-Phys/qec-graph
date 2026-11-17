@@ -7,7 +7,7 @@ import re
 from types import SimpleNamespace
 
 from .build_view import SCHEMA, _candidates, _instrument, _bibliography, _observations
-from .contract import digest, json_bytes
+from .artifacts import digest, json_bytes
 from .guard_syntax import scan_views, project_view
 from .branches import syntax_view
 from .projection import working_tree, decorate_origins

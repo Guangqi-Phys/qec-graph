@@ -2,33 +2,17 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import json
 from pathlib import Path
 import platform
 import re
-import shutil
 
 from . import sandbox
-from .contract import digest, safe_path
+from .execution import Build as Build, tool as tool, execute as execute
+from .artifacts import digest, safe_path
 from ..source.package import SourceTree
 
 ENGINES = {"pdflatex", "xelatex", "lualatex", "latex", "etex", "pdftex"}
-
-
-@dataclass
-class Build:
-    entry: str
-    engine: str
-    root: Path
-    success: bool = False
-    steps: list[dict] = field(default_factory=list)
-    artifacts: dict[str, bytes] = field(default_factory=dict)
-    inputs: list[str] = field(default_factory=list)
-    outputs: list[str] = field(default_factory=list)
-    dependencies: list[dict] = field(default_factory=list)
-    diagnostics: list[dict] = field(default_factory=list)
-    compatibility: list[dict] = field(default_factory=list)
 
 
 def select_engine(tree, entry, requested=None):
@@ -53,32 +37,6 @@ def select_engine(tree, entry, requested=None):
     if re.search(r"\\usepackage(?:\[[^\]]*\])?\{(?:unicode-math|fontspec)\}", body):
         return "xelatex"
     return "pdflatex"
-
-
-def tool(name):
-    for directory in (
-        "/Library/TeX/texbin",
-        "/Library/Developer/CommandLineTools/usr/bin",
-        "/opt/homebrew/bin",
-        "/usr/local/bin",
-        "/usr/bin",
-    ):
-        path = Path(directory) / name
-        if path.is_file():
-            return str(path)
-    resolved = shutil.which(name)
-    if resolved:
-        return resolved
-    raise ValueError(f"Required local tool is unavailable: {name}")
-
-
-def execute(build: Build, name, command, *, stdin=None, runner=sandbox.run):
-    result = runner(build.root, build.root / "project", command, stdin=stdin)
-    log = result.pop("log")
-    build.artifacts[f"logs/{name}.log"] = log
-    result["log"] = f"logs/{name}.log"
-    build.steps.append(result)
-    return result["exit"] == 0 and not result["timeout"]
 
 
 def _support(build, folders):

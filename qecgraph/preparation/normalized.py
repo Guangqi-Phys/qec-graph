@@ -7,7 +7,7 @@ import re
 
 from pylatexenc.latexwalker import LatexWalker, LatexWalkerParseError
 
-from .contract import digest
+from .artifacts import digest
 from .branches import syntax_view
 from ..source.syntax import declaration_context
 

@@ -5,7 +5,7 @@ import re
 
 
 def reference_scopes(build, tree, aux):
-    from .references import commands, group
+    from .reference_syntax import commands, group
 
     source = "\n".join(
         _configuration_text(tree.files[p])
@@ -85,7 +85,7 @@ def _scope(identifier, kind, aux, **fields):
 
 
 def _multibib_names(source):
-    from .references import commands, group
+    from .reference_syntax import commands, group
 
     for _, _, stop in commands(source, {"newcites"}):
         arg = group(source, stop)
@@ -98,7 +98,7 @@ def _multibib_names(source):
 
 
 def _aux_family(root, aux, excluded):
-    from .references import commands, group
+    from .reference_syntax import commands, group
 
     seen, pending = set(), [root]
     while pending:
@@ -114,7 +114,7 @@ def _aux_family(root, aux, excluded):
 
 
 def imported_labels(scopes, aux, tree):
-    from .references import commands, group, origin
+    from .reference_syntax import commands, group, origin
 
     labels = []
     for scope in scopes:
@@ -146,7 +146,7 @@ def imported_labels(scopes, aux, tree):
 
 def observed_labels(scopes, aux):
     """Keep exact consumed AUX observations; they do not supply authored prose."""
-    from .references import commands, group, origin
+    from .reference_syntax import commands, group, origin
 
     labels = []
     for scope in scopes:

@@ -3,14 +3,14 @@
 import re
 from pathlib import PurePosixPath
 
-from .contract import digest
+from .artifacts import digest
 
 QUANTUMARTICLE_42 = "dff601e10b3c4c408f50ca1353e110ff72f83e30f85895e9c2332bd5d4189319"
 HOOK_PREAMBLE = r"\makeatletter\providecommand\@afterenddocumenthook{}\makeatother"
 
 
 def initial_compile(build, tree, args, *, stdin, runner):
-    from .build import execute
+    from .execution import execute
 
     ok = execute(build, "tex-0", args, stdin=stdin, runner=runner)
     profile = _known_profile(build, tree) if not ok else None

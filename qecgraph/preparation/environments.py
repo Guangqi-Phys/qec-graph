@@ -8,7 +8,7 @@ from typing import cast
 from pylatexenc.latexwalker import LatexWalker, LatexMacroNode, LatexWalkerParseError
 from pylatexenc.macrospec import MacroSpec
 
-from .contract import SourceIndex
+from .artifacts import SourceIndex
 from .options import fields, mask_comments
 from ..source.assembly import condition_regions, document_bounds
 from ..source.syntax import declaration_context, _OpaqueDeclarationParser

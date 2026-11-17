@@ -7,8 +7,8 @@ import re
 
 from pylatexenc.latexwalker import LatexWalker, LatexWalkerParseError
 
-from .contract import digest, json_bytes, SourceIndex
-from .references import group
+from .artifacts import digest, json_bytes, SourceIndex
+from .reference_syntax import group
 from .citations import locate_citations as _citations, scope_commands
 from ..source.assembly import (
     assemble_files,
@@ -17,7 +17,8 @@ from ..source.assembly import (
     document_bounds,
 )
 from ..source.syntax import declaration_context
-from .crossrefs import cross_references as _cross_references, CROSS_REFERENCE_POLICY
+from .crossrefs import cross_references as _cross_references
+from .artifacts import CROSS_REFERENCE_POLICY
 from .conditions import conditional_views
 from .branches import syntax_view
 from .environments import label_declarations

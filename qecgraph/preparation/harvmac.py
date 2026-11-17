@@ -10,7 +10,7 @@ import re
 
 from pylatexenc.macrospec import MacroSpec, MacroStandardArgsParser
 
-from .contract import digest
+from .artifacts import digest
 from .options import mask_comments
 from ..source.dialects import _syntax
 from ..source.syntax import declaration_context

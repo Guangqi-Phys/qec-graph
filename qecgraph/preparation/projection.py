@@ -4,8 +4,8 @@ import json
 from pathlib import PurePosixPath
 import re
 
-from .contract import digest, json_bytes, safe_path
-from .roundtrip import _compare_pdf_text
+from .artifacts import digest, json_bytes, safe_path
+from .execution import compare_pdf_text as _compare_pdf_text
 from ..source.package import SourceTree
 
 SCHEMA = "qecgraph.source_projection/1"

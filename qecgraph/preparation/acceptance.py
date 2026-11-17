@@ -8,7 +8,8 @@ import re
 import subprocess
 
 from . import PREPARATION_VERSION
-from .contract import digest, read_material, safe_path
+from .artifacts import digest, safe_path
+from .contract import read_material
 
 ROOT = Path(__file__).resolve().parents[2]
 

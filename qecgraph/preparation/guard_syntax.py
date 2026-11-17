@@ -3,7 +3,7 @@
 import re
 
 from .branches import _mask
-from .contract import SourceIndex
+from .artifacts import SourceIndex
 from ..source.assembly import (
     condition_regions,
     document_bounds,

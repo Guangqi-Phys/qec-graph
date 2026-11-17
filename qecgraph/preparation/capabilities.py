@@ -1,6 +1,6 @@
 """Distinguish prepared reference candidates from uniquely bound references."""
 
-from .crossrefs import CROSS_REFERENCE_POLICY
+from .artifacts import CROSS_REFERENCE_POLICY
 
 _REFERENCE_ISSUES = {"cross_reference_ambiguous", "cross_reference_unresolved"}
 

@@ -4,10 +4,10 @@ from collections import Counter
 import json
 import re
 
-from .references import group
+from .reference_syntax import group
 from .options import fields, mask_comments
 
-CROSS_REFERENCE_POLICY = "preserve_ambiguity/1"
+from .artifacts import CROSS_REFERENCE_POLICY as CROSS_REFERENCE_POLICY
 
 
 def check_reference_candidates(files, document, text, manifest):
@@ -15,7 +15,9 @@ def check_reference_candidates(files, document, text, manifest):
     policy = document.get("cross_reference_policy")
     if manifest.get("rule_version") == "compile-prepare-v19" or policy is not None:
         if policy != CROSS_REFERENCE_POLICY:
-            raise ValueError("Unsupported or missing cross-reference preparation policy")
+            raise ValueError(
+                "Unsupported or missing cross-reference preparation policy"
+            )
     if policy == CROSS_REFERENCE_POLICY:
         _check_prepared_targets(document, manifest)
     if policy is None or "references.json" not in files or document.get("dialect"):
@@ -28,8 +30,12 @@ def check_reference_candidates(files, document, text, manifest):
         text,
         document.get("environment_label_declarations", []),
     )
-    if labels != document.get("labels", []) or rows != document.get("cross_references", []):
-        raise ValueError("Cross-reference candidates do not match retained source evidence")
+    if labels != document.get("labels", []) or rows != document.get(
+        "cross_references", []
+    ):
+        raise ValueError(
+            "Cross-reference candidates do not match retained source evidence"
+        )
 
 
 def _check_prepared_targets(document, manifest):

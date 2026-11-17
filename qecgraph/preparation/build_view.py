@@ -4,9 +4,9 @@ from pathlib import PurePosixPath
 import re
 import secrets
 
-from .contract import json_bytes
+from .artifacts import json_bytes, compiled_bibliography
 from .guard_syntax import candidates
-from .roundtrip import _compare_pdf_text
+from .execution import compare_pdf_text as _compare_pdf_text
 from ..source.package import SourceTree
 
 SCHEMA = "qecgraph.build_view/1"
@@ -73,12 +73,7 @@ def _candidates(build, tree):
     return result
 
 
-def _bibliography(build):
-    return {
-        p.removeprefix("files/"): raw
-        for p, raw in build.artifacts.items()
-        if p.startswith("files/") and PurePosixPath(p).suffix in {".bbl", ".bib"}
-    }
+_bibliography = compiled_bibliography
 
 
 def _instrument(tree, guards, prefix):

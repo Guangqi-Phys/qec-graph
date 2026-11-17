@@ -243,8 +243,8 @@ class PreparationAdversarialAndDifferentialTests(unittest.TestCase):
 
             report = {"syntax_parse": "complete"}
             with (
-                patch("qecgraph.preparation.roundtrip.tool", return_value="/bin/pdftotext"),
-                patch("qecgraph.preparation.roundtrip.sandbox.run", side_effect=diff_pdftotext),
+                patch("qecgraph.preparation.execution.tool", return_value="/bin/pdftotext"),
+                patch("qecgraph.preparation.execution.sandbox.run", side_effect=diff_pdftotext),
             ):
                 verify_roundtrip(orig, tree, tree.files["main.tex"], report, (), derived_compiler)
             self.assertEqual(report["pdf_text"], "different")
@@ -256,9 +256,9 @@ class PreparationAdversarialAndDifferentialTests(unittest.TestCase):
             (orig2.root / "project/main.pdf").write_bytes(b"orig pdf")
             report_fail = {"syntax_parse": "complete"}
             with (
-                patch("qecgraph.preparation.roundtrip.tool", return_value="/bin/pdftotext"),
+                patch("qecgraph.preparation.execution.tool", return_value="/bin/pdftotext"),
                 patch(
-                    "qecgraph.preparation.roundtrip.sandbox.run",
+                    "qecgraph.preparation.execution.sandbox.run",
                     return_value={"exit": 1, "timeout": True, "log": b"timeout"},
                 ),
             ):

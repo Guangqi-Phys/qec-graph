@@ -2,71 +2,17 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
-from array import array
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
 from ..source.package import SourceTree
 
-from ..core.coordinates import SourceLines
-
-SCHEMA = "qecgraph.prepare/3"
-
-
-class SourceIndex:
-    """Cache hashes and coordinates once per file, not once per token."""
-
-    def __init__(self, raw, encoding="utf-8"):
-        self.text = raw.decode(encoding)
-        self.encoding = encoding
-        self.sha256 = digest(raw)
-        self.lines = SourceLines(self.text)
-        self.offsets = None
-        if not self.text.isascii() or encoding != "utf-8":
-            self.offsets = array("Q", [0])
-            for char in self.text:
-                self.offsets.append(self.offsets[-1] + len(char.encode(encoding)))
-
-    def byte_at(self, offset):
-        return self.offsets[offset] if self.offsets is not None else offset
-
-    def span(self, path, start, end, *, layer="original"):
-        return {
-            "path": path,
-            "sha256": self.sha256,
-            "layer": layer,
-            "encoding": self.encoding,
-            "chars": [start, end],
-            "bytes": [self.byte_at(start), self.byte_at(end)],
-            "lines": [
-                self.lines.line_at(start),
-                self.lines.line_at(max(start, end - 1)),
-            ],
-        }
-
-
-def digest(raw: bytes) -> str:
-    return hashlib.sha256(raw).hexdigest()
-
-
-def json_bytes(value) -> bytes:
-    return (
-        json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
-    ).encode()
-
-
-def safe_path(name: str) -> str:
-    path = PurePosixPath(name)
-    if (
-        not name
-        or path.is_absolute()
-        or "\\" in name
-        or "\x00" in name
-        or any(part in {"", ".", ".."} for part in name.split("/"))
-    ):
-        raise ValueError(f"Unsafe material path: {name!r}")
-    return name
+from .artifacts import SCHEMA as SCHEMA, SourceIndex as SourceIndex
+from .artifacts import (
+    digest as digest,
+    json_bytes as json_bytes,
+    safe_path as safe_path,
+)
 
 
 def validate_material(files: dict[str, bytes]) -> dict:
