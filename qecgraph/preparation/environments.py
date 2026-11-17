@@ -15,7 +15,7 @@ from ..source.syntax import declaration_context, _OpaqueDeclarationParser
 
 
 def label_declarations(tree, paths):
-    records, bodies = [], []
+    records, bodies, candidates = [], [], []
     for path in sorted(set(paths)):
         if path not in tree.files or PurePosixPath(path).suffix not in {
             ".tex",
@@ -27,8 +27,15 @@ def label_declarations(tree, paths):
             text = tree.files[path].decode()
         except UnicodeDecodeError:
             continue
-        bodies.append(mask_comments(text))
-        records.extend(_source_declarations(path, tree.files[path], text))
+        masked = mask_comments(text)
+        bodies.append(masked)
+        # The parser only recognizes the literal control words. A file without
+        # the candidate bytes cannot contribute a declaration, and full
+        # pylatexenc parsing of every consumed style file dominates read time.
+        if "newtcolorbox" in masked:
+            candidates.append((path, tree.files[path], text))
+    for path, raw, text in candidates:
+        records.extend(_source_declarations(path, raw, text))
     counts = Counter(row["environment"] for row in records)
     source = "\n".join(bodies)
     if _shadowed("newtcolorbox", source):

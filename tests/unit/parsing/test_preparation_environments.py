@@ -1,6 +1,8 @@
 import unittest
+from unittest.mock import patch
 
 from qecgraph.preparation.convert import convert_source
+from qecgraph.preparation.environments import _source_declarations, label_declarations
 from qecgraph.preparation.contract import SCHEMA, digest, json_bytes, validate_material
 from qecgraph.source.package import SourceTree
 
@@ -70,3 +72,20 @@ class EnvironmentDeclarationTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "source grammar"):
             validate_material(files)
+
+    def test_declaration_scan_parses_only_sources_with_candidate_command(self):
+        tree = SourceTree(
+            "tex",
+            {
+                "main.tex": b"\\documentclass{article}\\begin{document}Body.\\end{document}",
+                "plain.sty": b"\\ProvidesPackage{plain}\n\\newcommand{\\x}{X}\n",
+                "boxes.cls": b"\\newtcolorbox{box}[2][]{#1}",
+            },
+        )
+        with patch(
+            "qecgraph.preparation.environments._source_declarations",
+            wraps=_source_declarations,
+        ) as scan:
+            records = label_declarations(tree, ["main.tex", "plain.sty", "boxes.cls"])
+        self.assertEqual([call.args[0] for call in scan.call_args_list], ["boxes.cls"])
+        self.assertEqual([record["environment"] for record in records], ["box"])

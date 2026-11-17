@@ -300,6 +300,7 @@ class _SourceEvidence:
     def __init__(self, files):
         self.files = files
         self.indices = {}
+        self.paths = {}
         self.projection = json.loads(files.get("source-projection.json", b"null"))
 
     def index(self, path, encoding):
@@ -311,7 +312,10 @@ class _SourceEvidence:
     def piece(self, span):
         projected = span.get("layer") == "projected"
         prefix = "projected-sources/" if projected else "sources/"
-        source = self.index(prefix + safe_path(span["path"]), span["encoding"])
+        path = span["path"]
+        if path not in self.paths:
+            self.paths[path] = safe_path(path)
+        source = self.index(prefix + self.paths[path], span["encoding"])
         if projected:
             from .projection import check_locator
 

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from qecgraph.preparation.acceptance import (
     check_cases,
@@ -183,3 +184,10 @@ class PreparationAcceptanceTests(unittest.TestCase):
         (copied / "results.json").write_text(json.dumps(results))
         with self.assertRaisesRegex(ValueError, "same frozen corpus"):
             compare_replays(self.replay, copied)
+
+    def test_probe_check_reuses_the_verified_material_read(self):
+        with patch(
+            "qecgraph.preparation.acceptance.read_material", wraps=read_material
+        ) as read:
+            self.report()
+        self.assertEqual(read.call_count, 1)

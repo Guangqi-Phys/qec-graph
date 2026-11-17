@@ -61,8 +61,9 @@ def counts(rows):
     }
 
 
-def check_cases(root, cases):
-    results, cache = [], {}
+def check_cases(root, cases, materials=None):
+    results = []
+    cache = materials if materials is not None else {}
     for case in cases:
         paper = case["paper"]
         folder = root / safe_path(paper.replace("/", "_"))
@@ -102,15 +103,16 @@ def generate_report(manifest_path, replay, *, cases_path=None, baseline=None):
         json.loads((replay / "results.json").read_bytes()),
     )
     _check_replay(results, raw, corpus, cases_path)
+    materials = {}
     rows = [
-        _verified_row(replay, row, sample)
+        _verified_row(replay, row, sample, materials)
         for row, sample in _samples(results, corpus, manifest_path)
     ]
     if counts(rows) != results["counts"]:
         raise ValueError(
             "Replay counts do not match independently verified material rows"
         )
-    probes = _verify_probes(results, replay, cases_path)
+    probes = _verify_probes(results, replay, cases_path, materials)
     metadata = results["run_metadata"]
     report = {
         "schema": "qecgraph.preparation_acceptance/1",
@@ -212,13 +214,17 @@ def _samples(results, corpus, manifest_path):
         yield row, sample
 
 
-def _verified_row(replay, row, sample):
+def _verified_row(replay, row, sample, materials=None):
     root = replay / safe_path(row["paper"].replace("/", "_"))
     if row["status"] == "failed":
         if (root / "manifest.json").exists() or not row.get("error"):
             raise ValueError("Failed replay row conflicts with published material")
         return {**row, "expected_negative": sample.get("format") == "pdf"}
-    material = read_material(root)
+    if materials is None:
+        materials = {}
+    if row["paper"] not in materials:
+        materials[row["paper"]] = read_material(root)
+    material = materials[row["paper"]]
     manifest, check = material["manifest"], material["validation"]
     _match_row(row, material)
     if (
@@ -317,12 +323,14 @@ def _listed_json(root, manifest, name, default):
     )
 
 
-def _verify_probes(results, replay, cases_path):
+def _verify_probes(results, replay, cases_path, materials=None):
     if cases_path is None:
         if "syntax_probes" in results:
             raise ValueError("Replay probes have no frozen configuration")
         return None
-    probes = check_cases(replay, json.loads(cases_path.read_bytes())["cases"])
+    probes = check_cases(
+        replay, json.loads(cases_path.read_bytes())["cases"], materials
+    )
     if probes != results.get("syntax_probes"):
         raise ValueError("Replay probe claims differ from independent source checks")
     return probes
