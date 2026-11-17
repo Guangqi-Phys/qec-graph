@@ -62,6 +62,18 @@ uses sandbox-exec; Linux requires bubblewrap. Unsupported isolation never falls
 back to unrestricted TeX. The handoff is `qecgraph.prepare/3` with `content.json`,
 not a research record or workspace snapshot; arbitrary macro expansion is unavailable.
 
+The workflow exports `normalized.tex` and `normalized-map.json`, then recompiles
+the derived copy with the same engine/support files. Supported surface rewrites
+normalize math delimiters outside macro/group arguments and expand uniquely declared,
+runtime-bound citation wrappers. Consumed classic BBL is inlined for standard
+article/report/book classes; RevTeX deferred bibliography/notes and Biblatex retain
+their external calls and payloads. Unknown macros, author classes and assets remain.
+`normalization.json` separately reports syntax, recompilation and optional per-page
+non-whitespace PDF-text equality via pdftotext. A detected mismatch keeps the material
+partial; text equality is not a pixel or mathematical-equivalence claim.
+`content.json` coordinates address `entry.tex`; use the verified normalized mapping
+before locating a derived passage in original source. `--check` never recompiles.
+
 The following retained static interface is independent and is never an automatic
 fallback from the compile-first route.
 

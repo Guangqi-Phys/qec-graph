@@ -1,10 +1,11 @@
 {
   "status": "Engineering implementation verified; complete corpus and scientific usability are not accepted",
-  "date": "2026-11-16",
-  "code_revision": "8bb772a86617a8add199b255c71b69faa41c9477",
-  "scope": "Offline compile-first preparation only; no scientific extraction, model calls, workspace migration or original database writes",
+  "date": "2026-11-17",
+  "code_revision": "b4e0b971ae686913d88811f0528f1fd4a8130955",
+  "scope": "Offline compile-assisted LaTeX preparation only; zero model calls, no scientific extraction, workspace migration or original database writes",
   "schema": "qecgraph.prepare/3",
-  "rule_version": "compile-prepare-v2",
+  "rule_version": "compile-prepare-v4",
+  "normalized_schema": "qecgraph.normalized_latex/1",
   "environment": {
     "platform": "macOS-27.2.1-arm64-arm-64bit-Mach-O",
     "python": "3.15.2",
@@ -23,36 +24,61 @@
     "negative_pdf_inputs": 1,
     "entry_overrides": "validation/preparation_entries.json",
     "automatic_tex_entries": 44,
-    "configured_tex_entries": 3,
-    "entry_override_origin": "Three previously confirmed entry paths; not evidence of automatic selection. No model was called in this replay."
+    "configured_tex_entries": 3
   },
   "counts": {
     "papers": 48,
-    "ready": 18,
+    "ready": 22,
     "compiled": 45,
-    "partial": 29,
+    "partial": 25,
     "failed": 1,
-    "source_fidelity": 44
+    "source_fidelity": 44,
+    "normalized_recompiled": 40,
+    "normalized_text_equal": 39
   },
   "bibliography_complete": 40,
-  "conversion_complete": 18,
+  "normalization_files": 44,
+  "normalization_complete": 36,
   "original_bundles_validated": 47,
   "nonempty_syntax_bundles_validated": 44,
   "model_calls": 0,
-  "criteria": "Ready requires successful native compile, complete supported syntax conversion, resolved applicable citations/cross-references and independent exact-source validation. Partial bundles are not accepted as ready.",
+  "criteria": "Ready requires successful original native compilation, complete supported source conversion and reference bindings, independent source fidelity, and normalized LaTeX syntax/recompilation checks. An observed PDF-text mismatch blocks ready. Missing pdftotext is explicit and is not text-equality evidence.",
+  "normalization_scope": {
+    "copied": "Author class, packages, definitions, tables, assets, comments and unknown macros remain. Unresolved structural limitations remain partial.",
+    "math": "Dollar delimiters outside macro/group arguments only; mathematics inside arguments retains its authored spelling.",
+    "citations": "Only uniquely declared preamble newcommand wrappers with resolved runtime keys; preserve the complete replacement body.",
+    "bibliography": "Inline consumed classic BBL only for article/report/book; preserve external calls and BBL/BCF for RevTeX and Biblatex. Compiled text is derived, not an original quotation.",
+    "mapping": "Every input/output character range is copied or an independently checked format/compiled-bibliography edit. content.json ranges continue to refer to entry.tex.",
+    "roundtrip": "Use the same engine and support files. Compare per-page non-whitespace PDF text when pdftotext is available; this does not prove pixel or mathematical equivalence."
+  },
   "comparison": {
-    "prior_compile_experiment": {
+    "baseline_code_revision": "eeaee87",
+    "before": {
       "tex_inputs": 47,
       "compiled": 45,
-      "bibliography_mechanically_complete": 40
+      "bibliography_complete": 40,
+      "ready": 18,
+      "partial": 29,
+      "normalized_export": "Not implemented"
     },
-    "current": {
+    "after": {
       "tex_inputs": 47,
       "compiled": 45,
-      "bibliography_mechanically_complete": 40,
-      "strict_preparation_ready": 18
+      "bibliography_complete": 40,
+      "ready": 22,
+      "partial": 25,
+      "normalized_files": 44,
+      "normalized_recompiled": 40,
+      "normalized_text_equal": 39
     },
-    "note": "The native/reference count was reproduced, not improved. Earlier 34/47 static parser completeness and 11/47 strict reference audit used different gates and are not comparable to these mechanical counts."
+    "newly_ready": [
+      "1907.02554v1",
+      "2009.07851v3",
+      "2510.06495v2",
+      "quant-ph/0001106v1"
+    ],
+    "ready_regressions": [],
+    "note": "The four newly ready papers had conditional-detector false positives. V4 additionally requires normalized syntax and recompilation. These engineering counts are not scientific extraction accuracy; older static-parser counts used other gates."
   },
   "syntax_probes": {
     "scope": "Mechanical syntax/source checks, not scientific accuracy or human acceptance",
@@ -163,22 +189,21 @@
   },
   "checks": {
     "unittest": {
-      "command": "python -m unittest discover -s tests -v",
-      "passed": true,
-      "tests": 515,
-      "skipped": 2,
-      "skip_reason": "Real TeX checks are opt-in and were also run separately"
+      "command": "python -m coverage run -m unittest discover -s tests -v",
+      "tests": 526,
+      "skipped": 4,
+      "passed": true
     },
     "real_tex": {
       "command": "QECGRAPH_TEST_TEX=1 python -m unittest tests.integration.pipeline.test_compilation -v",
+      "tests": 4,
       "passed": true,
-      "tests": 2,
-      "scope": "Actual BibTeX and custom citation fixture; external read/write, credentials and network denial on macOS"
+      "scope": "Actual BibTeX, normalized source with bibliography, RevTeX deferred bibliography/notes, filesystem/network/credential isolation"
     },
     "coverage": {
-      "command": "python -m coverage run -m unittest discover -s tests -v && python -m coverage report",
+      "command": "python -m coverage report",
       "passed": true,
-      "percent": 84.54
+      "percent": 84.5
     },
     "ruff": {
       "command": "python -m ruff check qecgraph tests tools",
@@ -302,23 +327,23 @@
       }
     },
     "reproduce": {
-      "command": "python tools/reproduce.py --out build/compiled-preparation/reproduce-final",
+      "command": "python tools/reproduce.py --out build/preparation-v4/reproduce",
       "passed": true
-    },
-    "human_md": {
-      "unchanged_since": "3ef28ae",
-      "sha256": "6a95cc5aeb4a466cb58a9bc2b790319aad729ccd8b53f0733198893820a1630d"
     },
     "documentation": {
       "command": "python -m unittest discover -s tests -p '*docs*' -v",
-      "passed": true,
-      "tests": 17
+      "tests": 17,
+      "passed": true
+    },
+    "human_md": {
+      "unchanged_since": "eeaee87",
+      "sha256": "6a95cc5aeb4a466cb58a9bc2b790319aad729ccd8b53f0733198893820a1630d"
     }
   },
   "machine_evaluation": {
     "machine_copy": "build/opencode-review/machine-copy",
     "release": "aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22",
-    "command": "python tools/reproduce_knowledge.py --machine build/opencode-review/machine-copy --release aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22 --out build/compiled-preparation/machine-evaluation-final.json",
+    "command": "python tools/reproduce_knowledge.py --machine build/opencode-review/machine-copy --release aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22 --out build/preparation-v4/machine-evaluation.json",
     "accepted": false,
     "error": "Registry state schema mismatch",
     "before_after_metrics": null,
@@ -326,7 +351,8 @@
     "private_or_human_notes_read": false
   },
   "replay": {
-    "support_files": "Supply the public historical TeX files explicitly; there are no automatic downloads. Copying support into each sandbox and recording its hashes does not change system TeX.",
+    "executed_command": ".venv/bin/python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/preparation-v4/accepted --entries validation/preparation_entries.json --support-dir build/compile-first/dependencies --support-dir build/compile-first/historical-revtex --cases validation/preparation_cases.json --jobs 2",
+    "support_files": "Supply the public historical TeX dependencies explicitly; no automatic downloads or system TeX changes.",
     "dependency_provenance": [
       {
         "file": "dependencies/BoxedEPS.tex",
@@ -354,19 +380,17 @@
         "source": "Installed /Library/TeX/texbin/biber, extracted with Apple lipo -thin arm64; Biber 2.21."
       }
     ],
-    "recorded_child_tool_seconds_sum": 308.744,
-    "material_bytes": 895673016,
-    "note": "Tool seconds are summed per-command elapsed times, not replay wall time. Large build artifacts remain under ignored build/. The replay initially ran the first 10 probes; all 20 frozen source probes were then checked against the same retained material. Superseded replay/debug directories and the old entry-hint file were deleted after acceptance; the three effective overrides are committed under validation/.",
-    "reproduction_command": "python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/preparation-replay --entries validation/preparation_entries.json --cases validation/preparation_cases.json --support-dir build/compile-first/dependencies --support-dir build/compile-first/historical-revtex --jobs 2",
-    "executed_command": ".venv/bin/python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/compiled-preparation/accepted --entries build/compiled-preparation/entries.json --support-dir build/compile-first/dependencies --support-dir build/compile-first/historical-revtex --cases validation/preparation_cases.json --jobs 2"
+    "recorded_tool_seconds_sum": 504.203,
+    "material_bytes": 1054021566,
+    "note": "Tool seconds are summed per-command elapsed time, not replay wall time. Large materials remain under ignored build/."
   },
   "remaining_acceptance": [
-    "29 TeX inputs remain partial; see each row and retained build logs.",
-    "Two legacy-class packages fail native compilation.",
-    "One compiled non-UTF-8 package has no converted syntax.",
-    "Conditional active views, arbitrary macro expansion, unresolved original references and ambiguous assets are not fully supported.",
-    "The 20 probes on five papers are agent-authored mechanical checks, not independent human gold for every required structure.",
-    "No scientific model quality, Lean, Linux isolation, or full fixed-machine usability acceptance was performed."
+    "25 TeX papers remain partial; each row retains its independent stages and diagnostic codes.",
+    "Two original projects fail local compilation; one compiled project has no converted syntax because of non-UTF-8 bytes.",
+    "Four derived candidates fail native compilation and one fails PDF-text comparison; they are not accepted normalized material.",
+    "Unknown macros, body conditionals, cross-document targets, generated citation/footnote locations and source-parser limitations remain.",
+    "The 20 source probes are agent-authored mechanical checks on five papers, not independent human gold.",
+    "Linux isolation, fixed-machine scientific usability, model quality and Lean were not accepted in this preparation-only work."
   ],
   "rows": [
     {
@@ -378,6 +402,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "partial",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
@@ -386,13 +411,25 @@
       "reasons": [
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": false,
+        "native_compile": "failed",
+        "syntax_parse": "partial",
+        "pdf_text": "not_run",
+        "transformations": {
+          "math_delimiter": 502
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {
+        "normalized_latex_roundtrip_failed": 1,
         "syntax_incomplete": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "1208.0928v1",
@@ -410,6 +447,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
@@ -418,13 +456,24 @@
       "reasons": [
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 446
+        }
+      },
       "entry": "ft-def25.tex",
       "engine": "latex",
       "references_complete": true,
       "diagnostic_codes": {
         "expanded_citation_locations_unknown": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "1302.3428v1",
@@ -435,17 +484,30 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 10277,
       "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "compiled_bibliography": 1,
+          "math_delimiter": 2252
+        }
+      },
       "entry": "QEC04_springer.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "1804.03719v1",
@@ -456,6 +518,7 @@
       "stages": {
         "compile": "failed",
         "conversion": "partial",
+        "normalized_latex": "partial",
         "references": "partial",
         "source_fidelity": "checked_at_publication"
       },
@@ -464,36 +527,55 @@
       "reasons": [
         "compile_failed"
       ],
+      "normalization": {
+        "complete": false,
+        "native_compile": "not_run",
+        "syntax_parse": null,
+        "pdf_text": "not_run",
+        "transformations": null
+      },
       "entry": "rrqp.tex",
       "engine": "pdflatex",
       "references_complete": false,
       "diagnostic_codes": {
         "compile_failed": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "1907.02554v1",
       "package_sha256": "01e3d3abec16b93f103d00e9fdc3712cd0bb61c5b46ddacbce71d4acb5186f7e",
       "entry_selection": "automatic",
-      "exit": 2,
-      "status": "partial",
+      "exit": 0,
+      "status": "ready",
       "stages": {
         "compile": "complete",
-        "conversion": "partial",
+        "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 7897,
-      "reasons": [
-        "conditional_view_not_mapped"
-      ],
+      "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 200
+        }
+      },
       "entry": "ms.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "1907.11157v1",
@@ -504,40 +586,62 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 11390,
       "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 880
+        }
+      },
       "entry": "cp_review_arxiv.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2009.07851v3",
       "package_sha256": "8c48a66a14f447ffc8481a8732687d9e79d2be542835e3a252060523bef5397a",
       "entry_selection": "automatic",
-      "exit": 2,
-      "status": "partial",
+      "exit": 0,
+      "status": "ready",
       "stages": {
         "compile": "complete",
-        "conversion": "partial",
+        "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 15435,
-      "reasons": [
-        "conditional_view_not_mapped"
-      ],
+      "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 500
+        }
+      },
       "entry": "XZZX.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2012.04068v1",
@@ -548,6 +652,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
@@ -557,6 +662,15 @@
         "conditional_view_not_mapped",
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 3154
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
@@ -564,7 +678,9 @@
         "conditionals_present": 1,
         "cross_reference_unresolved": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2012.09271v1",
@@ -575,6 +691,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
@@ -584,13 +701,24 @@
         "conditional_view_not_mapped",
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 2338
+        }
+      },
       "entry": "balanced_product_codes.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {
         "conditionals_present": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2102.06132v1",
@@ -601,6 +729,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
@@ -609,13 +738,24 @@
       "reasons": [
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 976
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {
         "cross_reference_unresolved": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2103.02202v1",
@@ -626,6 +766,7 @@
       "stages": {
         "compile": "failed",
         "conversion": "partial",
+        "normalized_latex": "partial",
         "references": "partial",
         "source_fidelity": "checked_at_publication"
       },
@@ -634,13 +775,22 @@
       "reasons": [
         "compile_failed"
       ],
+      "normalization": {
+        "complete": false,
+        "native_compile": "not_run",
+        "syntax_parse": null,
+        "pdf_text": "not_run",
+        "transformations": null
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": false,
       "diagnostic_codes": {
         "compile_failed": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2103.06309v1",
@@ -651,17 +801,29 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 7176,
       "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 784
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2104.01180v1",
@@ -672,17 +834,29 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 6079,
       "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 828
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2111.05176v1",
@@ -693,6 +867,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
@@ -702,6 +877,15 @@
         "conditional_view_not_mapped",
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 4314
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
@@ -709,7 +893,9 @@
         "conditionals_present": 1,
         "asset_target_unresolved": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2201.08309v1",
@@ -720,6 +906,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "partial",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
@@ -728,13 +915,25 @@
       "reasons": [
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": false,
+        "native_compile": "failed",
+        "syntax_parse": "partial",
+        "pdf_text": "not_run",
+        "transformations": {
+          "math_delimiter": 920
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {
+        "normalized_latex_roundtrip_failed": 1,
         "syntax_incomplete": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2202.13641v1",
@@ -745,17 +944,29 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 10886,
       "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 2934
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2207.06431v1",
@@ -766,6 +977,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
@@ -774,13 +986,24 @@
       "reasons": [
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 1168
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {
         "expanded_citation_locations_unknown": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2209.01119v1",
@@ -791,17 +1014,29 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 16324,
       "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 1894
+        }
+      },
       "entry": "template.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2209.05640v1",
@@ -812,6 +1047,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "partial",
         "references": "partial",
         "source_fidelity": "checked_at_publication"
       },
@@ -820,13 +1056,38 @@
       "reasons": [
         "conversion_failed"
       ],
+      "normalization": {
+        "complete": false,
+        "native_compile": "not_run",
+        "syntax_parse": null,
+        "pdf_text": "not_run",
+        "transformations": null
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": false,
       "diagnostic_codes": {
         "preparation_failed": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 27,
+      "unresolved_reference_binding_examples": [
+        {
+          "section": "0",
+          "key": "2014A",
+          "status": "unresolved"
+        },
+        {
+          "section": "0",
+          "key": "4358290",
+          "status": "unresolved"
+        },
+        {
+          "section": "0",
+          "key": "7266845",
+          "status": "unresolved"
+        }
+      ],
+      "unresolved_reference_examples_truncated": true
     },
     {
       "paper": "2303.15933v1",
@@ -837,17 +1098,29 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 7878,
       "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 2052
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2308.02321v1",
@@ -858,17 +1131,29 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 1704,
       "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 312
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2308.07915v1",
@@ -879,17 +1164,29 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 14010,
       "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 2702
+        }
+      },
       "entry": "main_arxiv.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2308.07915v2",
@@ -900,6 +1197,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
@@ -910,6 +1208,15 @@
         "conversion_diagnostics",
         "unresolved_directives"
       ],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 2864
+        }
+      },
       "entry": "arXiv_v2.tex",
       "engine": "pdflatex",
       "references_complete": true,
@@ -918,7 +1225,9 @@
         "directive_in_conditional": 1,
         "cross_reference_unresolved": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2408.13687v1",
@@ -929,17 +1238,29 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 3186,
       "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 154
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2410.02885v1",
@@ -950,6 +1271,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
@@ -958,13 +1280,24 @@
       "reasons": [
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 18
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {
         "expanded_citation_locations_unknown": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2411.11822v1",
@@ -975,6 +1308,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
@@ -985,6 +1319,15 @@
         "conversion_diagnostics",
         "nonstandard_document_body"
       ],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 886
+        }
+      },
       "entry": "outline.tex",
       "engine": "pdflatex",
       "references_complete": true,
@@ -992,7 +1335,9 @@
         "conditionals_present": 2,
         "directive_in_conditional": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2412.14256v1",
@@ -1003,6 +1348,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "complete",
         "references": "partial",
         "source_fidelity": "checked_at_publication"
       },
@@ -1011,6 +1357,15 @@
       "reasons": [
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 110
+        }
+      },
       "entry": "main_arxiv.tex",
       "engine": "pdflatex",
       "references_complete": false,
@@ -1018,7 +1373,25 @@
         "expanded_citation_locations_unknown": 1,
         "cross_reference_unresolved": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 49,
+      "unresolved_reference_binding_examples": [
+        {
+          "section": "0",
+          "key": "Acharya2023",
+          "status": "ambiguous"
+        },
+        {
+          "section": "0",
+          "key": "Acharya2024",
+          "status": "ambiguous"
+        },
+        {
+          "section": "0",
+          "key": "Aggoun2008",
+          "status": "unresolved"
+        }
+      ],
+      "unresolved_reference_examples_truncated": true
     },
     {
       "paper": "2509.03613v1",
@@ -1029,40 +1402,62 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 6521,
       "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 504
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2510.06495v2",
       "package_sha256": "414b5291ec22e54bee82e61f97e5cfda03f0eb79d99d42e4daaf457bff599c72",
       "entry_selection": "automatic",
-      "exit": 2,
-      "status": "partial",
+      "exit": 0,
+      "status": "ready",
       "stages": {
         "compile": "complete",
-        "conversion": "partial",
+        "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 21023,
-      "reasons": [
-        "conditional_view_not_mapped"
-      ],
+      "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 3648
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2511.01062v1",
@@ -1073,6 +1468,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "partial",
         "references": "partial",
         "source_fidelity": "checked_at_publication"
       },
@@ -1082,15 +1478,43 @@
         "conditional_view_not_mapped",
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": false,
+        "native_compile": "complete",
+        "syntax_parse": "partial",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 160
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": false,
       "diagnostic_codes": {
+        "normalized_latex_roundtrip_failed": 1,
         "conditionals_present": 1,
         "syntax_incomplete": 1,
         "unparsed_source_preserved": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 140,
+      "unresolved_reference_binding_examples": [
+        {
+          "section": "0",
+          "key": "AbuGhanem_2025",
+          "status": "unresolved"
+        },
+        {
+          "section": "0",
+          "key": "Arute_2019",
+          "status": "unresolved"
+        },
+        {
+          "section": "0",
+          "key": "Bacon_2006",
+          "status": "unresolved"
+        }
+      ],
+      "unresolved_reference_examples_truncated": true
     },
     {
       "paper": "2511.01062v2",
@@ -1101,6 +1525,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "partial",
         "references": "partial",
         "source_fidelity": "checked_at_publication"
       },
@@ -1110,15 +1535,43 @@
         "conditional_view_not_mapped",
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": false,
+        "native_compile": "complete",
+        "syntax_parse": "partial",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 180
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": false,
       "diagnostic_codes": {
+        "normalized_latex_roundtrip_failed": 1,
         "conditionals_present": 1,
         "syntax_incomplete": 1,
         "unparsed_source_preserved": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 140,
+      "unresolved_reference_binding_examples": [
+        {
+          "section": "0",
+          "key": "AbuGhanem_2025",
+          "status": "unresolved"
+        },
+        {
+          "section": "0",
+          "key": "Arute_2019",
+          "status": "unresolved"
+        },
+        {
+          "section": "0",
+          "key": "Bacon_2006",
+          "status": "unresolved"
+        }
+      ],
+      "unresolved_reference_examples_truncated": true
     },
     {
       "paper": "2512.07737v1",
@@ -1129,17 +1582,29 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 4130,
       "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 174
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2605.29137v1",
@@ -1150,6 +1615,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "partial",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
@@ -1159,15 +1625,27 @@
         "conditional_view_not_mapped",
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": false,
+        "native_compile": "failed",
+        "syntax_parse": "partial",
+        "pdf_text": "not_run",
+        "transformations": {
+          "math_delimiter": 7386
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {
+        "normalized_latex_roundtrip_failed": 1,
         "conditionals_present": 1,
         "syntax_incomplete": 1,
         "cross_reference_unresolved": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2605.29554v1",
@@ -1178,6 +1656,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
@@ -1187,6 +1666,15 @@
         "conditional_view_not_mapped",
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 396
+        }
+      },
       "entry": "swemed1_concentration_transport_springer.tex",
       "engine": "xelatex",
       "references_complete": true,
@@ -1194,7 +1682,9 @@
         "conditionals_present": 1,
         "cross_reference_unresolved": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2605.29774v1",
@@ -1205,17 +1695,29 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 6280,
       "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 562
+        }
+      },
       "entry": "qdft.tex",
       "engine": "xelatex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2605.30298v1",
@@ -1226,17 +1728,29 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 8007,
       "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 1118
+        }
+      },
       "entry": "cohomology-moduli-stack-real-bundles.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2606.00045v1",
@@ -1247,6 +1761,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "partial",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
@@ -1255,13 +1770,26 @@
       "reasons": [
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": false,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "different",
+        "transformations": {
+          "compiled_bibliography": 1,
+          "math_delimiter": 282
+        }
+      },
       "entry": "main__1_.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {
+        "normalized_latex_roundtrip_failed": 1,
         "expanded_citation_locations_unknown": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2606.30447v1",
@@ -1272,17 +1800,29 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 6713,
       "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 28
+        }
+      },
       "entry": "StokesSpectralQuantum.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2607.00222v1",
@@ -1293,6 +1833,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "complete",
         "references": "partial",
         "source_fidelity": "checked_at_publication"
       },
@@ -1301,13 +1842,40 @@
       "reasons": [
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 1252
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": false,
       "diagnostic_codes": {
         "cross_reference_unresolved": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 7,
+      "unresolved_reference_binding_examples": [
+        {
+          "section": "0",
+          "key": "baklicharov2025weakening",
+          "status": "ambiguous"
+        },
+        {
+          "section": "0",
+          "key": "grossi2023bayesian",
+          "status": "ambiguous"
+        },
+        {
+          "section": "0",
+          "key": "ich2019addendum",
+          "status": "ambiguous"
+        }
+      ],
+      "unresolved_reference_examples_truncated": true
     },
     {
       "paper": "2607.00262v1",
@@ -1318,6 +1886,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
@@ -1326,6 +1895,15 @@
       "reasons": [
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 872
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
@@ -1333,7 +1911,9 @@
         "conditionals_present": 1,
         "cross_reference_unresolved": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2607.29382v2",
@@ -1344,23 +1924,35 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "partial",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 16437,
       "reasons": [
-        "conditional_view_not_mapped",
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": false,
+        "native_compile": "complete",
+        "syntax_parse": "partial",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 1060
+        }
+      },
       "entry": "main.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {
+        "normalized_latex_roundtrip_failed": 1,
         "conditionals_present": 1,
         "syntax_incomplete": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "2609.22572v1",
@@ -1371,6 +1963,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
@@ -1379,13 +1972,24 @@
       "reasons": [
         "conversion_diagnostics"
       ],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 588
+        }
+      },
       "entry": "arxiv.tex",
       "engine": "pdflatex",
       "references_complete": true,
       "diagnostic_codes": {
         "expanded_citation_locations_unknown": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "hep-th/9407087v1",
@@ -1396,6 +2000,7 @@
       "stages": {
         "compile": "complete",
         "conversion": "partial",
+        "normalized_latex": "partial",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
@@ -1407,37 +2012,60 @@
         "nonstandard_document_body",
         "unresolved_directives"
       ],
+      "normalization": {
+        "complete": false,
+        "native_compile": "failed",
+        "syntax_parse": "partial",
+        "pdf_text": "not_run",
+        "transformations": {
+          "math_delimiter": 2132
+        }
+      },
       "entry": "9407087.tex",
       "engine": "etex",
       "references_complete": true,
       "diagnostic_codes": {
+        "normalized_latex_roundtrip_failed": 1,
         "unclosed_conditional": 1,
         "syntax_incomplete": 1
       },
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "quant-ph/0001106v1",
       "package_sha256": "525bb123ba15c14b05ae36d09da433858f3d198e6b250a09ce43a833e209af74",
       "entry_selection": "automatic",
-      "exit": 2,
-      "status": "partial",
+      "exit": 0,
+      "status": "ready",
       "stages": {
         "compile": "complete",
-        "conversion": "partial",
+        "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 7467,
-      "reasons": [
-        "conditional_view_not_mapped"
-      ],
+      "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "citation_wrapper": 7,
+          "math_delimiter": 1220
+        }
+      },
       "entry": "FarhiAdiabatic.tex",
       "engine": "latex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "quant-ph/0110143v1",
@@ -1448,17 +2076,29 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 12446,
       "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 2078
+        }
+      },
       "entry": "toric.tex",
       "engine": "latex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "quant-ph/9604034v1",
@@ -1469,17 +2109,29 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 7741,
       "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 1018
+        }
+      },
       "entry": "tqecp",
       "engine": "latex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     },
     {
       "paper": "quant-ph/9605021v1",
@@ -1490,17 +2142,29 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
+        "normalized_latex": "complete",
         "references": "complete",
         "source_fidelity": "checked_at_publication"
       },
       "source_fidelity": true,
       "nodes": 5792,
       "reasons": [],
+      "normalization": {
+        "complete": true,
+        "native_compile": "complete",
+        "syntax_parse": "complete",
+        "pdf_text": "equal",
+        "transformations": {
+          "math_delimiter": 716
+        }
+      },
       "entry": "main.tex",
       "engine": "latex",
       "references_complete": true,
       "diagnostic_codes": {},
-      "bibliography_diagnostic_codes": {}
+      "unresolved_reference_binding_count": 0,
+      "unresolved_reference_binding_examples": [],
+      "unresolved_reference_examples_truncated": false
     }
   ]
 }

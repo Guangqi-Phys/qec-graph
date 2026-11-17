@@ -348,8 +348,9 @@ proof dependencies, nine-question answers or model requests.
 
 The new workflow is `tools/prepare_compiled.py`: archive verification and safe
 unpacking → entry/build configuration → isolated native compilation → lossless
-TeX syntax conversion and citation adaptation → independent material validation →
-journaled publication. No static body preparation or AI pass runs before compilation.
+TeX syntax conversion and citation adaptation → normalized LaTeX export → isolated
+recompilation and material validation → journaled publication. No static body
+preparation or AI pass runs before compilation.
 Entry ambiguity requires an explicit `--entry`; a package name is not a paper identity.
 
 | Module | Responsibility |
@@ -358,6 +359,8 @@ Entry ambiguity requires an explicit `--entry`; a package name is not a paper id
 | `preparation/sandbox.py` | Credential-free child environment, bounded tools/process groups, restricted files and network; macOS sandbox-exec or Linux bubblewrap; no unsandboxed fallback |
 | `preparation/references.py` | Classic AUX and Biblatex BCF/BBL bindings; retain literal BIB entries and BBL variants, refsections, sorting contexts, display labels and exact provenance; duplicate/missing keys remain explicit |
 | `preparation/convert.py`, `source/syntax.py` | Preserve author syntax, paragraph reading ranges, heading hierarchy, math TeX, environments, footnotes, table cells/spans, asset links and textual cross-references; keep declaration bodies opaque |
+| `preparation/normalized.py` | Export a derived single-entry LaTeX view; normalize supported math delimiters, expand runtime-bound literal citation wrappers and inline consumed classic BBL only for supported standard classes; verify every copy/edit mapping |
+| `preparation/roundtrip.py` | Recompile the derived engineering copy using the original engine/support files; compare per-page non-whitespace PDF text when pdftotext is available; retain both build outcomes |
 | `preparation/contract.py` | Independent byte/codepoint/line, hash, hierarchy and full source-tiling checks; read a verified material handoff without compilation |
 | `preparation/pipeline.py` | Compile first, then convert, bind originals, validate and publish; failed/partial attempts retain a prior ready material |
 | `source/prepare.py` | Shared journaled publication and the retained static preparation compatibility API; no automatic fallback from the compile-first route |
@@ -369,26 +372,49 @@ macro expansion into readable semantic text is **not implemented**. A unique lit
 one-argument cite wrapper can bind to an emitted AUX key with an exact invocation span;
 unknown wrappers, unresolved cross-references and unmapped body conditionals stay partial.
 The converter preserves unparsed tails as opaque source, never silently discards them.
+Conditional checks use the shared declaration-aware scanner: math commands such as
+`\iff`, declared `\ifff` and conditionals inside opaque macro definitions do not
+count as active body branches.
+
+`normalized.tex` is a bounded source conversion assisted by compilation, not PDF
+inversion or a universal replacement of author classes. It preserves packages,
+definitions, unknown macros, comments, tables and assets. Dollar math delimiters
+are normalized only outside macro/group arguments; those arguments can have
+class-specific expansion behavior. A uniquely declared preamble `\newcommand`
+citation wrapper is expanded only with a resolved runtime key, retaining its
+complete replacement body. Classic BBL inlining is restricted to `article`,
+`report` and `book`; deferred RevTeX bibliography/notes and Biblatex remain external
+with their compiled payloads retained. Any remaining include/dependency limitation
+stays explicit. There is no AI rewriting, scientific classification or theorem inference.
 
 | Artifact | Retained data |
 | --- | --- |
 | `original.package`, `sources/` | Exact input package when supplied as a file, and every original member/asset; original hashes and versions remain distinct from derived artifacts |
 | `build/`, `build.json` | Relevant PDF/AUX/BBL/BCF/FLS/SyncTeX and logs when produced; exact commands, exits, tool version output, actual inputs/outputs, support and dependency hashes |
 | `entry.tex`, `content.json` | A byte-copy assembly created after native compilation and `qecgraph.prepared_syntax/1`: ordered syntax parents/children, outline, paragraph ranges, math, authored environments, tables, assets and reference occurrences |
+| `normalized.tex`, `normalized-map.json` | Derived LaTeX and a full Unicode-codepoint mapping to `entry.tex`; distinguish copied text, explicit format rewrites and compiled bibliography insertions; exact quotations still use original source |
+| `normalization.json`, `normalized-build/` | Independent syntax/recompilation/PDF-text outcomes, exact commands and dependency bindings, transformation counts, derived build logs/PDF and comparison text when available |
 | `references.json` | `qecgraph.prepared_references/1`: emitted keys, scoped bindings, original BIB and consumed BBL text, contexts, identifiers present literally, conflicts and missing data |
 | `source-map.json` | Assembly-to-original mapping when conversion succeeds; nodes separately retain exact original spans and their hashes |
 | `coverage.json`, `diagnostics.json` | Conversion limits, inactive/uncompiled file inventory, opaque content, missing/ambiguous references and stage failures |
-| `manifest.json` | `qecgraph.prepare/3`, `compile-prepare-v2`, source/package hashes, artifact hashes, capabilities, independent stages and `ready`/`partial` state |
+| `manifest.json` | `qecgraph.prepare/3`, `compile-prepare-v4`, source/package hashes, artifact hashes, capabilities, independent stages and `ready`/`partial` state |
 
 A ready handoff requires successful native compilation, complete supported syntax
 conversion, resolved applicable citations/cross-references, and independently verified
-source fidelity. Exit 0 means ready; exit 2 means explicit partial material; exit 1 means
+source fidelity. The normalized view must also pass syntax and native recompilation;
+an observed PDF-text mismatch blocks ready. A missing pdftotext is explicitly recorded
+as an unperformed optional comparison, never as text equality. PDF text equality
+does not establish pixel or mathematical equivalence. Exit 0 means ready; exit 2 means explicit partial material; exit 1 means
 an input/configuration/publication error. A partial retry of a ready output goes to
 `<out>.attempt`. Publication uses a writer lock and the existing backup/journal recovery.
 Source quotation coordinates are UTF-8 Unicode codepoint half-open ranges and 1-based
 lines, with separate byte ranges. Rendered text, PDF positions and SyncTeX hints never
 become exact original quotations. Non-UTF-8 source stays archived and explicitly partial.
 A successful compiler or a JSON validator does not establish scientific correctness.
+`content.json` ranges continue to address `entry.tex`; they must not be applied to
+`normalized.tex`. `read_material` exposes both texts, the normalization report and
+the verified mapping. Older `qecgraph.prepare/3` v2/v3 bundles remain readable;
+new v4 ready materials require the additional normalized artifacts and checks.
 
 ```sh
 python tools/prepare_compiled.py /path/to/source-tree \

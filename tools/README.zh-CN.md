@@ -53,6 +53,14 @@ partial 重试保留旧 ready 并写到 `.attempt`。`--check` 不重建，只�
 macOS 使用 sandbox-exec；Linux 要求 bubblewrap。隔离不支持时不会执行无约束 TeX。
 交付为带 `content.json` 的 `qecgraph.prepare/3`，不是研究记录或 workspace 快照；尚无任意宏展开。
 
+流程导出 `normalized.tex` 和 `normalized-map.json`，再用同一引擎/支持文件重编译派生副本。
+支持的表面改写包括宏/分组参数之外的数学定界符，以及唯一声明、运行时 key 已确认的引用宏展开。
+仅对标准 article/report/book 类内联实际使用的经典 BBL；RevTeX 延迟文献/脚注和 Biblatex
+保留外部调用及内容。未知宏、作者文档类与资产保留。`normalization.json` 独立记录语法检查、
+重编译和可选的 pdftotext 逐页去空白文字比较。检测到不一致时材料保持 partial；文字一致
+不代表像素一致或数学等价。`content.json` 坐标指向 `entry.tex`；派生片段必须先通过已验证的
+统一格式映射定位原文。`--check` 不会重新编译。
+
 下面保留的静态接口独立存在；先编译路线不会自动回退到这里。
 
 `tools/prepare_arxiv.py` 按内容识别 LaTeX 入口，把字面 include 组装成

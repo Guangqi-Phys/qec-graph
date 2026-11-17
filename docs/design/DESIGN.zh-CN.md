@@ -374,7 +374,7 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 引用、附件和精确原文访问。准备不生成 QEC 记录、定理判断、证明依赖、九问答案或模型请求。
 
 新流程为 `tools/prepare_compiled.py`：归档校验与安全解包 → 入口/构建配置 → 隔离的原生编译
-→ 无损 TeX 语法转换与引用适配 → 独立材料验收 → 日志式原子发布。
+→ 无损 TeX 语法转换与引用适配 → 统一 LaTeX 导出 → 隔离重编译与材料验收 → 日志式原子发布。
 编译前不做静态正文准备或 AI 处理。入口歧义使用显式 `--entry`；包名不决定论文身份。
 
 | 模块 | 职责 |
@@ -383,6 +383,8 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 | `preparation/sandbox.py` | 子进程不继承凭据；限制工具、进程组、目录和网络；macOS 使用 sandbox-exec，Linux 使用 bubblewrap；没有无隔离回退 |
 | `preparation/references.py` | 适配经典 AUX 与 Biblatex BCF/BBL；保留字面 BIB、BBL 变体、refsection、排序上下文、显示标签及来源；重复或缺失 key 明示 |
 | `preparation/convert.py`、`source/syntax.py` | 保留作者语法、段落阅读范围、标题层级、数学 TeX、环境、脚注、表格单元格/合并、资产关联及文本交叉引用；宏定义体不当正文解释 |
+| `preparation/normalized.py` | 导出派生的单入口 LaTeX；统一支持的数学定界符，展开运行时 key 已确认的字面引用宏，仅对支持的标准文档类内联实际使用的经典 BBL；校验每段复制/改写映射 |
+| `preparation/roundtrip.py` | 用原引擎/支持文件重新编译派生工程；pdftotext 可用时比较逐页去空白文字，保留两次构建的结果 |
 | `preparation/contract.py` | 独立检查字节/字符/行、哈希、层级和全文覆盖；只读验收材料包时不编译 |
 | `preparation/pipeline.py` | 先编译、再转换，绑定原始材料、验收并发布；失败/partial 尝试保留已有 ready 材料 |
 | `source/prepare.py` | 共用日志式原子发布与保留的静态准备兼容 API；编译路线不会自动回退到它 |
@@ -392,23 +394,40 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 语义阅读文本。唯一的字面单参数 cite 包装宏，可以绑定编译后的 AUX key 并保留精确调用位置；
 未知包装宏、未解析交叉引用、未映射的正文条件分支保持 partial。未解析尾部以 opaque 原文
 保留，不能悄悄删除。
+条件检查使用共用的声明感知扫描器：数学命令 `\iff`、已声明的 `\ifff`，以及不透明宏定义体
+内部的条件命令，不会被当成正文活动分支。
+
+`normalized.tex` 是编译辅助的有限源码转换，不是 PDF 逆向或全面替换作者文档类。
+包、定义、未知宏、注释、表格与资产均保留。仅在宏/分组参数之外统一美元数学定界符；
+参数中的写法可能影响特定宏的展开行为。只有导言区唯一 `\newcommand` 声明、且运行时
+key 已解析的引用包装宏才展开，并保留完整替换体。经典 BBL 内联仅支持 `article`、`report`、
+`book`；RevTeX 的延迟文献/脚注和 Biblatex 保留外部调用及实际编译内容。
+剩余 include/依赖限制明示。不进行 AI 重写、科学分类或定理推断。
 
 | 产物 | 保留的数据 |
 | --- | --- |
 | `original.package`、`sources/` | 文件输入的原始包，以及所有原始成员/附件；原始哈希和版本与派生产物分开 |
 | `build/`、`build.json` | 实际生成的相关 PDF/AUX/BBL/BCF/FLS/SyncTeX 与日志；确切命令、退出状态、工具版本输出、实际输入/输出、支持文件与依赖哈希 |
 | `entry.tex`、`content.json` | 原生编译之后创建的原字节组装，以及 `qecgraph.prepared_syntax/1`：有序语法父子节点、目录、段落范围、数学、作者环境、表格、资产和引用发生位置 |
+| `normalized.tex`、`normalized-map.json` | 派生 LaTeX 及完整的 Unicode codepoint 到 `entry.tex` 映射；区分原样复制、明确格式改写和编译文献插入；精确引句仍使用原始来源 |
+| `normalization.json`、`normalized-build/` | 独立的语法/重编译/PDF 文字结果、确切命令与依赖绑定、转换数量、派生构建日志/PDF，以及可用时的比较文字 |
 | `references.json` | `qecgraph.prepared_references/1`：编译 key、作用域绑定、原始 BIB 与实际使用的 BBL 文本、上下文、字面存在的标识符、冲突和缺项 |
 | `source-map.json` | 转换成功时的组装到原文映射；节点另外保留精确原始范围和哈希 |
 | `coverage.json`、`diagnostics.json` | 转换限制、非活动/未参与阅读的文件清单、opaque 内容、缺失/歧义引用和各阶段失败 |
-| `manifest.json` | `qecgraph.prepare/3`、`compile-prepare-v2`、来源/包哈希、产物哈希、能力、独立阶段和 ready/partial 状态 |
+| `manifest.json` | `qecgraph.prepare/3`、`compile-prepare-v4`、来源/包哈希、产物哈希、能力、独立阶段和 ready/partial 状态 |
 
 ready 要求原生编译成功、支持的语法转换完整、适用引用/交叉引用可解析，并独立验证来源保真。
+统一视图还须通过语法检查和原生重编译；观察到 PDF 文字不一致会阻止 ready。
+缺少 pdftotext 时明确记录为未执行的可选比较，不标记为文字一致。
+PDF 文字一致不能证明像素一致或数学等价。
 退出 0 表示 ready；退出 2 表示显式 partial 材料；退出 1 表示输入/配置/发布错误。
 已有 ready 产物的 partial 重试写到 `<out>.attempt`。发布沿用写锁、备份/日志恢复。
 原文坐标为 UTF-8 解码后的 Unicode codepoint 半开区间、1-based 行号，并分别保留字节范围；
 排版文本、PDF 位置和 SyncTeX 提示不能充当精确原文引句。非 UTF-8 来源仍归档并明确 partial。
 编译成功或 JSON 校验通过不证明科学正确性。
+`content.json` 的范围仍指向 `entry.tex`，不能套到 `normalized.tex` 上。
+`read_material` 返回两种文本、统一格式报告及已验证映射。旧 `qecgraph.prepare/3` v2/v3
+材料仍可读取；新 v4 ready 材料必须包含额外的统一格式产物并通过检查。
 
 ```sh
 python tools/prepare_compiled.py /path/to/source-tree \

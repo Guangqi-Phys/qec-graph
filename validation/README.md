@@ -30,8 +30,10 @@ mathematically verified, or a Lean declaration semantically matched.
 
 The current [preparation acceptance report](preparation_acceptance.json) records
 47 TeX inputs plus a PDF negative case: 45 compile, 40 have complete bibliography
-bindings, and 18 meet the full preparation gate. The other 29 TeX inputs remain
-partial. Twenty source-bound syntax probes pass on five papers; they are mechanical
+bindings, and 22 meet the full preparation gate. The other 25 TeX inputs remain
+partial. Forty derived LaTeX files recompile, 39 pass per-page non-whitespace PDF
+text comparison, and 36 pass the complete normalization stage. Four earlier
+conditional false positives are fixed. Twenty source-bound syntax probes pass on five papers; they are mechanical
 checks, not independent human gold. Three explicit entry overrides are versioned
 in `preparation_entries.json`; historical TeX support URLs/hashes and commands are
 in the report. The pinned machine evaluation remains unaccepted because its
