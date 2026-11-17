@@ -62,3 +62,14 @@ class CompiledReferenceTests(unittest.TestCase):
         value = " {a{b}% ignore }\n c}tail"
         arg = group(value, 0)
         self.assertEqual(value[arg[2] : arg[3]], "{" + arg[0] + "}")
+
+    def test_acm_bibitem_comment_before_key_keeps_the_entry_and_original_span(self):
+        raw = b"\\begin{thebibliography}{1}\n\\bibitem[Author(2025)]% comment\n {key}\nTitle.\\end{thebibliography}"
+        result = self.adapt(
+            {"main.aux": rb"\citation{key}\bibcite{key}{1}", "main.bbl": raw},
+            ["main.aux", "main.bbl"],
+        )
+        self.assertTrue(result["complete"], result)
+        entry = result["entries"][0]
+        a, b = entry["origin"]["bytes"]
+        self.assertEqual(raw[a:b].decode(), entry["raw_tex"])

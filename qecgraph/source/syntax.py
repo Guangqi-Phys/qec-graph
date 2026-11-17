@@ -9,6 +9,23 @@ from pylatexenc.latexwalker import (
 )
 from pylatexenc.macrospec import MacroStandardArgsParser, ParsedMacroArgs, MacroSpec
 
+CITATION_COMMANDS = frozenset(
+    {
+        "cite",
+        "citep",
+        "citet",
+        "citealt",
+        "citealp",
+        "autocite",
+        "parencite",
+        "textcite",
+        "footcite",
+        "nocite",
+        "onlinecite",
+        "citenum",
+    }
+)
+
 
 def _next_token(w, pos, parsing_state):
     while True:
@@ -152,21 +169,7 @@ def declaration_context():
         MacroSpec("newtheorem", args_parser=_OpaqueDeclarationParser("*{[{[")),
         MacroSpec("DeclareMathOperator", args_parser=_OpaqueDeclarationParser("*{{")),
     ]
-    specs += [
-        MacroSpec(n, args_parser="*[[{")
-        for n in (
-            "cite",
-            "citep",
-            "citet",
-            "citealt",
-            "citealp",
-            "autocite",
-            "parencite",
-            "textcite",
-            "footcite",
-            "nocite",
-        )
-    ]
+    specs += [MacroSpec(n, args_parser="*[[{") for n in sorted(CITATION_COMMANDS)]
     specs += [
         MacroSpec(n, args_parser="*{")
         for n in ("label", "ref", "eqref", "pageref", "autoref", "cref", "Cref")

@@ -7,6 +7,26 @@ from qecgraph.source.package import SourceTree
 
 
 class NormalizedLatexTests(unittest.TestCase):
+    def test_incomplete_syntax_keeps_the_lossless_view_without_format_edits(self):
+        source = r"\documentclass{article}\begin{document}$x$\end{document}}"
+        _, normalized, _, report, _, _ = self.prepare(source)
+        self.assertEqual(normalized, source)
+        self.assertEqual(report["transformations"], {})
+        self.assertEqual(report["syntax_parse"], "partial")
+
+    def test_multibib_keeps_its_bibliography_calls(self):
+        source = r"\documentclass{article}\usepackage{multibib}\begin{document}\bibliography{refs}\end{document}"
+        refs = {"mode": "classic", "bindings": []}
+        tree = SourceTree("tex", {"main.tex": source.encode()})
+        assembly, document, _ = convert_source(tree, "main.tex", refs)
+        bbl = (
+            "build/files/main.bbl",
+            rb"\begin{thebibliography}{1}\bibitem{x}Title.\end{thebibliography}",
+        )
+        raw, _, report = normalize_latex(assembly.text, document, refs, bbl)
+        self.assertIn(rb"\bibliography{refs}", raw)
+        self.assertNotIn("compiled_bibliography", report["transformations"])
+
     def prepare(self, source, references=None):
         references = references or {"bindings": []}
         tree = SourceTree("tex", {"main.tex": source.encode()})

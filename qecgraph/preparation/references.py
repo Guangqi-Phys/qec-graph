@@ -13,8 +13,7 @@ from ..source.bibliography import bib_entries, citation_identifiers
 
 def group(text, start, opener="{"):
     """Read a balanced TeX argument, retaining positions and skipping comments."""
-    while start < len(text) and text[start].isspace():
-        start += 1
+    start = _space(text, start)
     if start >= len(text) or text[start] != opener:
         return None
     closer = "}" if opener == "{" else "]"
@@ -38,6 +37,18 @@ def group(text, start, opener="{"):
                 return text[start + 1 : cursor], cursor + 1, start, cursor + 1
         cursor += 1
     return None
+
+
+def _space(text, start):
+    while start < len(text):
+        if text[start].isspace():
+            start += 1
+        elif text[start] == "%":
+            end = text.find("\n", start)
+            start = len(text) if end < 0 else end + 1
+        else:
+            break
+    return start
 
 
 def commands(text, names):

@@ -20,9 +20,7 @@ def normalize_latex(text, document, references, bibliography=None):
     Keep the author class, packages, definitions, unknown macros and assets.
     Each output character belongs to an exact copy or an explicit format edit.
     """
-    edits = _math_edits(text, document)
-    edits.extend(_cite_edits(text, document, references))
-    edits.extend(_bbl_edits(document, references, bibliography))
+    edits = _format_edits(text, document, references, bibliography)
     edits.sort(key=lambda edit: edit["input_range"])
     pieces, segments = [], []
     cursor, output_pos = 0, 0
@@ -110,6 +108,16 @@ def _math_edits(text, document):
     return edits
 
 
+def _format_edits(text, document, references, bibliography):
+    if not document.get("syntax_complete", True):
+        return []
+    return (
+        _math_edits(text, document)
+        + _cite_edits(text, document, references)
+        + _bbl_edits(document, references, bibliography)
+    )
+
+
 def _plain_math_context(node, by_id):
     parent = node["parent"]
     while parent:
@@ -176,6 +184,9 @@ def _append(pieces, segments, text, start, end, output_pos, edit=None):
 def _bbl_edits(document, references, bibliography):
     if not bibliography or references.get("mode") != "classic":
         return []
+    # Legacy v4 mappings remain verifiable under their recorded surface policy.
+    if "syntax_complete" in document and _multiple_bibliographies(document):
+        return []
     classes = [
         n["arguments"][-1]
         for n in document["nodes"]
@@ -206,6 +217,17 @@ def _bbl_edits(document, references, bibliography):
     ]
 
 
+def _multiple_bibliographies(document):
+    for node in document["nodes"]:
+        if node["name"] == "newcites":
+            return True
+        if node["name"] == "usepackage" and any(
+            a and "multibib" in a.strip("{}").split(",") for a in node["arguments"]
+        ):
+            return True
+    return False
+
+
 def validate_normalized(
     text, normalized, mapping, document, references, bibliography=None
 ):
@@ -216,8 +238,7 @@ def validate_normalized(
         or mapping["output_sha256"] != digest(normalized.encode())
     ):
         raise ValueError("Normalized LaTeX identity mismatch")
-    edits = _math_edits(text, document) + _cite_edits(text, document, references)
-    edits += _bbl_edits(document, references, bibliography)
+    edits = _format_edits(text, document, references, bibliography)
     expected_bbl = (
         {"path": bibliography[0], "sha256": digest(bibliography[1])}
         if bibliography

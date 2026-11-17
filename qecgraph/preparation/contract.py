@@ -115,7 +115,9 @@ def _check_normalized(files, document, text):
     if "normalized.tex" not in files:
         manifest = json.loads(files["manifest.json"])
         if (
-            manifest.get("rule_version") == "compile-prepare-v4"
+            str(manifest.get("rule_version", "")).startswith("compile-prepare-v")
+            and manifest["rule_version"]
+            not in {"compile-prepare-v1", "compile-prepare-v2", "compile-prepare-v3"}
             and manifest["status"] == "ready"
         ):
             raise ValueError("Ready preparation is missing normalized LaTeX")

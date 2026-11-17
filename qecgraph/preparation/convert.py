@@ -16,7 +16,7 @@ from ..source.assembly import (
     document_bounds,
     condition_regions,
 )
-from ..source.syntax import declaration_context
+from ..source.syntax import declaration_context, CITATION_COMMANDS
 
 HEADINGS = {
     "part": 0,
@@ -27,18 +27,7 @@ HEADINGS = {
     "paragraph": 5,
     "subparagraph": 6,
 }
-CITES = {
-    "cite",
-    "citep",
-    "citet",
-    "citealt",
-    "citealp",
-    "autocite",
-    "parencite",
-    "textcite",
-    "footcite",
-    "nocite",
-}
+CITES = CITATION_COMMANDS
 TABLES = {"tabular", "tabular*", "tabularx", "longtable", "array"}
 ASSETS = {
     ".pdf",
@@ -239,6 +228,10 @@ def convert_source(tree, entry, references, *, used_files=()):
         "assets": assets,
         "body_range": [body_start, body_end],
         "conditional_ranges": conditional_ranges,
+        "syntax_complete": not any(
+            d["code"] in {"syntax_incomplete", "unparsed_source_preserved"}
+            for d in diagnostics
+        ),
         "capabilities": {
             "original_tex": True,
             "source_spans": "exact_copy",
@@ -396,6 +389,12 @@ def _cross_references(nodes):
 
 def _citations(nodes, references, diagnostics, text, assembly, tree):
     result, located = [], set()
+    required = {(r["section"], r["key"]) for r in references["bindings"]}
+    revtex = any(
+        n["name"] == "documentclass"
+        and any(a and a.startswith("{revtex") for a in n["arguments"])
+        for n in nodes
+    )
     section_ids, section = {}, 0
     by_id = {n["id"]: n for n in nodes}
     for node in nodes:
@@ -422,6 +421,7 @@ def _citations(nodes, references, diagnostics, text, assembly, tree):
         for key in keys:
             if key == "*" or not key:
                 continue
+            key = _citation_key(key, scope, required, revtex)
             located.add((scope, key))
             result.append(
                 {
@@ -432,7 +432,6 @@ def _citations(nodes, references, diagnostics, text, assembly, tree):
                     "origin": "literal_call",
                 }
             )
-    required = {(r["section"], r["key"]) for r in references["bindings"]}
     wrapped, wrapped_keys = _wrapper_calls(nodes, required, text, assembly, tree)
     result.extend(wrapped)
     located.update(wrapped_keys)
@@ -445,6 +444,17 @@ def _citations(nodes, references, diagnostics, text, assembly, tree):
             }
         )
     return result
+
+
+def _citation_key(key, scope, required, revtex):
+    if (
+        revtex
+        and key.startswith("*")
+        and (scope, key) not in required
+        and (scope, key[1:]) in required
+    ):
+        return key[1:]
+    return key
 
 
 def _source_span_for_wrapper(tree, path, start, end):

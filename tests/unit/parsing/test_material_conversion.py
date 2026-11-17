@@ -81,6 +81,13 @@ class MaterialConversionTests(unittest.TestCase):
         _, _, coverage = self.convert({"main.tex": raw})
         self.assertTrue(coverage["complete"], coverage)
 
+    def test_revtex_numeric_citations_and_merged_keys_have_literal_origins(self):
+        raw = rb"\documentclass{revtex4-2}\begin{document}\onlinecite{a}\citenum{b}\cite{a,*c}\end{document}"
+        refs = {"bindings": [{"section": "0", "key": key} for key in ["a", "b", "c"]]}
+        _, doc, coverage = self.convert({"main.tex": raw}, refs)
+        self.assertTrue(coverage["complete"], coverage)
+        self.assertEqual({c["key"] for c in doc["citations"]}, {"a", "b", "c"})
+
     def test_declaration_bodies_stay_opaque_and_literal_cite_wrapper_has_exact_origin(
         self,
     ):
