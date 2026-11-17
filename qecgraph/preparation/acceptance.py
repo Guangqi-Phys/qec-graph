@@ -144,6 +144,11 @@ def generate_report(manifest_path, replay, *, cases_path=None, baseline=None):
         "source_projections_verified": sum(
             r.get("source_projection_verified", False) for r in rows
         ),
+        "preserved_reference_ambiguity": sorted(
+            r["paper"]
+            for r in rows
+            if "cross_reference_ambiguous" in r.get("warnings", [])
+        ),
         "syntax_probes": probes,
         "rows": rows,
         "ready_papers": sorted(r["paper"] for r in rows if r["status"] == "ready"),
@@ -153,7 +158,7 @@ def generate_report(manifest_path, replay, *, cases_path=None, baseline=None):
             "results_sha256": digest((replay / "results.json").read_bytes()),
             **metadata,
         },
-        "criteria": "Native compilation, complete supported source syntax and reference bindings, exact source mapping, and normalized syntax/recompilation. Observed guards additionally require matching instrumented PDF text and validated native log evidence. Ready is not portability or scientific correctness.",
+        "criteria": "Native compilation, complete supported source syntax and bibliography bindings, exact source mapping, and normalized syntax/recompilation. Cross-references may remain ambiguous with all known candidates preserved; missing targets still block ready. Observed guards additionally require matching instrumented PDF text and validated native log evidence. Ready is not unique cross-reference resolution, portability or scientific correctness.",
         "scientific_acceptance": {
             "accepted": False,
             "reason": "No independent scientific gold or extraction is evaluated by this preparation report.",
@@ -336,5 +341,5 @@ def _comparison(baseline, report):
         "after": report["counts"],
         "newly_ready": sorted(after - before),
         "ready_regressions": sorted(before - after),
-        "gate_change_note": "Current preparation adds verified byte projection, pinned native Harvmac grammar, independent per-part capabilities and effective explicit dependency selection. The overall ready gate remains strict. Counts describe mechanical coverage, not scientific extraction quality.",
+        "gate_change_note": "The user-approved v19 preparation gate accepts cross-reference ambiguity with every known candidate retained and independently checked. Unique binding remains partial; missing targets and all other prerequisites still block ready. Newly ready papers reflect this preparation policy change, not resolved author intent or improved scientific extraction quality.",
     }

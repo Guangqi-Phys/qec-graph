@@ -101,6 +101,9 @@ def validate_material(files: dict[str, bytes]) -> dict:
 
     check_dialect(files, document)
     _check_environment_declarations(files, document, text, source_indices)
+    from .crossrefs import check_reference_candidates
+
+    check_reference_candidates(files, document, text, manifest)
     from .view_contract import check_view
 
     check_view(files, document, text)

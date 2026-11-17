@@ -17,7 +17,7 @@ from ..source.assembly import (
     document_bounds,
 )
 from ..source.syntax import declaration_context
-from .crossrefs import cross_references as _cross_references
+from .crossrefs import cross_references as _cross_references, CROSS_REFERENCE_POLICY
 from .conditions import conditional_views
 from .branches import syntax_view
 from .environments import label_declarations
@@ -264,7 +264,7 @@ def convert_source(
             declarations,
         )
     )
-    _record_cross_reference_issues(cross_references, diagnostics)
+    _record_cross_reference_issues(cross_references, diagnostics, observations)
     _record_duplicate_labels(labels, observations)
     coverage = assembly.coverage()
     reasons = list(coverage["reasons"])
@@ -287,6 +287,7 @@ def convert_source(
         "citations": citations,
         "assets": assets,
         "dialect": dialect,
+        "cross_reference_policy": CROSS_REFERENCE_POLICY,
         "environment_label_declarations": declarations,
         "body_range": [body_start, body_end],
         "conditional_ranges": conditional_ranges,
@@ -343,7 +344,7 @@ def _record_asset_issues(nodes, diagnostics):
         diagnostics.append({"code": "asset_target_unresolved", "nodes": unresolved})
 
 
-def _record_cross_reference_issues(cross_references, diagnostics):
+def _record_cross_reference_issues(cross_references, diagnostics, observations):
     body = [row for row in cross_references if row["region"] == "body"]
     for code, status in (
         ("cross_reference_unresolved", "unresolved"),
@@ -355,7 +356,8 @@ def _record_cross_reference_issues(cross_references, diagnostics):
             if any(target["status"] == status for target in row["targets"])
         ]
         if rows:
-            diagnostics.append(
+            destination = observations if status == "ambiguous" else diagnostics
+            destination.append(
                 {
                     "code": code,
                     "nodes": [row["node"] for row in rows],

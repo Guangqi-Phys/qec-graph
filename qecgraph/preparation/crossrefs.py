@@ -1,10 +1,46 @@
 """Source label locations, including literal wrappers confirmed by consumed AUX."""
 
 from collections import Counter
+import json
 import re
 
 from .references import group
 from .options import fields, mask_comments
+
+CROSS_REFERENCE_POLICY = "preserve_ambiguity/1"
+
+
+def check_reference_candidates(files, document, text, manifest):
+    """Rebuild all candidates; preserving ambiguity never permits dropping a target."""
+    policy = document.get("cross_reference_policy")
+    if manifest.get("rule_version") == "compile-prepare-v19" or policy is not None:
+        if policy != CROSS_REFERENCE_POLICY:
+            raise ValueError("Unsupported or missing cross-reference preparation policy")
+    if policy == CROSS_REFERENCE_POLICY:
+        _check_prepared_targets(document, manifest)
+    if policy is None or "references.json" not in files or document.get("dialect"):
+        return  # Legacy bundles retain their original gate; Harvmac checks its grammar.
+    references = json.loads(files["references.json"])
+    labels, rows = cross_references(
+        document["nodes"],
+        references.get("external_labels", []),
+        references.get("observed_labels", []),
+        text,
+        document.get("environment_label_declarations", []),
+    )
+    if labels != document.get("labels", []) or rows != document.get("cross_references", []):
+        raise ValueError("Cross-reference candidates do not match retained source evidence")
+
+
+def _check_prepared_targets(document, manifest):
+    missing = any(
+        target["status"] == "unresolved"
+        for row in document.get("cross_references", [])
+        if row["region"] == "body"
+        for target in row["targets"]
+    )
+    if manifest["status"] == "ready" and missing:
+        raise ValueError("Ready preparation has unresolved cross-reference targets")
 
 
 def _tex_key(value):

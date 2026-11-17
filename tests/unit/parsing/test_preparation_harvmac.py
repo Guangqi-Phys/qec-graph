@@ -57,7 +57,7 @@ See \ifa.
             tree, "main.tex", refs, used_files=["main.tex"], dialect={"name": "harvmac"}
         )
         self.assertEqual(assembly.data, raw)
-        self.assertFalse(coverage["complete"])
+        self.assertTrue(coverage["complete"], coverage)
         self.assertEqual(
             document["cross_references"][0]["targets"][0]["status"], "ambiguous"
         )

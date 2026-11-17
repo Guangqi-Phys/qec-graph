@@ -1,4 +1,6 @@
-"""Report usable preparation parts while preserving the strict overall ready gate."""
+"""Distinguish prepared reference candidates from uniquely bound references."""
+
+from .crossrefs import CROSS_REFERENCE_POLICY
 
 _REFERENCE_ISSUES = {"cross_reference_ambiguous", "cross_reference_unresolved"}
 
@@ -28,7 +30,7 @@ def preparation_capabilities(build, document, coverage, references):
         for target in row["targets"]
         if target["status"] != "resolved"
     ]
-    return {
+    result = {
         "schema": "qecgraph.preparation_capabilities/1",
         "body_syntax": "complete" if body else "partial",
         "bibliography_bindings": "complete"
@@ -40,3 +42,10 @@ def preparation_capabilities(build, document, coverage, references):
         "unresolved_cross_references": unresolved,
         "scope": "Preparation syntax only; no scientific extraction or semantic validation",
     }
+    if document.get("cross_reference_policy") == CROSS_REFERENCE_POLICY:
+        result["cross_reference_preparation"] = (
+            "complete"
+            if body and all(row["status"] == "ambiguous" for row in unresolved)
+            else "partial"
+        )
+    return result

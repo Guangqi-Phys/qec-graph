@@ -36,7 +36,7 @@ class MaterialPipelineTests(unittest.TestCase):
             self.assertEqual(material["document"]["nodes"], [])
             self.assertEqual((out / "sources/main.tex").read_bytes(), raw)
 
-    def test_duplicate_labels_preserve_body_capability_without_claiming_ready(self):
+    def test_duplicate_labels_are_prepared_without_claiming_unique_bindings(self):
         self.calls, self.succeeds = [], True
         with tempfile.TemporaryDirectory() as temp:
             source = Path(temp) / "main.tex"
@@ -48,10 +48,12 @@ class MaterialPipelineTests(unittest.TestCase):
             out = Path(temp) / "material"
             result = prepare_material(source, out, compiler=self.compiler)
             material = read_material(out)
-            self.assertEqual(result["status"], "partial")
+            self.assertEqual(result["status"], "ready")
             caps = material["manifest"]["preparation_capabilities"]
             self.assertEqual(caps["body_syntax"], "complete")
             self.assertEqual(caps["cross_reference_bindings"], "partial")
+            self.assertEqual(caps["cross_reference_preparation"], "complete")
+            self.assertIn("cross_reference_ambiguous", material["manifest"]["warnings"])
             self.assertEqual(
                 len(caps["unresolved_cross_references"][0]["candidates"]), 2
             )
@@ -61,6 +63,60 @@ class MaterialPipelineTests(unittest.TestCase):
             )
             (out / "manifest.json").write_text(json.dumps(manifest))
             with self.assertRaisesRegex(ValueError, "capabilities"):
+                read_material(out)
+
+    def test_missing_reference_still_blocks_preparation_with_ambiguity_preserved(self):
+        self.calls, self.succeeds = [], True
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "main.tex"
+            source.write_text(
+                r"\documentclass{article}\begin{document}"
+                r"\label{dup}First.\label{dup}Second.\ref{dup}\ref{missing}"
+                r"\end{document}"
+            )
+            out = Path(temp) / "material"
+            result = prepare_material(source, out, compiler=self.compiler)
+            material = read_material(out)
+            self.assertEqual(result["status"], "partial")
+            caps = material["manifest"]["preparation_capabilities"]
+            self.assertEqual(caps["cross_reference_preparation"], "partial")
+            self.assertEqual(
+                [row["status"] for row in caps["unresolved_cross_references"]],
+                ["ambiguous", "unresolved"],
+            )
+            self.assertEqual(
+                [row["code"] for row in material["coverage"]["diagnostics"]],
+                ["cross_reference_unresolved"],
+            )
+            manifest = material["manifest"]
+            manifest["status"] = "ready"
+            (out / "manifest.json").write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, "unresolved cross-reference"):
+                read_material(out)
+
+    def test_reopening_rejects_dropped_candidates_even_with_refreshed_hashes(self):
+        from qecgraph.preparation.contract import digest, json_bytes
+
+        self.calls, self.succeeds = [], True
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "main.tex"
+            source.write_text(
+                r"\documentclass{article}\begin{document}"
+                r"\label{dup}First.\label{dup}Second.\ref{dup}\end{document}"
+            )
+            out = Path(temp) / "material"
+            prepare_material(source, out, compiler=self.compiler)
+            material = read_material(out)
+            document = material["document"]
+            target = document["cross_references"][0]["targets"][0]
+            target["nodes"] = target["nodes"][:1]
+            target["status"] = "resolved"
+            raw = json_bytes(document)
+            (out / "content.json").write_bytes(raw)
+            manifest = material["manifest"]
+            manifest["artifacts"]["content.json"] = digest(raw)
+            (out / "manifest.json").write_bytes(json_bytes(manifest))
+            with self.assertRaisesRegex(ValueError, "Cross-reference candidates"):
                 read_material(out)
 
     def test_reopen_compares_macro_include_arguments_in_json_form(self):

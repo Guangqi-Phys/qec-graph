@@ -397,10 +397,10 @@ Selected.
     def test_ambiguous_cross_reference_reports_keys_and_duplicate_observation(self):
         raw = rb"\documentclass{article}\begin{document}\label{dup}One.\label{dup}Two.\ref{dup}\end{document}"
         _, _, coverage = self.convert({"main.tex": raw})
-        self.assertFalse(coverage["complete"])
+        self.assertTrue(coverage["complete"])
         diagnostic = next(
             d
-            for d in coverage["diagnostics"]
+            for d in coverage["observations"]
             if d["code"] == "cross_reference_ambiguous"
         )
         self.assertEqual(diagnostic["occurrences"][0]["keys"], ["dup"])

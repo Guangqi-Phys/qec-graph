@@ -23,6 +23,7 @@ from .projection import prepare_projection, decorate_origins
 from .harvmac import identify
 from .entries import select_build_entry
 from ..source.package import read_bounded, Limits
+from .crossrefs import CROSS_REFERENCE_POLICY
 
 _WARNING_CODES = frozenset(
     {
@@ -32,6 +33,7 @@ _WARNING_CODES = frozenset(
         "document_boundary_guard",
         "drawing_conditional",
         "duplicate_labels",
+        "cross_reference_ambiguous",
         "guarded_document_bounds",
         "preamble_directive_in_conditional",
     }
@@ -106,6 +108,7 @@ def _material(tree, entry, work, engine, support, compiler, loading):
         "citations": [],
         "assets": [],
         "body_range": [None, None],
+        "cross_reference_policy": CROSS_REFERENCE_POLICY,
     }
     entry_data = b""
     references = {"bindings": [], "entries": [], "complete": False}

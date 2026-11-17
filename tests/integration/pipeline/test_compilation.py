@@ -21,6 +21,26 @@ from qecgraph.source.package import SourceTree
     "Set QECGRAPH_TEST_TEX=1 for isolated local TeX checks",
 )
 class LocalCompilerTests(unittest.TestCase):
+    def test_repeated_reference_targets_are_ready_and_preserved_after_native_compile(self):
+        raw = (
+            rb"\documentclass{article}\begin{document}"
+            rb"\begin{equation}x=1\label{dup}\end{equation}"
+            rb"\begin{equation}x=2\label{dup}\end{equation}"
+            rb"See \ref{dup}.\end{document}"
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "main.tex"
+            source.write_bytes(raw)
+            out = Path(temp) / "material"
+            result = prepare_material(source, out)
+            material = read_material(out)
+            self.assertEqual(result["status"], "ready")
+            self.assertEqual(material["normalization"]["pdf_text"], "equal")
+            target = material["document"]["cross_references"][0]["targets"][0]
+            self.assertEqual(target["status"], "ambiguous")
+            self.assertEqual(len(target["nodes"]), 2)
+            self.assertEqual((out / "sources/main.tex").read_bytes(), raw)
+
     def test_explicit_support_is_consumed_before_system_packages(self):
         from qecgraph.preparation.build import tool
 
