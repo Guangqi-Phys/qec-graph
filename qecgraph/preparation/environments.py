@@ -109,14 +109,18 @@ def _declaration(node, path, raw, text):
 
 def _shadowed(name, text):
     escaped = re.escape(name)
-    return bool(
-        re.search(
-            r"\\(?:def|gdef|edef|xdef|let)\s*\\(?:end)?"
-            + escaped
-            + r"(?![A-Za-z@])"
-            + r"|\\(?:newenvironment|renewenvironment|NewDocumentEnvironment|RenewDocumentEnvironment)\*?\s*\{"
-            + escaped
-            + r"\}",
-            text,
-        )
+    command = (
+        r"\\(?:def|gdef|edef|xdef|let)\s*\\(?:end)?"
+        + escaped
+        + r"(?![A-Za-z@])"
+        + r"|\\(?:newcommand|renewcommand|providecommand|DeclareRobustCommand)\*?\s*\{?\s*\\"
+        + escaped
+        + r"(?![A-Za-z@])"
+        + r"|\\(?:New|Renew|Provide|Declare)DocumentCommand\*?\s*\{?\s*\\"
+        + escaped
+        + r"(?![A-Za-z@])"
+        + r"|\\(?:newenvironment|renewenvironment|NewDocumentEnvironment|RenewDocumentEnvironment)\*?\s*\{"
+        + escaped
+        + r"\}"
     )
+    return bool(re.search(command, text))

@@ -89,3 +89,28 @@ class EnvironmentDeclarationTests(unittest.TestCase):
             records = label_declarations(tree, ["main.tex", "plain.sty", "boxes.cls"])
         self.assertEqual([call.args[0] for call in scan.call_args_list], ["boxes.cls"])
         self.assertEqual([record["environment"] for record in records], ["box"])
+
+    def test_command_redefinitions_shadow_declaration_evidence(self):
+        for prefix in (
+            rb"\renewcommand{\newtcolorbox}[2][]{#2}",
+            rb"\DeclareRobustCommand{\newtcolorbox}[2][]{#2}",
+            rb"\NewDocumentCommand{\newtcolorbox}{mm}{#2}",
+            rb"\RenewDocumentCommand{\newtcolorbox}{mm}{#2}",
+        ):
+            with self.subTest(prefix=prefix):
+                tree = SourceTree(
+                    "tex", {"main.tex": prefix + rb"\newtcolorbox{box}[2][]{#1}"}
+                )
+                self.assertEqual(label_declarations(tree, ["main.tex"]), [])
+
+    def test_environment_redefinition_removes_previously_declared_label_capability(self):
+        tree = SourceTree(
+            "tex",
+            {
+                "main.tex": (
+                    rb"\newtcolorbox{box}[2][]{#1}"
+                    rb"\renewcommand{\box}{\relax}"
+                )
+            },
+        )
+        self.assertEqual(label_declarations(tree, ["main.tex"]), [])
