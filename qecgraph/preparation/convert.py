@@ -150,7 +150,7 @@ class _Syntax:
 
 
 def _parse_nodes(text, diagnostics, extra_citations=()):
-    context = declaration_context(extra_citations)
+    context = declaration_context(extra_citations, source_text=text)
     try:
         LatexWalker(
             text, latex_context=context, tolerant_parsing=False

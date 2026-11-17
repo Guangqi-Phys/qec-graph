@@ -6,6 +6,30 @@ from qecgraph.source.package import SourceTree
 
 
 class MaterialConversionTests(unittest.TestCase):
+    def test_source_macro_signatures_and_body_declaration_aliases(self):
+        raw = rb"""\documentclass{article}\usepackage{braket}
+\renewcommand{\H}{H}
+\newcommand{\ketbra}[2]{#1#2}\renewcommand{\ketbra}[1]{#1}
+\begin{document}$\H$ $\braket{a|b}$ $\ketbra{x}$
+\newcommand{\nc}{\providecommand}\nc{\rnc}{\renewcommand}
+\nc{\local}[2]{#1#2}\local{x}{y}
+\rnc{\local}[1]{#1}\local{z}\end{document}"""
+        assembly, doc, coverage = self.convert({"main.tex": raw})
+        self.assertTrue(coverage["complete"], coverage)
+        self.assertEqual(assembly.data, raw)
+        calls = [n for n in doc["nodes"] if n["name"] == "local"]
+        self.assertEqual([n["arguments"] for n in calls], [["{x}", "{y}"], ["{z}"]])
+
+    def test_late_macro_declaration_does_not_change_earlier_calls(self):
+        raw = rb"""\documentclass{article}\begin{document}
+\textbf{Before}\renewcommand{\textbf}{After}\textbf
+\end{document}"""
+        _, doc, coverage = self.convert({"main.tex": raw})
+        self.assertTrue(coverage["complete"], coverage)
+        calls = [n for n in doc["nodes"] if n["name"] == "textbf"]
+        self.assertEqual(calls[0]["arguments"], ["{Before}"])
+        self.assertEqual(calls[1]["arguments"], [])
+
     def test_generated_note_matching_uses_tex_protection_and_citation_spacing(self):
         raw = b"\\documentclass{revtex4-2}\\begin{document}\\footnote{Refs.~\\protect\\cite{a,%\n b}}\\end{document}"
         refs = {

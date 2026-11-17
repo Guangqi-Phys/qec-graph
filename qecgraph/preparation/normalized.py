@@ -71,7 +71,7 @@ def normalize_latex(text, document, references, bibliography=None):
 def _syntax_check(text):
     try:
         _, start, length = LatexWalker(
-            text, latex_context=declaration_context(), tolerant_parsing=False
+            text, latex_context=declaration_context(source_text=text), tolerant_parsing=False
         ).get_latex_nodes()
     except (LatexWalkerParseError, ValueError):
         return "partial"

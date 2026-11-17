@@ -280,14 +280,10 @@ def _wrapper_calls(nodes, required, text, assembly, tree, node_scopes):
             continue
         template, definition = wrappers[node["name"]]
         start, stop = node["range"]
-        arg = group(text, stop)
-        if arg:
-            value, end = arg[:2]
-        else:
-            tail = re.match(r"\s*([A-Za-z0-9])", text[stop:])
-            if not tail:
-                continue
-            value, end = tail[1], stop + tail.end()
+        argument = _wrapper_argument(node, text)
+        if argument is None:
+            continue
+        value, end = argument
         key = template.replace("#1", value)
         scope = node_scopes.get(node["id"], "0")
         if (scope, key) in required:
@@ -307,3 +303,15 @@ def _wrapper_calls(nodes, required, text, assembly, tree, node_scopes):
             )
             located.add((scope, key))
     return result, located
+
+
+def _wrapper_argument(node, text):
+    if len(node["arguments"]) == 1 and node["arguments"][0] is not None:
+        raw = node["arguments"][0]
+        return (raw[1:-1] if raw.startswith("{") else raw), node["range"][1]
+    stop = node["range"][1]
+    arg = group(text, stop)
+    if arg:
+        return arg[:2]
+    tail = re.match(r"\s*([A-Za-z0-9])", text[stop:])
+    return (tail[1], stop + tail.end()) if tail else None
