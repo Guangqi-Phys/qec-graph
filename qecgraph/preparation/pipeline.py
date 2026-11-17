@@ -16,10 +16,12 @@ from .guard_syntax import scan_views
 from .normalized import normalize_latex
 from .roundtrip import verify_roundtrip
 from ..source.normalization import load_for_preparation
-from ..source.prepare import select_entry, publish_artifacts, _check_output_root
+from ..source.prepare import publish_artifacts, _check_output_root
 from ..core.transactions import writer_lock
 from .capabilities import preparation_capabilities
 from .projection import prepare_projection, decorate_origins
+from .harvmac import identify
+from .entries import select_build_entry
 from ..source.package import read_bounded, Limits
 
 _WARNING_CODES = frozenset(
@@ -61,7 +63,7 @@ def prepare_material(
                 load_path = Path(temp) / "original.package"
                 load_path.write_bytes(original)
             tree, loading = load_for_preparation(load_path, repair_legacy_tar=True)
-            selected = select_entry(tree, entry)
+            selected = select_build_entry(tree, entry)
             files, manifest = _material(
                 tree, selected, Path(temp), engine, support, compiler, loading
             )
@@ -130,13 +132,19 @@ def _material(tree, entry, work, engine, support, compiler, loading):
         diagnostics.extend(build.diagnostics)
         if build.success:
             working = prepare_projection(build, tree, support, compiler, files)
+            dialect = identify(build, working)
             view, view_files = _observe_view(build, working, support, compiler)
             references = adapt_references(
-                build, working, source_views=scan_views(working, view)
+                build, working, source_views=scan_views(working, view), dialect=dialect
             )
             files.update(view_files)
             assembly, document, coverage = convert_source(
-                working, entry, references, used_files=build.inputs, build_view=view
+                working,
+                entry,
+                references,
+                used_files=build.inputs,
+                build_view=view,
+                dialect=dialect,
             )
             entry_data = assembly.data
             files["source-map.json"] = json_bytes(assembly.source_map())

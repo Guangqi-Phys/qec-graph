@@ -97,6 +97,9 @@ def validate_material(files: dict[str, bytes]) -> dict:
             raise ValueError("Material node does not copy its original source")
     _validate_roots(document, by_id, len(text))
     _check_reference_origins(files, source_indices)
+    from .harvmac import check_dialect
+
+    check_dialect(files, document)
     _check_environment_declarations(files, document, text, source_indices)
     from .view_contract import check_view
 
@@ -327,6 +330,12 @@ def read_material(root: Path) -> dict:
         else None,
         "normalization": json.loads(files["normalization.json"])
         if "normalization.json" in files
+        else None,
+        "source_projection": json.loads(files["source-projection.json"])
+        if "source-projection.json" in files
+        else None,
+        "source_map": json.loads(files["source-map.json"])
+        if "source-map.json" in files
         else None,
     }
 

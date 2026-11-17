@@ -22,6 +22,8 @@ from .conditions import conditional_views
 from .branches import syntax_view
 from .environments import label_declarations
 from .guard_syntax import scan_views, project_view
+from . import harvmac
+from . import harvmac_refs
 
 HEADINGS = {
     "part": 0,
@@ -67,7 +69,7 @@ def _token_name(node):
 
 class _Syntax:
     def __init__(
-        self, tree, assembly, coordinates, parse_text, inactive=(), legacy_bounds=False
+        self, tree, assembly, coordinates, parse_text, inactive=(), dialect=None
     ):
         self.tree, self.assembly, self.coordinates, self.parse_text = (
             tree,
@@ -76,9 +78,13 @@ class _Syntax:
             parse_text,
         )
         self.text, self.tree_hash = assembly.text, tree.digest
+        self.dialect = dialect
         self.nodes, self.indices, self.source_names = [], {}, set()
         strict = document_bounds(parse_text)
         _, start, end = strict
+        if dialect:
+            start, end, _ = harvmac.body_bounds(assembly.text)
+            start, end = coordinates.to_parse(start), coordinates.to_parse(end)
         self.body_start = coordinates.to_entry(start) if start is not None else None
         self.body_end = coordinates.to_entry(end) if end is not None else None
         self.inactive = inactive
@@ -149,6 +155,20 @@ class _Syntax:
             else "body",
         }
         self.nodes.append(item)
+        if self.dialect:
+            item["arguments"] = [
+                self.text[
+                    self.coordinates.to_entry(n.pos) : self.coordinates.to_entry(
+                        n.pos + n.len
+                    )
+                ]
+                if n
+                else None
+                for n in (
+                    getattr(getattr(node, "nodeargd", None), "argnlist", None) or []
+                )
+            ]
+            harvmac.annotate_node(item, self.text)
         for child in _children(node):
             child_id = self.add(child, identifier, depth + 1)
             if child_id:
@@ -161,8 +181,12 @@ class _Syntax:
         return identifier
 
 
-def _parse_nodes(text, diagnostics, extra_citations=()):
-    context = declaration_context(extra_citations, source_text=text)
+def _parse_nodes(text, diagnostics, extra_citations=(), dialect=None):
+    context = (
+        harvmac.context(text)
+        if dialect
+        else declaration_context(extra_citations, source_text=text)
+    )
     try:
         LatexWalker(
             text, latex_context=context, tolerant_parsing=False
@@ -174,7 +198,9 @@ def _parse_nodes(text, diagnostics, extra_citations=()):
     ).get_latex_nodes()[0]
 
 
-def convert_source(tree, entry, references, *, used_files=(), build_view=None):
+def convert_source(
+    tree, entry, references, *, used_files=(), build_view=None, dialect=None
+):
     """Preserve all source tokens, math and author markup in a versioned material tree.
 
     This adapter does not promise arbitrary macro expansion. Runtime citation and
@@ -183,14 +209,17 @@ def convert_source(tree, entry, references, *, used_files=(), build_view=None):
     assembly = assemble_files(
         tree.files,
         entry,
-        scan_views=scan_views(tree, build_view),
+        scan_views=harvmac.assembly_views(tree, scan_views(tree, build_view), dialect),
         allowed_inputs=set(used_files) if used_files else None,
     )
     text = assembly.text
+    harvmac.adapt_assembly(assembly, dialect)
     coordinates = EntryCoordinates(assembly)
     view_masks, observed_guards = project_view(assembly, build_view)
     parse_text, inactive = syntax_view(
-        coordinates.copy_text(),
+        harvmac.parse_view(coordinates.copy_text())
+        if dialect
+        else coordinates.copy_text(),
         [(coordinates.to_parse(a), coordinates.to_parse(b)) for a, b in view_masks],
         allow_observed_bounds=False,
     )
@@ -200,25 +229,40 @@ def convert_source(tree, entry, references, *, used_files=(), build_view=None):
     diagnostics = [
         d for d in assembly.diagnostics if d["code"] != "conditionals_present"
     ]
-    parsed = _parse_nodes(parse_text, diagnostics, scope_commands(references))
-    syntax = _Syntax(tree, assembly, coordinates, parse_text, inactive)
+    parsed = _parse_nodes(parse_text, diagnostics, scope_commands(references), dialect)
+    syntax = _Syntax(tree, assembly, coordinates, parse_text, inactive, dialect)
     roots = syntax.roots(parsed, diagnostics)
     nodes, source_names = syntax.nodes, syntax.source_names
     body_start, body_end = syntax.body_start, syntax.body_end
     views = conditional_views(
-        text, nodes, body_start, body_end, observed_guards=observed_guards
+        harvmac.scan_text(text) if dialect else text,
+        nodes,
+        body_start,
+        body_end,
+        observed_guards=observed_guards,
     )
-    outline = _outline(nodes)
-    citations = _citations(nodes, references, diagnostics, text, assembly, tree)
+    outline = _outline(
+        nodes,
+        {**HEADINGS, "newsec": 1, "subsec": 2, "appendix": 1} if dialect else HEADINGS,
+    )
+    citations = (
+        harvmac_refs.citations(nodes, references, diagnostics)
+        if dialect
+        else _citations(nodes, references, diagnostics, text, assembly, tree)
+    )
     assets = _assets(tree, nodes, set(used_files))
     _record_asset_issues(nodes, diagnostics)
     declarations = label_declarations(tree, set(used_files) or source_names)
-    labels, cross_references = _cross_references(
-        nodes,
-        references.get("external_labels", []),
-        references.get("observed_labels", []),
-        text,
-        declarations,
+    labels, cross_references = (
+        harvmac_refs.cross_references(nodes)
+        if dialect
+        else _cross_references(
+            nodes,
+            references.get("external_labels", []),
+            references.get("observed_labels", []),
+            text,
+            declarations,
+        )
     )
     _record_cross_reference_issues(cross_references, diagnostics)
     _record_duplicate_labels(labels, observations)
@@ -242,6 +286,7 @@ def convert_source(tree, entry, references, *, used_files=(), build_view=None):
         "outline": outline,
         "citations": citations,
         "assets": assets,
+        "dialect": dialect,
         "environment_label_declarations": declarations,
         "body_range": [body_start, body_end],
         "conditional_ranges": conditional_ranges,
@@ -267,7 +312,12 @@ def convert_source(tree, entry, references, *, used_files=(), build_view=None):
         "files_not_in_reading_view": sorted(set(tree.files) - source_names),
     }
     document["reading_units"] = _reading_units(
-        nodes, text, body_start, body_end, document["inactive_ranges"]
+        nodes,
+        text,
+        body_start,
+        body_end,
+        document["inactive_ranges"],
+        plain=bool(dialect),
     )
     document["labels"], document["cross_references"] = labels, cross_references
     return (
@@ -383,16 +433,16 @@ def _without_comments(text):
     return re.sub(r"(?m)(?<!\\)%[^\n]*", "", text)
 
 
-def _outline(nodes):
+def _outline(nodes, headings=HEADINGS):
     outline, stack = [], []
     for node in nodes:
         if (
             node["kind"] != "macro"
-            or node["name"] not in HEADINGS
+            or node["name"] not in headings
             or node["region"] != "body"
         ):
             continue
-        level = HEADINGS[node["name"]]
+        level = headings[node["name"]]
         while stack and stack[-1][0] >= level:
             stack.pop()
         outline.append(
@@ -407,7 +457,7 @@ def _outline(nodes):
     return outline
 
 
-def _reading_units(nodes, text, start, end, inactive=()):
+def _reading_units(nodes, text, start, end, inactive=(), *, plain=False):
     if start is None:
         return []
     end = end if end is not None else len(text)
@@ -418,7 +468,9 @@ def _reading_units(nodes, text, start, end, inactive=()):
     for node in nodes:
         a, b = node["range"]
         parent = by_id.get(node["parent"], {})
-        if not start <= a < b <= end or parent.get("name") != "document":
+        if not start <= a < b <= end or not (
+            parent.get("name") == "document" or (plain and node["parent"] is None)
+        ):
             continue
         if node["kind"] in {"environment", "math"} or node["name"] in HEADINGS:
             boundaries.update((a, b))

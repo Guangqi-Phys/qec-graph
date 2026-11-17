@@ -54,7 +54,9 @@ def normalize_latex(text, document, references, bibliography=None):
         "transformations": dict(Counter(e["operation"] for e in edits)),
         "source_mapping": "verified",
         "syntax_parse": _syntax_check(
-            normalized, legacy_bounds="observed_guards" not in document
+            normalized,
+            legacy_bounds="observed_guards" not in document,
+            dialect=document.get("dialect"),
         ),
         "document_coordinate_space": "entry.tex",
         "complete": False,
@@ -71,12 +73,17 @@ def normalize_latex(text, document, references, bibliography=None):
     return normalized.encode(), mapping, report
 
 
-def _syntax_check(text, *, legacy_bounds=False):
+def _syntax_check(text, *, legacy_bounds=False, dialect=None):
+    from . import harvmac
+
+    text = harvmac.parse_view(text) if dialect else text
     text, _ = syntax_view(text, allow_observed_bounds=legacy_bounds)
     try:
         _, start, length = LatexWalker(
             text,
-            latex_context=declaration_context(source_text=text),
+            latex_context=harvmac.context(text)
+            if dialect
+            else declaration_context(source_text=text),
             tolerant_parsing=False,
         ).get_latex_nodes()
     except (LatexWalkerParseError, ValueError):
@@ -115,7 +122,7 @@ def _math_edits(text, document):
 
 
 def _format_edits(text, document, references, bibliography):
-    if not document.get("syntax_complete", True):
+    if document.get("dialect") or not document.get("syntax_complete", True):
         return []
     return (
         _guard_edits(text, document)

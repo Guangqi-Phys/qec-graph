@@ -11,6 +11,7 @@ from .contract import digest, json_bytes
 from .guard_syntax import scan_views, project_view
 from .branches import syntax_view
 from .projection import working_tree, decorate_origins
+from . import harvmac
 from ..source.assembly import assemble_files, EntryCoordinates, document_bounds
 from ..source.package import SourceTree
 
@@ -102,9 +103,12 @@ def _check_projection(files, document, text, tree, view):
     assembly = assemble_files(
         tree.files,
         document["entry"],
-        scan_views=scan_views(tree, view),
+        scan_views=harvmac.assembly_views(
+            tree, scan_views(tree, view), document.get("dialect")
+        ),
         allowed_inputs=build.get("inputs"),
     )
+    harvmac.adapt_assembly(assembly, document.get("dialect"))
     if assembly.text != text or json_bytes(assembly.source_map()) != json_bytes(
         json.loads(files["source-map.json"])
     ):
@@ -113,7 +117,9 @@ def _check_projection(files, document, text, tree, view):
     decorate_origins(guards, files)
     coordinates = EntryCoordinates(assembly)
     parse_text, inactive = syntax_view(
-        coordinates.copy_text(),
+        harvmac.parse_view(coordinates.copy_text())
+        if document.get("dialect")
+        else coordinates.copy_text(),
         [(coordinates.to_parse(a), coordinates.to_parse(b)) for a, b in masks],
         allow_observed_bounds=False,
     )
@@ -124,5 +130,7 @@ def _check_projection(files, document, text, tree, view):
         )
     _, start, end = document_bounds(parse_text)
     bounds = [coordinates.to_entry(v) if v is not None else None for v in (start, end)]
+    if document.get("dialect"):
+        bounds = list(harvmac.body_bounds(text)[:2])
     if document["body_range"] != bounds:
         raise ValueError("Document bounds do not match the observed active view")

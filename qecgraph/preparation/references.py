@@ -150,7 +150,7 @@ def _bcf_requests(raw, *, include_wildcards=False):
     return requested
 
 
-def adapt_references(build, tree, *, source_views=None):
+def adapt_references(build, tree, *, source_views=None, dialect=None):
     """Only FLS-listed files are treated as consumed build evidence."""
     project = build.root / "project"
     job = Path(build.entry).stem
@@ -187,6 +187,10 @@ def adapt_references(build, tree, *, source_views=None):
     result["scopes"] = scopes
     result["external_labels"] = imported_labels(scopes, aux, tree)
     result["observed_labels"] = observed_labels(scopes, aux)
+    if dialect:
+        from .harvmac_refs import adapt
+
+        return adapt(build, tree, result)
     return result
 
 

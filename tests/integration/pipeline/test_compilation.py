@@ -21,6 +21,50 @@ from qecgraph.source.package import SourceTree
     "Set QECGRAPH_TEST_TEX=1 for isolated local TeX checks",
 )
 class LocalCompilerTests(unittest.TestCase):
+    def test_harvmac_keeps_native_math_outline_and_compiled_bibliography(self):
+        original = rb"""\input harvmac
+\Title{Native}{A native source}
+\newsec{Introduction}
+\eqn\ifa{x=1.}
+See \ifa. \ref\book{A. Author, A Book.}
+\listrefs
+\end
+"""
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "input"
+            source.mkdir()
+            (source / "main.tex").write_bytes(original)
+            result = prepare_material(source, root / "out")
+            self.assertEqual(result["status"], "ready", result)
+            material = read_material(root / "out")
+            self.assertEqual(material["normalized_tex"].encode(), original)
+            self.assertEqual(
+                material["document"]["outline"][0]["title_tex"], "{Introduction}"
+            )
+            equations = [
+                n
+                for n in material["document"]["nodes"]
+                if n.get("syntax") == "harvmac_eqn"
+            ]
+            self.assertEqual(equations[0]["math_tex"], "x=1.")
+            self.assertEqual(material["references"]["bindings"][0]["key"], "book")
+            self.assertEqual(
+                material["references"]["bindings"][0]["display_tex"], "[1]"
+            )
+            self.assertEqual(material["normalization"]["pdf_text"], "equal")
+            manifest = material["manifest"]
+            files = {p: (root / "out" / p).read_bytes() for p in manifest["artifacts"]}
+            from qecgraph.preparation.contract import validate_material, json_bytes
+
+            document = material["document"]
+            document["dialect"]["grammar_version"] += 1
+            files["content.json"] = json_bytes(document)
+            manifest["artifacts"] = {p: digest(raw) for p, raw in files.items()}
+            files["manifest.json"] = json_bytes(manifest)
+            with self.assertRaisesRegex(ValueError, "Harvmac grammar"):
+                validate_material(files)
+
     def test_invalid_byte_projection_preserves_original_and_rejects_forged_spelling(
         self,
     ):

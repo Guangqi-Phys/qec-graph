@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT))
 from qecgraph.preparation.contract import read_material  # noqa: E402
 from qecgraph.preparation.acceptance import counts, check_cases, replay_metadata  # noqa: E402
 from qecgraph.source.normalization import load_for_preparation  # noqa: E402
-from qecgraph.source.prepare import select_entry  # noqa: E402
+from qecgraph.preparation.entries import select_build_entry  # noqa: E402
 
 
 def main():
@@ -50,7 +50,7 @@ def main():
         try:
             tree, _ = load_for_preparation(package, repair_legacy_tar=True)
             try:
-                entry = select_entry(tree)
+                entry = select_build_entry(tree)
             except ValueError:
                 entry = hints.get(paper)
                 row["entry_selection"] = "configured" if entry else "unresolved"
