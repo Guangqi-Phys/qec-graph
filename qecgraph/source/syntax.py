@@ -189,7 +189,7 @@ def declaration_context(extra_citations=(), *, source_text=None):
         ):
             context.add_context_category(
                 "braket-package",
-                macros=[MacroSpec("braket", args_parser="{")],
+                macros=[MacroSpec("braket", args_parser=MacroStandardArgsParser("{"))],
                 prepend=True,
             )
         learned = _literal_signatures(source_text, context)
@@ -291,6 +291,7 @@ def _declaration_nodes(text, context):
             n
             for n in values
             if isinstance(n, LatexMacroNode)
+            and n.pos is not None
             and not any(a <= n.pos < b for a, b in [*inactive, *uncertain])
         )
     return result
@@ -325,7 +326,7 @@ def _signature(node, text, command):
         )
         if name:
             spec = "[" + "{" * (count - 1) if raw[3] and count else "{" * count
-            return MacroSpec(name[1], args_parser=spec)
+            return MacroSpec(name[1], args_parser=MacroStandardArgsParser(spec))
     if command in {"def", "gdef", "edef", "xdef"}:
         match = re.match(
             r"\\(?:def|gdef|edef|xdef)\s*\\([A-Za-z@]+)((?:#[1-9])*)\s*\{",
@@ -334,5 +335,8 @@ def _signature(node, text, command):
         if match and match[2] == "".join(
             "#" + str(i + 1) for i in range(len(match[2]) // 2)
         ):
-            return MacroSpec(match[1], args_parser="{" * (len(match[2]) // 2))
+            return MacroSpec(
+                match[1],
+                args_parser=MacroStandardArgsParser("{" * (len(match[2]) // 2)),
+            )
     return None
