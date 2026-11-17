@@ -342,5 +342,9 @@ def _comparison(baseline, report):
         "after": report["counts"],
         "newly_ready": sorted(after - before),
         "ready_regressions": sorted(before - after),
-        "gate_change_note": "The user-approved v19 preparation gate accepts cross-reference ambiguity with every known candidate retained and independently checked. Unique binding remains partial; missing targets and all other prerequisites still block ready. Newly ready papers reflect this preparation policy change, not resolved author intent or improved scientific extraction quality.",
+        "gate_change_note": (
+            "The versioned preparation gate is unchanged. Counts alone do not establish behavior preservation; compare retained syntax, source mappings, references and failure outcomes. No scientific extraction quality is evaluated."
+            if baseline["rule_version"] == report["rule_version"]
+            else "The user-approved v19 preparation gate accepts cross-reference ambiguity with every known candidate retained and independently checked. Unique binding remains partial; missing targets and all other prerequisites still block ready. Newly ready papers reflect this preparation policy change, not resolved author intent or improved scientific extraction quality."
+        ),
     }
