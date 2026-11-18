@@ -74,6 +74,17 @@ class PreparationEquivalenceTests(unittest.TestCase):
         manifest["artifacts"] = {p: digest(raw) for p, raw in sorted(files.items())}
         files["manifest.json"] = json_bytes(manifest)
         validate_material(files)
+        # The v20 runtime reports are additive for these fixtures. Keep checking
+        # every artifact in the v19 projection against the original baseline.
+        for name, fields in (
+            ("references.json", ("runtime", "structure_complete")),
+            ("normalization.json", ("bibliography_runtime",)),
+        ):
+            value = json.loads(files[name])
+            for field in fields:
+                value.pop(field, None)
+            manifest["artifacts"][name] = digest(json_bytes(value))
+        manifest["rule_version"] = "compile-prepare-v19"
         return {"manifest": manifest, "compiler_calls": len(calls)}
 
     def test_material_bytes_and_failure_outcomes_match_v19(self):

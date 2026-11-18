@@ -1,3 +1,3 @@
 """Compile-first material preparation; no scientific extraction or model calls."""
 
-PREPARATION_VERSION = "compile-prepare-v19"
+PREPARATION_VERSION = "compile-prepare-v20"

@@ -236,6 +236,7 @@ def _verified_row(replay, row, sample, materials=None):
             "Material package, rule version or model-call boundary mismatch"
         )
     document = material["document"]
+    references = material["references"]
     normalized = material["normalization"] or {}
     build = _listed_json(root, manifest, "build.json", {})
     version_path = "build/logs/engine-version.log"
@@ -244,7 +245,9 @@ def _verified_row(replay, row, sample, materials=None):
         if version_path in manifest["artifacts"]
         else None
     )
-    diagnostics = _listed_json(root, manifest, "diagnostics.json", [])
+    diagnostics = _listed_json(root, manifest, "diagnostics.json", []) + references.get(
+        "diagnostics", []
+    )
     view = _listed_json(root, manifest, "build-view.json", {})
     return {
         **row,
@@ -261,6 +264,11 @@ def _verified_row(replay, row, sample, materials=None):
         ),
         "warnings": manifest.get("warnings", []),
         "diagnostic_codes": sorted({d["code"] for d in diagnostics}),
+        "bibliography_structure_complete": references.get(
+            "structure_complete", references.get("complete", False)
+        ),
+        "bibliography_runtime": references.get("runtime"),
+        "normalized_bibliography_runtime": normalized.get("bibliography_runtime"),
         "normalization_file": bool(material["normalized_map"]),
         "normalization": {
             k: normalized.get(k)

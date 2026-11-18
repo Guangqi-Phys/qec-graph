@@ -13,6 +13,7 @@ from .artifacts import (
     json_bytes as json_bytes,
     safe_path as safe_path,
 )
+from .bibliography_runtime import bibliography_runtime, bibliography_runtime_failed
 
 
 def validate_material(files: dict[str, bytes]) -> dict:
@@ -26,6 +27,7 @@ def validate_material(files: dict[str, bytes]) -> dict:
     sources = _SourceEvidence(files)
     _check_syntax(document, text, sources)
     _check_reference_origins(files, sources)
+    _check_bibliography_runtime(files, manifest)
     from .harvmac import check_dialect
 
     check_dialect(files, document)
@@ -61,6 +63,32 @@ def validate_material(files: dict[str, bytes]) -> dict:
         "nodes": len(document["nodes"]),
         "ready_for_extraction": manifest["status"] == "ready",
     }
+
+
+def _check_bibliography_runtime(files, manifest):
+    if manifest.get("rule_version") != "compile-prepare-v20":
+        return
+    references = json.loads(files["references.json"])
+    if references.get("mode") in {"classic", "biblatex"}:
+        expected = bibliography_runtime(files, manifest["entry"], prefix="build/")
+        if references.get("runtime") != expected:
+            raise ValueError("Bibliography runtime status does not match the final log")
+        if references["complete"] != (
+            references["structure_complete"]
+            and not bibliography_runtime_failed(expected)
+        ):
+            raise ValueError(
+                "Bibliography completeness does not match retained evidence"
+            )
+    normalized = json.loads(files["normalization.json"])
+    if normalized["native_compile"] == "complete":
+        expected = bibliography_runtime(
+            files, manifest["entry"], prefix="normalized-build/"
+        )
+        if normalized.get("bibliography_runtime") != expected or (
+            normalized["complete"] and bibliography_runtime_failed(expected)
+        ):
+            raise ValueError("Normalized bibliography runtime evidence mismatch")
 
 
 def _check_syntax(document, text, sources):

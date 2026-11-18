@@ -91,12 +91,44 @@ class CompiledReferenceTests(unittest.TestCase):
             ambiguous["diagnostics"][0]["code"], "inline_bibliography_scope_ambiguous"
         )
 
-    def adapt(self, files, inputs):
+    def test_rejected_biblatex_bbl_keeps_structure_and_blocks_complete_binding(self):
+        files = {
+            "main.bcf": b'<bcf:controlfile xmlns:bcf="test"><bcf:section number="0"><bcf:citekey>k</bcf:citekey></bcf:section></bcf:controlfile>',
+            "main.bbl": rb"\refsection{0}\entry{k}{article}{}Literal entry.\endentry\endrefsection",
+        }
+        prefix = b"Package biblatex Warning: File '"
+        bbl = b"a" * (79 - len(prefix) - len(b".bbl' is wr")) + b".bbl"
+        log = (
+            prefix + bbl + b"' is wr\nong format version - expected 3.3.\n\n"
+            b"LaTeX Warning: Citation 'k' on page 1 undefined on input line 8.\n"
+            b"LaTeX Warning: Empty bibliography on input line 9.\n"
+        )
+        result = self.adapt(files, ["main.bbl"], log=log)
+        self.assertTrue(result["structure_complete"])
+        self.assertFalse(result["complete"])
+        self.assertEqual(result["runtime"]["status"], "incompatible_bbl")
+        self.assertEqual(result["runtime"]["incompatible_bbl_files"], [bbl.decode()])
+        self.assertEqual(result["runtime"]["undefined_keys"], ["k"])
+        self.assertIn("Literal entry.", result["bindings"][0]["entries"][0]["raw_tex"])
+        # A filtered bibliography can legitimately be empty.
+        filtered = self.adapt(
+            files,
+            ["main.bbl"],
+            log=b"LaTeX Warning: Empty bibliography on input line 9.\n",
+        )
+        self.assertTrue(filtered["complete"])
+
+    def adapt(self, files, inputs, log=None):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             tree = SourceTree("tex", files)
             tree.materialize(root / "project")
-            build = SimpleNamespace(root=root, inputs=inputs, entry="main.tex")
+            build = SimpleNamespace(
+                root=root,
+                inputs=inputs,
+                entry="main.tex",
+                artifacts={"files/main.log": log} if log is not None else {},
+            )
             return adapt_references(build, tree)
 
     def test_balanced_author_label_and_unconsumed_aux_do_not_corrupt_identity(self):

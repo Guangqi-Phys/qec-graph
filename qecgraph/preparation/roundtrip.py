@@ -4,6 +4,7 @@ from __future__ import annotations
 
 
 from .artifacts import compiled_bibliography
+from .bibliography_runtime import bibliography_runtime, bibliography_runtime_failed
 from .execution import compare_pdf_text as _compare_pdf_text, compile_derived
 from ..source.package import SourceTree
 
@@ -26,10 +27,14 @@ def verify_roundtrip(build, tree, normalized, report, support, compiler):
     )
     report["derived_tree_sha256"] = derived_tree.digest
     if derived.success:
+        report["bibliography_runtime"] = bibliography_runtime(
+            derived.artifacts, derived.entry
+        )
         _compare_pdf_text(build, derived, report)
     report["complete"] = (
         derived.success
         and report["syntax_parse"] == "complete"
         and report["pdf_text"] not in {"different", "failed"}
+        and not bibliography_runtime_failed(report["bibliography_runtime"])
     )
     return {"normalized-build/" + p: raw for p, raw in derived.artifacts.items()}

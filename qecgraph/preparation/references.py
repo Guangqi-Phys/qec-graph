@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 from ..source.bibliography import bib_entries
 from .reference_syntax import group as group, commands as commands, origin as origin
 from .reference_syntax import _record
+from .bibliography_runtime import record_bibliography_runtime
 
 
 def _entries(path, raw, original, *, scan_text=None):
@@ -112,6 +113,7 @@ def adapt_references(build, tree, *, source_views=None, dialect=None):
         from .harvmac_refs import adapt
 
         return adapt(build, tree, result)
+    record_bibliography_runtime(result, build)
     return result
 
 

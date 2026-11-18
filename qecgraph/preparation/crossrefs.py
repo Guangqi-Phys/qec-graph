@@ -13,7 +13,10 @@ from .artifacts import CROSS_REFERENCE_POLICY as CROSS_REFERENCE_POLICY
 def check_reference_candidates(files, document, text, manifest):
     """Rebuild all candidates; preserving ambiguity never permits dropping a target."""
     policy = document.get("cross_reference_policy")
-    if manifest.get("rule_version") == "compile-prepare-v19" or policy is not None:
+    if (
+        manifest.get("rule_version") in {"compile-prepare-v19", "compile-prepare-v20"}
+        or policy is not None
+    ):
         if policy != CROSS_REFERENCE_POLICY:
             raise ValueError(
                 "Unsupported or missing cross-reference preparation policy"
