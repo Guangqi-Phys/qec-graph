@@ -35,6 +35,8 @@ bundle with `normalized.tex`, independently checked source mappings, derived
 recompilation evidence and explicit `ready`/`partial` status. Author classes and
 remaining dependencies are retained. Bibliography/document scopes, source macro
 argument shapes and supported inactive-source ranges are explicit in the handoff.
+Bibliography entries and final TeX diagnostics are retained together. A rejected
+BBL format or undefined citation reported by TeX makes the material partial.
 Cross-reference ambiguity is prepared with all candidates preserved; missing targets
 still block ready. Ready does not promise a unique target for every reference.
 It makes no model requests or

@@ -361,6 +361,7 @@ Entry ambiguity requires an explicit `--entry`; a package name is not a paper id
 | `preparation/execution.py` | Own native command execution, derived-build engine/support wiring and PDF-text comparison; preserve the injectable compiler and sandbox |
 | `preparation/material.py` | Own one attempt's stage results, diagnostics, capability/status calculation and serialized handoff; no I/O or compilation |
 | `preparation/build.py` | Build the unchanged engineering copy; choose an allowlisted engine, preserve the same job's supplied BBL, run BibTeX/Biber when needed, collect actual FLS inputs/outputs and dependency hashes |
+| `preparation/tex_passes.py` | Compare bounded recorder-listed auxiliary output and final rerun messages to choose two or three TeX passes |
 | `preparation/entries.py` | Select a native build entry using a disposable recognition view; never rewrite the compiler input or resolve ambiguous roots by filename |
 | `preparation/projection.py` | After original compilation, spell consumed invalid UTF-8 bytes as TeX hexadecimal input, record reversible segments and original byte locators, and require matching native inputs/PDF text |
 | `preparation/harvmac.py`, `harvmac_refs.py` | Adapt a pinned, consumed native Harvmac grammar, original structure and compiled bibliography without changing the engine or replacing the class |
@@ -368,6 +369,7 @@ Entry ambiguity requires an explicit `--entry`; a package name is not a paper id
 | `preparation/compatibility.py` | Retry only an exact known class hash and native failure with a recorded build preamble; retain the failed log and preserve source bytes/job name |
 | `preparation/sandbox.py` | Credential-free child environment, bounded tools/process groups, restricted files and network; macOS sandbox-exec or Linux bubblewrap; no unsandboxed fallback |
 | `preparation/references.py` | Classic AUX and Biblatex BCF/BBL bindings; retain literal BIB entries and BBL variants, refsections, sorting contexts, display labels and exact provenance; duplicate/missing keys remain explicit |
+| `preparation/bibliography_runtime.py` | Read citation failures and BBL format rejection from the final log and bind the finding to its log hash |
 | `preparation/scopes.py`, `citations.py`, `crossrefs.py` | Keep document/bibliography namespaces distinct; locate literal calls, AUX-confirmed wrappers and exact generated-note payloads; imported AUX targets remain metadata |
 | `preparation/conditions.py`, `branches.py`, `guard_syntax.py` | Classify guards, project verified branch observations and narrow lexical inactive ranges without altering original source |
 | `preparation/build_view.py`, `view_contract.py` | Instrument a separate copy after compilation; require stable native branch logs and equal PDF text, then independently validate instrumentation and source-view projection |
@@ -389,12 +391,20 @@ adapter with the original engine/support settings. The contract independently ch
 retained evidence and never invokes a native tool or a model. Architecture tests
 protect these boundaries.
 
-Source indexes and parsed projection evidence are cached only within one validation
-call. Each AUX file/encoding is indexed once; every label still checks its full
-locator and copied text. The next read verifies current bytes again. Projection
-origin decoration decodes each source once per traversal. These are behavior-preserving
-refactors: `compile-prepare-v19`, output schemas, stable material bytes and public CLI
-semantics remain unchanged; existing bundles and downstream snapshots are not rebuilt.
+Each read verifies the current artifact bytes and reuses decoded JSON, parsed
+projection evidence and source indexes for that read. Every label checks its full
+locator and copied text. Acceptance checks row claims and source probes one paper
+at a time. The replay binds each row to the output directory, status and manifest
+hash returned by that invocation, including a partial retry written to `<out>.attempt`.
+Stage diagnostics preserve the originals and compiled evidence available from the
+attempt. Publication and integrity checks remain responsible for validating the bundle.
+
+The original and derived native builds each have a three-pass cap. A LaTeX build
+can finish after two passes when recorder-listed auxiliary output including the main
+AUX has identical bytes across passes and the current log has no known rerun request.
+Builds with limited feedback, changing outputs or rerun messages use all three passes.
+The build report records observed convergence, the pass limit or unavailable feedback.
+The normalized view is still compiled independently and receives its own evidence.
 
 The main representation is source-mapped TeX syntax JSON, with the original TeX
 available throughout. It does not depend on HTML/MathML or attempt to recover author
@@ -424,6 +434,9 @@ its first optional argument as a standalone `#1` option, and AUX uniquely emitte
 `\newlabel{key}`. Literal argument counts 1–4 with a default are supported; dynamic,
 conditional or shadowed declarations remain unsupported. Declaration source spans,
 raw TeX and hashes are retained. Nested or duplicate `label` fields do not bind.
+An unguarded literal package load in the same source allows a later no-op
+`\providecommand` for an already defined command. Older v19 bundles can be read
+with either of the two declaration rules used to publish them.
 An unconfirmed option stays unresolved. A case-only
 `\includegraphics` match is accepted only when the build FLS consumed that path, and
 `asset_case_mismatch` records that the package is not portable to case-sensitive
@@ -486,7 +499,7 @@ not become body prose. The raw TeX and normalized view retain these bytes, inclu
 malformed syntax that TeX never executes. Consumers must honor the prepared syntax
 and inactive metadata rather than treat every raw-source token as active content.
 
-New `compile-prepare-v19` output requires strict document boundaries. The v10
+Current `compile-prepare-v20` output requires strict document boundaries. The v10
 unique-document-marker fallback is not used for new conversion. Supported literal,
 line-bounded `\ifdefined\control` and `\ifx\control\control` guards in consumed
 sources can instead be observed by compiling a separately instrumented copy after
@@ -539,17 +552,22 @@ stays explicit. There is no AI rewriting, scientific classification or theorem i
 | `build/`, `build.json` | Relevant PDF/AUX/BBL/BCF/FLS/SyncTeX and logs when produced; exact commands, exits, tool version output, actual inputs/outputs, support and dependency hashes |
 | `build-view.json`, `build-view/` | Optional native guard probe: original/instrumented identities, precise markers, retained source instrumentation and native build/PDF-text evidence |
 | `source-projection.json`, `projected-sources/`, `projection-build/` | Optional reversible byte spelling, full maps/hashes, isolated native build and required PDF-text evidence; originals remain separate |
-| `entry.tex`, `content.json` | A byte-copy assembly of verified working sources created after native compilation and `qecgraph.prepared_syntax/1`: ordered syntax parents/children, outline, paragraph ranges, math, authored environments, tables, assets and reference occurrences |
+| `entry.tex`, `content.json` | A byte-copy assembly of verified working sources created after native compilation and compact `qecgraph.prepared_syntax/1` JSON with ordered syntax parents/children, outline, paragraph ranges, math, authored environments, tables, assets and reference occurrences |
 | `normalized.tex`, `normalized-map.json` | Derived LaTeX and a full Unicode-codepoint mapping to `entry.tex`; distinguish copied text, explicit format rewrites and compiled bibliography insertions; exact quotations still use original source |
 | `normalization.json`, `normalized-build/` | Independent syntax/recompilation/PDF-text outcomes, exact commands and dependency bindings, transformation counts, derived build logs/PDF and comparison text when available |
-| `references.json` | `qecgraph.prepared_references/1`: emitted keys, scoped bindings, original BIB and consumed BBL text, contexts, identifiers present literally, conflicts and missing data |
+| `references.json` | `qecgraph.prepared_references/1` with emitted keys, scoped bindings, original BIB and consumed BBL text, contexts, literal identifiers, conflicts, missing data and final-log observations |
 | `source-map.json` | Assembly-to-original mapping when conversion succeeds; nodes separately retain exact original spans and their hashes |
 | `coverage.json`, `diagnostics.json` | Conversion limits, inactive/uncompiled file inventory, opaque content, missing/ambiguous references with keys, duplicate-label observations, guarded-boundary and case-only-asset observations, and stage failures |
-| `manifest.json` | `qecgraph.prepare/3`, `compile-prepare-v19`, source/package hashes, artifact hashes, capabilities, independent stages, non-blocking `warnings`, independently checked `preparation_capabilities` and strict `ready`/`partial` state |
+| `manifest.json` | `qecgraph.prepare/3`, `compile-prepare-v20`, source/package hashes, artifact hashes, capabilities, independent stages, non-blocking `warnings`, independently checked `preparation_capabilities` and strict `ready`/`partial` state |
 
 A ready handoff requires successful native compilation, complete supported syntax
 conversion, bound applicable bibliography citations, preserved cross-reference candidates, and independently verified
 source fidelity, including unambiguous asset links and no blocking diagnostics.
+For classic and Biblatex bibliographies, `structure_complete` records the source
+adapter's verdict. `runtime` records the final TeX log hash, rejected BBL filenames
+and undefined citation keys when observed. A rejected BBL or undefined citation
+blocks readiness while retaining the author bibliography. Normalization also checks
+the final log from its own build.
 The normalized view must also pass syntax and native recompilation;
 an observed PDF-text mismatch blocks ready. A missing pdftotext is explicitly recorded
 as an unperformed optional comparison, never as text equality. PDF text equality

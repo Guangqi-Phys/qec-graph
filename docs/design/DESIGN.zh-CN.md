@@ -386,6 +386,7 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 | `preparation/execution.py` | 统一原生命令、派生构建的引擎/支持配置和 PDF 文字比较；保留可注入编译器与隔离 |
 | `preparation/material.py` | 管理一次准备的阶段结果、诊断、能力/完成状态和序列化交付；不做 I/O 或编译 |
 | `preparation/build.py` | 编译未改写的工程副本；限定引擎、保留同一 job 的已有 BBL、必要时执行 BibTeX/Biber，收集 FLS 实际输入/输出和依赖哈希 |
+| `preparation/tex_passes.py` | 对照 FLS 记录的有界辅助输出与最终日志的重跑提示，决定执行两轮或三轮 TeX |
 | `preparation/entries.py` | 用临时识别视图选择原生构建入口；不改编译输入，不按文件名猜歧义入口 |
 | `preparation/projection.py` | 原编译后转写实际消费的非 UTF-8 字节，记录可逆段和原始字节定位，要求相同原生输入/PDF 文字 |
 | `preparation/harvmac.py`、`harvmac_refs.py` | 适配固定且实际消费的 Harvmac 原生语法、原文结构和编译书目；不换引擎或文档类 |
@@ -393,6 +394,7 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 | `preparation/compatibility.py` | 仅对确切已知文档类哈希和原生失败，用有记录的构建前导重试；保留首次失败日志、原始源码字节与 job 名称 |
 | `preparation/sandbox.py` | 子进程不继承凭据；限制工具、进程组、目录和网络；macOS 使用 sandbox-exec，Linux 使用 bubblewrap；没有无隔离回退 |
 | `preparation/references.py` | 适配经典 AUX 与 Biblatex BCF/BBL；保留字面 BIB、BBL 变体、refsection、排序上下文、显示标签及来源；重复或缺失 key 明示 |
+| `preparation/bibliography_runtime.py` | 读取最终 TeX 日志中的引用失败和 BBL 格式拒绝，记录对应日志哈希 |
 | `preparation/scopes.py`、`citations.py`、`crossrefs.py` | 区分文档/书目命名空间；定位字面调用、AUX 确认的包装宏与精确脚注内容；外部 AUX 目标仅为元数据 |
 | `preparation/conditions.py`、`branches.py`、`guard_syntax.py` | 记录条件类别，投影已验证分支和有限的字面非活动范围，不改原文 |
 | `preparation/build_view.py`、`view_contract.py` | 原始编译后单独插桩编译；要求稳定原生日志与相同 PDF 文字，独立核验插桩及来源投影 |
@@ -411,10 +413,15 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 构建适配器，传递原引擎和支持文件。contract 独立核验保留证据，不执行原生工具或
 模型。架构测试保护这些边界。
 
-来源索引和解析过的投影证据只在一次验收调用内缓存。同一 AUX 文件/编码只建一次
-索引，但每条标签仍校验完整定位和复制文字；下一次读取重新验证当前字节。投影来源
-修饰每次遍历对同一来源只解码一次。这些属于行为保持的重构：`compile-prepare-v19`、
-输出 schema、稳定材料字节和公开 CLI 语义不变，不重建已有材料或后续快照。
+每次读取重新验证产物字节，在该次读取内复用已解码的 JSON、投影证据和来源索引。
+每条标签都校验完整定位和复制文字。验收逐篇核验回放结果与来源探针。回放行绑定本次
+命令返回的产物目录、状态和 manifest 哈希，也会记录写到 `<out>.attempt` 的 partial。
+准备阶段异常保留原包和当时已有的编译证据，由发布和完整性检查验收材料包。
+
+原文与派生构建分别最多执行三轮。LaTeX 的主要 AUX 和 FLS 记录的其他辅助输出若连续
+两轮字节一致，且当前日志没有已知的重跑请求，可以结束构建。辅助证据不足、输出仍变化、
+日志请求重跑时继续至第三轮。构建报告记录收敛、达到上限或没有可用辅助证据。
+规范化视图独立编译并保留自己的证据。
 
 主格式为带来源映射的 TeX 语法 JSON，始终可以访问原始 TeX。不依赖 HTML/MathML，也不
 试图从 PDF 恢复全部作者结构。TeX 编译提供运行时引用观测；**尚未实现**任意宏展开成
@@ -435,7 +442,9 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 `newtcolorbox` 声明，把首个可选参数作为独立 `#1` 选项转交，
 并且 AUX 唯一发出 `\newlabel{key}` 时才成为标签。仅支持有默认值、字面参数数为
 1–4 的声明；动态、条件内或有重定义歧义的声明不支持。声明保留精确来源、原始 TeX 和
-哈希；嵌套或重复的 `label` 字段不绑定。未确认的选项保持未解析。仅大小写不同的 `\includegraphics` 目标只有在构建 FLS 实际
+哈希；嵌套或重复的 `label` 字段不绑定。同一文件无条件加载包后，对已经定义的命令
+执行的 `\providecommand` 作为空操作处理。旧 v19 材料按发布时使用的两种声明规则复核。
+未确认的选项保持未解析。仅大小写不同的 `\includegraphics` 目标只有在构建 FLS 实际
 读取该路径时才接受，并记录 `asset_case_mismatch`，不声称可移植到大小写敏感文件系统。
 
 字面 `\nocite{*}` 按书目作用域展开为 BBL/AUX 实际发出的条目，并绑定精确调用位置。
@@ -497,15 +506,18 @@ Multibib 调用同样保留。源码语法不完整时，统一视图只复制�
 | `build/`、`build.json` | 实际生成的相关 PDF/AUX/BBL/BCF/FLS/SyncTeX 与日志；确切命令、退出状态、工具版本输出、实际输入/输出、支持文件与依赖哈希 |
 | `build-view.json`、`build-view/` | 可选原生分支探针：原始/插桩身份、精确标记、插桩源码与原生构建/PDF 文字证据 |
 | `source-projection.json`、`projected-sources/`、`projection-build/` | 可选可逆字节转写、完整映射/哈希、隔离原生构建及必需的 PDF 文字证据；原始文件独立保留 |
-| `entry.tex`、`content.json` | 原生编译之后对已验证工作来源创建的原字节组装，以及 `qecgraph.prepared_syntax/1`：有序语法父子节点、目录、段落范围、数学、作者环境、表格、资产和引用发生位置 |
+| `entry.tex`、`content.json` | 原生编译之后对已验证工作来源创建的原字节组装，以及紧凑的 `qecgraph.prepared_syntax/1` JSON，保留有序语法父子节点、目录、段落范围、数学、作者环境、表格、资产和引用位置 |
 | `normalized.tex`、`normalized-map.json` | 派生 LaTeX 及完整的 Unicode codepoint 到 `entry.tex` 映射；区分原样复制、明确格式改写和编译文献插入；精确引句仍使用原始来源 |
 | `normalization.json`、`normalized-build/` | 独立的语法/重编译/PDF 文字结果、确切命令与依赖绑定、转换数量、派生构建日志/PDF，以及可用时的比较文字 |
-| `references.json` | `qecgraph.prepared_references/1`：编译 key、作用域绑定、原始 BIB 与实际使用的 BBL 文本、上下文、字面存在的标识符、冲突和缺项 |
+| `references.json` | `qecgraph.prepared_references/1`，包含编译 key、作用域绑定、原始 BIB 与实际使用的 BBL 文本、上下文、字面标识符、冲突、缺项和最终日志观测 |
 | `source-map.json` | 转换成功时的组装到原文映射；节点另外保留精确原始范围和哈希 |
 | `coverage.json`、`diagnostics.json` | 转换限制、非活动/未参与阅读的文件清单、opaque 内容、带 key 的缺失/歧义引用、重复标签观测、原生分支与大小写资产观测，以及各阶段失败 |
-| `manifest.json` | `qecgraph.prepare/3`、`compile-prepare-v19`、来源/包哈希、产物哈希、能力、独立阶段、非阻断 `warnings`、独立核验的 `preparation_capabilities` 和严格的 ready/partial 状态 |
+| `manifest.json` | `qecgraph.prepare/3`、`compile-prepare-v20`、来源/包哈希、产物哈希、能力、独立阶段、非阻断 `warnings`、独立核验的 `preparation_capabilities` 和严格的 ready/partial 状态 |
 
 ready 要求原生编译成功、支持的语法转换完整、适用书目引用已绑定、交叉引用候选已保留，并独立验证来源保真；资产调用须无歧义，且没有阻断性诊断。
+经典书目和 Biblatex 的 `structure_complete` 反映适配器的结构判定。`runtime` 保留最终
+TeX 日志哈希、被拒的 BBL 文件名以及观测到的未定义引用键。拒绝 BBL 或出现未定义引用
+会阻止 ready，作者书目仍保留。规范化也检查其独立构建中的最终日志。
 统一视图还须通过语法检查和原生重编译；观察到 PDF 文字不一致会阻止 ready。
 缺少 pdftotext 时明确记录为未执行的可选比较，不标记为文字一致。
 PDF 文字一致不能证明像素一致或数学等价。
@@ -525,7 +537,7 @@ PDF 文字一致不能证明像素一致或数学等价。
 不带此策略的旧材料保持原版本的含义。不猜依赖边或唯一目标。编译成功或 JSON 校验通过不证明科学正确性。
 `content.json` 的范围仍指向 `entry.tex`，不能套到 `normalized.tex` 上。
 
-新 `compile-prepare-v19` 产物要求严格文档边界，不再使用 v10 的唯一文档标记回退。
+当前 `compile-prepare-v20` 产物要求严格文档边界。唯一文档标记回退用于读取 v10 产物。
 原文编译成功后，可对实际消费来源中独占行的字面 `\ifdefined\control` 和
 `\ifx\control\control` 做独立副本插桩编译。只有原生日志稳定观测到单一分支、探针
 编译成功且逐页去空白 PDF 文字与原构建相等时，才能选择该分支。行内/动态条件、未执行
