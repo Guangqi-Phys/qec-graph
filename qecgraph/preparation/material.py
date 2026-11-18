@@ -103,7 +103,7 @@ class Material:
         self.files.update(
             {
                 "entry.tex": self.entry_data,
-                "content.json": json_bytes(self.document),
+                "content.json": json_bytes(self.document, indent=None),
                 "references.json": json_bytes(self.references),
                 "build.json": json_bytes(self.build_report),
                 "coverage.json": json_bytes(self.coverage),

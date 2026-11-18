@@ -47,10 +47,15 @@ def digest(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
-def json_bytes(value) -> bytes:
-    return (
-        json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
-    ).encode()
+def json_bytes(value, *, indent: int | None = 2) -> bytes:
+    encoded = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        indent=indent,
+        separators=(",", ":") if indent is None else None,
+    )
+    return (encoded + "\n").encode()
 
 
 class ArtifactJSON:

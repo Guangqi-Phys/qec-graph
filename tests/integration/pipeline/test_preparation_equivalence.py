@@ -74,8 +74,13 @@ class PreparationEquivalenceTests(unittest.TestCase):
         manifest["artifacts"] = {p: digest(raw) for p, raw in sorted(files.items())}
         files["manifest.json"] = json_bytes(manifest)
         validate_material(files)
-        # The v20 runtime reports are additive for these fixtures. Keep checking
-        # every artifact in the v19 projection against the original baseline.
+        # Restore the v19 spelling and project the additive runtime fields out
+        # so the original baseline can still check every artifact.
+        content = json.loads(files["content.json"])
+        pretty = json_bytes(content)
+        if content["nodes"]:
+            assert len(files["content.json"]) < len(pretty)
+        manifest["artifacts"]["content.json"] = digest(pretty)
         for name, fields in (
             ("references.json", ("runtime", "structure_complete")),
             ("normalization.json", ("bibliography_runtime",)),
