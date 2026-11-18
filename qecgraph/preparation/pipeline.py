@@ -70,6 +70,7 @@ def prepare_material(
         return {
             "out": str(destination),
             "previous_retained": destination != out,
+            "manifest_sha256": digest(files["manifest.json"]),
             **{
                 k: manifest[k]
                 for k in (

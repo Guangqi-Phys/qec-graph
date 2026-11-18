@@ -9,8 +9,9 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from qecgraph.preparation.artifacts import digest, json_bytes, safe_path  # noqa: E402
+from qecgraph.preparation.artifacts import digest, json_bytes  # noqa: E402
 from qecgraph.preparation.contract import read_material  # noqa: E402
+from qecgraph.preparation.acceptance import replay_material_root  # noqa: E402
 from qecgraph.core.transactions import atomic_bytes  # noqa: E402
 
 STABLE_ARTIFACTS = {
@@ -38,8 +39,8 @@ MANIFEST_FIELDS = (
 )
 
 
-def material_signature(root):
-    material = read_material(root)
+def material_signature(root, expected_manifest_sha256=None):
+    material = read_material(root, expected_manifest_sha256=expected_manifest_sha256)
     manifest = material["manifest"]
     document = {
         key: value
@@ -102,10 +103,12 @@ def compare_replays(baseline, current):
 
 
 def _compare_paper(paper, baseline, current, before, after):
-    name = safe_path(paper.replace("/", "_"))
+    old_path = replay_material_root(baseline, before)
+    new_path = replay_material_root(current, after)
     if before["status"] == "failed" and after["status"] == "failed":
         if any(
-            (root / name / "manifest.json").exists() for root in (baseline, current)
+            root is not None and (root / "manifest.json").exists()
+            for root in (old_path, new_path)
         ):
             raise ValueError("Failed replay row conflicts with retained material")
         return {
@@ -115,7 +118,8 @@ def _compare_paper(paper, baseline, current, before, after):
         }
     if "failed" in {before["status"], after["status"]}:
         return {"paper": paper, "differences": ["preparation_outcome"]}
-    old, new = material_signature(baseline / name), material_signature(current / name)
+    old = material_signature(old_path, before.get("material_manifest_sha256"))
+    new = material_signature(new_path, after.get("material_manifest_sha256"))
     return {"paper": paper, "differences": [key for key in old if old[key] != new[key]]}
 
 

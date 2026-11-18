@@ -13,9 +13,68 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from qecgraph.preparation.contract import read_material  # noqa: E402
-from qecgraph.preparation.acceptance import counts, check_cases, replay_metadata  # noqa: E402
+from qecgraph.preparation.acceptance import (  # noqa: E402
+    counts,
+    check_cases,
+    replay_material_root,
+    replay_metadata,
+)
 from qecgraph.source.normalization import load_for_preparation  # noqa: E402
 from qecgraph.preparation.entries import select_build_entry  # noqa: E402
+
+
+def _record_attempt(output, result, row):
+    row["exit"] = result.returncode
+    if result.returncode not in {0, 2}:
+        row.update(
+            status="failed",
+            error=result.stderr.decode(errors="replace")[-800:]
+            or f"Exit {result.returncode}",
+        )
+        return
+    receipt = json.loads(result.stdout)
+    status = "ready" if result.returncode == 0 else "partial"
+    if receipt["status"] != status or not receipt["manifest_sha256"]:
+        raise ValueError(
+            "Preparation receipt disagrees with its exit status or has no manifest hash"
+        )
+    location = Path(receipt["out"])
+    folder = replay_material_root(
+        output.parent, {**row, "status": status, "material": location.name}
+    )
+    if folder.absolute() != location.absolute():
+        raise ValueError(
+            "Preparation returned a material path outside this replay attempt"
+        )
+    material = read_material(
+        folder, expected_manifest_sha256=receipt["manifest_sha256"]
+    )
+    manifest = material["manifest"]
+    if (
+        manifest["status"] != status
+        or manifest["package_sha256"] != row["package_sha256"]
+    ):
+        raise ValueError("Published attempt does not match this input and exit status")
+    row.update(
+        material=location.name,
+        material_manifest_sha256=receipt["manifest_sha256"],
+        status=status,
+        stages=manifest["stages"],
+        source_fidelity=material["validation"]["source_fidelity"],
+        nodes=material["validation"]["nodes"],
+        reasons=material["coverage"]["reasons"],
+    )
+    if normalization := material["normalization"]:
+        row["normalization"] = {
+            k: normalization.get(k)
+            for k in (
+                "complete",
+                "native_compile",
+                "syntax_parse",
+                "pdf_text",
+                "transformations",
+            )
+        }
 
 
 def main():
@@ -46,7 +105,12 @@ def main():
         if actual != sample["sha256"]:
             raise ValueError("Corpus package hash mismatch: " + paper)
         output = args.out / paper.replace("/", "_")
-        row = {"paper": paper, "package_sha256": actual, "entry_selection": "automatic"}
+        row = {
+            "paper": paper,
+            "package_sha256": actual,
+            "entry_selection": "automatic",
+            "material": None,
+        }
         try:
             tree, _ = load_for_preparation(package, repair_legacy_tar=True)
             try:
@@ -69,37 +133,8 @@ def main():
             (args.out / (output.name + ".log")).write_bytes(
                 result.stdout + result.stderr
             )
-            row["exit"] = result.returncode
-            if (output / "manifest.json").is_file():
-                material = read_material(output)
-                row.update(
-                    status=material["manifest"]["status"],
-                    stages=material["manifest"]["stages"],
-                    source_fidelity=material["validation"]["source_fidelity"],
-                    nodes=material["validation"]["nodes"],
-                    reasons=json.loads((output / "coverage.json").read_bytes())[
-                        "reasons"
-                    ],
-                )
-                if (output / "normalization.json").is_file():
-                    normalization = json.loads(
-                        (output / "normalization.json").read_bytes()
-                    )
-                    row["normalization"] = {
-                        k: normalization.get(k)
-                        for k in (
-                            "complete",
-                            "native_compile",
-                            "syntax_parse",
-                            "pdf_text",
-                            "transformations",
-                        )
-                    }
-            else:
-                row.update(
-                    status="failed", error=result.stderr.decode(errors="replace")[-800:]
-                )
-        except (ValueError, OSError, subprocess.TimeoutExpired) as exc:
+            _record_attempt(output, result, row)
+        except (ValueError, KeyError, OSError, subprocess.TimeoutExpired) as exc:
             row.update(status="failed", error=str(exc)[:800])
         print(paper, row["status"], row.get("stages", {}), flush=True)
         return row
@@ -125,7 +160,7 @@ def main():
             for case in json.loads(args.cases.read_bytes())["cases"]
             if case["paper"] in selected
         ]
-        report["syntax_probes"] = check_cases(args.out, cases)
+        report["syntax_probes"] = check_cases(args.out, cases, rows=rows)
     (args.out / "results.json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps(report["counts"], indent=2))
     return 0

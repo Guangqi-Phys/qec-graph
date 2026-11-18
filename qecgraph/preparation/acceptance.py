@@ -61,14 +61,34 @@ def counts(rows):
     }
 
 
-def check_cases(root, cases, materials=None):
+def replay_material_root(root, row):
+    canonical = safe_path(row["paper"].replace("/", "_"))
+    name = row.get("material", canonical)
+    if name is None and row["status"] == "failed":
+        return None
+    allowed = {canonical}
+    if row["status"] == "partial":
+        allowed.add(canonical + ".attempt")
+    if name not in allowed:
+        raise ValueError("Replay material path differs from the allowed attempt paths")
+    return root / name
+
+
+def check_cases(root, cases, materials=None, *, rows=()):
     results = []
     cache = materials if materials is not None else {}
+    attempts = {row["paper"]: row for row in rows}
     for case in cases:
         paper = case["paper"]
-        folder = root / safe_path(paper.replace("/", "_"))
+        attempt = attempts.get(paper, {"paper": paper, "status": "ready"})
+        folder = replay_material_root(root, attempt)
+        if folder is None:
+            results.append({"paper": paper, "anchor": case["anchor"], "passed": False})
+            continue
         if paper not in cache:
-            cache[paper] = read_material(folder)
+            cache[paper] = read_material(
+                folder, expected_manifest_sha256=attempt.get("material_manifest_sha256")
+            )
         raw = (folder / "sources" / safe_path(case["file"])).read_bytes()
         if digest(raw) != case["source_sha256"]:
             raise ValueError("Syntax probe source hash mismatch")
@@ -215,15 +235,19 @@ def _samples(results, corpus, manifest_path):
 
 
 def _verified_row(replay, row, sample, materials=None):
-    root = replay / safe_path(row["paper"].replace("/", "_"))
+    root = replay_material_root(replay, row)
     if row["status"] == "failed":
-        if (root / "manifest.json").exists() or not row.get("error"):
+        if (root is not None and (root / "manifest.json").exists()) or not row.get(
+            "error"
+        ):
             raise ValueError("Failed replay row conflicts with published material")
         return {**row, "expected_negative": sample.get("format") == "pdf"}
     if materials is None:
         materials = {}
     if row["paper"] not in materials:
-        materials[row["paper"]] = read_material(root)
+        materials[row["paper"]] = read_material(
+            root, expected_manifest_sha256=row.get("material_manifest_sha256")
+        )
     material = materials[row["paper"]]
     manifest, check = material["manifest"], material["validation"]
     _match_row(row, material)
@@ -305,6 +329,10 @@ def _verified_row(replay, row, sample, materials=None):
 
 
 def _match_row(row, material):
+    if "material" in row:
+        expected_exit = 0 if row["status"] == "ready" else 2
+        if row.get("exit") != expected_exit or not row.get("material_manifest_sha256"):
+            raise ValueError("Replay outcome is missing its published attempt receipt")
     actual = {
         "status": material["manifest"]["status"],
         "stages": material["manifest"]["stages"],
@@ -337,7 +365,10 @@ def _verify_probes(results, replay, cases_path, materials=None):
             raise ValueError("Replay probes have no frozen configuration")
         return None
     probes = check_cases(
-        replay, json.loads(cases_path.read_bytes())["cases"], materials
+        replay,
+        json.loads(cases_path.read_bytes())["cases"],
+        materials,
+        rows=results["rows"],
     )
     if probes != results.get("syntax_probes"):
         raise ValueError("Replay probe claims differ from independent source checks")

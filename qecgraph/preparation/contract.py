@@ -285,12 +285,17 @@ def _validate_roots(document, by_id, length):
         raise ValueError("Unreachable material nodes")
 
 
-def read_material(root: Path) -> dict:
+def read_material(root: Path, *, expected_manifest_sha256: str | None = None) -> dict:
     """Read only manifest-listed regular files; never follow links or infer sources."""
     if root.is_symlink() or (root / "manifest.json").is_symlink():
         raise ValueError("Linked material root or manifest")
     root = root.resolve()
     raw_manifest = (root / "manifest.json").read_bytes()
+    if (
+        expected_manifest_sha256 is not None
+        and digest(raw_manifest) != expected_manifest_sha256
+    ):
+        raise ValueError("Material manifest differs from the published attempt")
     manifest = json.loads(raw_manifest)
     files = {"manifest.json": raw_manifest}
     for name in manifest["artifacts"]:

@@ -3,6 +3,7 @@
 from copy import deepcopy
 import json
 from pathlib import Path
+from subprocess import CompletedProcess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -117,6 +118,45 @@ class PreparationAcceptanceTests(unittest.TestCase):
         self.assertEqual(result["rows"][0]["nodes"], self.results["rows"][0]["nodes"])
         self.assertFalse(result["scientific_acceptance"]["accepted"])
 
+    def test_failed_retry_is_reported_from_the_attempt_receipt(self):
+        from tools.reproduce_preparation import _record_attempt
+
+        def failed_compiler(tree, entry, root, **kwargs):
+            return Build(entry, "pdflatex", root, success=False)
+
+        output = self.replay / "synthetic"
+        previous = (output / "manifest.json").read_bytes()
+        receipt = prepare_material(self.source, output, compiler=failed_compiler)
+        self.assertTrue(receipt["previous_retained"])
+        row = {
+            "paper": "synthetic",
+            "package_sha256": digest(self.source.read_bytes()),
+            "material": None,
+        }
+        command = CompletedProcess([], 2, json.dumps(receipt).encode(), b"")
+        _record_attempt(output, command, row)
+        self.assertEqual(
+            (row["material"], row["status"]), ("synthetic.attempt", "partial")
+        )
+        self.assertEqual((output / "manifest.json").read_bytes(), previous)
+        self.results["rows"] = [row]
+        self.results["counts"] = counts([row])
+        self.results["syntax_probes"] = check_cases(
+            self.replay, json.loads(self.cases.read_bytes())["cases"], rows=[row]
+        )
+        self.save()
+        self.assertEqual(self.report()["counts"]["ready"], 0)
+        self.assertEqual(self.report()["syntax_probes"]["passed"], 0)
+
+        # A subsequent attempt may replace the partial directory. The old replay
+        # still names a specific publication and should detect the replacement.
+        def later_compiler(tree, entry, root, **kwargs):
+            raise ValueError("A different preparation attempt failed")
+
+        prepare_material(self.source, output, compiler=later_compiler)
+        with self.assertRaisesRegex(ValueError, "published attempt"):
+            self.report()
+
     def test_inflated_counts_and_row_claims_are_rejected(self):
         original = deepcopy(self.results)
         self.results["counts"]["ready"] += 1
@@ -166,7 +206,9 @@ class PreparationAcceptanceTests(unittest.TestCase):
         shutil.copytree(self.replay, copied)
         matching = compare_replays(self.replay, copied)
         self.assertEqual(matching["matched"], 1)
-        self.source.write_bytes(self.source.read_bytes().replace(b"Body.", b"Changed body."))
+        self.source.write_bytes(
+            self.source.read_bytes().replace(b"Body.", b"Changed body.")
+        )
         prepare_material(self.source, copied / "synthetic", compiler=self.compiler)
         changed = compare_replays(self.replay, copied)
         self.assertEqual(changed["matched"], 0)
