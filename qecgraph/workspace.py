@@ -271,9 +271,9 @@ class Workspace:
         return (SourceTree(tree.format, {**tree.files, 'main.tex': normalized.source.data}),
                 normalization_binding(artifact, manifest))
 
-    def _english_ai_outcome(self, material):
-        """Reuse English proposals and schedule legacy CJK output for extraction."""
-        from .core.language import require_english
+    def _current_ai_outcome(self, material):
+        """Reuse proposals that meet the current output contract."""
+        from .llm.extract import ExtractionError, proposal_payload
         from .llm.review import read_bound_proposal
 
         previous = material.get('ai_extraction', {})
@@ -283,8 +283,8 @@ class Workspace:
                 continue
             proposal = read_bound_proposal(self.registry, binding, material)
             try:
-                require_english(proposal)
-            except ValueError:
+                proposal_payload(proposal)
+            except ExtractionError:
                 continue
             written.append(binding)
         return {**previous, 'written': written}
@@ -292,10 +292,9 @@ class Workspace:
     @task('Preparing AI source evidence')
     def _extract_ai(self, client, material, previous, limits, version, reusable=(), on_skill_done=None):
         import copy
-        from .core.language import require_english
         from .llm.artifacts import load_normalization
         from .llm.client import LLMResult
-        from .llm.extract import ExtractionResult, authored_sections, validate_extraction, validate_source_refs
+        from .llm.extract import ExtractionError, ExtractionResult, authored_sections, proposal_payload, validate_source_refs
         from .llm.redact import redact
         from .llm.review import read_bound_proposal
 
@@ -353,12 +352,10 @@ class Workspace:
                 if (len(prior_sources) != len(evidence)
                         or {row['path']: row['sha256'] for row in prior_sources} != evidence):
                     continue
-                require_english(proposal)
-                data = {k: proposal[k] for k in ('items', 'unresolved', 'paper') if k in proposal}
-                validate_extraction(binding['skill'], data)
+                data = proposal_payload(proposal)
                 validate_source_refs(normalized, material['entrypoint'], binding['skill'], data,
                                      additional_sources=additional)
-            except (OSError, ValueError, KeyError, TypeError):
+            except (OSError, ValueError, KeyError, TypeError, ExtractionError):
                 continue
             provenance = proposal['provenance']
             provenance.setdefault('source_rebindings', []).append({
@@ -987,7 +984,7 @@ class Workspace:
 
             reused = {}
             ai_results = {(material.get('source_version_id'), material.get('source_snapshot_id')):
-                          (self._english_ai_outcome(material)
+                          (self._current_ai_outcome(material)
                            if ai_client is not None and ai_client.config.extract_proposals else material['ai_extraction'])
                           for material in materials.values() if material.get('ai_extraction')}
             if digests:
@@ -1115,7 +1112,7 @@ class Workspace:
         elif ai_client is not None and ai_client.config.extract_proposals and self.path('machine/CURRENT.json').is_file():
             state, _ = self.registry.read()
             digests.update(digest for digest, material in state.get('materials', {}).items()
-                           if material.get('processing_completed') and not _ai_complete(self._english_ai_outcome(material)))
+                           if material.get('processing_completed') and not _ai_complete(self._current_ai_outcome(material)))
 
         # Archiving, one check per distinct package, publication and final CLI work.
         steps = len(digests) + 3

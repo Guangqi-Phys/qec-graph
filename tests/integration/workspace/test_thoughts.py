@@ -99,7 +99,7 @@ class ThoughtTests(unittest.TestCase):
             enable_fixture_ai(root)
             (root / 'inputs/paper.tex').write_text(
                 '\\documentclass{article}\n\\begin{document}\nA question remains.\n\\end{document}\n')
-            item = {'category': 'open_question', 'statement': '问题仍未解决。',
+            item = {'category': 'open_question', 'statement': 'The question remains unresolved.',
                     'source_quote': 'A question remains.', 'attribution': 'editorial_inference',
                     'source_refs': ['main.tex:3']}
 
@@ -108,19 +108,23 @@ class ThoughtTests(unittest.TestCase):
                                             if 'research thought extractor' in '\n'.join(m.content for m in messages) else [], 'unresolved': []}),
                                run_id=uuid.uuid4().hex)
 
-            def legacy_skill(name, extra_dir=None):
-                skill = load_skill(name, extra_dir)
-                return replace(skill, version=4) if name == 'extract_thoughts' else skill
+            stage = ws._stage_ai
+
+            def seed_prior_proposal(identity, previous, results, errors):
+                proposal = next(result.proposal for result in results if result.skill == 'extract_thoughts')
+                proposal['items'][0]['statement'] = '问题仍未解决。'
+                return stage(identity, previous, results, errors)
 
             with patch.dict('os.environ', {'OPENROUTER_API_KEY': 'offline-fixture'}), patch(
                     'qecgraph.llm.client.LLMClient.complete_json', side_effect=answer) as calls:
-                with patch('qecgraph.llm.skills.load_skill', side_effect=legacy_skill):
+                with patch.object(ws, '_stage_ai', side_effect=seed_prior_proposal):
                     old_release = ws.sync()['release_id']
                 self.assertEqual(calls.call_count, 4)
                 before, _ = ws.registry.read()
                 old = proposal_bindings(before)
                 old_files = {p: (ws.registry.root / p).read_bytes() for p in old}
-                item['statement'] = 'The question remains unresolved.'
+                reader = WorkspaceSession(ws.registry.root, old_release, profile='research')
+                self.assertEqual(reader.knowledge.proposal_items, {})
                 calls.reset_mock()
                 result = ws.sync()
                 self.assertNotEqual(result['release_id'], old_release)

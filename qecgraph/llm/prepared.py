@@ -4,8 +4,6 @@ from bisect import bisect_right
 from dataclasses import dataclass
 import re
 
-from jsonschema import Draft202012Validator
-
 from ..prepared_extraction import METADATA, PreparedSource, excluded_ranges
 from .client import BudgetExceeded, LLMClient
 from .errors import LLMError
@@ -14,7 +12,7 @@ from .extract import (
     _LINE_REF,
     _paper_evidence,
     extract,
-    validate_extraction,
+    proposal_payload,
     validate_source_refs,
 )
 from .normalize import NormalizedSource
@@ -272,13 +270,7 @@ def _verify_proposal(source, evidence, name, task):
         raise ValueError(
             "Saved proposal differs from its skill or prepared evidence binding"
         )
-    data = {
-        key: proposal[key]
-        for key in ("items", "unresolved", "paper")
-        if key in proposal
-    }
-    Draft202012Validator(skill.schema).validate(data)
-    validate_extraction(name, data, skill_version=skill.version)
+    data = proposal_payload(proposal, schema=skill.schema)
     validate_source_refs(
         evidence.view, _ENTRY, name, data, source_ranges=evidence.ranges
     )

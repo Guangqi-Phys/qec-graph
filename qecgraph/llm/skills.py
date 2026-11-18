@@ -9,6 +9,9 @@ import re
 from jsonschema import Draft202012Validator
 
 
+_BUNDLED = Path(__file__).with_name('skills')
+
+
 class SkillError(ValueError):
     """A skill pack is missing or malformed."""
 
@@ -88,9 +91,8 @@ def _load(path):
 
 
 def load_skills(extra_dir=None):
-    root = Path(__file__).with_name('skills')
     skills = {}
-    for path in sorted(root.iterdir()):
+    for path in sorted(_BUNDLED.iterdir()):
         if path.is_dir():
             skill = _load(path)
             skills[skill.name] = skill
@@ -107,7 +109,13 @@ def load_skills(extra_dir=None):
 
 
 def load_skill(name, extra_dir=None):
-    try:
-        return load_skills(extra_dir)[name]
-    except KeyError as exc:
-        raise SkillError(f'unknown AI skill: {name}') from exc
+    if not isinstance(name, str) or not re.fullmatch(r'[a-z][a-z0-9_]*', name):
+        raise SkillError(f'unknown AI skill: {name}')
+    if extra_dir is not None:
+        override = Path(extra_dir) / name
+        if override.is_dir():
+            return _load(override)
+    bundled = _BUNDLED / name
+    if not bundled.is_dir():
+        raise SkillError(f'unknown AI skill: {name}')
+    return _load(bundled)

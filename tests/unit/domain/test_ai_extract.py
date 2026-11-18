@@ -37,7 +37,7 @@ class ExtractionValidationTests(unittest.TestCase):
         value['items'].append(dict(value['items'][0]))
         with self.assertRaisesRegex(ExtractionError, 'duplicate theorem'):
             validate_extraction('extract_theorems', value)
-        with self.assertRaisesRegex(ExtractionError, 'data value'):
+        with self.assertRaisesRegex(ExtractionError, 'type at items/0/value'):
             validate_extraction('extract_data', {'items': [
                 {'metric': 'p', 'value': None, 'source_refs': ['x']}], 'unresolved': []})
 

@@ -2,9 +2,7 @@
 from __future__ import annotations
 
 from ..core.graph import canonical, hash_text
-from ..core.language import require_english
-from ..llm.extract import validate_extraction
-from ..llm.review import proposal_bindings, read_bound_proposal
+from ..llm.review import current_proposals
 from .research import make_record
 from .research_store import stage_records
 
@@ -39,15 +37,7 @@ def _record(proposal, item, digest):
 def stage_ai_records(registry, state):
     """Project the current English extraction artifacts into canonical records."""
     records = {}
-    for binding, material in proposal_bindings(state).values():
-        if binding['skill'] not in KINDS:
-            continue
-        proposal = read_bound_proposal(registry, binding, material)
-        try:
-            require_english(proposal)
-        except ValueError:
-            continue  # The next opted-in sync refreshes legacy non-English output.
-        validate_extraction(binding['skill'], {k: proposal[k] for k in ('items', 'unresolved', 'paper') if k in proposal})
+    for binding, proposal in current_proposals(registry, state, skills=KINDS):
         for item in proposal['items']:
             record = _record(proposal, item, binding['proposal_sha256'])
             records[record['id']] = record

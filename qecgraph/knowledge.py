@@ -169,13 +169,11 @@ class KnowledgeView:
     @cached_property
     def papers(self):
         from .source.metadata import arxiv_identity, literal_metadata
-        from .llm.review import proposal_bindings, read_bound_proposal
+        from .llm.review import current_proposals
         proposals = defaultdict(list)
-        for binding, material in proposal_bindings(self.session.state).values():
-            if binding['skill'] == 'extract_thoughts':
-                proposal = read_bound_proposal(self.session.registry, binding, material)
-                if proposal.get('paper'):
-                    proposals[proposal['source_version_id']].append(proposal)
+        for _, proposal in current_proposals(self.session.registry, self.session.state, skills={'extract_thoughts'}):
+            if proposal.get('paper'):
+                proposals[proposal['source_version_id']].append(proposal)
         papers = {}
         for version_id, document in self.documents.items():
             version = self.version(version_id)
@@ -432,14 +430,9 @@ class KnowledgeView:
 
     @cached_property
     def proposal_items(self):
-        from .llm.review import proposal_bindings, read_bound_proposal
-        from .llm.extract import validate_extraction
+        from .llm.review import current_proposals
         rows = {}
-        for binding, material in proposal_bindings(self.session.state).values():
-            if binding['skill'] not in PROPOSAL_KINDS:
-                continue
-            proposal = read_bound_proposal(self.session.registry, binding, material)
-            validate_extraction(binding['skill'], {'items': proposal['items'], 'unresolved': proposal['unresolved']})
+        for binding, proposal in current_proposals(self.session.registry, self.session.state, skills=PROPOSAL_KINDS):
             for index, item in enumerate(proposal['items']):
                 kind = PROPOSAL_KINDS[binding['skill']]
                 prefix = 'thought-proposal:' if binding['skill'] == 'extract_thoughts' else kind.replace('_', '-') + ':'

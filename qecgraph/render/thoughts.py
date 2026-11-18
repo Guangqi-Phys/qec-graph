@@ -10,8 +10,7 @@ import unicodedata
 
 from ..core.graph import hash_text
 from ..core.language import require_english
-from ..llm.extract import validate_extraction
-from ..llm.review import proposal_bindings, read_bound_proposal
+from ..llm.review import current_proposals
 
 QUESTIONS = (
     ('What problem does the paper aim to solve?', ('problem',)),
@@ -109,12 +108,8 @@ def _version_order(version):
 
 
 def render_pages(session):
-    proposals = []
-    for binding, material in proposal_bindings(session.state).values():
-        if binding['skill'] == 'extract_thoughts':
-            proposal = read_bound_proposal(session.registry, binding, material)
-            validate_extraction('extract_thoughts', {k: proposal[k] for k in ('items', 'unresolved', 'paper') if k in proposal})
-            proposals.append(proposal)
+    proposals = [proposal for _, proposal in current_proposals(session.registry, session.state,
+                                                               skills={'extract_thoughts'})]
     proposals.sort(key=lambda row: (row['source_version_id'], row['provenance']['run_id']))
     works = {}
     for version in session.state['versions'].values():

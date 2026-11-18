@@ -61,6 +61,26 @@ def read_bound_proposal(registry, binding, material):
     return value
 
 
+def current_proposals(registry, state, *, skills):
+    """Yield bound proposals that meet the current output contract."""
+    from .extract import ExtractionError, proposal_payload
+    from .skills import load_skill
+
+    schemas = {}
+    for binding, material in proposal_bindings(state).values():
+        skill = binding['skill']
+        if skill not in skills:
+            continue
+        if skill not in schemas:
+            schemas[skill] = load_skill(skill).schema
+        proposal = read_bound_proposal(registry, binding, material)
+        try:
+            proposal_payload(proposal, schema=schemas[skill])
+        except ExtractionError:
+            continue
+        yield binding, proposal
+
+
 def proposal_issues(registry, state):
     for path, (binding, material) in proposal_bindings(state).items():
         try:

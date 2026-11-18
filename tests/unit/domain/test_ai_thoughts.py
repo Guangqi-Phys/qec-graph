@@ -88,19 +88,21 @@ class ThoughtSkillTests(unittest.TestCase):
                     extract(main, client, 'extract_thoughts', projection_path='paper.tex',
                             additional_sources={'body.tex': body})
 
-    def test_new_extraction_rejects_long_quotes_but_old_proposals_remain_readable(self):
+    def test_thought_schema_limits_apply_to_all_payloads(self):
         from qecgraph.llm.extract import validate_extraction
         quote = 'A' * 481
         data = {'items': [{'category': 'problem', 'statement': quote, 'source_quote': quote,
                            'attribution': 'author_explicit', 'source_refs': ['paper.tex:1']}], 'unresolved': []}
-        self.assertEqual(validate_extraction('extract_thoughts', data), data)
+        with self.assertRaisesRegex(ExtractionError, 'maxLength'):
+            validate_extraction('extract_thoughts', data)
         client = LLMClient(config(max_input_chars=30000), provider=invalid_provider(data))
         with self.assertRaisesRegex(ResponseSchemaError, 'maxLength'):
             extract(original_source(quote), client, 'extract_thoughts', projection_path='paper.tex')
 
         item = {**data['items'][0], 'statement': 'A', 'source_quote': 'A'}
         many = {'items': [item] * 19, 'unresolved': []}
-        self.assertEqual(validate_extraction('extract_thoughts', many), many)
+        with self.assertRaisesRegex(ExtractionError, 'maxItems'):
+            validate_extraction('extract_thoughts', many)
         client = LLMClient(config(max_input_chars=30000), provider=invalid_provider(many))
         with self.assertRaisesRegex(ResponseSchemaError, 'maxItems'):
             extract(original_source('A'), client, 'extract_thoughts', projection_path='paper.tex')
@@ -144,15 +146,15 @@ class ThoughtSkillTests(unittest.TestCase):
         normalized = original_source('Only simulated noise was studied.\n')
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            old_pack = root / 'skills/extract_thoughts'
-            old_pack.mkdir(parents=True)
-            (old_pack / 'SKILL.md').write_text(
-                '---\nname: extract_thoughts\ndescription: Previous fixture instructions.\n'
-                'version: 1\n---\nReturn JSON with items and unresolved.\n', encoding='utf-8')
-            (old_pack / 'prompt.md').write_text('Use the supplied source only.', encoding='utf-8')
-            (old_pack / 'output.schema.json').write_text(json.dumps(current.schema), encoding='utf-8')
+            pack = root / 'skills/extract_thoughts'
+            pack.mkdir(parents=True)
+            (pack / 'SKILL.md').write_text(
+                '---\nname: extract_thoughts\ndescription: Custom fixture instructions.\n'
+                'version: 8\n---\nReturn JSON with items and unresolved.\n', encoding='utf-8')
+            (pack / 'prompt.md').write_text('Use the supplied source only.', encoding='utf-8')
+            (pack / 'output.schema.json').write_text(json.dumps(current.schema), encoding='utf-8')
             client = LLMClient(config(max_input_chars=30000), provider=provider, cache_dir=root / 'cache')
-            old = extract(normalized, client, 'extract_thoughts', extra_skills_dir=old_pack.parent)
+            old = extract(normalized, client, 'extract_thoughts', extra_skills_dir=pack.parent)
             preserved = copy.deepcopy(old.proposal)
             new = extract(normalized, client, 'extract_thoughts')
             repeated = extract(normalized, client, 'extract_thoughts')
@@ -162,7 +164,7 @@ class ThoughtSkillTests(unittest.TestCase):
         self.assertTrue(repeated.ai_result.cached)
         self.assertNotEqual(old.ai_result.prompt_sha256, new.ai_result.prompt_sha256)
         self.assertEqual(old.proposal, preserved)
-        self.assertEqual(old.proposal['provenance']['skill_version'], 1)
+        self.assertEqual(old.proposal['provenance']['skill_version'], 8)
         self.assertEqual(new.proposal['provenance']['skill_version'], 7)
 
     def test_generated_and_stitched_quotes_are_rejected_before_caching(self):

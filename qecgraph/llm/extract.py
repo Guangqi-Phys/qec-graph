@@ -8,7 +8,10 @@ import json
 import re
 from typing import TYPE_CHECKING
 
+from jsonschema import Draft202012Validator
+
 from ..core.language import require_english
+from .skills import load_skill
 
 if TYPE_CHECKING:
     from .client import LLMResult
@@ -84,62 +87,73 @@ def _validate_data(data):
             raise ExtractionError('data conditions must be an object')
 
 
-def validate_extraction(skill, data, *, skill_version=None):
-    if not isinstance(data, dict):
-        raise ExtractionError('extraction result must be an object')
-    if not isinstance(data.get('items'), list) or not isinstance(data.get('unresolved'), list):
-        raise ExtractionError('extraction result must contain items and unresolved arrays')
-    if skill == 'extract_theorems':
-        _validate_theorems(data)
-    elif skill == 'extract_assumptions':
-        _validate_assumptions(data)
-    elif skill == 'extract_data':
-        _validate_data(data)
-    elif skill == 'extract_thoughts':
-        from .skills import load_skill
-        from jsonschema import Draft202012Validator
-        schema = copy.deepcopy(load_skill(skill).schema)
-        if skill_version is None or skill_version < 4:
-            # Published v1-v3 packages remain readable with their original
-            # lengths/counts; new requests use v4's compact output contract.
-            schema['properties']['items']['maxItems'] = 100
-            schema['properties']['items']['items']['properties']['source_quote'].pop('maxLength', None)
-            schema['$defs']['evidence_value']['properties']['source_quote'].pop('maxLength', None)
-        error = next(Draft202012Validator(schema).iter_errors(data), None)
-        if error:
-            raise ExtractionError('Thought schema: ' + error.message)
-        for item in data['items']:
-            _strings(item['source_refs'], 'thought source_refs')
-            if not item['statement'].strip() or not item['source_quote'].strip():
-                raise ExtractionError('Thought statement and source quote must not be blank')
-            if item['attribution'] == 'author_explicit' and item['statement'] != item['source_quote']:
-                raise ExtractionError('Explicit author thought must equal its verbatim quote')
-        if paper := data.get('paper'):
-            from datetime import date
-            from ..knowledge import public_url
-            for row in _paper_evidence(paper):
-                if not row['value'].strip() or not row['source_quote'].strip():
-                    raise ExtractionError('Paper metadata and quote must not be blank')
-            if paper['published_date'] is not None:
-                value = paper['published_date']['value']
-                if not re.fullmatch(r'[0-9]{4}(?:-[0-9]{2}){0,2}', value):
-                    raise ExtractionError('Paper date must be YYYY, YYYY-MM or YYYY-MM-DD')
-                try:
-                    date.fromisoformat(value + {4: '-01-01', 7: '-01', 10: ''}[len(value)])
-                except ValueError as exc:
-                    raise ExtractionError('Paper date is invalid') from exc
-            if paper['link'] is not None and (not public_url(paper['link']['value'])
-                                              or any(c.isspace() for c in paper['link']['value'])
-                                              or paper['link']['value'] not in paper['link']['source_quote']):
-                raise ExtractionError('Paper link must be a quoted public HTTP(S) URL')
-    else:
-        raise ExtractionError(f'unsupported extraction skill: {skill}')
-    if skill_version is not None and skill_version >= 5:
+def _validate_thoughts(data):
+    for item in data['items']:
+        _strings(item['source_refs'], 'thought source_refs')
+        if not item['statement'].strip() or not item['source_quote'].strip():
+            raise ExtractionError('Thought statement and source quote must not be blank')
+        if item['attribution'] == 'author_explicit' and item['statement'] != item['source_quote']:
+            raise ExtractionError('Explicit author thought must equal its verbatim quote')
+    if paper := data.get('paper'):
+        _validate_paper(paper)
+
+
+def _validate_paper(paper):
+    from datetime import date
+    from ..knowledge import public_url
+
+    for row in _paper_evidence(paper):
+        if not row['value'].strip() or not row['source_quote'].strip():
+            raise ExtractionError('Paper metadata and quote must not be blank')
+    if paper['published_date'] is not None:
+        value = paper['published_date']['value']
+        if not re.fullmatch(r'[0-9]{4}(?:-[0-9]{2}){0,2}', value):
+            raise ExtractionError('Paper date must be YYYY, YYYY-MM or YYYY-MM-DD')
         try:
-            require_english(data)
+            date.fromisoformat(value + {4: '-01-01', 7: '-01', 10: ''}[len(value)])
         except ValueError as exc:
-            raise ExtractionError(str(exc)) from None
+            raise ExtractionError('Paper date is invalid') from exc
+    if paper['link'] is not None and (not public_url(paper['link']['value'])
+                                      or paper['link']['value'] not in paper['link']['source_quote']):
+        raise ExtractionError('Paper link must be a quoted public HTTP(S) URL')
+
+
+_VALIDATORS = {
+    'extract_theorems': _validate_theorems,
+    'extract_assumptions': _validate_assumptions,
+    'extract_data': _validate_data,
+    'extract_thoughts': _validate_thoughts,
+}
+_EXTRACTION_SKILLS = frozenset(_VALIDATORS)
+
+
+def _validate_content(skill, data):
+    _VALIDATORS[skill](data)
+    try:
+        require_english(data)
+    except ValueError as exc:
+        raise ExtractionError(str(exc)) from None
+
+
+def validate_extraction(skill, data, *, schema=None):
+    if skill not in _EXTRACTION_SKILLS:
+        raise ExtractionError(f'unsupported extraction skill: {skill}')
+    schema = load_skill(skill).schema if schema is None else schema
+    error = next(Draft202012Validator(schema).iter_errors(data), None)
+    if error:
+        location = '/'.join(str(part) for part in error.absolute_path) or '$'
+        raise ExtractionError(f'{skill} output does not match schema ({error.validator} at {location})')
+    _validate_content(skill, data)
     return data
+
+
+def proposal_payload(proposal, *, schema=None):
+    data = {key: proposal[key] for key in ('items', 'unresolved', 'paper') if key in proposal}
+    try:
+        require_english(proposal.get('provenance', {}), 'proposal provenance')
+    except ValueError as exc:
+        raise ExtractionError(str(exc)) from None
+    return validate_extraction(proposal['skill'], data, schema=schema)
 
 
 def _paper_evidence(paper):
@@ -147,7 +161,12 @@ def _paper_evidence(paper):
 
 
 def make_proposal(skill, data, *, source_tree_hash, ai_result, normalization_id=None):
-    data = validate_extraction(skill, copy.deepcopy(data))
+    return _proposal(skill, validate_extraction(skill, data), source_tree_hash=source_tree_hash,
+                     ai_result=ai_result, normalization_id=normalization_id)
+
+
+def _proposal(skill, data, *, source_tree_hash, ai_result, normalization_id):
+    data = copy.deepcopy(data)
     if not isinstance(source_tree_hash, str) or len(source_tree_hash) != 64:
         raise ExtractionError('source_tree_hash must be a 64-character digest')
     proposal = {
@@ -170,9 +189,6 @@ def make_proposal(skill, data, *, source_tree_hash, ai_result, normalization_id=
     if 'paper' in data:
         proposal['paper'] = data['paper']
     return proposal
-
-
-_EXTRACTION_SKILLS = {'extract_theorems', 'extract_assumptions', 'extract_data', 'extract_thoughts'}
 
 
 _LINE_REF = re.compile(r'(.+):([1-9][0-9]{0,8})(?:-([1-9][0-9]{0,8}))?')
@@ -308,7 +324,6 @@ def extract_sections(normalized, client, skill, projection_path, additional_sour
         return None, pending
     merged = _merge_sections(coverage, skill)
     from dataclasses import replace
-    from .skills import load_skill
     ai_result = replace(ai_result, data=merged, run_id='sections-' + hash_text(canonical(coverage)))
     proposal = make_proposal(skill, merged, source_tree_hash=normalized.source_tree_hash, ai_result=ai_result,
                              normalization_id=normalized.sha256)
@@ -366,11 +381,25 @@ def evidence_text(evidence):
     return ''.join(parts)
 
 
+def _extraction_evidence(sources, projection_path, source_ranges):
+    primary = sources[projection_path]
+    evidence = {
+        'schema': 'qecgraph.extraction_evidence',
+        'source_tree_hash': primary.source_tree_hash,
+        'normalized_sha256': primary.sha256,
+        'projection_path': projection_path,
+        'sources': [_numbered_source(path, source, source_ranges[path] if source_ranges else None)
+                    for path, source in sources.items() if source_ranges is None or path in source_ranges],
+    }
+    if source_ranges is not None:
+        evidence['source_ranges'] = source_ranges
+    return evidence
+
+
 def extract(normalized, client, skill_name, *, projection_path='main.tex', additional_sources=None,
             extra_skills_dir=None, use_cache=True, source_ranges=None):
     """Ask one extraction skill for a proposal over a normalized source."""
     from .normalize import NormalizedSource
-    from .skills import load_skill
     from .providers.base import Message
     from ..core.progress import phase
 
@@ -385,34 +414,26 @@ def extract(normalized, client, skill_name, *, projection_path='main.tex', addit
         raise ExtractionError('Additional sources must be distinct projections of the same source tree')
     skill = load_skill(skill_name, extra_skills_dir)
     sources = {projection_path: normalized, **dict(sorted(additional_sources.items()))}
-    evidence = {
-        'schema': 'qecgraph.extraction_evidence',
-        'source_tree_hash': normalized.source_tree_hash,
-        'normalized_sha256': normalized.sha256,
-        'projection_path': projection_path,
-        'sources': [_numbered_source(path, source, source_ranges[path] if source_ranges else None)
-                    for path, source in sources.items() if source_ranges is None or path in source_ranges],
-    }
-    if source_ranges is not None:
-        evidence['source_ranges'] = source_ranges
-    content = evidence_text(evidence) if skill.version >= 6 else json.dumps(evidence, ensure_ascii=False, sort_keys=True)
+    evidence = _extraction_evidence(sources, projection_path, source_ranges)
     checked = None
+
+    def validate_references(data):
+        validate_source_refs(normalized, projection_path, skill_name, data,
+                             additional_sources=additional_sources, source_ranges=source_ranges)
 
     def validate(data):
         nonlocal checked
-        validate_extraction(skill_name, data, skill_version=skill.version)
-        validate_source_refs(normalized, projection_path, skill_name, data,
-                             additional_sources=additional_sources, source_ranges=source_ranges)
+        _validate_content(skill_name, data)
+        validate_references(data)
         checked = data
 
-    messages = ([Message('system', EXTRACTION_SYSTEM), Message('user', content),
-                 Message('user', 'Extraction task:\n' + skill.system_prompt)] if skill.version >= 6 else
-                [Message('system', skill.system_prompt), Message('user', content)])
+    messages = [Message('system', EXTRACTION_SYSTEM), Message('user', evidence_text(evidence)),
+                Message('user', 'Extraction task:\n' + skill.system_prompt)]
     rejected = None
     try:
         ai_result = client.complete_json(messages, skill.schema, use_cache=use_cache, validate=validate)
     except LLMError as exc:
-        if skill.version < 4 or not exc.rejected_response:
+        if not exc.rejected_response:
             raise
         rejected = exc.rejected_response
         phase('Correcting rejected AI response', detail='One correction request using the same registered source evidence')
@@ -432,10 +453,10 @@ def extract(normalized, client, skill_name, *, projection_path='main.tex', addit
             'and unresolved explanations must be in English; do not output Chinese text.\n' + feedback))
         ai_result = client.complete_json(messages, skill.schema, use_cache=use_cache, validate=validate)
     if checked is not ai_result.data:
-        validate(ai_result.data)
-    proposal = make_proposal(skill_name, ai_result.data,
-                             source_tree_hash=normalized.source_tree_hash,
-                             ai_result=ai_result, normalization_id=normalized.sha256)
+        validate_extraction(skill_name, ai_result.data, schema=skill.schema)
+        validate_references(ai_result.data)
+    proposal = _proposal(skill_name, ai_result.data, source_tree_hash=normalized.source_tree_hash,
+                         ai_result=ai_result, normalization_id=normalized.sha256)
     proposal['projection_path'] = projection_path
     proposal['evidence_sources'] = [{'path': path, 'sha256': source.sha256}
                                     for path, source in sources.items()]
