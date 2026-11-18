@@ -83,24 +83,24 @@ class WorkspaceQueryTests(unittest.TestCase):
         old = self.session.invoke('qecgraph_search', {'query': 'Later source'})
         self.assertEqual(old['data']['knowledge_snapshot'], self.release)
         self.assertEqual(old['data']['results'], [])
-        rejected = self.session.invoke('qec_workspace_status', {'release_id': newer})
+        rejected = self.session.invoke('qec_status', {'release_id': newer})
         self.assertEqual(rejected['error']['code'], 'SNAPSHOT_UNAVAILABLE')
-        status = self.session.invoke('qec_workspace_status', {})
+        status = self.session.invoke('qec_status', {})
         self.assertEqual(status['data']['operational_status']['release_id'], newer)
 
     def test_damaged_operational_status_preserves_the_fixed_release_and_coverage(self):
         path = self.ws.registry.root / 'operational/status.json'
         observed = read_json(path)
-        expected = self.session.invoke('qec_workspace_status', {})['data']
+        expected = self.session.invoke('qec_status', {})['data']
         self.assertEqual(expected['coverage']['registered'], 2)
         for raw in ('{', '[]', json.dumps({**observed, 'counts': []})):
             with self.subTest(raw=raw):
                 path.write_text(raw)
-                response = self.session.invoke('qec_workspace_status', {})
+                response = self.session.invoke('qec_status', {})
                 self.assertTrue(response['ok'], response)
                 self.assertEqual(response['data'], {**expected, 'operational_status': None})
         path.write_text(json.dumps({**observed, 'human': {'status': []}}))
-        response = self.session.invoke('qec_workspace_status', {})
+        response = self.session.invoke('qec_status', {})
         self.assertTrue(response['ok'], response)
         operational = response['data']['operational_status']
         self.assertEqual(operational['counts'], expected['operational_status']['counts'])
@@ -152,12 +152,12 @@ class WorkspaceQueryTests(unittest.TestCase):
 
     def test_query_arguments_are_distinct_from_a_failed_release_read(self):
         for tool, args in (('qecgraph_search', {'query': '  '}),
-                           ('qec_find_codes', {'distance_at_least': 3}),
-                           ('qec_find_codes', {'metric_id': 'metric:test', 'metric_revision': '1'}),
-                           ('qec_find_codes', {'distance_at_least': 3, 'metric_id': 'metric:test',
+                           ('qec_query_codes', {'distance_at_least': 3}),
+                           ('qec_query_codes', {'metric_id': 'metric:test', 'metric_revision': '1'}),
+                           ('qec_query_codes', {'distance_at_least': 3, 'metric_id': 'metric:test',
                                                'evidence_policy': 'source_reported'}),
-                           ('qec_find_performance', {'coordinate_name': 'p', 'coordinate': float('nan')}),
-                           ('qec_find_performance', {'coordinate_name': 'p', 'coordinate': float('inf')})):
+                           ('qec_query_performance', {'coordinate_name': 'p', 'coordinate': float('nan')}),
+                           ('qec_query_performance', {'coordinate_name': 'p', 'coordinate': float('inf')})):
             with self.subTest(tool=tool, args=args):
                 result = self.session.invoke(tool, args)
                 self.assertEqual(result['error']['code'], 'INVALID_ARGUMENT')
@@ -172,7 +172,7 @@ class WorkspaceQueryTests(unittest.TestCase):
         original = result['data']['entity']['data']['source_snapshot_id']
         result['data']['entity']['data']['source_snapshot_id'] = 'caller mutation'
         result['data']['scope']['release_id'] = 'caller mutation'
-        status = self.session.invoke('qec_workspace_status', {})
+        status = self.session.invoke('qec_status', {})
         status['data']['coverage']['registered'] = -1
         failure = self.session.invoke('unknown', {})
         failure['error']['scope']['release_id'] = 'caller mutation'
@@ -180,7 +180,7 @@ class WorkspaceQueryTests(unittest.TestCase):
         fresh = self.session.invoke('qec_get_entity', args)['data']
         self.assertEqual(fresh['entity']['data']['source_snapshot_id'], original)
         self.assertEqual(fresh['scope']['release_id'], self.release)
-        self.assertEqual(self.session.invoke('qec_workspace_status', {})['data']['coverage']['registered'], 2)
+        self.assertEqual(self.session.invoke('qec_status', {})['data']['coverage']['registered'], 2)
 
     def test_research_lookup_requires_revision_when_multiple_are_visible(self):
         from qecgraph.domain.research import make_record
@@ -268,13 +268,13 @@ class WorkspaceQueryTests(unittest.TestCase):
         self.assertEqual(responses[3]['structuredContent']['data']['results'], [])
         self.assertEqual(responses[4]['structuredContent']['error']['code'], 'NOT_FOUND')
         self.assertEqual(responses[5]['structuredContent']['data']['results'], [])
-        self.assertEqual(WorkspaceSession(self.ws.registry.root).invoke('qec_workspace_status', {})['data']['coverage']['excluded_synthetic'], 11)
+        self.assertEqual(WorkspaceSession(self.ws.registry.root).invoke('qec_status', {})['data']['coverage']['excluded_synthetic'], 11)
 
     def test_operational_symlink_is_rejected_when_accessed(self):
         (self.ws.registry.root / 'operational/status.json').unlink()
         (self.ws.registry.root / 'operational/status.json').symlink_to(self.notes / 'private-only-name.md')
         session = WorkspaceSession(self.ws.registry.root)
-        failure = session.invoke('qec_workspace_status', {})
+        failure = session.invoke('qec_status', {})
         self.assertFalse(failure['ok'])
         self.assertNotIn('private-only-name', str(failure))
 
@@ -317,12 +317,12 @@ class WorkspaceQueryTests(unittest.TestCase):
         session = WorkspaceSession(self.ws.registry.root)
         filters = {'distance_at_least': 12, 'metric_id': metric['id'],
                    'metric_revision': metric['revision'], 'evidence_policy': 'source_reported'}
-        response = session.invoke('qec_find_codes', filters)
+        response = session.invoke('qec_query_codes', filters)
         self.assertTrue(response['ok'])
         self.assertEqual(response['data']['results'], [])
         self.assert_research_cli_matches_tool(session, ['codes', '--distance-at-least', '12', '--metric-id',
                                                       metric['id'], '--metric-revision', metric['revision'],
-                                                      '--evidence-policy', 'source_reported'], 'qec_find_codes', filters)
+                                                      '--evidence-policy', 'source_reported'], 'qec_query_codes', filters)
         context = session.invoke('qec_get_context', {'identifier': code_ref['id'], 'depth': 2})
         self.assertTrue(context['ok'])
         self.assertIn(claim_ref['id'], {row['id'] for row in context['data']['nodes']})
@@ -372,15 +372,15 @@ class WorkspaceQueryTests(unittest.TestCase):
         filters = {'distance_at_least': 12, 'metric_id': metric['id'], 'metric_revision': metric['revision'],
                    'evidence_policy': 'source_reported'}
         old = WorkspaceSession(self.ws.registry.root)
-        row, = old.invoke('qec_find_codes', filters)['data']['results']
+        row, = old.invoke('qec_query_codes', filters)['data']['results']
         self.assertEqual([estimate['id'] for estimate in row['distance_estimates']], [lower['id']])
 
         cfg.write_text(cfg.read_text().replace('= "a.tex"', '= "b.tex"'))
         self.ws.rebuild()
         current = WorkspaceSession(self.ws.registry.root)
         self.assertNotEqual(current.source_snapshot_id(version), old.source_snapshot_id(version))
-        self.assertEqual(current.invoke('qec_find_codes', filters)['data']['results'], [])
-        self.assertTrue(old.invoke('qec_find_codes', filters)['data']['results'])
+        self.assertEqual(current.invoke('qec_query_codes', filters)['data']['results'], [])
+        self.assertTrue(old.invoke('qec_query_codes', filters)['data']['results'])
         self.assertTrue(current.invoke('qec_get_entity', {'identifier': lower['id']})['ok'])
 
 
@@ -407,20 +407,20 @@ class WorkspaceQueryTests(unittest.TestCase):
         publish_records(self.ws.registry, rows)
         session = WorkspaceSession(self.ws.registry.root)
         inputs = {'coordinate_name': 'p', 'coordinate': 0.011}
-        self.assertEqual(session.invoke('qec_find_performance', inputs)['data']['results'], [])
-        found, = session.invoke('qec_find_performance', {**inputs, 'selection': 'nearest_reported'})['data']['results']
+        self.assertEqual(session.invoke('qec_query_performance', inputs)['data']['results'], [])
+        found, = session.invoke('qec_query_performance', {**inputs, 'selection': 'nearest_reported'})['data']['results']
         self.assertEqual(found['selection']['reported'], 0.01)
         self.assertEqual(found['selection']['requested'], 0.011)
         self.assertFalse(found['selection']['is_interpolated'])
         self.assertIn('resolved_channel_parameters', found['unresolved'])
         self.assert_research_cli_matches_tool(session, ['performance', '--coordinate-name', 'p', '--coordinate', '0.011',
-                                                      '--selection', 'nearest_reported'], 'qec_find_performance',
+                                                      '--selection', 'nearest_reported'], 'qec_query_performance',
                                               {**inputs, 'selection': 'nearest_reported'})
         exact_inputs = {'coordinate_name': 'index', 'coordinate': discrete}
-        exact, = session.invoke('qec_find_performance', exact_inputs)['data']['results']
+        exact, = session.invoke('qec_query_performance', exact_inputs)['data']['results']
         self.assertEqual(exact['selection']['reported'], discrete)
         self.assert_research_cli_matches_tool(session, ['performance', '--coordinate-name', 'index', '--coordinate', str(discrete)],
-                                              'qec_find_performance', exact_inputs)
+                                              'qec_query_performance', exact_inputs)
 
     def test_resources_are_fixed_uri_bindings_not_file_names(self):
         from qecgraph.mcp.server import MCPServer

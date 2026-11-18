@@ -214,35 +214,34 @@ records agree.
 
 ## Search by keyword, source, or structured fields
 
-The CLI and MCP use the same read-only workspace tools. Use these names in
-your MCP client or pass them to `qec-graph query-tool` with JSON arguments.
+The MCP research profile and `qec-graph query-tool` expose the same read tools.
+Pass JSON arguments to select a view or narrow the results.
 
 | Goal | Tools | How to start |
 | --- | --- | --- |
-| Find a term, label, source, or record | `qecgraph_search` | Pass `query` and optionally `kind`, `limit`, and `offset`. The workspace search matches keywords case-insensitively. Use `kind: "code_parameters_mention"` to focus on notation proposals. |
-| Search the reading view | `qecgraph_search` | Set `view: "reading"` or run `qec-graph search TERM --workspace . --view reading`. Results contain a bounded excerpt and the source occurrence. |
-| Read a record and follow its links | `qec_get_entity`, `qec_get_context` | Pass the result's `id` as `identifier`. Supply `revision` to select an exact research record when several revisions are available. |
-| Read the original passage or asset | `qec_get_source`, `qec_get_asset` | Use the registered source occurrence ID or a record's asset ID. Source ranges use half-open Unicode code point offsets. Asset ranges use byte offsets. |
-| Inspect graph nodes and dependencies | `qecgraph_show`, `qecgraph_context`, `qecgraph_deps`, `qecgraph_impact` | Use the graph node ID or a unique label. `deps` follows what a result depends on. `impact` follows what depends on it. Inspect edge status before relying on a candidate or historical link. |
-| Filter quantum codes | `qec_find_codes` | Use `n_min` or `n_max` to filter code size. For a hard distance bound, specify the metric ID and choose a sector (`joint` by default). The default `verified` policy requires current bound evidence and accepts an exact `metric_revision`. For a workspace hard filter with `source_reported`, specify `metric_revision`. The distance estimate must name a check-matrix representation linked to the code and cite a span in the current source projection. |
-| Find performance data points | `qec_find_performance` | Filter by `code_id`, `decoder_id`, `noise_model_id`, or `metric_id`. Use `complete_only: true` for points with the required context bound. Coordinate selection supports exact or nearest reported points and returns the actual reported coordinate. |
-| Find software or an algorithm | `qec_find_software` | Search by `query` or `role`. A project entry describes the catalog. Follow its usage records for evidence that a paper or run used it. |
-| Inspect workspace status | `qec_workspace_status` | Pass `{}` to read the latest recorded operational status alongside the connection's fixed knowledge release. If the operational report is missing or malformed, `operational_status` is `null`; the fixed release and its coverage are still returned. |
+| Find a paper by title, author, topic or year | `qec_list_papers` | Pass a title or author in `query`, or filter by `topic` and `year`. |
+| Find a term, label, source, or record | `qec_search` | Pass `query` and optionally `kind`, `limit`, and `offset`. Use `kind: "code_parameters_mention"` to focus on notation proposals. |
+| Read a passage or a record | `qec_fetch` | Pass a result's `id` as `identifier`. Use `view: "raw"` for source text or `view: "reading"` for display text. Source ranges use half-open Unicode code point offsets. |
+| Read context or trace graph relations | `qec_get_context`, `qec_trace` | Supply an exact ID and an optional record `revision`. Set a traversal depth or choose the relations to follow. |
+| Filter quantum codes | `qec_query_codes` | Use `n_min` or `n_max` to filter code size. For a hard distance bound, specify the metric ID and choose a sector (`joint` by default). The default `verified` policy requires current bound evidence and accepts an exact `metric_revision`. For a workspace hard filter with `source_reported`, specify `metric_revision`. The distance estimate must name a check-matrix representation linked to the code and cite a span in the current source projection. |
+| Find performance data points | `qec_query_performance` | Filter by `code_id`, `decoder_id`, `noise_model_id`, or `metric_id`. Use `complete_only: true` for points with the required context bound. Coordinate selection supports exact or nearest reported points and returns the actual reported coordinate. |
+| Inspect workspace status | `qec_status` | Pass `{}` to read the latest recorded operational status alongside the connection's fixed knowledge release. If the operational report is missing or malformed, `operational_status` is `null`; the fixed release and its coverage are still returned. |
 
 For example, after importing the bundled paper, search for HGP.
 
 ```sh
-qec-graph query-tool qecgraph_search --workspace . --arguments /dev/stdin <<'JSON'
+qec-graph query-tool qec_search --workspace . --arguments /dev/stdin <<'JSON'
 {"query":"HGP","limit":5}
 JSON
 ```
 
-Copy a result's `id` into `qec_get_entity`. For a graph hit with a source span,
-pass its occurrence ID to `qec_get_source` to retrieve the exact LaTeX. MCP
-clients can also list and read registered passages by their `qec://source/`
-resource URIs. In the CLI, use `--revision` with workspace `query show` or
-`query context` to select an exact research record revision. The CLI also
-offers direct commands for structured queries.
+Copy a result's `id` into `qec_fetch` to retrieve the exact source or record.
+MCP clients can list paper resources and read the `qec://source/` resource
+URI of an exact passage returned by a tool. In the local CLI, `query show` and
+`query context` accept `--revision` to select an exact research record.
+Use `search TERM --view reading` for display excerpts, and `deps` or `impact`
+to follow dependencies or their reverse. `query software` searches software
+catalog entries and links their reported usage records.
 
 ```sh
 qec-graph query codes --workspace . --n-min 10 --n-max 100 --limit 5

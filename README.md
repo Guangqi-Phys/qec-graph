@@ -165,7 +165,7 @@ The pipeline is one writer; each stage leaves a named artifact for the next. Imp
 | `research records` | Store typed QEC objects and field evidence | [Data and search](docs/user/data-and-search.md), [System design](docs/design/DESIGN.md#4-data-contracts) | source snapshot plus `research` JSON | `machine/research/<hash(id)>/<hash(revision)>.json` with `schema: qecgraph.research` |
 | `release` | Validate everything and publish one immutable release | [System design](docs/design/DESIGN.md#7-workspace-transaction-and-publication-protocol), [Maintenance](docs/operations/maintenance.md) | staged records and snapshots | `machine/CURRENT.json` with `format` and `revision`; `machine/states/<revision>.json` |
 | `CLI` | Read a fixed workspace release | [Advanced usage](docs/user/advanced-usage.md), [Data and search](docs/user/data-and-search.md) | `--workspace` or `--machine`; JSON arguments for `query-tool` | terminal text or versioned JSON |
-| `MCP` | Serve read-only tools over local stdio | [MCP setup](#mcp), [Data and search](docs/user/data-and-search.md) | JSON-RPC 2.0 over stdio; one pinned release; legacy/research/compatible profile | JSON-RPC frames, text/structured content, `qec://source/...` resources |
+| `MCP` | Serve read-only tools over local stdio | [MCP setup](#mcp), [Data and search](docs/user/data-and-search.md) | JSON-RPC 2.0 over stdio; one pinned release; research or compatible profile | JSON-RPC frames, text/structured content, registered resources |
 | `human/` | Render an Obsidian view; never write back | [Workspace guide](docs/user/workspace.md), [System design](docs/design/DESIGN.md#9-human-view) | published machine release | `human/YYYY/MM/Surname_First_Two_thoughts.md`; renderer state in `.qecgraph/` |
 
 One writer owns the pipeline. Readers pin one `CURRENT` release; a failed
@@ -184,7 +184,7 @@ validation leaves the previous release readable. Human notes are never knowledge
 | Research model | `qecgraph.research` records, 27 kinds, 47 typed relations, field evidence, explicit unknown/conflict states |
 | Review | Proposal/diff, explicit decide, hash-bound apply, stale review detection |
 | Query | Exact filters, bounded context, dependency/impact traversal, code/performance/software queries |
-| MCP | Legacy (13), research (7), or generic search/fetch (2) tools; source resources, budgets and one pinned release per session |
+| MCP | Eight research tools or two generic search/fetch tools; registered resources, budgets and one pinned release per session |
 | Knowledge retrieval | Full source/section/outline reads, optional local or external embeddings, hybrid search, task contexts and coverage reports |
 | AI assistance | Optional provider config, source-mapped normalization of multiple TeX roots, proposed theorem/assumption/data/thought extraction |
 | Human view | One Obsidian thoughts note per paper, with topic tags, bibliographic properties and nine questions |

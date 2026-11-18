@@ -1170,7 +1170,9 @@ claim follows merely from computing vectors.
 
 ### 16.4 Small stable interfaces and task context
 
-The CLI defaults to eight research tools. Explicit legacy workspace and store/corpus tools remain compatible; the generic profile shares the same core:
+The MCP server and `query-tool` default to eight research tools. The local CLI
+also provides graph navigation and software queries against the same fixed release.
+The generic MCP profile shares the read core.
 
 | Research tool | Responsibility |
 |---|---|

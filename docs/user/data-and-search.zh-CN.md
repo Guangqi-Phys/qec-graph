@@ -189,33 +189,32 @@ research schema 列出受支持 kinds、每种 kind 必填字段，以及可空 
 
 ## 按关键词、来源或结构化字段检索
 
-CLI 和 MCP 使用同一套只读工作区工具。在 MCP 客户端中使用这些名称，或把 JSON
-参数传给 `qec-graph query-tool`。
+MCP 的 research profile 与 `qec-graph query-tool` 提供同一套只读工具。
+通过 JSON 参数指定视图或筛选条件。
 
 | 目标 | 工具 | 如何开始 |
 | --- | --- | --- |
-| 查找术语、标签、来源或记录 | `qecgraph_search` | 传 `query`，可选 `kind`、`limit`、`offset`。工作区搜索大小写无关。用 `kind: "code_parameters_mention"` 聚焦记法提案。 |
-| 搜索阅读视图 | `qecgraph_search` | 设置 `view: "reading"`，或运行 `qec-graph search TERM --workspace . --view reading`。结果带有界摘录和原文 occurrence。 |
-| 读取记录并跟踪链接 | `qec_get_entity`、`qec_get_context` | 把结果 `id` 作为 `identifier`。有多个修订时传 `revision` 选择精确研究记录。 |
-| 读取原始段落或资产 | `qec_get_source`、`qec_get_asset` | 用已登记来源 occurrence ID 或记录的 asset ID。来源区间用半开 Unicode codepoint 偏移，资产区间用字节偏移。 |
-| 检查图节点和依赖 | `qecgraph_show`、`qecgraph_context`、`qecgraph_deps`、`qecgraph_impact` | 用图节点 ID 或唯一标签。`deps` 跟随结果依赖什么，`impact` 跟随什么依赖它。依赖 candidate 或历史链接前检查边状态。 |
-| 过滤码实例 | `qec_find_codes` | 用 `n_min`/`n_max` 过滤码大小。硬距离界需指定 metric ID 和 sector（默认 `joint`）。默认 `verified` 策略要求当前界证据，并接受精确 `metric_revision`。`source_reported` 策略的硬距离过滤要求 `metric_revision`。 工作区的 `source_reported` 硬筛选还要求距离估计绑定该码的校验矩阵表示，并引用当前来源投影中的区间。 |
-| 查找性能点 | `qec_find_performance` | 按 `code_id`、`decoder_id`、`noise_model_id` 或 `metric_id` 过滤。`complete_only: true` 只取满足必需上下文的点。坐标选择支持精确或最近报告点，并返回实际报告坐标。 |
-| 查找软件或算法 | `qec_find_software` | 按 `query` 或 `role` 搜索。项目条目描述 catalog；沿 usage 记录查论文或运行使用证据。 |
-| 检查工作区状态 | `qec_workspace_status` | 传 `{}`，读取最新运行状态及连接的固定知识 release。运行报告缺失或格式错误时 `operational_status` 为 `null`，固定 release 及其覆盖仍返回。 |
+| 按标题、作者、主题或年份找论文 | `qec_list_papers` | 用 `query` 搜索标题或作者，或按 `topic`、`year` 筛选。 |
+| 查找术语、标签、来源或记录 | `qec_search` | 传 `query`，可选 `kind`、`limit`、`offset`。用 `kind: "code_parameters_mention"` 聚焦记法提议。 |
+| 读取原始段落或记录 | `qec_fetch` | 把结果 `id` 作为 `identifier`。用 `view: "raw"` 读原文，或用 `view: "reading"` 读展示文本。来源区间用半开 Unicode codepoint 偏移。 |
+| 读取上下文或跟踪图关系 | `qec_get_context`、`qec_trace` | 传精确 ID 和可选的记录 `revision`。可以限定深度或关系类型。 |
+| 过滤码实例 | `qec_query_codes` | 用 `n_min`/`n_max` 过滤码大小。硬距离界需指定 metric ID 和 sector（默认 `joint`）。默认 `verified` 策略要求当前界证据，并接受精确 `metric_revision`。`source_reported` 策略的硬距离过滤要求 `metric_revision`。 工作区的 `source_reported` 硬筛选还要求距离估计绑定该码的校验矩阵表示，并引用当前来源投影中的区间。 |
+| 查找性能点 | `qec_query_performance` | 按 `code_id`、`decoder_id`、`noise_model_id` 或 `metric_id` 过滤。`complete_only: true` 只取满足必需上下文的点。坐标选择支持精确或最近报告点，并返回实际报告坐标。 |
+| 检查工作区状态 | `qec_status` | 传 `{}`，读取最新运行状态及连接的固定知识 release。运行报告缺失或格式错误时 `operational_status` 为 `null`，固定 release 及其覆盖仍返回。 |
 
 例如，导入自带论文后搜索 HGP。
 
 ```sh
-qec-graph query-tool qecgraph_search --workspace . --arguments /dev/stdin <<'JSON'
+qec-graph query-tool qec_search --workspace . --arguments /dev/stdin <<'JSON'
 {"query":"HGP","limit":5}
 JSON
 ```
 
-把结果 `id` 复制到 `qec_get_entity`。图命中带来源区间时，把 occurrence ID 传给
-`qec_get_source` 取精确 LaTeX。MCP 客户端还可按 `qec://source/` resource URI
-列出和读取已登记段落。CLI 中用 `--revision` 配合工作区 `query show` 或
-`query context` 选择精确研究记录修订。CLI 也提供结构化查询的直接命令。
+把结果 `id` 传给 `qec_fetch` 读取精确来源或记录。MCP 客户端可以列出论文资源，
+也可以读取工具返回的 `qec://source/` 段落资源。在本地 CLI 中，`query show`
+和 `query context` 接受 `--revision` 来选择精确研究记录修订。
+`search TERM --view reading` 返回展示用摘录。`deps` 与 `impact` 分别跟踪依赖与
+反向依赖。`query software` 搜索软件目录并返回相关的使用记录。
 
 ```sh
 qec-graph query codes --workspace . --n-min 10 --n-max 100 --limit 5

@@ -11,7 +11,7 @@ DESCRIPTIONS = {
     'qec_status': 'Inspect fixed-release coverage, missing fields, extraction and retrieval status before interpreting empty queries. Counts describe this library, not the literature.',
     'search': 'Find citable source evidence with confirmed public URLs for generic search clients. Local-only papers remain available through qec_search.',
     'fetch': 'Fetch one complete citable source unit from generic search results. Oversize units require the research profile and exact ranges; no silent text truncation.',
-    'qec_get_entity': 'Compatibility entity lookup by exact identity and optional revision. Returns the registered record or source node with evidence.',
+    'qec_get_entity': 'Look up an entity by exact identity and optional revision. Returns the registered record or source node with evidence.',
     'qec_get_source': 'Read an exact registered source occurrence or codepoint range. Returns verbatim TeX and source coordinates; no filesystem paths are accepted.',
     'qec_get_asset': 'Read paginated bytes of an asset referenced by an eligible record. Returns base64 bytes, hash and byte offsets; does not execute the asset.',
     'qec_find_software': 'Enumerate registered software names, roles and reported usage. Does not inspect local installations or infer current versions.',
@@ -62,15 +62,10 @@ PARAMETERS = {
 
 def describe(tool):
     name = tool['name']
-    aliases = {'qec_find_codes': 'qec_query_codes', 'qec_find_performance': 'qec_query_performance',
-               'qec_workspace_status': 'qec_status'}
-    if name in aliases:
-        tool['description'] = 'Compatibility alias: ' + name + '. ' + DESCRIPTIONS[aliases[name]]
-    elif name.startswith('qecgraph_'):
+    if name.startswith('qecgraph_'):
         action = name.removeprefix('qecgraph_')
-        tool['description'] = ('Compatibility ' + action + ' over a pinned store/corpus graph. '
-                               'Returns source nodes with evidence states and explicit truncation. '
-                               'Workspace research tools provide paper navigation and ranked discovery.')
+        tool['description'] = (f'Graph {action} over a pinned workspace release. '
+                               'Returns source nodes with evidence states and explicit truncation.')
     else:
         tool['description'] = DESCRIPTIONS[name]
     for field, schema in tool['inputSchema']['properties'].items():

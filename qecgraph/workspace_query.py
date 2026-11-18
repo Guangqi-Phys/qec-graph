@@ -176,26 +176,39 @@ class WorkspaceSession:
         return result
 
     @cached_property
-    def _tool_descriptors(self):
+    def _workspace_tool_descriptors(self):
+        from .knowledge_context import PURPOSES
+
         descriptors = self.graph.tools()
         extras = {
-            'qec_workspace_status': ({}, []),
+            'qec_status': ({}, []),
             'qec_get_entity': ({'identifier': _string(4096), 'revision': _string()}, ['identifier']),
             'qec_get_context': ({'identifier': _string(4096), 'revision': _string(),
                                  'depth': _integer(0, self.graph.max_depth),
                                  'max_nodes': _integer(1, self.graph.max_nodes),
-                                 'include_candidates': {'type': 'boolean'}}, ['identifier']),
+                                 'include_candidates': {'type': 'boolean'},
+                                 'purpose': {'enum': list(PURPOSES)}}, ['identifier']),
             'qec_get_asset': ({'identifier': _string(80), 'offset': _integer(),
                                'length': _integer(1, 32768)}, ['identifier']),
             'qec_get_source': ({'identifier': _string(4096), 'char_start': _integer(), 'char_end': _integer()}, ['identifier']),
-            'qec_find_codes': ({'n_min': _integer(), 'n_max': _integer(), 'distance_at_least': _integer(),
-                                'metric_id': _string(), 'metric_revision': _string(),
-                                'evidence_policy': {'enum': ['verified', 'source_reported']},
-                                'sector': {'enum': ['X', 'Z', 'joint']}}, []),
-            'qec_find_performance': ({'code_id': _string(), 'decoder_id': _string(), 'noise_model_id': _string(),
-                                      'metric_id': _string(), 'complete_only': {'type': 'boolean'},
-                                      'coordinate_name': _string(), 'coordinate': {'type': 'number'},
-                                      'selection': {'enum': ['exact', 'nearest_reported']}}, []),
+            'qec_query_codes': ({
+                'n_min': _integer(), 'n_max': _integer(), 'k_min': _integer(), 'k_max': _integer(),
+                'distance_at_least': _integer(), 'metric_id': _string(), 'metric_revision': _string(),
+                'evidence_policy': {'enum': ['verified', 'source_reported']},
+                'sector': {'enum': ['X', 'Z', 'joint']},
+                'classification': {'enum': ['css', 'stabilizer', 'subsystem', 'nonadditive', 'other']},
+                'check_weight_max': _integer(), 'check_weight_sector': {'enum': ['X', 'Z', 'mixed']},
+                'check_weight_scope': {'enum': ['stabilizer', 'gauge', 'measured']}, 'source_query': _string(4096),
+            }, []),
+            'qec_query_performance': ({
+                'code_id': _string(), 'decoder_id': _string(), 'noise_model_id': _string(),
+                'metric_id': _string(), 'complete_only': {'type': 'boolean'},
+                'coordinate_name': _string(), 'coordinate': {'type': 'number'},
+                'selection': {'enum': ['exact', 'nearest_reported']},
+                'circuit_id': _string(), 'source_version_id': _string(4096),
+                'idle': {'enum': ['included', 'excluded']}, 'loss': {'enum': ['included', 'excluded']},
+                'source_query': _string(4096),
+            }, []),
             'qec_find_software': ({'query': _string(), 'role': _string()}, []),
         }
         for name, (properties, required) in extras.items():
@@ -210,20 +223,25 @@ class WorkspaceSession:
                          max_chars=_integer(256, self.graph.max_chars))
             if descriptor['name'] == 'qecgraph_search':
                 props['view'] = {'enum': ['raw', 'reading']}
-            if descriptor['name'] in ('qecgraph_search', 'qec_find_codes', 'qec_find_performance', 'qec_find_software'):
+            if descriptor['name'] in ('qecgraph_search', 'qec_query_codes', 'qec_query_performance', 'qec_find_software'):
                 props.update(limit=_integer(1, self.graph.max_results), offset=_integer(0))
+        return descriptors
+
+    @cached_property
+    def _tool_descriptors(self):
         from .knowledge import descriptors as knowledge_descriptors
-        return knowledge_descriptors(self, descriptors)
+
+        return knowledge_descriptors(self, self._workspace_tool_descriptors)
 
     @cached_property
     def _tool_validators(self):
         return tool_validators(self.tools())
 
     def tools(self):
-        from .knowledge import RESEARCH_TOOLS
-        selected = {'research': set(RESEARCH_TOOLS), 'compatible': {'search', 'fetch'}}.get(self.profile)
-        if selected is None:
-            selected = {t['name'] for t in self._tool_descriptors[:13]}
+        from .knowledge import GENERIC_TOOLS, RESEARCH_TOOLS
+
+        selected = ({t['name'] for t in self._workspace_tool_descriptors} if self.profile is None
+                    else {'research': set(RESEARCH_TOOLS), 'compatible': GENERIC_TOOLS}[self.profile])
         return copy.deepcopy([t for t in self._tool_descriptors if t['name'] in selected])
 
     @cached_property
@@ -564,13 +582,13 @@ class WorkspaceSession:
         result['catalogue_scope'] = 'Non-exhaustive; catalogue entries do not establish use or a release version'
         return result
 
-    def _present_discovery(self, data, requested_name, detail):
+    def _present_discovery(self, data, name, detail):
         results = data['results']
         if not isinstance(results, list):
             raise TypeError('Discovery results must be a list')
         if detail == 'concise':
             data['results'] = self.knowledge.compact_rows(results)
-            if requested_name == 'qec_search':
+            if name == 'qec_search':
                 for field in ('retrieval', 'fallback', 'absence'):
                     data.pop(field, None)
             data['handle_scope'] = 'Handles are valid only in this pinned release; detail=full returns full provenance.'
@@ -595,15 +613,12 @@ class WorkspaceSession:
                 if len(canonical(data)) > maximum:
                     raise ToolError('BUDGET_TOO_SMALL', 'Complete evidence exceeds session budget; use research profile ranges')
                 return {'ok': True, 'data': copy.deepcopy(data)}
-            requested_name = name
             detail = args.pop('detail', 'concise')
             for field in ('identifier', 'code_id', 'decoder_id', 'noise_model_id', 'metric_id', 'circuit_id'):
                 if field in args:
                     args[field] = self.knowledge.expand_handle(args[field])
-            from .knowledge import ALIASES
-            name = ALIASES.get(name, name)
             metadata = {'scope': self.scope, 'knowledge_snapshot': self.release}
-            if self.profile is None or requested_name in {'qec_status', 'qec_workspace_status'} or detail == 'full':
+            if self.profile is None or name == 'qec_status' or detail == 'full':
                 metadata['coverage'] = self._coverage
             graph_metadata = {**metadata, 'continuation': None}
             source_query = args.pop('source_query', None)
@@ -623,10 +638,8 @@ class WorkspaceSession:
                 if not args['query'].strip():
                     raise ToolError('INVALID_ARGUMENT', 'Search query must not be blank')
                 data = self._search(args)
-            elif name == 'qec_workspace_status':
-                data = {'operational_status': self._operational()}
-                if requested_name == 'qec_status':
-                    data['knowledge_coverage'] = self.knowledge.coverage()
+            elif name == 'qec_status':
+                data = {'operational_status': self._operational(), 'knowledge_coverage': self.knowledge.coverage()}
             elif name == 'qec_get_asset':
                 uri = args['identifier']
                 if uri not in self.assets:
@@ -671,7 +684,7 @@ class WorkspaceSession:
                     if not response['ok']:
                         return response
                     data = response['data']
-            elif name == 'qec_find_codes':
+            elif name == 'qec_query_codes':
                 extended = {k: args.pop(k) for k in ('k_min', 'k_max', 'classification', 'check_weight_max',
                                                      'check_weight_sector', 'check_weight_scope') if k in args}
                 offset = args.pop('offset', 0)
@@ -707,7 +720,7 @@ class WorkspaceSession:
                     rows = filter_codes(self, rows, extended)
                 data = self._paginate(rows, {'offset': offset, 'limit': limit}, limit)
                 data['evidence_policy'] = policy
-            elif name == 'qec_find_performance':
+            elif name == 'qec_query_performance':
                 if args.get('source_version_id'):
                     self.knowledge.version(args['source_version_id'])
                 data = self._performance(args)
@@ -718,14 +731,14 @@ class WorkspaceSession:
                 if not response['ok']:
                     return response
                 data = response['data']
-            if requested_name in {'qec_query_codes', 'qec_query_performance'}:
+            if name in {'qec_query_codes', 'qec_query_performance'}:
                 data['query_semantics'] = 'enumeration of explicit records in this fixed release'
                 data['source_fallback'] = {'tool': 'qec_search', 'reason': 'Unextracted materials may contain additional candidates'}
                 if source_query:
                     data['source_candidates'] = self.knowledge.search({'query': source_query, 'limit': min(5, self.graph.max_results)})
                 data['field_coverage'] = self.knowledge.coverage()['field_states']
-            if requested_name in {'qec_search', 'qec_list_papers'}:
-                self._present_discovery(data, requested_name, detail)
+            if name in {'qec_search', 'qec_list_papers'}:
+                self._present_discovery(data, name, detail)
             data.update(metadata)
             data.setdefault('truncated', False)
             data.setdefault('continuation', None)

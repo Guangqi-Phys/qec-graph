@@ -286,7 +286,11 @@ Decoder memory succeeds.
             _ai_session(args)
         compatible = WorkspaceSession(self.ws.registry.root, profile='compatible')
         self.assertEqual({t['name'] for t in compatible.tools()}, {'search', 'fetch'})
-        self.assertEqual(len(WorkspaceSession(self.ws.registry.root).tools()), 13)
+        direct = WorkspaceSession(self.ws.registry.root)
+        self.assertEqual(len(direct.tools()), 13)
+        for alias in ('qec_find_codes', 'qec_find_performance', 'qec_workspace_status'):
+            self.assertEqual(direct.invoke(alias, {})['error']['code'], 'UNKNOWN_TOOL')
+            self.assertEqual(self.session.invoke(alias, {})['error']['code'], 'UNKNOWN_TOOL')
         self.assertEqual(len(self.session.tools()), 8)
         server = MCPServer(compatible)
         server.handle(initialization())

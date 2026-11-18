@@ -148,7 +148,7 @@ ThoughtsGraph 使用带原文引用的 `research_thought` 记录和类型化关�
 | `research records` | 保存类型化 QEC 对象和字段证据 | [数据与检索](docs/user/data-and-search.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#4-数据契约) | 来源快照和 `research` JSON | `machine/research/<hash(id)>/<hash(revision)>.json`，含 `schema: qecgraph.research` |
 | `release` | 验证全部内容并发布不可变 release | [系统设计](docs/design/DESIGN.zh-CN.md#7-工作区事务与发布协议)、[维护](docs/operations/maintenance.zh-CN.md) | staged records 和 snapshots | 含 `format`、`revision` 的 `machine/CURRENT.json`；`machine/states/<revision>.json` |
 | `CLI` | 读取固定工作区发布 | [进阶用法](docs/user/advanced-usage.zh-CN.md)、[数据与检索](docs/user/data-and-search.zh-CN.md) | `--workspace` 或 `--machine`；`query-tool` 的 JSON 参数 | 终端文本或版本化 JSON |
-| `MCP` | 通过本地 stdio 提供只读工具 | [MCP 设置](#mcp)、[数据与检索](docs/user/data-and-search.zh-CN.md) | stdio 上的 JSON-RPC 2.0；固定一个 release；legacy/research/compatible profile | JSON-RPC 帧、text/structured content、`qec://source/...` resources |
+| `MCP` | 通过本地 stdio 提供只读工具 | [MCP 设置](#mcp)、[数据与检索](docs/user/data-and-search.zh-CN.md) | stdio 上的 JSON-RPC 2.0；固定一个 release；research 或 compatible profile | JSON-RPC 帧、text/structured content、已登记资源 |
 | `human/` | 渲染 Obsidian 视图，绝不回写 | [工作区说明](docs/user/workspace.zh-CN.md)、[系统设计](docs/design/DESIGN.zh-CN.md#9-人类视图) | 已发布机器 release | `human/YYYY/MM/一作姓_文章前两个词_thoughts.md`；管理状态在 `.qecgraph/` |
 
 单个 writer 拥有整条流水线。读取端固定一个 `CURRENT` release；验证失败时旧
@@ -166,7 +166,7 @@ release 保持可读。人类笔记永不作为知识输入。
 | 研究模型 | `qecgraph.research` 记录、27 kinds、47 typed relations、字段证据、显式 unknown/conflict 状态 |
 | 审核 | proposal/diff、显式 decide、哈希绑定 apply、stale review 检测 |
 | 查询 | 精确过滤、有界上下文、依赖/影响遍历、code/performance/software 查询 |
-| MCP | legacy（13）、research（7）或通用 search/fetch（2）工具；来源资源、预算、每会话固定 release |
+| MCP | 8 个研究工具或 2 个通用 search/fetch 工具。支持已登记资源、预算与每会话固定 release |
 | 知识检索 | 完整原文/章节/目录读取、可选本地或外部 embedding、混合搜索、任务上下文与覆盖报告 |
 | AI 辅助 | 可选 provider 配置、多 TeX 根的来源映射规范化、定理/假设/数据/思路提议 |
 | 人类视图 | 每篇论文一份 Obsidian thoughts 笔记，包含主题标签、书目信息和九问 |

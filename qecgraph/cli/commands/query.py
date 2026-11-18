@@ -26,7 +26,8 @@ def research_query(args):
     subject = args.command.removeprefix('query-')
     arguments = {name: getattr(args, name) for name in (*fields[subject], 'limit', 'offset', 'max_chars')
                  if getattr(args, name) is not None}
-    return _emit_tool_result(args, _workspace_session(args).invoke('qec_find_' + subject, arguments))
+    tool = 'qec_find_software' if subject == 'software' else 'qec_query_' + subject
+    return _emit_tool_result(args, _workspace_session(args).invoke(tool, arguments))
 
 
 def _ai_session(args):
