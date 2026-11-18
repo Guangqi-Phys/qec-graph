@@ -31,7 +31,9 @@ def validate_material(files: dict[str, bytes]) -> dict:
     from .harvmac import check_dialect
 
     check_dialect(files, document)
-    _check_environment_declarations(files, document, text, sources)
+    _check_environment_declarations(
+        files, document, text, sources, manifest.get("rule_version")
+    )
     from .crossrefs import check_reference_candidates
 
     check_reference_candidates(files, document, text, manifest)
@@ -112,10 +114,10 @@ def _check_syntax(document, text, sources):
     _validate_roots(document, by_id, len(text))
 
 
-def _check_environment_declarations(files, document, text, sources):
+def _check_environment_declarations(files, document, text, sources, rule_version):
     if "environment_label_declarations" not in document:
         return
-    from .environments import label_declarations
+    from .environments import declaration_options
     from .crossrefs import _environment_labels
 
     records = document["environment_label_declarations"]
@@ -128,9 +130,13 @@ def _check_environment_declarations(files, document, text, sources):
     paths = build.get("inputs", [r["origin"]["path"] for r in records])
     from .projection import working_tree, decorate_origins
 
-    expected_records = label_declarations(working_tree(files), paths)
-    decorate_origins(expected_records, files)
-    if expected_records != records:
+    for expected_records in declaration_options(
+        working_tree(files), paths, rule_version=rule_version
+    ):
+        decorate_origins(expected_records, files)
+        if expected_records == records:
+            break
+    else:
         raise ValueError(
             "Environment label declarations do not match consumed source grammar"
         )

@@ -2,7 +2,11 @@ import unittest
 from unittest.mock import patch
 
 from qecgraph.preparation.convert import convert_source
-from qecgraph.preparation.environments import _source_declarations, label_declarations
+from qecgraph.preparation.environments import (
+    _source_declarations,
+    declaration_options,
+    label_declarations,
+)
 from qecgraph.preparation.contract import SCHEMA, digest, json_bytes, validate_material
 from qecgraph.source.package import SourceTree
 
@@ -103,7 +107,9 @@ class EnvironmentDeclarationTests(unittest.TestCase):
                 )
                 self.assertEqual(label_declarations(tree, ["main.tex"]), [])
 
-    def test_environment_redefinition_removes_previously_declared_label_capability(self):
+    def test_environment_redefinition_removes_previously_declared_label_capability(
+        self,
+    ):
         tree = SourceTree(
             "tex",
             {
@@ -114,3 +120,49 @@ class EnvironmentDeclarationTests(unittest.TestCase):
             },
         )
         self.assertEqual(label_declarations(tree, ["main.tex"]), [])
+
+    def test_provide_command_after_known_definition_keeps_environment_labels(self):
+        load = rb"\usepackage{tcolorbox}"
+        provide = rb"\providecommand{\newtcolorbox}[1]{}"
+        declaration = rb"\newtcolorbox{box}[2][]{#1}"
+        late = load + provide + declaration + rb"\ProvideDocumentCommand{\box}{m}{}"
+        _, _, (_, doc, coverage) = self.convert(late)
+        self.assertTrue(coverage["complete"], coverage)
+        self.assertEqual(doc["labels"][0]["keys"], ["key"])
+        for early in (provide + load, rb"\iffalse" + load + rb"\fi" + provide):
+            with self.subTest(early=early):
+                _, _, (_, doc, coverage) = self.convert(early + declaration)
+                self.assertFalse(coverage["complete"])
+                self.assertEqual(doc["environment_label_declarations"], [])
+
+    def test_both_published_v19_declaration_policies_can_be_reopened(self):
+        main = (
+            rb"\documentclass{article}\usepackage{tcolorbox}"
+            rb"\providecommand{\newtcolorbox}[1]{}\newtcolorbox{box}[2][]{#1}"
+            rb"\begin{document}Body.\end{document}"
+        )
+        tree = SourceTree("tex", {"main.tex": main})
+        empty, declared = declaration_options(
+            tree, ["main.tex"], rule_version="compile-prepare-v19"
+        )
+        self.assertEqual(empty, [])
+        self.assertEqual([record["environment"] for record in declared], ["box"])
+        for records in (empty, declared):
+            with patch(
+                "qecgraph.preparation.convert.label_declarations", return_value=records
+            ):
+                assembly, doc, _ = convert_source(tree, "main.tex", {"bindings": []})
+            files = {
+                "entry.tex": assembly.data,
+                "content.json": json_bytes(doc),
+                "sources/main.tex": main,
+            }
+            files["manifest.json"] = json_bytes(
+                {
+                    "schema": SCHEMA,
+                    "status": "partial",
+                    "rule_version": "compile-prepare-v19",
+                    "artifacts": {p: digest(raw) for p, raw in files.items()},
+                }
+            )
+            self.assertTrue(validate_material(files)["source_fidelity"])
