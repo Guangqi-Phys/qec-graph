@@ -320,7 +320,7 @@ def _mask_comments(text: str) -> str:
     return "".join(out)
 
 
-def _read_group(text: str, index: int, delimiters: str = "{}") -> tuple[str, int]:
+def _read_group(text: str, index: int, delimiters: tuple[str, str] = ("{", "}")) -> tuple[str, int]:
     opening, closing = delimiters
     if index >= len(text) or text[index] != opening:
         return "", index
@@ -379,7 +379,7 @@ def _skip_definition(text: str, index: int, name: str) -> int:
         for _ in range(2):
             index = _skip_space(text, index)
             if index < len(text) and text[index] == "[":
-                _, index = _read_group(text, index, "[]")
+                _, index = _read_group(text, index, ("[", "]"))
             else:
                 break
         index = _skip_space(text, index)
@@ -393,7 +393,7 @@ def _skip_definition(text: str, index: int, name: str) -> int:
         for _ in range(2):
             index = _skip_space(text, index)
             if index < len(text) and text[index] == "[":
-                _, index = _read_group(text, index, "[]")
+                _, index = _read_group(text, index, ("[", "]"))
             else:
                 break
         for _ in range(2):
@@ -552,7 +552,7 @@ def _parse_args(text: str, index: int, name: str) -> tuple[tuple[str, ...], int]
     for _ in range(count):
         index = _skip_space(text, index)
         if index < len(text) and text[index] == "[":
-            _, index = _read_group(text, index, "[]")
+            _, index = _read_group(text, index, ("[", "]"))
             index = _skip_space(text, index)
         if index < len(text) and text[index] == "{":
             value, index = _read_group(text, index)
