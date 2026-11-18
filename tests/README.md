@@ -45,7 +45,7 @@ python -m unittest discover -s tests
 Fixtures live in `tests/fixtures/`; pinned-source instructions are in
 `tests/golden/README.md`.
 
-Native TeX integration is opt-in locally. Install TeX Live, Poppler, and the
+Native TeX integration is opt-in locally. Install TeX Live, Ghostscript, Poppler, and the
 platform sandbox, then run:
 
 ```sh

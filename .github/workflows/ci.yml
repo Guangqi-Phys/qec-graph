@@ -73,7 +73,7 @@ jobs:
       - name: Install TeX Live and bubblewrap
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y bubblewrap poppler-utils texlive-latex-extra texlive-publishers texlive-fonts-recommended
+          sudo apt-get install --no-install-recommends -y bubblewrap ghostscript poppler-utils texlive-latex-extra texlive-publishers texlive-fonts-recommended
           python -m pip install -e .
       - name: Install pinned Harvmac support
         run: |

@@ -43,7 +43,7 @@ python -m unittest discover -s tests
 
 fixtures 在 `tests/fixtures/`；固定来源说明在 `tests/golden/README.zh-CN.md`。
 
-真实 TeX 集成测试需要在本地显式开启。安装 TeX Live、Poppler 和平台沙箱后运行：
+真实 TeX 集成测试需要在本地显式开启。安装 TeX Live、Ghostscript、Poppler 和平台沙箱后运行：
 
 ```sh
 QECGRAPH_TEST_TEX=1 python -m unittest tests.integration.pipeline.test_compilation_sandbox tests.integration.pipeline.test_compilation -v
