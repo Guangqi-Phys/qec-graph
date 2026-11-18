@@ -21,6 +21,15 @@ from qecgraph.source.package import SourceTree
     "Set QECGRAPH_TEST_TEX=1 for isolated local TeX checks",
 )
 class LocalCompilerTests(unittest.TestCase):
+    def assert_ready(self, result):
+        if result["status"] != "ready":
+            logs = Path(result["out"]) / "build/logs"
+            diagnostic = {
+                path.name: path.read_text(errors="replace")[-2500:]
+                for path in sorted(logs.glob("*.log"))
+            }
+            self.fail(f"Unexpected preparation result: {result} with build logs {diagnostic}")
+
     def test_repeated_reference_targets_are_ready_and_preserved_after_native_compile(self):
         raw = (
             rb"\documentclass{article}\begin{document}"
@@ -34,7 +43,7 @@ class LocalCompilerTests(unittest.TestCase):
             out = Path(temp) / "material"
             result = prepare_material(source, out)
             material = read_material(out)
-            self.assertEqual(result["status"], "ready")
+            self.assert_ready(result)
             self.assertEqual(material["normalization"]["pdf_text"], "equal")
             target = material["document"]["cross_references"][0]["targets"][0]
             self.assertEqual(target["status"], "ambiguous")
@@ -82,7 +91,7 @@ See \ifa. \ref\book{A. Author, A Book.}
             source.mkdir()
             (source / "main.tex").write_bytes(original)
             result = prepare_material(source, root / "out")
-            self.assertEqual(result["status"], "ready", result)
+            self.assert_ready(result)
             material = read_material(root / "out")
             self.assertEqual(material["normalized_tex"].encode(), original)
             self.assertEqual(
@@ -127,7 +136,7 @@ See \ifa. \ref\book{A. Author, A Book.}
             source.mkdir()
             (source / "main.tex").write_bytes(original)
             result = prepare_material(source, root / "out", entry="main.tex")
-            self.assertEqual(result["status"], "ready", result)
+            self.assert_ready(result)
             material = read_material(root / "out")
             self.assertIn("^^a8", material["entry_tex"])
             projected = [
@@ -171,7 +180,7 @@ End.\end{document}\end{now}"""
                 "qecgraph.preparation.compatibility.QUANTUMARTICLE_42", digest(cls)
             ):
                 result = prepare_material(source, root / "out", entry="main.tex")
-            self.assertEqual(result["status"], "ready", result)
+            self.assert_ready(result)
             material = read_material(root / "out")
             self.assertEqual(material["normalization"]["pdf_text"], "equal")
             self.assertTrue(material["document"]["inactive_ranges"])
@@ -199,7 +208,7 @@ Visible $x$.
             source.mkdir()
             (source / "main.tex").write_bytes(original)
             result = prepare_material(source, root / "out", entry="main.tex")
-            self.assertEqual(result["status"], "ready", result)
+            self.assert_ready(result)
             loaded = read_material(root / "out")
             self.assertEqual(loaded["document"]["citations"], [])
             self.assertEqual(len(loaded["document"]["observed_guards"]), 2)
@@ -229,7 +238,7 @@ Visible $x$.
             (source / "main.tex").write_bytes(original)
             (source / "boxed.cls").write_bytes(cls)
             result = prepare_material(source, root / "out", entry="main.tex")
-            self.assertEqual(result["status"], "ready", result)
+            self.assert_ready(result)
             loaded = read_material(root / "out")
             declaration = loaded["document"]["environment_label_declarations"][0]
             self.assertEqual(declaration["origin"]["path"], "boxed.cls")
@@ -249,7 +258,7 @@ Visible $x$.
                 "@article{a,author={Ada Example},title={First},journal={Test},year={2020}}\n@article{b,author={Ben Example},title={Second},journal={Test},year={2021}}"
             )
             result = prepare_material(source, root / "out", entry="sub/main.tex")
-            self.assertEqual(result["status"], "ready", result)
+            self.assert_ready(result)
             loaded = read_material(root / "out")
             self.assertEqual(
                 [r["key"] for r in loaded["references"]["bindings"]], ["a", "b"]
@@ -277,7 +286,7 @@ Visible $x$.
         )
         with tempfile.TemporaryDirectory() as temp:
             build = compile_tree(tree, "main.tex", Path(temp))
-            self.assertTrue(build.success, build.steps)
+            self.assertTrue(build.success, (build.steps, build.artifacts.get("logs/bibliography.log")))
             aux = build.artifacts["files/main.aux"]
             self.assertIn(rb"\citation{ref:0}", aux)
             self.assertIn(rb"\bibcite{ref:0}", aux)
@@ -301,7 +310,7 @@ Visible $x$.
             )
             out = root / "material"
             result = prepare_material(source, out, entry="main.tex")
-            self.assertEqual(result["status"], "ready")
+            self.assert_ready(result)
             loaded = read_material(out)
             self.assertIn(r"\(d\leq12\)", loaded["normalized_tex"])
             self.assertIn(r"\cite{ref:0}", loaded["normalized_tex"])

@@ -73,7 +73,7 @@ jobs:
       - name: Install TeX Live and bubblewrap
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y bubblewrap poppler-utils texlive-latex-extra texlive-publishers texlive-fonts-recommended
+          sudo apt-get install --no-install-recommends -y bubblewrap poppler-utils texlive-latex-extra texlive-publishers texlive-fonts-recommended texlive-plain-generic
           python -m pip install -e .
       - name: Verify isolated native compilation
         run: python -m unittest tests.integration.pipeline.test_compilation_sandbox tests.integration.pipeline.test_compilation -v

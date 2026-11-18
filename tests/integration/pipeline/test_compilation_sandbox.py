@@ -34,7 +34,7 @@ class CompilerSandboxTests(unittest.TestCase):
             secret.write_text('test sentinel')
             forbidden = root / 'forbidden'
             command = ['/bin/sh', '-c',
-                       'if cat "$1" || touch "$2"; then exit 1; fi; test -z "$OPENROUTER_API_KEY"',
+                       'if cat "$1"; then exit 1; fi; touch "$2"; test -z "$OPENROUTER_API_KEY"',
                        'probe', str(secret), str(forbidden)]
             with patch.dict(os.environ, {'OPENROUTER_API_KEY': 'fixture-only'}):
                 result = sandbox.run(alias, alias, command)

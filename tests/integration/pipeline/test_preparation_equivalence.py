@@ -63,6 +63,9 @@ class PreparationEquivalenceTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as temp,
+            # The fake compiler never emits PDFs. Pin tool discovery so the
+            # golden bytes do not depend on whether Poppler is installed.
+            patch("qecgraph.preparation.execution.tool", return_value="/usr/bin/pdftotext"),
             patch(
                 "qecgraph.preparation.build_view.secrets.token_hex",
                 return_value="0123456789abcdef",
