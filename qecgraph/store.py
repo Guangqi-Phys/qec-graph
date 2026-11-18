@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from .core.progress import phase, task, track
 
+import errno
 import hashlib
 import json
 import os
@@ -470,7 +471,13 @@ def snapshot_database(snapshot):
 
 def _open_regular_snapshot_file(path, *, dir_fd=None):
     flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
-    output = os.fdopen(os.open(path, flags, dir_fd=dir_fd), "rb")
+    try:
+        fd = os.open(path, flags, dir_fd=dir_fd)
+    except OSError as exc:
+        if exc.errno == errno.ELOOP:
+            raise ValueError(f"Snapshot output must be an unlinked regular file: {path}") from exc
+        raise
+    output = os.fdopen(fd, "rb")
     if not stat.S_ISREG(os.fstat(output.fileno()).st_mode):
         output.close()
         raise ValueError(f"Expected a regular snapshot output: {path}")

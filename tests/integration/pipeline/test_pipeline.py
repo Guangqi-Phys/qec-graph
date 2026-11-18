@@ -141,21 +141,20 @@ class PipelineSemanticsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Snapshot output does not match the archived source"):
             validate_snapshot(snapshot)
 
-    def test_snapshot_output_links_must_resolve_inside_the_snapshot(self):
+    def test_snapshot_outputs_must_be_regular_files(self):
         _, graph, snapshot = self._write_project(r"\section{Example}Fixture.")
         node = next(node for node in graph["nodes"] if node.get("fragment_path"))
         fragment = snapshot / node["fragment_path"]
         retained = snapshot / "retained.tex"
         fragment.rename(retained)
-        fragment.symlink_to(retained)
-        self.assertTrue(validate_snapshot(snapshot)["passed"])
-
         outside = self.work / "outside.tex"
         outside.write_bytes(retained.read_bytes())
-        fragment.unlink()
-        fragment.symlink_to(outside)
-        with self.assertRaisesRegex(ValueError, "Path escapes root"):
-            validate_snapshot(snapshot)
+        for target in (retained, outside):
+            with self.subTest(target=target):
+                fragment.symlink_to(target)
+                with self.assertRaisesRegex(ValueError, "unlinked regular file"):
+                    validate_snapshot(snapshot)
+                fragment.unlink()
 
     def test_snapshot_validation_rejects_a_named_pipe_without_blocking(self):
         _, _, snapshot = self._write_project(r"\section{Example}Fixture.")
