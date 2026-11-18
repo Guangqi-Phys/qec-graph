@@ -80,6 +80,7 @@ class QueryError(QecError):
         super().__init__(error['message'], details=error.get('details'))
         self.code = error['code']
         self.scope = error.get('scope')
+        self.reference = error.get('reference')
         if self.code == 'NOT_FOUND':
             self.exit_code = 4
             self.hint = 'Search in the same scope, or check the exact ID and release.'
@@ -87,6 +88,13 @@ class QueryError(QecError):
             self.hint = 'Select an exact ID or revision from the listed matches.'
         elif self.code == 'INVALID_ARGUMENT':
             self.hint = 'Run qec-graph help for the command options and limits.'
+
+
+    def envelope(self, command: str | None) -> dict[str, Any]:
+        result = super().envelope(command)
+        if self.reference is not None:
+            result['error']['reference'] = self.reference
+        return result
 
 
 def classify(exc: Exception) -> QecError:

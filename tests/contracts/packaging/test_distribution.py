@@ -1,5 +1,7 @@
 import importlib.util
+import json
 import shlex
+import tomllib
 import unittest
 
 
@@ -11,6 +13,13 @@ spec.loader.exec_module(check_distribution)
 
 
 class ContainerAndManifestTests(unittest.TestCase):
+    def test_dockerfile_entrypoint_is_an_installed_script(self):
+        dockerfile = (ROOT / 'Dockerfile').read_text(encoding='utf-8')
+        entrypoint, = [line.split(maxsplit=1)[1] for line in dockerfile.splitlines()
+                       if line.startswith('ENTRYPOINT ')]
+        scripts = tomllib.loads((ROOT / 'pyproject.toml').read_text())['project']['scripts']
+        self.assertIn(json.loads(entrypoint)[0], scripts)
+
     def test_dockerfile_copy_sources_exist_in_the_checkout(self):
         instructions, current = [], ''
         for line in (ROOT / 'Dockerfile').read_text(encoding='utf-8').splitlines():

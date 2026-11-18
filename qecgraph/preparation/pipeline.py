@@ -31,9 +31,6 @@ _STAGE_ERRORS = (
     OSError,
     ValueError,
     RuntimeError,
-    LookupError,
-    TypeError,
-    AttributeError,
     SyntaxError,
 )
 

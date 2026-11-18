@@ -406,6 +406,9 @@ class WorkspaceQueryTests(unittest.TestCase):
             rows.extend([noise, point])
         publish_records(self.ws.registry, rows)
         session = WorkspaceSession(self.ws.registry.root)
+        invalid = session.invoke('qec_query_performance',
+                                 {'coordinate_name': 'p', 'coordinate': None, 'selection': 'nearest_reported'})
+        self.assertEqual(invalid['error']['code'], 'INVALID_ARGUMENT')
         inputs = {'coordinate_name': 'p', 'coordinate': 0.011}
         self.assertEqual(session.invoke('qec_query_performance', inputs)['data']['results'], [])
         found, = session.invoke('qec_query_performance', {**inputs, 'selection': 'nearest_reported'})['data']['results']

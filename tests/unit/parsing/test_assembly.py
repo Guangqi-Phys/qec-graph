@@ -440,10 +440,6 @@ class AssembleTests(unittest.TestCase):
         self.assertLess(second, tail)
         self.assertEqual(result.validate(source), [])
 
-
-if __name__ == "__main__":
-    unittest.main()
-
     def test_missing_preamble_include_is_a_dependency_not_content_loss(self):
         source = {
             "main.tex": (b"\\documentclass{article}\n\\input{missing-preamble}\n"
@@ -455,3 +451,7 @@ if __name__ == "__main__":
         coverage = result.coverage()
         self.assertTrue(coverage["complete"])
         self.assertEqual(coverage["preamble_missing"], 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

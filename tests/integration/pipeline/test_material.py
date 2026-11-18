@@ -276,6 +276,20 @@ class MaterialPipelineTests(unittest.TestCase):
                 )
             self.assertEqual(result["status"], "ready")
 
+    def test_internal_stage_error_leaves_ready_material_published(self):
+        self.calls, self.succeeds = [], True
+        raw = rb"\documentclass{article}\begin{document}Body.\end{document}"
+        with tempfile.TemporaryDirectory() as temp:
+            source, out = Path(temp) / "main.tex", Path(temp) / "out"
+            source.write_bytes(raw)
+            self.assertEqual(prepare_material(source, out, compiler=self.compiler)["status"], "ready")
+            before = (out / "manifest.json").read_bytes()
+            with patch("qecgraph.preparation.pipeline.convert_source", side_effect=KeyError("fixture")):
+                with self.assertRaises(KeyError):
+                    prepare_material(source, out, compiler=self.compiler, overwrite=True)
+            self.assertEqual((out / "manifest.json").read_bytes(), before)
+            self.assertFalse(out.with_suffix(".attempt").exists())
+
     def test_stage_data_errors_keep_completed_build_and_source(self):
         self.calls, self.succeeds = [], True
         raw = rb"\documentclass{article}\begin{document}Body.\end{document}"
@@ -290,9 +304,9 @@ class MaterialPipelineTests(unittest.TestCase):
             source.write_bytes(raw)
             for name, stage, error in (
                 ("adapt_references", "references", SyntaxError),
-                ("convert_source", "conversion", KeyError),
-                ("normalize_latex", "normalization", TypeError),
-                ("verify_roundtrip", "normalized_build", KeyError),
+                ("convert_source", "conversion", ValueError),
+                ("normalize_latex", "normalization", ValueError),
+                ("verify_roundtrip", "normalized_build", ValueError),
             ):
                 with (
                     self.subTest(stage=stage),

@@ -9,5 +9,5 @@ COPY pyproject.toml README.md LICENSE MANIFEST.in ./
 COPY qecgraph ./qecgraph
 RUN python -m pip install --no-cache-dir .
 WORKDIR /work
-ENTRYPOINT ["qecgraph"]
+ENTRYPOINT ["qec-graph"]
 CMD ["--help"]

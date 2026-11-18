@@ -611,7 +611,7 @@ class KnowledgeView:
         return True
 
     def _search_rows(self, allowed, ranked, matches, args, mode):
-        """Build source-bound excerpts, suppress overlapping spans and balance papers."""
+        """Build source-bound excerpts, suppress overlapping spans in ranking order."""
         rows, spans = [], defaultdict(list)
         for key in ranked:
             unit = allowed[key]
@@ -626,12 +626,7 @@ class KnowledgeView:
             row['match'] = 'literal' if mode == 'literal' else matches.get(key, 'vector')
             row.update(self.snippet(unit, args['query']), evidence_status='source_or_record_candidate')
             rows.append(row)
-        # Stable rounds prevent one paper from occupying the whole first page; no rows are lost.
-        groups = defaultdict(list)
-        for row in rows:
-            groups[row.get('source_version_id') or row['id']].append(row)
-        return [row for round_ in range(max((len(g) + 1) // 2 for g in groups.values()) if groups else 0)
-                for group in groups.values() for row in group[2 * round_:2 * round_ + 2]]
+        return rows
 
     @cached_property
     def retrieval(self):

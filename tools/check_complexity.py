@@ -14,7 +14,7 @@ BASELINE = ROOT / 'validation/complexity_baseline.json'
 
 
 def inventory() -> dict[str, int]:
-    run = subprocess.run([sys.executable, '-m', 'ruff', 'check', '--select', 'C90',
+    run = subprocess.run([sys.executable, '-m', 'ruff', 'check', '--no-cache', '--select', 'C90',
                           '--output-format', 'json', 'qecgraph'], cwd=ROOT, capture_output=True, text=True)
     if run.returncode not in (0, 1):
         raise RuntimeError('Ruff complexity scan failed: ' + run.stderr)

@@ -74,6 +74,23 @@ class ArchitectureBoundaryTests(unittest.TestCase):
 
 
 
+    def test_default_discovery_collects_query_and_assembly_regressions(self):
+        def ids(suite):
+            for item in suite:
+                if isinstance(item, unittest.TestSuite):
+                    yield from ids(item)
+                else:
+                    yield item.id()
+
+        suite = unittest.TestLoader().discover(str(ROOT / 'tests'), top_level_dir=str(ROOT))
+        discovered = set(ids(suite))
+        for identifier in (
+            'tests.unit.query.test_lexical.LexicalTests.test_natural_queries_rank_all_terms_before_partial',
+            'tests.unit.query.test_lexical.LexicalTests.test_qec_brackets_and_whitespace_share_terms',
+            'tests.unit.parsing.test_assembly.AssembleTests.test_missing_preamble_include_is_a_dependency_not_content_loss',
+        ):
+            self.assertIn(identifier, discovered)
+
     def test_test_suite_is_layered_by_scope(self):
         tests_root = ROOT / 'tests'
         modules = list(tests_root.rglob('test_*.py'))

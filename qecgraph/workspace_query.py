@@ -172,7 +172,7 @@ class WorkspaceSession:
                                                               'structure_status') if key in source}}}
         result = {'contents': [resource]}
         if len(canonical(result)) > self.graph.max_chars:
-            raise ToolError('BUDGET_TOO_SMALL', 'Use qec_get_source with an exact source codepoint range')
+            raise ToolError('BUDGET_TOO_SMALL', 'Use a navigation view or qec_fetch with an exact source codepoint range')
         return result
 
     @cached_property
@@ -480,13 +480,13 @@ class WorkspaceSession:
 
     def _performance(self, args):
         rows = []
-        if ('coordinate' in args) != ('coordinate_name' in args) or ('selection' in args and 'coordinate' not in args):
-            raise ToolError('INVALID_ARGUMENT', 'Coordinate selection needs both name and value')
         selection = args.get('selection', 'exact')
         requested = args.get('coordinate')
+        axis = args.get('coordinate_name')
+        if (requested is None) != (axis is None) or ('selection' in args and requested is None):
+            raise ToolError('INVALID_ARGUMENT', 'Coordinate selection needs both name and value')
         if isinstance(requested, float) and not isfinite(requested):
             raise ToolError('INVALID_ARGUMENT', 'Coordinate must be a finite number')
-        axis = args.get('coordinate_name')
         nearest = {}
         for record in self.visible.values():
             if record['kind'] != 'performance_data_point':
@@ -530,7 +530,7 @@ class WorkspaceSession:
                    'comparison_status': 'incomplete' if missing else 'conditions_bound',
                    'comparison_group': comparison_group(bindings, missing),
                    'verification_status': 'not_verified_by_query'}
-            if axis is None:
+            if requested is None:
                 rows.append(row)
                 continue
             coordinate = ((noise_instance or {}).get('data', {}).get('reported_coordinates') or {}).get(axis)

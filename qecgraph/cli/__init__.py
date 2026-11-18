@@ -50,7 +50,7 @@ def main(argv: Sequence[str] | None = None, *, entrypoint: tuple[str, str] | Non
             else:
                 code = HANDLERS[args.command](args)
         if not summary:
-            progress.finish('Stopped watching' if args.command == 'watch' else '', code=code)
+            progress.finish('', code=code)
         return code
     except Exception as exc:
         error = classify(exc)

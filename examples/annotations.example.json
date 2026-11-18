@@ -4,7 +4,7 @@
     {
       "id": "code:qec-demo:reported-rep3",
       "kind": "quantum_code",
-      "title": "论文示例表中描述的普通 HGP 码",
+      "title": "Ordinary HGP code reported in the example table",
       "source_labels": ["tab:rep3"],
       "data": {
         "construction": "ordinary_hgp",
@@ -16,7 +16,7 @@
     {
       "id": "dataset:qec-demo:parameter-table",
       "kind": "dataset",
-      "title": "有限 HGP 示例的来源参数表",
+      "title": "Source parameter table for the finite HGP example",
       "source_labels": ["tab:rep3"],
       "data": {"representation": "LaTeX source table", "numeric_extraction": "not_performed"}
     }
@@ -30,8 +30,8 @@
       "target": "label:thm:hgp-css",
       "review_status": "draft",
       "data": {
-        "normalized_summary_zh": "标准二元普通 HGP 构造满足 CSS 对易条件。",
-        "hypotheses_to_check": ["两个种子矩阵均在 GF(2) 上", "使用原文所写的 Kronecker 拼接约定"],
+        "normalized_summary": "The standard binary HGP construction satisfies the CSS commutation condition.",
+        "hypotheses_to_check": ["Both seed matrices are over GF(2)", "Use the Kronecker product ordering specified by the source"],
         "formalization_status": "not_started"
       }
     }

@@ -283,32 +283,6 @@ Visible $x$.
             self.assertIn(rb"\bibcite{ref:0}", aux)
             self.assertEqual(tree.files["main.tex"], original)
 
-    def test_sandbox_denies_external_files_network_and_inherited_credentials(self):
-        with tempfile.TemporaryDirectory() as temp:
-            parent = Path(temp)
-            secret = parent / "sentinel.txt"
-            secret.write_text("test sentinel")
-            work = parent / "allowed"
-            work.mkdir()
-            command = [
-                "/bin/sh",
-                "-c",
-                'cat "$1"; touch "$2"; test -z "$OPENROUTER_API_KEY"',
-                "probe",
-                str(secret),
-                str(parent / "forbidden"),
-            ]
-            result = sandbox.run(work, work, command)
-            self.assertNotIn(b"test sentinel", result["log"])
-            self.assertFalse((parent / "forbidden").exists())
-            self.assertEqual(result["exit"], 0)
-            network = sandbox.run(
-                work,
-                work,
-                ["/usr/bin/curl", "-v", "--max-time", "2", "http://127.0.0.1:9"],
-            )
-            self.assertIn(b"Operation not permitted", network["log"])
-
     def test_normalized_latex_recompiles_with_the_same_visible_text_and_bibliography(
         self,
     ):

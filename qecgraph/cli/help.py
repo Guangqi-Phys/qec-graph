@@ -24,7 +24,6 @@ EXAMPLES = {
     'software-coverage': '--workspace ./qec',
     'software-refresh': '--workspace ./qec --limit 3',
     'research-import': 'records.json --workspace ./qec',
-    'review-list': '--workspace ./qec',
     'mcp-config': '--workspace ./qec',
     'serve-mcp': '--machine ./qec/machine',
     'query-tool': 'qec_query_performance --arguments filters.json --workspace ./qec',

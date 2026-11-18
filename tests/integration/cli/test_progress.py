@@ -1,3 +1,4 @@
+from errno import EACCES, ENOENT, ENOSPC, ENXIO, EPERM
 import fcntl
 import io
 import json
@@ -78,7 +79,7 @@ class CLIProgressTests(unittest.TestCase):
 
     def test_real_pty_animates_while_stdout_is_redirected_and_cleans_up_on_interrupt(self):
         code = '''
-import sys, time
+import sys
 from qecgraph.cli import main, HANDLERS
 from qecgraph.cli.render import print_json
 from qecgraph.core.progress import phase, task
@@ -86,7 +87,8 @@ def run(args):
     with task('Checking packages', total=3, unit='packages', retain=True) as progress:
         progress.advance()
         with task('Waiting for AI provider', detail='attempt 1/3 | timeout 10s', kind='ai'):
-            time.sleep(0.35)
+            if not sys.stdin.readline():
+                raise RuntimeError("Terminal animation was not observed")
             if sys.argv[1] == 'interrupt':
                 raise KeyboardInterrupt
     print_json({'ok': True})
@@ -96,16 +98,22 @@ raise SystemExit(main(['doctor', '--json', '--color', 'never']))
 '''
         for outcome in ('success', 'interrupt'):
             with self.subTest(outcome=outcome):
-                master, slave = pty.openpty()
+                try:
+                    master, slave = pty.openpty()
+                except OSError as exc:
+                    if exc.errno not in {None, EACCES, ENOENT, ENOSPC, ENXIO, EPERM}:
+                        raise
+                    self.skipTest(f'PTY unavailable: {exc}')
                 process = None
                 try:
                     fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 76, 0, 0))
                     env = dict(os.environ, TERM='xterm-256color', PYTHONPATH=str(ROOT))
                     process = subprocess.Popen([sys.executable, '-c', code, outcome], cwd=ROOT, env=env,
-                                               stdout=subprocess.PIPE, stderr=slave, text=True)
+                                               stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=slave, text=True)
                     os.close(slave)
                     slave = None
                     chunks = []
+                    animated = threading.Event()
 
                     def drain():
                         while True:
@@ -116,10 +124,13 @@ raise SystemExit(main(['doctor', '--json', '--color', 'never']))
                             if not chunk:
                                 break
                             chunks.append(chunk)
+                            if b''.join(chunks).count(b'Waiting for provider') > 1:
+                                animated.set()
 
                     reader = threading.Thread(target=drain, daemon=True)
                     reader.start()
-                    stdout, _ = process.communicate(timeout=10)
+                    self.assertTrue(animated.wait(timeout=10), b''.join(chunks))
+                    stdout, _ = process.communicate(input='continue\n', timeout=10)
                     reader.join(timeout=5)
                     self.assertFalse(reader.is_alive())
                     output = b''.join(chunks).decode('utf-8')

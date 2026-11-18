@@ -8,6 +8,7 @@ import os
 import sys
 import time
 from collections import deque
+from contextlib import contextmanager
 
 from jsonschema import Draft202012Validator
 
@@ -143,16 +144,37 @@ class MCPServer:
         return rpc_error(identifier, -32601, 'Method not found')
 
 
+def _request_reference(identifier):
+    if isinstance(identifier, str):
+        return 'sha256:' + sha256(identifier.encode('utf-8', errors='backslashreplace')).hexdigest()[:12]
+    if type(identifier) is int and abs(identifier) < 2**53:
+        return str(identifier)
+    return 'unavailable'
+
+
+@contextmanager
+def _stdio_logging(verbose):
+    package = logging.getLogger('qecgraph')
+    previous_level, previous_propagate = package.level, package.propagate
+    configured = os.environ.get('QECGRAPH_LOG_LEVEL', '').upper()
+    level = logging.DEBUG if verbose else logging.getLevelNamesMapping().get(configured, logging.WARNING)
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter('qecgraph MCP %(levelname)s: %(message)s'))
+    package.addHandler(handler)
+    package.setLevel(level)
+    package.propagate = False
+    try:
+        yield logging.getLogger(__name__)
+    finally:
+        package.removeHandler(handler)
+        package.setLevel(previous_level)
+        package.propagate = previous_propagate
+
+
 def serve_stdio(session, *, input_stream=None, output_stream=None, verbose=False):
     incoming = sys.stdin.buffer if input_stream is None else input_stream
     outgoing = sys.stdout.buffer if output_stream is None else output_stream
     server = MCPServer(session)
-    configured = os.environ.get('QECGRAPH_LOG_LEVEL', '').upper()
-    level = logging.DEBUG if verbose else logging.getLevelNamesMapping().get(configured, logging.WARNING)
-    logger = logging.Logger(__name__, level)
-    handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter('qecgraph MCP %(levelname)s: %(message)s'))
-    logger.addHandler(handler)
 
     def send(message):
         if message is not None:
@@ -161,50 +183,47 @@ def serve_stdio(session, *, input_stream=None, output_stream=None, verbose=False
             outgoing.write(frame.encode('utf-8', errors='backslashreplace'))
             outgoing.flush()
 
-    try:
-        while True:
-            raw = incoming.readline(MAX_REQUEST_BYTES + 2)
-            if not raw:
-                return 0
-            if len(raw) > MAX_REQUEST_BYTES + 1:
-                send(rpc_error(None, -32700, 'MCP request exceeds byte limit', {'max_bytes': MAX_REQUEST_BYTES}))
-                return 1  # Do not parse a truncated frame or drain an unbounded input.
-            if not raw.endswith(b'\n'):
-                send(rpc_error(None, -32700, 'Incomplete newline-delimited stdio frame'))
-                return 1
-            if len(raw) - 1 > MAX_REQUEST_BYTES:
-                send(rpc_error(None, -32700, 'MCP request exceeds byte limit', {'max_bytes': MAX_REQUEST_BYTES}))
-                return 1
-            try:
-                message = strict_json_loads(raw.decode('utf-8'), source='MCP request')
-            except (ValueError, UnicodeDecodeError, RecursionError):
-                send(rpc_error(None, -32700, 'Invalid UTF-8 JSON request'))
-                continue
-            logger.debug('received request frame (%d bytes)', len(raw))
-            try:
-                send(server.handle(message))
-            except BrokenPipeError:
-                return 0
-            except Exception as exc:
-                identifier = message.get('id') if isinstance(message, dict) else None
-                reference = 'unavailable'
-                if isinstance(identifier, str):
-                    reference = 'sha256:' + sha256(identifier.encode('utf-8', errors='backslashreplace')).hexdigest()[:12]
-                elif type(identifier) is int and abs(identifier) < 2**53:
-                    reference = str(identifier)
-                from ..core.errors import log_internal_failure
-                log_internal_failure(logger, 'MCP request ' + reference, exc)
-                if isinstance(message, dict) and 'id' in message:
-                    send(rpc_error(identifier, -32603, 'Internal read-only server error'))
-    except (BrokenPipeError, KeyboardInterrupt):
-        return 0
+    with _stdio_logging(verbose) as logger:
+        try:
+            while True:
+                raw = incoming.readline(MAX_REQUEST_BYTES + 2)
+                if not raw:
+                    return 0
+                if len(raw) > MAX_REQUEST_BYTES + 1:
+                    send(rpc_error(None, -32700, 'MCP request exceeds byte limit', {'max_bytes': MAX_REQUEST_BYTES}))
+                    return 1  # Do not parse a truncated frame or drain an unbounded input.
+                if not raw.endswith(b'\n'):
+                    send(rpc_error(None, -32700, 'Incomplete newline-delimited stdio frame'))
+                    return 1
+                if len(raw) - 1 > MAX_REQUEST_BYTES:
+                    send(rpc_error(None, -32700, 'MCP request exceeds byte limit', {'max_bytes': MAX_REQUEST_BYTES}))
+                    return 1
+                try:
+                    message = strict_json_loads(raw.decode('utf-8'), source='MCP request')
+                except (ValueError, UnicodeDecodeError, RecursionError):
+                    send(rpc_error(None, -32700, 'Invalid UTF-8 JSON request'))
+                    continue
+                logger.debug('received request frame (%d bytes)', len(raw))
+                try:
+                    send(server.handle(message))
+                except BrokenPipeError:
+                    return 0
+                except Exception as exc:
+                    identifier = message.get('id') if isinstance(message, dict) else None
+                    reference = _request_reference(identifier)
+                    from ..core.errors import log_internal_failure
+                    log_internal_failure(logger, 'MCP request ' + reference, exc)
+                    if isinstance(message, dict) and 'id' in message:
+                        send(rpc_error(identifier, -32603, 'Internal read-only server error'))
+        except (BrokenPipeError, KeyboardInterrupt):
+            return 0
 
 
-def main(argv=None):
-    from ..cli import main as cli_main
-    return cli_main(['mcp', 'serve', *(sys.argv[1:] if argv is None else argv)],
-                    entrypoint=('serve-mcp', 'qecgraph-mcp'))
+    def main(argv=None):
+        from ..cli import main as cli_main
+        return cli_main(['mcp', 'serve', *(sys.argv[1:] if argv is None else argv)],
+                        entrypoint=('serve-mcp', 'qecgraph-mcp'))
 
 
-if __name__ == '__main__':
-    raise SystemExit(main())
+    if __name__ == '__main__':
+        raise SystemExit(main())

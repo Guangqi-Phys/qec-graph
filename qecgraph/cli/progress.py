@@ -16,7 +16,7 @@ from ..core.progress import ProgressEvent
 # Explicit descriptions cover the entire dispatch table, including aliases.
 ACTIVITIES = {
     'split': 'Extracting source fragments', 'context': 'Reading evidence context',
-    'query-software': 'Filtering software records', 'review-list': 'Listing source-linked proposals',
+    'query-software': 'Filtering software records',
     'init': 'Preparing workspace configuration', 'sync': 'Opening workspace',
     'rebuild': 'Opening archive for rebuild', 'status': 'Reading workspace status',
     'validate': 'Checking source and release integrity', 'doctor': 'Checking workspace health',

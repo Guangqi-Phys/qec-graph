@@ -19,12 +19,22 @@ def overlaps(source, expected):
                 and min(source['char_end'], expected['char_end']) > max(source['char_start'], expected['char_start']))
 
 
+def label_release(dataset):
+    release, legacy = dataset.get('release'), dataset.get('release_id')
+    if release and legacy and release != legacy:
+        raise ValueError('Conflicting label release fields')
+    return release or legacy
+
+
 def evaluate(session, dataset, *, modes=('literal', 'keyword'), allow_replayed_release=False):
     if not isinstance(dataset.get('cases'), list) or not dataset['cases']:
         raise ValueError('A nonempty explicit case list is required')
     formal = dataset.get('format') == 'qecgraph.source-first-retrieval-cases.v1'
+    pinned = label_release(dataset)
+    if pinned is not None and pinned != session.release and not allow_replayed_release:
+        raise ValueError('Evaluation requires the labeled release or an explicit replay')
     if formal:
-        validate_formal_dataset(session, dataset, allow_replayed_release)
+        validate_formal_dataset(dataset)
     if {'vector', 'hybrid'} & set(modes):
         projection = session.knowledge.retrieval
         if not projection.current or projection.data['identity']['provider'] != 'local':
@@ -74,7 +84,7 @@ def evaluate(session, dataset, *, modes=('literal', 'keyword'), allow_replayed_r
                              failures=sum(not row['ok'] for row in rows),
                              failure_types=dict(Counter(row['failure_type'] for row in rows if row['failure_type'])))
     return {'format': 'qecgraph.retrieval-evaluation.v1', 'scope': session.scope,
-            'label_release': dataset.get('release'),
+            'label_release': pinned,
             'dataset_sha256': hash_text(canonical(dataset)), 'label_status': dataset['label_status'],
             'comparison': 'Selected ranking modes share the same implementation, release and eligible units within this run',
             'interpretation': ('Source-first agent annotations for evidence discovery. Independent researcher review is pending.'
@@ -85,8 +95,8 @@ def evaluate(session, dataset, *, modes=('literal', 'keyword'), allow_replayed_r
             'summary': summary, 'cases': measurements}
 
 
-def validate_formal_dataset(session, dataset, allow_replayed_release):
-    if dataset['release'] != session.release and not allow_replayed_release:
+def validate_formal_dataset(dataset):
+    if not label_release(dataset):
         raise ValueError('Source-first evaluation requires its pinned release')
     cases = dataset['cases']
     if len(cases) < 50 or len({case['id'] for case in cases}) != len(cases):
@@ -113,7 +123,7 @@ def main():
     if args.enforce and 'keyword' not in modes:
         parser.error('--enforce requires keyword mode')
     dataset = read_json(args.cases)
-    session = WorkspaceSession(args.machine, args.release or dataset.get('release'),
+    session = WorkspaceSession(args.machine, args.release or label_release(dataset),
                                profile='research', max_chars=1000000)
     report = evaluate(session, dataset, modes=modes, allow_replayed_release=args.allow_replayed_release)
     atomic_json(args.out, report)

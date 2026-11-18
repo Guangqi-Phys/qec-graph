@@ -60,6 +60,20 @@ class KnowledgeTests(unittest.TestCase):
         self.assertEqual(papers[self.version]['link'], 'https://example.org/paper/v1')
         self.assertEqual(papers[self.version]['field_evidence']['link']['status'], 'user_confirmed')
 
+    def test_keyword_keeps_all_term_hits_before_partial_hits_across_papers(self):
+        for name, body in (
+            ('full', 'Alpha beta gamma.\n\nAlpha beta gamma recur.\n\nAlpha beta gamma again.'),
+            ('partial', 'Alpha.\n\nAlpha recurs.'),
+        ):
+            (self.root / 'inputs' / f'{name}.tex').write_text(
+                r'\documentclass{article}\begin{document}' + body + r'\end{document}')
+        self.ws.sync()
+        self.session = WorkspaceSession(self.ws.registry.root, profile='research')
+        data = self.invoke('qec_search', {'query': 'alpha beta gamma', 'mode': 'keyword',
+                                          'kind': 'paragraph', 'limit': 10})
+        self.assertEqual([row['match'] for row in data['results']],
+                         ['all_terms'] * 3 + ['some_terms'] * 2)
+
     def test_arxiv_number_is_searchable_without_changing_source_identity(self):
         from qecgraph.source.metadata import arxiv_identity
 

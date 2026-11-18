@@ -99,6 +99,7 @@ def _limits():
 
 def run(work: Path, cwd: Path, command: list[str], *, timeout=90, stdin=None) -> dict:
     """Never inherit credentials; descendants inherit the same sandbox and limits."""
+    work, cwd = work.resolve(), cwd.resolve()
     for name in ("tmp", "cache", "config", "texmf"):
         (work / name).mkdir(exist_ok=True)
     paths = [

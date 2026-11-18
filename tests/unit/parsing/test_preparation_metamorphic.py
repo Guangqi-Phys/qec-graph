@@ -1,4 +1,4 @@
-"""Metamorphic tests (MT) for the compile-first preparation pipeline.
+r"""Metamorphic tests (MT) for the compile-first preparation pipeline.
 
 Covers §3.2 of the test engineering plan:
 - MT-01: Comment injection invariance across outline, citations, labels, and

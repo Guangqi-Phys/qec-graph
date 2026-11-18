@@ -64,9 +64,10 @@ def evaluate(session, cases, *, include_payloads=False):
         outcomes = {}
         for baseline in ('A_direct', 'B_search_read', 'C_search_context'):
             calls, evidence_text, errors = [], [], []
-            missing_components = None
+            missing_components = unavailable = None
 
-            def call(tool, arguments):
+            def call(tool, arguments, *, direct_read=False):
+                nonlocal unavailable
                 start = perf_counter()
                 response = session.invoke(tool, arguments)
                 elapsed = perf_counter() - start
@@ -76,13 +77,18 @@ def evaluate(session, cases, *, include_payloads=False):
                               **({'response': response} if include_payloads else {})})
                 all_calls.append(calls[-1])
                 if not response['ok']:
-                    errors.append(response['error']['code'])
+                    code = response['error']['code']
+                    if direct_read and code == 'BUDGET_TOO_SMALL':
+                        unavailable = code
+                    else:
+                        errors.append(code)
                     return None
                 # Evidence quality counts only actual text/records, never query metadata.
                 return response['data']
 
             if baseline == 'A_direct':
-                data = call('qec_fetch', {'identifier': case['source_version_id'], 'view': 'raw'})
+                data = call('qec_fetch', {'identifier': case['source_version_id'], 'view': 'raw'},
+                            direct_read=True)
                 if data:
                     evidence_text.extend(f['text'] for f in data.get('files', []))
             else:
@@ -108,9 +114,10 @@ def evaluate(session, cases, *, include_payloads=False):
             outcomes[baseline] = {'calls': calls, 'call_count': len(calls),
                                   'returned_chars': sum(c['returned_chars'] for c in calls),
                                   'seconds': sum(c['seconds'] for c in calls), 'errors': errors,
+                                  'unavailable': unavailable,
                                   'context_missing_components': missing_components,
                                   'expected_passages': len(expected), 'found_passages': sum(found),
-                                  'passage_recall': sum(found)/len(found) if found else None}
+                                  'passage_recall': sum(found)/len(found) if found and unavailable is None else None}
         measurements.append({'case': case, 'baselines': outcomes})
     times = sorted(c['seconds'] for c in all_calls)
     return {'format': 'qecgraph.knowledge-evaluation.v1', 'package_version': __version__,
@@ -120,6 +127,8 @@ def evaluate(session, cases, *, include_payloads=False):
             'p50_seconds': median(times) if times else None,
             'p95_seconds': times[max(0, (95*len(times)+99)//100-1)] if times else None,
             'tool_errors': sum(not c['ok'] for c in all_calls),
+            'budget_limited_baselines': sum(b['unavailable'] == 'BUDGET_TOO_SMALL'
+                                            for m in measurements for b in m['baselines'].values()),
             'baseline_errors': sum(len(b['errors']) for m in measurements for b in m['baselines'].values()),
             'model_execution': None,
             'interpretation': 'Evidence-pack mechanics only. No model answer accuracy, mathematical correctness or production capacity claim.'}
@@ -147,6 +156,7 @@ def main():
         report['dataset'] = 'selected registered source probes' if args.machine else 'synthetic offline fixtures'
     atomic_json(args.out, report)
     print(json.dumps({'report': str(args.out.resolve()), 'cases': len(cases), 'tool_errors': report['tool_errors'],
+                      'budget_limited_baselines': report['budget_limited_baselines'],
                       'dataset': report['dataset']}, ensure_ascii=False))
     return 1 if report['baseline_errors'] else 0
 
