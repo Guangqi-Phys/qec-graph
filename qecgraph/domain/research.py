@@ -4,7 +4,7 @@ from __future__ import annotations
 import copy
 import re
 
-from ..core.graph import canonical, hash_text
+from ..core.graph import canonical
 from ..validators import packaged_validator
 
 SCHEMA = 'qecgraph.research'
@@ -238,7 +238,3 @@ def pauli_weight(x_bits, z_bits):
     if len(x_bits) != len(z_bits) or any(type(b) is not int or b not in (0, 1) for b in (*x_bits, *z_bits)):
         raise ValueError('Expected equally sized binary X/Z halves')
     return sum(bool(x or z) for x, z in zip(x_bits, z_bits))
-
-
-def record_fingerprint(records):
-    return hash_text(canonical(sorted(records, key=lambda r: key(ref(r)))))

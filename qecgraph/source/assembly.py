@@ -73,10 +73,6 @@ _NEWCOMMAND_NAME = re.compile(
     r"\{?\s*\\([A-Za-z@]+)\s*\}?")
 _DEF_NAME = re.compile(r"\\(?:def|gdef|edef|xdef)\s*\\([A-Za-z@]+)")
 _LET_NAME = re.compile(r"\\let\s*\\([A-Za-z@]+)")
-_SECTION = re.compile(r"\\(part|chapter|section|subsection|subsubsection|paragraph|subparagraph)"
-                      r"\s*(\*)?")
-_SECTION_NAMES = {-1: "part", 0: "chapter", 1: "section", 2: "subsection",
-                  3: "subsubsection", 4: "paragraph", 5: "subparagraph"}
 
 
 @dataclass(frozen=True)
@@ -1463,30 +1459,6 @@ def _shift_event(event: DirectiveEvent, byte_offset: int, char_offset: int) -> D
 
 def assemble_files(files: Mapping[str, bytes], entry: str, *, scan_views=None, allowed_inputs=None) -> AssemblyResult:
     return Assembler(files, scan_views=scan_views, allowed_inputs=allowed_inputs).assemble(entry)
-
-
-def _line_starts(text: str) -> list[int]:
-    starts = [0]
-    for index, char in enumerate(text):
-        if char == "\n":
-            starts.append(index + 1)
-    return starts
-
-
-class SourceLineIndex:
-    """Map a source character offset to a 1-based line number."""
-
-    def __init__(self, files: Mapping[str, bytes] | None):
-        self._starts: dict[str, list[int]] = {}
-        for path, raw in (files or {}).items():
-            text = raw.decode("utf-8", "replace") if isinstance(raw, bytes) else raw
-            self._starts[path] = _line_starts(text)
-
-    def line_at(self, path: str, position: int) -> int | None:
-        starts = self._starts.get(path)
-        if not starts:
-            return None
-        return bisect.bisect_right(starts, max(0, int(position)))
 
 
 def entry_source_spans(result: AssemblyResult, start: int,

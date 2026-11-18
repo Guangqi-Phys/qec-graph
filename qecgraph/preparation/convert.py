@@ -431,10 +431,6 @@ def _opaque_node(assembly, tree, start, end, nodes, diagnostics):
     return identifier
 
 
-def _without_comments(text):
-    return re.sub(r"(?m)(?<!\\)%[^\n]*", "", text)
-
-
 def _outline(nodes, headings=HEADINGS):
     outline, stack = [], []
     for node in nodes:

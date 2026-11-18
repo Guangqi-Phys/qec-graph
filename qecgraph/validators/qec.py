@@ -114,33 +114,6 @@ def check_css(hx, hz, lx=None, lz=None, *, enumerate_distance=False, max_n=20):
     return result
 
 
-def distance_issues(data):
-    issues = []
-    relation = data.get('relation')
-    if relation not in {'exact', 'lower_bound', 'upper_bound', 'interval'}:
-        return ['Unknown distance relation']
-    lower, upper = data.get('lower_bound'), data.get('upper_bound')
-    for name, value in [('lower_bound', lower), ('upper_bound', upper)]:
-        if value is not None and (type(value) is not int or value < 1):
-            issues.append(f'{name} must be a positive integer or null')
-    if issues:
-        return issues
-    if relation == 'upper_bound' and (upper is None or lower is not None):
-        issues.append('An upper bound cannot supply a lower bound')
-    if relation == 'lower_bound' and (lower is None or upper is not None):
-        issues.append('A lower-bound claim must keep its unknown upper bound null')
-    if relation == 'exact' and (lower is None or lower != upper):
-        issues.append('Exact distance needs equal known lower and upper bounds')
-    if relation == 'interval' and (lower is None or upper is None or lower > upper):
-        issues.append('Distance interval needs ordered known endpoints')
-    for field in ('subject_id', 'check_matrix_id', 'metric_id', 'sector', 'method', 'assumptions'):
-        if data.get(field) is None:
-            issues.append('Distance claim missing ' + field)
-    if data.get('sector') not in {'X', 'Z', 'joint'}:
-        issues.append('Distance sector must be X, Z or joint')
-    return issues
-
-
 def check_experiment(record, metric):
     if not isinstance(record, dict) or not isinstance(record.get('data'), dict):
         raise ValueError('Experiment record needs a data object')
