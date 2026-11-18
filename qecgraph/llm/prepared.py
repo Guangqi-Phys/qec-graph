@@ -12,6 +12,7 @@ from .errors import LLMError
 from .extract import (
     _EXTRACTION_SKILLS as SKILLS,
     _LINE_REF,
+    _paper_evidence,
     extract,
     validate_extraction,
     validate_source_refs,
@@ -203,15 +204,14 @@ def _run_task(source, evidence, client, skill, section):
     }
 
 
-def _source_refs(value):
-    if isinstance(value, dict):
-        yield from value.get("source_refs", [])
-        for key, child in value.items():
-            if key != "source_refs":
-                yield from _source_refs(child)
-    elif isinstance(value, list):
-        for child in value:
-            yield from _source_refs(child)
+def _source_refs(data):
+    for item in data["items"]:
+        yield from item.get("source_refs", [])
+        for hypothesis in item.get("hypotheses", []):
+            yield from hypothesis.get("source_refs", [])
+    if paper := data.get("paper"):
+        for field in _paper_evidence(paper):
+            yield from field["source_refs"]
 
 
 def _reference_locators(source, evidence, data):
@@ -257,6 +257,8 @@ def _verify_proposal(source, evidence, name, task):
     skill = load_skill(name)
     proposal = task["proposal"]
     identity = {
+        "schema": "qecgraph.ai.proposal",
+        "review_status": "proposed",
         "skill": name,
         "projection_path": _ENTRY,
         "source_tree_hash": source.manifest["source_tree_sha256"],

@@ -227,6 +227,34 @@ class PreparedExtractionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "requires a compile-prepare-v20"):
             PreparedSource(self.material)
 
+    def test_data_conditions_do_not_supply_citation_locators(self):
+        source = PreparedSource(self.material)
+        result = extract_source(source)
+        citation = self.citation(source, "A statement with")
+        raw = json.dumps(
+            {
+                "items": [
+                    {
+                        "metric": "reported distance",
+                        "value": 3,
+                        "source_refs": [citation],
+                        "conditions": {"source_refs": ["entry.tex:99999"]},
+                    }
+                ],
+                "unresolved": [],
+            }
+        )
+        client = LLMClient(
+            config(max_input_chars=30000),
+            provider=FakeProvider(Completion(raw, "offline-model")),
+        )
+        result["semantic"] = run_semantics(source, result, client, ["extract_data"])
+        task = result["semantic"]["extract_data"]
+        self.assertEqual(task["status"], "proposed")
+        self.assertEqual(set(task["references"]), {citation})
+        verify_semantics(source, result)
+
     @staticmethod
     def citation(source, text):
-        return f"entry.tex:{source.text.count(chr(10), 0, source.text.index(text)) + 1}"
+        line = source.text.count("\n", 0, source.text.index(text)) + 1
+        return f"entry.tex:{line}"
