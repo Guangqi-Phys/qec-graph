@@ -19,7 +19,7 @@ from qecgraph.preparation.acceptance import (  # noqa: E402
     replay_material_root,
     replay_metadata,
 )
-from qecgraph.source.normalization import load_for_preparation  # noqa: E402
+from qecgraph.preparation.inputs import load_for_preparation  # noqa: E402
 from qecgraph.preparation.entries import select_build_entry  # noqa: E402
 
 
@@ -112,7 +112,7 @@ def main():
             "material": None,
         }
         try:
-            tree, _ = load_for_preparation(package, repair_legacy_tar=True)
+            tree, _ = load_for_preparation(package)
             try:
                 entry = select_build_entry(tree)
             except ValueError:

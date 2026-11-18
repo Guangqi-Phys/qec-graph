@@ -379,7 +379,8 @@ Entry ambiguity requires an explicit `--entry`; a package name is not a paper id
 | `preparation/roundtrip.py` | Recompile the derived engineering copy using the original engine/support files; compare per-page non-whitespace PDF text when pdftotext is available; retain both build outcomes |
 | `preparation/contract.py` | Independent byte/codepoint/line, hash, hierarchy and full source-tiling checks; read a verified material handoff without compilation |
 | `preparation/pipeline.py` | Compile first, then convert, bind originals, validate and publish; failed/partial attempts retain a prior ready material |
-| `source/prepare.py` | Shared journaled publication and the retained static preparation compatibility API; no automatic fallback from the compile-first route |
+| `preparation/inputs.py`, `entries.py` | Read source packages and select a native entry with original bytes preserved |
+| `preparation/publication.py` | Atomically publish current material directories and handle journaled recovery |
 | `preparation/acceptance.py`, `tools/report_preparation.py` | Generate/check mechanical acceptance by reopening all frozen-corpus bundles and independently recalculating counts, source probes and the baseline comparison |
 
 Preparation imports form an acyclic graph, including deferred imports. Shared
@@ -643,13 +644,6 @@ The build rejects a supplied dependency changed by compilation. There is no
 automatic dependency download, system TeX modification, source upload or AI repair.
 Linux isolation and scientific gold-label acceptance require their own executed checks;
 engineering replay results do not establish Usable (§16.8).
-
-For compatibility, `tools/prepare_arxiv.py`, `prepare_input`, `prepare_source` and
-`parse_prepared` retain the existing static `qecgraph.prepare/2`/`document/2` route.
-Its optional `--ai-prepare` (old alias `--ai-structure`) and v9 format-plan skill still
-require explicit upload opt-in; they are not imported or invoked by the compile-first
-workflow. The static parser remains independent, and no automatic workspace migration
-or semantic extraction is introduced by this offline tool.
 
 ### 5.5 Extraction from frozen preparation
 

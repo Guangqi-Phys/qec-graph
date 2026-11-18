@@ -12,7 +12,7 @@ tooling, not part of the installed `qecgraph` package.
 | Release | `check_distribution.py`, `qec-graph.spec` | Distribution metadata checks and PyInstaller spec |
 | Performance | `bench.py` | Generated incremental workload and pinned-source benchmark |
 | Knowledge evidence | `reproduce_knowledge.py` | Compare complete reading, source search and task context; no LLM execution |
-| Offline preparation | `prepare_compiled.py`, `reproduce_preparation.py`, `report_preparation.py`, `compare_preparation.py`, `prepare_arxiv.py` | Compile-first source material and fixed-corpus replay; retain the static compatibility tool |
+| Offline preparation and extraction | `prepare_compiled.py`, `reproduce_preparation.py`, `report_preparation.py`, `compare_preparation.py`, `extract_prepared.py` | Native compilation, fixed-corpus replay and verified extraction |
 
 The standard gates are:
 
@@ -98,44 +98,17 @@ partial; text equality is not a pixel or mathematical-equivalence claim.
 `content.json` coordinates address `entry.tex`; use the verified normalized mapping
 before locating a derived passage in original source. `--check` never recompiles.
 
-The following retained static interface is independent and is never an automatic
-fallback from the compile-first route.
-
-`tools/prepare_arxiv.py` recognizes a LaTeX entry by content, assembles literal includes into `entry.tex`, and writes the `document/2` model with section levels, block text and source spans. By default it does not call AI. It never runs TeX or requires a compilable project.
-
-```bash
-python tools/prepare_arxiv.py /path/to/source-tree \
-  --entry main.tex --out build/prepared/paper --json
-```
-
-For failed/partial input, use a configuration explicitly enabling AI and source upload:
+Interrupted publication can be recovered by the next write or explicitly.
 
 ```sh
-python tools/prepare_arxiv.py /path/to/source-tree \
-  --out build/prepared/paper --json \
-  --ai-prepare --ai-config-root /path/to/config-directory
+python tools/prepare_compiled.py --out build/material/paper --recover
 ```
 
-Literal grammar adapters run locally first; complete local inputs skip AI. The `prepare_input` v9 skill returns only entry,
-encoding and syntax plans. The program converts a derived copy, then the independent
-downstream parser validates it. AI never classifies theorems/proofs or extracts
-scientific content. Failed candidates retain the previous output.
-`normalization.json` retains original bytes, hashes, changes and projections;
-source coordinates explicitly identify the derived layer. Existing `document.json`
-comes from downstream validation. `--ai-structure` is a deprecated alias.
-Budgets, timeouts and validated-response caching use the selected configuration.
-`--ai-reasoning-effort low` optionally overrides reasoning for this tool only;
-OpenAI-compatible provider tables may also set `reasoning_effort`. The default
-remains the provider default, and distinct settings have separate response caches.
-For the OpenRouter wire format see its [reasoning documentation](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens).
-This tool does not publish a workspace release.
+The publisher checks the journaled manifest and artifact hashes. A conflict keeps
+the recovery evidence and returns exit 1. Use the verified bundle for extraction.
 
-`--no-parser-recovery` and `--no-transparent-containers` disable the opt-in partial-structure fallbacks. Exit `0` means `document_complete`; `2` means content is complete but structure is partial, or content remains unresolved.
-
-The output directory is managed as a unit: artifacts are staged and published through a journaled backup, so a normal failure leaves the previous complete artifacts in place. An existing directory without a prepare manifest is refused; pass `--overwrite` to replace it whole, including unrelated files. If the process is killed between the two directory renames, the target path is absent until the next write or `--recover` restores the journaled previous result and removes staged leftovers. Recovery compares the target manifest and every journaled artifact digest with the recorded versions; a directory recreated by someone else, or one with the right manifest but missing or altered artifacts, is reported as a conflict (exit `1`) and the backup and journal are kept:
-
-```bash
-python tools/prepare_arxiv.py --out build/prepared/paper --recover
+```sh
+python tools/extract_prepared.py build/material/paper --out build/extracted/paper.json
 ```
 
 For refactors, `compare_preparation.py` independently reopens both retained corpus

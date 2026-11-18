@@ -16,8 +16,8 @@ from .build_view import observe_branches
 from .guard_syntax import scan_views
 from .normalized import normalize_latex
 from .roundtrip import verify_roundtrip
-from ..source.normalization import load_for_preparation
-from ..source.prepare import publish_artifacts, _check_output_root
+from .inputs import load_for_preparation
+from .publication import publish_artifacts, _check_output_root
 from ..core.transactions import writer_lock
 from .projection import prepare_projection, bind_origins
 from .harvmac import identify
@@ -62,7 +62,7 @@ def prepare_material(
             if original is not None:
                 load_path = Path(temp) / "original.package"
                 load_path.write_bytes(original)
-            tree, loading = load_for_preparation(load_path, repair_legacy_tar=True)
+            tree, loading = load_for_preparation(load_path)
             selected = select_build_entry(tree, entry)
             files, manifest = _material(
                 tree, selected, Path(temp), engine, support, compiler, loading

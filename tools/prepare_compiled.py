@@ -12,7 +12,7 @@ if str(ROOT) not in sys.path:
 
 from qecgraph.preparation.pipeline import prepare_material  # noqa: E402
 from qecgraph.preparation.contract import read_material  # noqa: E402
-from qecgraph.source.prepare import recover_output  # noqa: E402
+from qecgraph.preparation.publication import recover_output  # noqa: E402
 
 
 def main(argv=None):

@@ -1,20 +1,6 @@
-from pathlib import Path
-from tempfile import TemporaryDirectory
 import unittest
 
-from qecgraph.source.assembly import assemble_files, document_bounds, merge_blocks
-from qecgraph.source.parser import parse_project
-
-
-def _parse_assembled(source, entry="main.tex"):
-    """Parse the assembled entry the way prepare does, then merge it."""
-    result = assemble_files(source, entry)
-    with TemporaryDirectory() as temporary:
-        root = Path(temporary)
-        path = root / "entry.tex"
-        path.write_bytes(result.data)
-        parsed = parse_project(path, project_root=root)
-    return result, parsed["blocks"]
+from qecgraph.source.assembly import assemble_files, document_bounds
 
 
 class AssembleTests(unittest.TestCase):
@@ -100,59 +86,6 @@ class AssembleTests(unittest.TestCase):
         coverage = result.coverage()
         self.assertTrue(coverage["complete"])
         self.assertEqual(coverage["preamble_dropped"], 1)
-
-    def test_merge_blocks_maps_entry_spans_and_keeps_nesting(self):
-        source = {
-            "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
-                         b"\\section{Main}\n\\input{a}\n\\end{document}\n"),
-            "a.tex": (b"\\section{A}\\label{sec:a}\n"
-                      b"\\begin{theorem}\\label{thm:a} Statement.\\end{theorem}\n"),
-        }
-        result, blocks = _parse_assembled(source)
-        document = merge_blocks(result, blocks, source_tree_hash="0" * 64,
-                                files=source)
-        self.assertEqual(document["schema"], "qecgraph.document/2")
-        titles = [section["title"] for section in document["sections"]]
-        self.assertEqual(titles, ["Main", "A"])
-        self.assertEqual([section["level"] for section in document["sections"]], [1, 1])
-        self.assertEqual(document["sections"][0]["block_ids"], ["block-1"])
-        theorem_block = next(block for block in document["blocks"] if block["kind"] == "theorem")
-        self.assertEqual(theorem_block["text"], "Statement.")
-        self.assertEqual(theorem_block["section_id"], document["sections"][1]["id"])
-        theorem = next(block for block in document["blocks"] if block["kind"] == "theorem")
-        section = next(block for block in document["blocks"]
-                       if block["kind"] == "section" and block["title_tex"] == "A")
-        self.assertEqual(theorem["parent_key"], section["key"])
-        self.assertEqual(theorem["source"]["path"], "a.tex")
-        self.assertIn("\\begin{theorem}",
-                      result.text[theorem["entry"]["char_start"]:theorem["entry"]["char_end"]])
-
-    def test_section_levels_numbering_appendix_and_section_membership(self):
-        source = {
-            "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
-                         b"\\section{Main}\nText.\n"
-                         b"\\subsection{Sub}\nSub text.\n"
-                         b"% \\appendix\n"
-                         b"\\section*{Unnumbered}\nMore.\n"
-                         b"\\appendix\n\\section{Appendix}\nApp text.\n"
-                         b"\\end{document}\n"),
-        }
-        result, blocks = _parse_assembled(source)
-        document = merge_blocks(result, blocks, source_tree_hash="0" * 64,
-                                files=source)
-        self.assertEqual([section["level"] for section in document["sections"]],
-                         [1, 2, 1, 1])
-        self.assertEqual([section["parent_id"] for section in document["sections"]],
-                         [None, "s1", None, None])
-        self.assertEqual([section["numbered"] for section in document["sections"]],
-                         [True, True, False, True])
-        self.assertEqual([section["appendix"] for section in document["sections"]],
-                         [False, False, False, True])
-        self.assertEqual([section["command"] for section in document["sections"]],
-                         ["section", "subsection", "section", "section"])
-        appendix = document["sections"][-1]
-        self.assertIn("App text.", [block["text"] for block in document["blocks"]
-                                    if block["section_id"] == appendix["id"]])
 
     def test_path_macro_state_follows_source_order(self):
         source = {
@@ -430,24 +363,6 @@ class AssembleTests(unittest.TestCase):
         body_event = result.events[1]
         self.assertEqual(body_event.expanded_args, ("./body",))
         self.assertEqual(body_event.target, "body.tex")
-
-    def test_paragraph_spanning_subfile_is_split_at_the_replace_point(self):
-        source = {
-            "main.tex": (b"\\documentclass{article}\n\\begin{document}\n"
-                         b"\\section{Main}\nBefore.\n\\subfile{b}\nAfter.\n\\end{document}\n"),
-            "b.tex": (b"\\documentclass[../main]{subfiles}\n\\begin{document}\n"
-                      b"\\section{B}\nB text.\n\\end{document}\n"),
-        }
-        result, blocks = _parse_assembled(source)
-        document = merge_blocks(result, blocks, source_tree_hash="0" * 64,
-                                files=source)
-        section_b = next(block for block in document["blocks"]
-                         if block["kind"] == "section" and block["title_tex"] == "B")
-        for block in document["blocks"]:
-            if block["source"]["path"] != "main.tex":
-                continue
-            self.assertFalse(block["entry"]["char_start"] < section_b["entry"]["char_start"]
-                             < block["entry"]["char_end"])
 
     def test_import_context_applies_to_nested_inputs(self):
         source = {

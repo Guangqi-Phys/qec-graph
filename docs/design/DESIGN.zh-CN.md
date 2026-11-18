@@ -404,7 +404,8 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 | `preparation/roundtrip.py` | 用原引擎/支持文件重新编译派生工程；pdftotext 可用时比较逐页去空白文字，保留两次构建的结果 |
 | `preparation/contract.py` | 独立检查字节/字符/行、哈希、层级和全文覆盖；只读验收材料包时不编译 |
 | `preparation/pipeline.py` | 先编译、再转换，绑定原始材料、验收并发布；失败/partial 尝试保留已有 ready 材料 |
-| `source/prepare.py` | 共用日志式原子发布与保留的静态准备兼容 API；编译路线不会自动回退到它 |
+| `preparation/inputs.py`、`entries.py` | 读取源包并选择原生入口，保留原始字节 |
+| `preparation/publication.py` | 原子发布当前材料目录，处理日志式中断恢复 |
 | `preparation/acceptance.py`、`tools/report_preparation.py` | 重新打开完整固定语料的材料包，重算计数、来源 probe 和基线差异，生成/检查机械验收报告 |
 
 准备包的导入形成无环图，包含延迟导入。共用基础工具不依赖材料验收器；只有编排与
@@ -597,11 +598,6 @@ python tools/compare_preparation.py --baseline build/preparation-v19/final \
 编译中若显式支持文件被改写，构建失败。
 不自动下载依赖、修改系统 TeX、上传来源或执行 AI 修复。Linux 隔离和科学金标仍需独立实测；
 工程回放结果不构成 §16.8 的 Usable 验收。
-
-兼容入口 `tools/prepare_arxiv.py`、`prepare_input`、`prepare_source`、`parse_prepared`
-保留原有静态 `qecgraph.prepare/2`/`document/2` 路线。其可选 `--ai-prepare`（旧别名
-`--ai-structure`）与 v9 格式方案 skill 仍要求显式上传许可；先编译路线不导入或调用它们。
-静态 parser 保持独立；本离线工具不引入 workspace 自动迁移或科研语义抽取。
 
 ### 5.5 从固定准备材料提取
 

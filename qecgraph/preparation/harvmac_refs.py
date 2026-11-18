@@ -6,7 +6,7 @@ import re
 
 from .options import mask_comments
 from .reference_syntax import group, _record
-from ..source.dialects import _syntax
+from ..source.assembly import mask_comments_and_definitions
 
 
 def adapt(build, tree, result, *, compiled=None):
@@ -76,7 +76,8 @@ def _originals(build, tree):
         raw = tree.files[path]
         text = raw.decode()
         for match in re.finditer(
-            r"\\(ref|nref|lref)\s*\\([A-Za-z@]+)\s*\{", _syntax(text)
+            r"\\(ref|nref|lref)\s*\\([A-Za-z@]+)\s*\{",
+            mask_comments_and_definitions(text),
         ):
             arg = group(text, match.end() - 1)
             if arg is None:

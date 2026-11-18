@@ -11,7 +11,7 @@ class SkillTests(unittest.TestCase):
         skills = load_skills()
         self.assertEqual(sorted(skills), ['extract_assumptions', 'extract_data',
                                           'extract_theorems', 'extract_thoughts', 'normalize_package',
-                                          'prepare_input', 'recover_structure'])
+                                          'recover_structure'])
         for name, skill in skills.items():
             self.assertEqual(skill.name, name)
             self.assertGreaterEqual(skill.version, 1)

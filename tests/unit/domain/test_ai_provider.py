@@ -118,8 +118,6 @@ class OpenAIProviderTests(unittest.TestCase):
             with self.subTest(skill=name):
                 if name == 'recover_structure':
                     result = {'status': 'needs_review', 'blocks': []}
-                elif name == 'prepare_input':
-                    result = {'status': 'needs_review', 'entry': '', 'encodings': [], 'edits': [], 'unresolved': []}
                 elif name == 'normalize_package':
                     result = {'status': 'needs_review', 'documents': [], 'operations': [], 'unresolved': []}
                 else:

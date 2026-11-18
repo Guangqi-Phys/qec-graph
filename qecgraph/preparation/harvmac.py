@@ -12,7 +12,7 @@ from pylatexenc.macrospec import MacroSpec, MacroStandardArgsParser
 
 from .artifacts import digest
 from .options import mask_comments
-from ..source.dialects import _syntax
+from ..source.assembly import mask_comments_and_definitions
 from ..source.syntax import declaration_context
 
 HARVMAC_SHA256 = "65ff913ce13af190558fc07d161e90cf74f50ccd693ca95bb00dee2920535f1f"
@@ -50,7 +50,8 @@ _DEFINERS = {
 def literal_input(text):
     return bool(
         re.search(
-            r"\\input\s*(?:\{harvmac(?:\.tex)?\}|harvmac(?:\.tex)?\b)", _syntax(text)
+            r"\\input\s*(?:\{harvmac(?:\.tex)?\}|harvmac(?:\.tex)?\b)",
+            mask_comments_and_definitions(text),
         )
     )
 
@@ -118,7 +119,7 @@ def _unsafe_definitions(text):
 
 
 def generated_names(text):
-    syntax = _syntax(text)
+    syntax = mask_comments_and_definitions(text)
     return {
         m[1]
         for m in re.finditer(
@@ -151,7 +152,7 @@ def assembly_views(tree, views, dialect):
 
 
 def body_bounds(text):
-    syntax = _syntax(scan_text(text))
+    syntax = mask_comments_and_definitions(scan_text(text))
     title = re.search(r"\\Title(?![A-Za-z@])", syntax)
     terminal = list(re.finditer(r"(?m)^\\(?:end|bye)[ \t]*(?=\r?$)", syntax))
     if title is None or len(terminal) != 1 or title.start() >= terminal[0].start():
