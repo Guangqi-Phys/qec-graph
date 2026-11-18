@@ -68,6 +68,7 @@ def _command(work: Path, cwd: Path, command: list[str]) -> list[str]:
         "/lib",
         "/lib64",
         "/opt",
+        "/etc/alternatives",  # Debian TeX tools can dispatch through these symlinks.
         "/etc/fonts",
         "/etc/texmf",
         "/var/lib/texmf",
