@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QEC Graph prepared material extraction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "rule_version", "input", "source", "semantic"],
+  "properties": {
+    "schema": {"const": "qecgraph.prepared_extraction/1"},
+    "rule_version": {"const": "prepared-extract-v1"},
+    "input": {"$ref": "#/$defs/input"},
+    "source": {"$ref": "#/$defs/source"},
+    "semantic": {
+      "type": "object",
+      "propertyNames": {
+        "enum": ["extract_theorems", "extract_assumptions", "extract_data", "extract_thoughts"]
+      },
+      "additionalProperties": {"$ref": "#/$defs/task"}
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "range": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {"type": "integer", "minimum": 0}
+    },
+    "objects": {"type": "array", "items": {"type": "object"}},
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material_sha256", "package_sha256", "source_tree_sha256", "entry_sha256",
+        "source_map_sha256", "entry", "preparation_version", "status", "stages", "capabilities"
+      ],
+      "properties": {
+        "material_sha256": {"$ref": "#/$defs/sha256"},
+        "package_sha256": {"$ref": "#/$defs/sha256"},
+        "source_tree_sha256": {"$ref": "#/$defs/sha256"},
+        "entry_sha256": {"$ref": "#/$defs/sha256"},
+        "source_map_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "entry": {"type": "string", "minLength": 1},
+        "preparation_version": {"const": "compile-prepare-v20"},
+        "status": {"enum": ["ready", "partial"]},
+        "stages": {"type": "object", "additionalProperties": {"type": "string"}},
+        "capabilities": {"type": "object"}
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "body_range", "files", "outline", "units", "assets", "labels", "citations",
+        "cross_references", "bibliography", "coverage", "diagnostics"
+      ],
+      "properties": {
+        "body_range": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {"type": ["integer", "null"], "minimum": 0}
+        },
+        "files": {"$ref": "#/$defs/objects"},
+        "outline": {"$ref": "#/$defs/objects"},
+        "units": {"type": "array", "items": {"$ref": "#/$defs/unit"}},
+        "assets": {"$ref": "#/$defs/objects"},
+        "labels": {"$ref": "#/$defs/objects"},
+        "citations": {"$ref": "#/$defs/objects"},
+        "cross_references": {"$ref": "#/$defs/objects"},
+        "bibliography": {"type": "object"},
+        "coverage": {"type": "object"},
+        "diagnostics": {"$ref": "#/$defs/objects"}
+      }
+    },
+    "unit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "name", "entry_range", "latex", "source_spans", "data"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "kind": {
+          "enum": [
+            "title", "author", "date", "section", "abstract", "paragraph", "formula",
+            "statement", "proof", "algorithm", "environment", "figure", "caption",
+            "table", "code_parameters_mention"
+          ]
+        },
+        "name": {"type": ["string", "null"]},
+        "entry_range": {"$ref": "#/$defs/range"},
+        "latex": {"type": "string", "minLength": 1},
+        "source_spans": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/span"}},
+        "data": {"type": "object"}
+      }
+    },
+    "span": {
+      "type": "object",
+      "required": ["path", "layer", "sha256", "encoding", "chars", "bytes", "lines"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "layer": {"enum": ["original", "projected"]},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "encoding": {"type": "string", "minLength": 1},
+        "chars": {"$ref": "#/$defs/range"},
+        "bytes": {"$ref": "#/$defs/range"},
+        "lines": {"$ref": "#/$defs/range"},
+        "original_source": {"type": "object"}
+      },
+      "if": {"properties": {"layer": {"const": "projected"}}},
+      "then": {"required": ["original_source"]}
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {"enum": ["proposed", "no_evidence", "budget_exceeded", "failed"]},
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["entry_range", "copy_ranges", "source_spans", "entry_sha256"],
+          "properties": {
+            "entry_range": {"$ref": "#/$defs/range"},
+            "copy_ranges": {
+              "type": "array", "minItems": 1, "items": {"$ref": "#/$defs/range"}
+            },
+            "source_spans": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/span"}},
+            "entry_sha256": {"$ref": "#/$defs/sha256"}
+          }
+        },
+        "proposal": {
+          "type": "object",
+          "required": ["schema", "review_status", "items", "unresolved"],
+          "properties": {
+            "schema": {"const": "qecgraph.ai.proposal"},
+            "review_status": {"const": "proposed"},
+            "items": {"$ref": "#/$defs/objects"},
+            "unresolved": {"type": "array"}
+          }
+        },
+        "error": {"type": "string", "minLength": 1}
+      },
+      "if": {"properties": {"status": {"const": "proposed"}}},
+      "then": {"required": ["evidence", "proposal"], "not": {"required": ["error"]}},
+      "else": {"required": ["error"], "not": {"required": ["proposal"]}}
+    }
+  }
+}
