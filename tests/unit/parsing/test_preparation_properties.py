@@ -17,38 +17,21 @@ import random
 import unittest
 
 from qecgraph.preparation.contract import (
-    SCHEMA,
     SourceIndex,
-    digest,
-    json_bytes,
     validate_material,
 )
 from qecgraph.preparation.convert import convert_source
 from qecgraph.preparation.normalized import normalize_latex, validate_normalized
 from qecgraph.source.package import SourceTree
+from tests.unit.parsing.material_fixture import partial_material
 
 
 def _build_bundle(files: dict[str, bytes], entry: str = "main.tex", references=None):
     tree = SourceTree("tex", files)
     refs = references or {"mode": "classic", "bindings": [], "entries": []}
     assembly, document, coverage = convert_source(tree, entry, refs)
-    bundle = {
-        "entry.tex": assembly.data,
-        "content.json": json_bytes(document),
-        "references.json": json_bytes(refs),
-        "coverage.json": json_bytes(coverage),
-        "build.json": json_bytes({"success": True, "steps": []}),
-        **{"sources/" + path: raw for path, raw in files.items()},
-    }
-    bundle["manifest.json"] = json_bytes(
-        {
-            "schema": SCHEMA,
-            "rule_version": "compile-prepare-v3",
-            "status": "partial",
-            "source_tree_sha256": tree.digest,
-            "sources": tree.manifest,
-            "artifacts": {p: digest(raw) for p, raw in sorted(bundle.items())},
-        }
+    bundle = partial_material(
+        tree, entry, assembly.data, document, coverage=coverage, references=refs
     )
     return tree, assembly, document, coverage, bundle
 
@@ -128,8 +111,7 @@ class PreparationPropertyTests(unittest.TestCase):
                     f"{rng.choice(endings)}"
                 ).encode("utf-8")
                 frag_b = (
-                    f"Second fragment $k_{iteration} \\le d$ and "
-                    f"{rng.choice(endings)}"
+                    f"Second fragment $k_{iteration} \\le d$ and {rng.choice(endings)}"
                 ).encode("utf-8")
                 main = (
                     "\\documentclass{article}\n"
@@ -150,9 +132,9 @@ class PreparationPropertyTests(unittest.TestCase):
                 for node in document["nodes"]:
                     start, end = node["range"]
                     from_sources = "".join(
-                        files[span["path"]][
-                            span["bytes"][0] : span["bytes"][1]
-                        ].decode("utf-8")
+                        files[span["path"]][span["bytes"][0] : span["bytes"][1]].decode(
+                            "utf-8"
+                        )
                         for span in node["source_spans"]
                     )
                     self.assertEqual(from_sources, assembly.text[start:end])
@@ -217,7 +199,21 @@ class PreparationPropertyTests(unittest.TestCase):
 
     def test_pbt04_source_index_utf8_multibyte_and_line_invariants(self):
         rng = random.Random(20261120)
-        alphabet = ["a", "Z", "\n", "\r\n", "é", "ß", "α", "Ω", "—", "∀", "⊗", "𝕏", "🧮"]
+        alphabet = [
+            "a",
+            "Z",
+            "\n",
+            "\r\n",
+            "é",
+            "ß",
+            "α",
+            "Ω",
+            "—",
+            "∀",
+            "⊗",
+            "𝕏",
+            "🧮",
+        ]
         for iteration in range(30):
             with self.subTest(iteration=iteration):
                 text = "".join(rng.choices(alphabet, k=120))

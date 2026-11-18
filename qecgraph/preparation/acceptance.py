@@ -63,14 +63,24 @@ def counts(rows):
 
 def replay_material_root(root, row):
     canonical = safe_path(row["paper"].replace("/", "_"))
-    name = row.get("material", canonical)
-    if name is None and row["status"] == "failed":
+    if "material" not in row:
+        raise ValueError("Replay outcome is missing its published attempt receipt")
+    name, status = row["material"], row["status"]
+    if status == "failed" and name is None:
         return None
     allowed = {canonical}
-    if row["status"] == "partial":
+    if status == "partial":
         allowed.add(canonical + ".attempt")
     if name not in allowed:
         raise ValueError("Replay material path differs from the allowed attempt paths")
+    checksum = row.get("material_manifest_sha256")
+    if (
+        status not in {"ready", "partial"}
+        or row.get("exit") != (0 if status == "ready" else 2)
+        or not isinstance(checksum, str)
+        or not re.fullmatch(r"[a-f0-9]{64}", checksum)
+    ):
+        raise ValueError("Replay outcome is missing its published attempt receipt")
     return root / name
 
 
@@ -81,7 +91,7 @@ def _read_attempt(root, row):
     if folder is None:
         raise ValueError("Missing replay material")
     return folder, read_material(
-        folder, expected_manifest_sha256=row.get("material_manifest_sha256")
+        folder, expected_manifest_sha256=row["material_manifest_sha256"]
     )
 
 
@@ -114,11 +124,11 @@ def _check_case(folder, case, material):
     return result
 
 
-def check_cases(root, cases, *, rows=()):
+def check_cases(root, cases, *, rows):
     results = {}
     attempts = {row["paper"]: row for row in rows}
     for paper, group in _group_cases(cases).items():
-        attempt = attempts.get(paper, {"paper": paper, "status": "ready"})
+        attempt = attempts[paper]
         folder, material = _read_attempt(root, attempt)
         results.update((i, _check_case(folder, c, material)) for i, c in group)
         del material
@@ -250,12 +260,10 @@ def _samples(results, corpus, manifest_path):
         yield row, sample
 
 
-def _verified_row(root, row, sample, material):
+def _verified_row(row, sample, material):
     if material is None:
-        if (root is not None and (root / "manifest.json").exists()) or not row.get(
-            "error"
-        ):
-            raise ValueError("Failed replay row conflicts with published material")
+        if not row.get("error"):
+            raise ValueError("Failed replay row has no failure evidence")
         return {**row, "expected_negative": sample.get("format") == "pdf"}
     manifest, check = material["manifest"], material["validation"]
     _match_row(row, material)
@@ -330,10 +338,6 @@ def _verified_row(root, row, sample, material):
 
 
 def _match_row(row, material):
-    if "material" in row:
-        expected_exit = 0 if row["status"] == "ready" else 2
-        if row.get("exit") != expected_exit or not row.get("material_manifest_sha256"):
-            raise ValueError("Replay outcome is missing its published attempt receipt")
     actual = {
         "status": material["manifest"]["status"],
         "stages": material["manifest"]["stages"],
@@ -360,7 +364,7 @@ def _verify_rows(replay, results, samples, cases_path):
     rows, verdicts = [], {}
     for row, sample in samples:
         folder, material = _read_attempt(replay, row)
-        rows.append(_verified_row(folder, row, sample, material))
+        rows.append(_verified_row(row, sample, material))
         verdicts.update(
             (i, _check_case(folder, c, material))
             for i, c in groups.pop(row["paper"], ())

@@ -51,7 +51,7 @@ python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifes
   --replay build/material-replay --out build/preparation-acceptance.json
 python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifest.json \
   --replay build/material-replay --out build/preparation-acceptance.json --check
-python tools/compare_preparation.py --baseline build/preparation-v19/final \
+python tools/compare_preparation.py --baseline build/material-baseline \
   --current build/preparation-refactor/final-verified --out build/preparation-comparison.json
 ```
 
@@ -62,7 +62,7 @@ macOS 使用 sandbox-exec；Linux 要求 bubblewrap。隔离不支持时不会�
 编译成功后，受支持的非 UTF-8 字节可经可逆转写与额外原生/PDF 文字核验进入准备层，
 保存 `source-projection.json`、`projected-sources/` 和原始字节定位。Harvmac 使用已确认
 依赖版本的原生语法适配，TeX 导出保留原方言，结构与书目写入共用 JSON 合同。
-`manifest.preparation_capabilities` 分开报告正文、书目、引用准备和唯一绑定。v19 将完整
+`manifest.preparation_capabilities` 分开报告正文、书目、引用准备和唯一绑定。当前合同将完整
 保留的交叉引用歧义视为准备完成；`status=ambiguous` 与全部候选保留，唯一绑定仍为
 partial，缺失目标仍阻止 ready。`--support-dir` 的搜索顺序为作者包内文件、显式支持、系统文件，
 编译若改写显式依赖则失败；支持目录需固定内容并保留哈希。

@@ -4,11 +4,11 @@ from unittest.mock import patch
 from qecgraph.preparation.convert import convert_source
 from qecgraph.preparation.environments import (
     _source_declarations,
-    declaration_options,
     label_declarations,
 )
-from qecgraph.preparation.contract import SCHEMA, digest, json_bytes, validate_material
+from qecgraph.preparation.contract import validate_material
 from qecgraph.source.package import SourceTree
+from tests.unit.parsing.material_fixture import partial_material
 
 
 class EnvironmentDeclarationTests(unittest.TestCase):
@@ -62,18 +62,7 @@ class EnvironmentDeclarationTests(unittest.TestCase):
     def test_forged_declaration_cannot_pass_source_grammar_validation(self):
         tree, _, (assembly, doc, _) = self.convert(rb"\newtcolorbox{box}[2][]{#1}")
         doc["environment_label_declarations"][0]["supports_label_option"] = False
-        files = {
-            "entry.tex": assembly.data,
-            "content.json": json_bytes(doc),
-            **{"sources/" + p: raw for p, raw in tree.files.items()},
-        }
-        files["manifest.json"] = json_bytes(
-            {
-                "schema": SCHEMA,
-                "status": "partial",
-                "artifacts": {p: digest(raw) for p, raw in files.items()},
-            }
-        )
+        files = partial_material(tree, "main.tex", assembly.data, doc)
         with self.assertRaisesRegex(ValueError, "source grammar"):
             validate_material(files)
 
@@ -134,35 +123,3 @@ class EnvironmentDeclarationTests(unittest.TestCase):
                 _, _, (_, doc, coverage) = self.convert(early + declaration)
                 self.assertFalse(coverage["complete"])
                 self.assertEqual(doc["environment_label_declarations"], [])
-
-    def test_both_published_v19_declaration_policies_can_be_reopened(self):
-        main = (
-            rb"\documentclass{article}\usepackage{tcolorbox}"
-            rb"\providecommand{\newtcolorbox}[1]{}\newtcolorbox{box}[2][]{#1}"
-            rb"\begin{document}Body.\end{document}"
-        )
-        tree = SourceTree("tex", {"main.tex": main})
-        empty, declared = list(
-            declaration_options(tree, ["main.tex"], rule_version="compile-prepare-v19")
-        )
-        self.assertEqual(empty, [])
-        self.assertEqual([record["environment"] for record in declared], ["box"])
-        for records in (empty, declared):
-            with patch(
-                "qecgraph.preparation.convert.label_declarations", return_value=records
-            ):
-                assembly, doc, _ = convert_source(tree, "main.tex", {"bindings": []})
-            files = {
-                "entry.tex": assembly.data,
-                "content.json": json_bytes(doc),
-                "sources/main.tex": main,
-            }
-            files["manifest.json"] = json_bytes(
-                {
-                    "schema": SCHEMA,
-                    "status": "partial",
-                    "rule_version": "compile-prepare-v19",
-                    "artifacts": {p: digest(raw) for p, raw in files.items()},
-                }
-            )
-            self.assertTrue(validate_material(files)["source_fidelity"])

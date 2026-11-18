@@ -40,9 +40,15 @@ def _record_attempt(output, result, row):
         )
     location = Path(receipt["out"])
     folder = replay_material_root(
-        output.parent, {**row, "status": status, "material": location.name}
+        output.parent,
+        {
+            **row,
+            "status": status,
+            "material": location.name,
+            "material_manifest_sha256": receipt["manifest_sha256"],
+        },
     )
-    if folder.absolute() != location.absolute():
+    if folder is None or folder.absolute() != location.absolute():
         raise ValueError(
             "Preparation returned a material path outside this replay attempt"
         )

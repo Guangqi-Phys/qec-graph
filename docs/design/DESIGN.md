@@ -436,8 +436,7 @@ its first optional argument as a standalone `#1` option, and AUX uniquely emitte
 conditional or shadowed declarations remain unsupported. Declaration source spans,
 raw TeX and hashes are retained. Nested or duplicate `label` fields do not bind.
 An unguarded literal package load in the same source allows a later no-op
-`\providecommand` for an already defined command. Older v19 bundles can be read
-with either of the two declaration rules used to publish them.
+`\providecommand` for an already defined command.
 An unconfirmed option stays unresolved. A case-only
 `\includegraphics` match is accepted only when the build FLS consumed that path, and
 `asset_case_mismatch` records that the package is not portable to case-sensitive
@@ -500,8 +499,7 @@ not become body prose. The raw TeX and normalized view retain these bytes, inclu
 malformed syntax that TeX never executes. Consumers must honor the prepared syntax
 and inactive metadata rather than treat every raw-source token as active content.
 
-Current `compile-prepare-v20` output requires strict document boundaries. The v10
-unique-document-marker fallback is not used for new conversion. Supported literal,
+Current `compile-prepare-v20` output requires strict document boundaries. Supported literal,
 line-bounded `\ifdefined\control` and `\ifx\control\control` guards in consumed
 sources can instead be observed by compiling a separately instrumented copy after
 the unchanged original succeeds. A guard is selected only if its markers consistently
@@ -524,8 +522,6 @@ artifact hashes alone cannot make a forged branch choice valid.
 A conditional wholly inside preserved `tikzpicture`, `picture`, `circuitikz`,
 `quantikz`, `forest` or `tikzcd` payload is recorded as `drawing_payload`; a drawing
 loop does not select one global branch. Other unmapped body guards remain blockers.
-The new evidence fields are additive; legacy `prepare/3` materials remain readable
-under their recorded rule version, which does not upgrade their evidence to v14.
 
 Native compatibility is deliberately narrow: the pinned Quantumarticle 4.2 class
 hash may retry its observed undefined `\@afterenddocumenthook` failure with the old
@@ -591,12 +587,10 @@ node/external target, key and source location remain available.
 and candidate IDs. A ready paper may have complete reference preparation while unique
 bindings remain partial. Reading reconstructs supported label/reference candidates
 and rejects removed candidates or forged resolution even if artifact hashes are updated.
-Older bundles without this policy retain their original versioned meaning. No dependency
-edge or unique target is guessed. A successful compiler or a JSON validator does not establish scientific correctness.
+The contract records reference evidence and explicit ambiguity. Scientific correctness requires separate evidence.
 `content.json` ranges continue to address `entry.tex`; they must not be applied to
 `normalized.tex`. `read_material` exposes both texts, the normalization report and
-the verified mapping. Older `qecgraph.prepare/3` v2/v3 bundles remain readable;
-v4 and later ready materials require the additional normalized artifacts and checks.
+the verified mapping for `compile-prepare-v20` materials. A ready bundle requires normalized artifacts and their round-trip checks.
 
 ```sh
 python tools/prepare_compiled.py /path/to/source-tree \
@@ -621,7 +615,7 @@ python tools/report_preparation.py \
 For architecture refactors, compare retained stable payloads as well as counts:
 
 ```sh
-python tools/compare_preparation.py --baseline build/preparation-v19/final \
+python tools/compare_preparation.py --baseline build/material-baseline \
   --current build/preparation-refactor/final-verified --out build/preparation-comparison.json
 ```
 

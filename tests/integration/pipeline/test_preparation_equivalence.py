@@ -74,33 +74,11 @@ class PreparationEquivalenceTests(unittest.TestCase):
         manifest["artifacts"] = {p: digest(raw) for p, raw in sorted(files.items())}
         files["manifest.json"] = json_bytes(manifest)
         validate_material(files)
-        # Restore the v19 spelling and project the additive runtime fields out
-        # so the original baseline can still check every artifact.
-        content = json.loads(files["content.json"])
-        pretty = json_bytes(content)
-        if content["nodes"]:
-            assert len(files["content.json"]) < len(pretty)
-        manifest["artifacts"]["content.json"] = digest(pretty)
-        for name, fields in (
-            ("references.json", ("runtime", "structure_complete")),
-            ("normalization.json", ("bibliography_runtime",)),
-        ):
-            value = json.loads(files[name])
-            for field in fields:
-                value.pop(field, None)
-            manifest["artifacts"][name] = digest(json_bytes(value))
-        diagnostics = json.loads(files["diagnostics.json"])
-        for issue in diagnostics:
-            if issue["code"] == "preparation_failed":
-                issue.pop("stage", None)
-                issue.pop("error_type", None)
-        manifest["artifacts"]["diagnostics.json"] = digest(json_bytes(diagnostics))
-        manifest["rule_version"] = "compile-prepare-v19"
         return {"manifest": manifest, "compiler_calls": len(calls)}
 
-    def test_material_bytes_and_failure_outcomes_match_v19(self):
+    def test_material_bytes_and_failure_outcomes_match_v20(self):
         expected = json.loads(
-            (Path(__file__).parents[2] / "fixtures/preparation-v19.json").read_bytes()
+            (Path(__file__).parents[2] / "fixtures/preparation-v20.json").read_bytes()
         )
         for name, body in self.CASES.items():
             with self.subTest(case=name):

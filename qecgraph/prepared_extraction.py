@@ -11,7 +11,6 @@ from .source.extraction import notation_matches
 from .validators import packaged_validator
 
 
-INPUT_VERSION = "compile-prepare-v20"
 SCHEMA = "qecgraph.prepared_extraction/1"
 RULE_VERSION = "prepared-extract-v1"
 METADATA = frozenset({"title", "author", "date"})
@@ -60,8 +59,6 @@ class PreparedSource:
         )
         self.root = root.resolve()
         self.manifest = self.material["manifest"]
-        if self.manifest["rule_version"] != INPUT_VERSION:
-            raise ValueError(f"Extraction requires a {INPUT_VERSION} material")
         self.document = self.material["document"]
         self.text = self.material["entry_tex"]
         mapping = self.material["source_map"] or {}

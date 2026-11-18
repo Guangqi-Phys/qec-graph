@@ -222,7 +222,6 @@ def convert_source(
         if dialect
         else coordinates.copy_text(),
         [(coordinates.to_parse(a), coordinates.to_parse(b)) for a, b in view_masks],
-        allow_observed_bounds=False,
     )
     observations = [
         d for d in assembly.diagnostics if d["code"] == "conditionals_present"

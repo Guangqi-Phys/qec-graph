@@ -8,6 +8,8 @@ from qecgraph.preparation.contract import (
     safe_path,
     validate_material,
 )
+from qecgraph.source.package import SourceTree
+from tests.unit.parsing.material_fixture import partial_material
 
 
 class MaterialContractTests(unittest.TestCase):
@@ -27,6 +29,9 @@ class MaterialContractTests(unittest.TestCase):
             "nodes": [
                 {
                     "id": "node:0",
+                    "kind": "chars",
+                    "name": None,
+                    "region": "body",
                     "range": [0, len(text)],
                     "parent": None,
                     "children": [],
@@ -34,25 +39,16 @@ class MaterialContractTests(unittest.TestCase):
                 }
             ],
         }
-        files = {
-            "entry.tex": raw,
-            "sources/main.tex": raw,
-            "content.json": json_bytes(doc),
-        }
-        return files
+        return partial_material(
+            SourceTree("tex", {"main.tex": raw}), "main.tex", raw, doc
+        )
 
     def finish(self, files):
-        files["manifest.json"] = json_bytes(
-            {
-                "schema": "qecgraph.prepare/3",
-                "status": "partial",
-                "artifacts": {
-                    name: digest(raw)
-                    for name, raw in files.items()
-                    if name != "manifest.json"
-                },
-            }
-        )
+        manifest = json.loads(files["manifest.json"])
+        manifest["artifacts"] = {
+            name: digest(raw) for name, raw in files.items() if name != "manifest.json"
+        }
+        files["manifest.json"] = json_bytes(manifest)
         return files
 
     def test_original_codepoints_bytes_and_lines_are_independently_checked(self):

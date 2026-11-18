@@ -15,23 +15,15 @@ from ..source.syntax import declaration_context, _OpaqueDeclarationParser
 
 
 def label_declarations(tree, paths):
-    return declaration_options(tree, paths, rule_version=None)[0]
-
-
-def declaration_options(tree, paths, *, rule_version):
     records, bodies, package_loads = _scan_declarations(tree, paths)
-    if rule_version == "compile-prepare-v19":
-        # Both policies were published with v19. Verify each historical result
-        # against its own literal grammar before accepting either representation.
-        return tuple(
-            _legacy_declarations(records, bodies, extended)
-            for extended in (True, False)
-        )
-    if rule_version in {f"compile-prepare-v{v}" for v in range(1, 19)}:
-        return (_legacy_declarations(records, bodies, False),)
     if _is_shadowed("newtcolorbox", bodies, package_loads):
-        return ([],)
-    return (_unique_declarations(records, lambda r: _environment_shadowed(r, bodies)),)
+        return []
+    counts = Counter(row["environment"] for row in records)
+    return [
+        row
+        for row in records
+        if counts[row["environment"]] == 1 and not _environment_shadowed(row, bodies)
+    ]
 
 
 def _scan_declarations(tree, paths):
@@ -58,20 +50,6 @@ def _scan_declarations(tree, paths):
             if package_load is not None:
                 package_loads[path] = package_load
     return records, bodies, package_loads
-
-
-def _unique_declarations(records, shadowed):
-    counts = Counter(row["environment"] for row in records)
-    return [r for r in records if counts[r["environment"]] == 1 and not shadowed(r)]
-
-
-def _legacy_declarations(records, bodies, extended):
-    source = "\n".join(bodies.values())
-    if _shadow_patterns("newtcolorbox", extended).search(source):
-        return []
-    return _unique_declarations(
-        records, lambda r: _shadow_patterns(r["environment"], extended).search(source)
-    )
 
 
 def _source_declarations(path, raw, text):
@@ -145,25 +123,21 @@ def _declaration(node, path, raw, text):
     }
 
 
-def _shadow_patterns(name, extended=True):
+def _shadow_patterns(name):
     escaped = re.escape(name)
-    literal = (
+    target = r"\*?\s*\{?\s*\\" + escaped + r"(?![A-Za-z@])"
+    return re.compile(
         r"\\(?:def|gdef|edef|xdef|let)\s*\\(?:end)?"
         + escaped
         + r"(?![A-Za-z@])"
         + r"|\\(?:newenvironment|renewenvironment|NewDocumentEnvironment|RenewDocumentEnvironment)\*?\s*\{"
         + escaped
         + r"\}"
+        + r"|\\(?:newcommand|renewcommand|DeclareRobustCommand|(?:New|Renew|Declare)DocumentCommand)"
+        + target
+        + r"|\\(?P<provide>providecommand|ProvideDocumentCommand)"
+        + target
     )
-    if extended:
-        target = r"\*?\s*\{?\s*\\" + escaped + r"(?![A-Za-z@])"
-        literal += (
-            r"|\\(?:newcommand|renewcommand|DeclareRobustCommand|(?:New|Renew|Declare)DocumentCommand)"
-            + target
-            + r"|\\(?P<provide>providecommand|ProvideDocumentCommand)"
-            + target
-        )
-    return re.compile(literal)
 
 
 def _environment_shadowed(record, bodies):

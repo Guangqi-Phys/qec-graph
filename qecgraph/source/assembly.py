@@ -945,32 +945,6 @@ def document_bounds(text: str) -> tuple[int | None, int | None, int | None]:
     return begin_start, body_start, end_start
 
 
-_CONDITIONAL_CONTROL = re.compile(r"\\(?:if[A-Za-z@]*|else|fi)(?![A-Za-z@])")
-_DOCUMENT_BEGIN = re.compile(r"\\begin\s*\{\s*document\s*\}")
-_DOCUMENT_END = re.compile(r"\\end\s*\{\s*document\s*\}")
-
-
-def document_bounds_observed(text: str) -> tuple[int | None, int | None, int | None]:
-    """Locate a unique document whose markers sit inside an uncertain guard.
-
-    The strict :func:`document_bounds` scan skips every conditional branch it
-    cannot decide.  A build-mode guard can therefore wrap ``\\documentclass`` and
-    ``\\begin{document}`` and hide the whole body (observed in real packages).
-    This fallback masks only conditional control words, keeps every byte and
-    accepts the result only when exactly one document marker pair exists.  It is
-    used after a successful native build and never selects a prose branch.
-    """
-    begin, body, end = document_bounds(text)
-    if body is not None:
-        return begin, body, end
-    masked = _CONDITIONAL_CONTROL.sub(lambda match: " " * len(match.group(0)), text)
-    if len(_DOCUMENT_BEGIN.findall(masked)) != 1:
-        return None, None, None
-    if len(_DOCUMENT_END.findall(masked)) > 1:
-        return None, None, None
-    return document_bounds(masked)
-
-
 def condition_regions(text: str) -> tuple[list[tuple[int, int]],
                                             list[tuple[int, int]]]:
     """Return inactive and uncertain character ranges for conditional content.

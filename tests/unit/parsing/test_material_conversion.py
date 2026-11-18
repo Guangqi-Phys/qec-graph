@@ -1,8 +1,9 @@
 import unittest
 
-from qecgraph.preparation.contract import SCHEMA, digest, json_bytes, validate_material
+from qecgraph.preparation.contract import validate_material
 from qecgraph.preparation.convert import convert_source
 from qecgraph.source.package import SourceTree
+from tests.unit.parsing.material_fixture import partial_material
 
 
 class MaterialConversionTests(unittest.TestCase):
@@ -199,17 +200,13 @@ Selected.
         assembly, document, coverage = convert_source(
             tree, "main.tex", references or {"bindings": []}
         )
-        material = {
-            "entry.tex": assembly.data,
-            "content.json": json_bytes(document),
-            **{"sources/" + p: b for p, b in files.items()},
-        }
-        material["manifest.json"] = json_bytes(
-            {
-                "schema": SCHEMA,
-                "status": "partial",
-                "artifacts": {p: digest(raw) for p, raw in material.items()},
-            }
+        material = partial_material(
+            tree,
+            "main.tex",
+            assembly.data,
+            document,
+            coverage=coverage,
+            references=references,
         )
         validate_material(material)
         return assembly, document, coverage

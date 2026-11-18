@@ -32,19 +32,14 @@ def literal_false_ranges(text):
     return result
 
 
-def syntax_view(text, extra_ranges=(), *, allow_observed_bounds=False):
+def syntax_view(text, extra_ranges=()):
     """Comment-mask inactive bytes at unchanged codepoint offsets; keep raw source."""
     ranges = list(extra_ranges)
     masked = _mask(text, ranges)
     ranges.extend(literal_false_ranges(masked))
     ranges.extend(_static_ranges(masked))
     masked = _mask(text, ranges)
-    if allow_observed_bounds:
-        from ..source.assembly import document_bounds_observed
-
-        _, _, end = document_bounds_observed(masked)
-    else:
-        _, _, end = document_bounds(masked)
+    _, _, end = document_bounds(masked)
     closing = (
         re.match(r"\\end\s*\{\s*document\s*\}", masked[end:])
         if end is not None

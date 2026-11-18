@@ -444,7 +444,7 @@ definitions、subject 和 evidence。两者可以多对多；相似文本或参�
 并且 AUX 唯一发出 `\newlabel{key}` 时才成为标签。仅支持有默认值、字面参数数为
 1–4 的声明；动态、条件内或有重定义歧义的声明不支持。声明保留精确来源、原始 TeX 和
 哈希；嵌套或重复的 `label` 字段不绑定。同一文件无条件加载包后，对已经定义的命令
-执行的 `\providecommand` 作为空操作处理。旧 v19 材料按发布时使用的两种声明规则复核。
+执行的 `\providecommand` 作为空操作处理。
 未确认的选项保持未解析。仅大小写不同的 `\includegraphics` 目标只有在构建 FLS 实际
 读取该路径时才接受，并记录 `asset_case_mismatch`，不声称可移植到大小写敏感文件系统。
 
@@ -535,10 +535,10 @@ PDF 文字一致不能证明像素一致或数学等价。
 `bibliography_bindings`、`cross_reference_preparation` 和 `cross_reference_bindings`，
 并列出未解析引用及候选 ID。ready 论文的引用准备可以完整，而唯一绑定仍为 partial。
 只读验收重建支持的标签/引用候选，即使刷新产物哈希，也会拒绝删除候选或伪造唯一解析。
-不带此策略的旧材料保持原版本的含义。不猜依赖边或唯一目标。编译成功或 JSON 校验通过不证明科学正确性。
+合同保留引用证据和显式歧义。科学正确性需要独立验收。
 `content.json` 的范围仍指向 `entry.tex`，不能套到 `normalized.tex` 上。
 
-当前 `compile-prepare-v20` 产物要求严格文档边界。唯一文档标记回退用于读取 v10 产物。
+当前 `compile-prepare-v20` 产物要求严格文档边界。
 原文编译成功后，可对实际消费来源中独占行的字面 `\ifdefined\control` 和
 `\ifx\control\control` 做独立副本插桩编译。只有原生日志稳定观测到单一分支、探针
 编译成功且逐页去空白 PDF 文字与原构建相等时，才能选择该分支。行内/动态条件、未执行
@@ -554,9 +554,8 @@ PDF 文字一致不能证明像素一致或数学等价。
 
 完整位于保留的 `tikzpicture`、`picture`、`circuitikz`、`quantikz`、`forest` 或 `tikzcd`
 载荷内的条件仍记为 `drawing_payload`，绘图循环不选择全局单一分支。其他未映射正文
-条件继续阻断。新证据字段是附加字段；旧 `prepare/3` 按原记录规则读取，不升级为 v14 证据。
-`read_material` 返回两种文本、统一格式报告及已验证映射。旧 `qecgraph.prepare/3` v2/v3
-材料仍可读取；v4 及之后的 ready 材料必须包含额外的统一格式产物并通过检查。
+条件继续阻断。`read_material` 接收 `compile-prepare-v20` 材料，返回两种文本、
+统一格式报告和已验证映射。ready 材料必须包含统一格式产物并通过回放检查。
 
 ```sh
 python tools/prepare_compiled.py /path/to/source-tree \
@@ -584,7 +583,7 @@ python tools/report_preparation.py \
 架构重构还应比较保留的稳定产物，不能只比较计数：
 
 ```sh
-python tools/compare_preparation.py --baseline build/preparation-v19/final \
+python tools/compare_preparation.py --baseline build/material-baseline \
   --current build/preparation-refactor/final-verified --out build/preparation-comparison.json
 ```
 

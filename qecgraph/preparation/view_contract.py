@@ -123,7 +123,6 @@ def _check_projection(evidence, document, text, tree, view, projection):
         if document.get("dialect")
         else coordinates.copy_text(),
         [(coordinates.to_parse(a), coordinates.to_parse(b)) for a, b in masks],
-        allow_observed_bounds=False,
     )
     inactive = [[coordinates.to_entry(a), coordinates.to_entry(b)] for a, b in inactive]
     if document["observed_guards"] != guards or document["inactive_ranges"] != inactive:

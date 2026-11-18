@@ -11,23 +11,11 @@ from .artifacts import CROSS_REFERENCE_POLICY as CROSS_REFERENCE_POLICY
 
 def check_reference_candidates(evidence, document, text, manifest):
     """Rebuild all candidates; preserving ambiguity never permits dropping a target."""
-    policy = document.get("cross_reference_policy")
-    if (
-        manifest.get("rule_version") in {"compile-prepare-v19", "compile-prepare-v20"}
-        or policy is not None
-    ):
-        if policy != CROSS_REFERENCE_POLICY:
-            raise ValueError(
-                "Unsupported or missing cross-reference preparation policy"
-            )
-    if policy == CROSS_REFERENCE_POLICY:
-        _check_prepared_targets(document, manifest)
-    if (
-        policy is None
-        or "references.json" not in evidence.files
-        or document.get("dialect")
-    ):
-        return  # Legacy bundles retain their original gate; Harvmac checks its grammar.
+    if document.get("cross_reference_policy") != CROSS_REFERENCE_POLICY:
+        raise ValueError("Unsupported or missing cross-reference preparation policy")
+    _check_prepared_targets(document, manifest)
+    if document.get("dialect"):
+        return  # The native dialect check validates its own grammar and candidates.
     references = evidence["references.json"]
     labels, rows = cross_references(
         document["nodes"],

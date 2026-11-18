@@ -7,6 +7,7 @@ from pathlib import Path
 
 from ..source.package import SourceTree
 
+from . import PREPARATION_VERSION
 from .artifacts import ArtifactJSON, SCHEMA as SCHEMA, SourceIndex as SourceIndex
 from .artifacts import (
     digest as digest,
@@ -35,9 +36,7 @@ def _validate(evidence: ArtifactJSON, text: str) -> dict:
     from .harvmac import check_dialect
 
     check_dialect(evidence, document)
-    _check_environment_declarations(
-        evidence, document, text, sources, manifest.get("rule_version")
-    )
+    _check_environment_declarations(evidence, document, text, sources)
     from .crossrefs import check_reference_candidates
 
     check_reference_candidates(evidence, document, text, manifest)
@@ -45,17 +44,16 @@ def _validate(evidence: ArtifactJSON, text: str) -> dict:
 
     check_view(evidence, document, text)
     _check_normalized(evidence, document, text)
-    if "preparation_capabilities" in manifest:
-        from .capabilities import preparation_capabilities
+    from .capabilities import preparation_capabilities
 
-        expected = preparation_capabilities(
-            evidence["build.json"],
-            document,
-            evidence["coverage.json"],
-            evidence["references.json"],
-        )
-        if manifest["preparation_capabilities"] != expected:
-            raise ValueError("Preparation capabilities do not match retained evidence")
+    expected = preparation_capabilities(
+        evidence["build.json"],
+        document,
+        evidence["coverage.json"],
+        evidence["references.json"],
+    )
+    if manifest["preparation_capabilities"] != expected:
+        raise ValueError("Preparation capabilities do not match retained evidence")
     if manifest["status"] == "ready":
         if not (
             document["nodes"]
@@ -72,8 +70,6 @@ def _validate(evidence: ArtifactJSON, text: str) -> dict:
 
 
 def _check_bibliography_runtime(evidence, manifest):
-    if manifest.get("rule_version") != "compile-prepare-v20":
-        return
     files = evidence.files
     references = evidence["references.json"]
     if references.get("mode") in {"classic", "biblatex"}:
@@ -119,10 +115,10 @@ def _check_syntax(document, text, sources):
     _validate_roots(document, by_id, len(text))
 
 
-def _check_environment_declarations(evidence, document, text, sources, rule_version):
+def _check_environment_declarations(evidence, document, text, sources):
     if "environment_label_declarations" not in document:
         return
-    from .environments import declaration_options
+    from .environments import label_declarations
     from .crossrefs import _environment_labels
 
     records = document["environment_label_declarations"]
@@ -131,23 +127,21 @@ def _check_environment_declarations(evidence, document, text, sources, rule_vers
             raise ValueError(
                 "Environment declaration does not copy its original source"
             )
-    build = evidence.get("build.json", {})
+    build = evidence["build.json"]
     paths = build.get("inputs", [r["origin"]["path"] for r in records])
     from .projection import working_tree, decorate_origins
 
     files = evidence.files
     projection = evidence.get("source-projection.json", {"verified": False})
-    for expected_records in declaration_options(
-        working_tree(files, projection=projection), paths, rule_version=rule_version
-    ):
-        decorate_origins(expected_records, files, projection=projection)
-        if expected_records == records:
-            break
-    else:
+    expected_records = label_declarations(
+        working_tree(files, projection=projection), paths
+    )
+    decorate_origins(expected_records, files, projection=projection)
+    if expected_records != records:
         raise ValueError(
             "Environment label declarations do not match consumed source grammar"
         )
-    references = evidence.get("references.json", {})
+    references = evidence["references.json"]
     expected = _environment_labels(
         document["nodes"], references.get("observed_labels", []), text, records
     )
@@ -167,12 +161,7 @@ def _check_normalized(evidence, document, text):
 
     files, manifest = evidence.files, evidence["manifest.json"]
     if "normalized.tex" not in files:
-        if (
-            str(manifest.get("rule_version", "")).startswith("compile-prepare-v")
-            and manifest["rule_version"]
-            not in {"compile-prepare-v1", "compile-prepare-v2", "compile-prepare-v3"}
-            and manifest["status"] == "ready"
-        ):
+        if manifest["status"] == "ready":
             raise ValueError("Ready preparation is missing normalized LaTeX")
         return
     mapping = evidence["normalized-map.json"]
@@ -203,8 +192,6 @@ def _check_normalized(evidence, document, text):
 
 def _check_reference_origins(evidence, sources):
     files = evidence.files
-    if "references.json" not in files:
-        return
     references = evidence["references.json"]
     for field in ("entries", "original_bib_entries", "external_labels"):
         for record in references.get(field, []):
@@ -232,31 +219,41 @@ def _check_reference_origins(evidence, sources):
             raise ValueError("Compiled label observation does not match consumed AUX")
 
 
-def _check_manifest(files, manifest):
+def _check_material_identity(manifest):
+    if (
+        not isinstance(manifest, dict)
+        or manifest.get("rule_version") != PREPARATION_VERSION
+    ):
+        raise ValueError(f"Preparation requires a {PREPARATION_VERSION} material")
     if manifest.get("schema") != SCHEMA or manifest.get("status") not in {
         "ready",
         "partial",
     }:
         raise ValueError("Unsupported preparation material schema or state")
-    for path, expected in manifest.get("artifacts", {}).items():
+
+
+def _check_manifest(files, manifest):
+    _check_material_identity(manifest)
+    for path, expected in manifest["artifacts"].items():
         if digest(files[safe_path(path)]) != expected:
             raise ValueError("Material artifact hash changed")
     _check_originals(files, manifest)
 
 
 def _check_originals(files, manifest):
-    if "sources" in manifest:
-        original = {
+    tree = SourceTree(
+        "material",
+        {
             p.removeprefix("sources/"): raw
             for p, raw in files.items()
             if p.startswith("sources/")
-        }
-        tree = SourceTree("material", original)
-        if (
-            tree.manifest != manifest["sources"]
-            or tree.digest != manifest["source_tree_sha256"]
-        ):
-            raise ValueError("Original source inventory does not match the bound tree")
+        },
+    )
+    if (
+        tree.manifest != manifest["sources"]
+        or tree.digest != manifest["source_tree_sha256"]
+    ):
+        raise ValueError("Original source inventory does not match the bound tree")
     if (
         "original.package" in files
         and digest(files["original.package"]) != manifest["package_sha256"]
@@ -310,6 +307,7 @@ def read_material(root: Path, *, expected_manifest_sha256: str | None = None) ->
     ):
         raise ValueError("Material manifest differs from the published attempt")
     manifest = json.loads(raw_manifest)
+    _check_material_identity(manifest)
     files = {"manifest.json": raw_manifest}
     for name in manifest["artifacts"]:
         path = root / safe_path(name)

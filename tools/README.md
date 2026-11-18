@@ -57,7 +57,7 @@ python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifes
   --replay build/material-replay --out build/preparation-acceptance.json
 python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifest.json \
   --replay build/material-replay --out build/preparation-acceptance.json --check
-python tools/compare_preparation.py --baseline build/preparation-v19/final \
+python tools/compare_preparation.py --baseline build/material-baseline \
   --current build/preparation-refactor/final-verified --out build/preparation-comparison.json
 ```
 
@@ -66,7 +66,7 @@ spelling and an additional native/PDF-text check; retain `source-projection.json
 `projected-sources/` and original byte locators. A pinned native Harvmac adapter
 keeps the source dialect while writing the common syntax/bibliography JSON.
 `manifest.preparation_capabilities` separates body, bibliography, reference preparation
-and unique bindings. v19 accepts preserved cross-reference ambiguity as prepared;
+and unique bindings. Preserved cross-reference ambiguity passes preparation;
 `status=ambiguous` and all candidates remain, unique bindings stay partial, and missing
 targets still block ready. `--support-dir` searches
 author package files, explicit support, then system files; changed supplied

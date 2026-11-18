@@ -67,6 +67,9 @@ class PreparationAcceptanceTests(unittest.TestCase):
         )
         row = {
             "paper": "synthetic",
+            "material": output.name,
+            "material_manifest_sha256": digest((output / "manifest.json").read_bytes()),
+            "exit": 0,
             "package_sha256": digest(self.source.read_bytes()),
             "status": material["manifest"]["status"],
             "stages": material["manifest"]["stages"],
@@ -93,7 +96,7 @@ class PreparationAcceptanceTests(unittest.TestCase):
                 ["synthetic offline fixture"], cases=self.cases
             ),
             "syntax_probes": check_cases(
-                self.replay, json.loads(self.cases.read_text())["cases"]
+                self.replay, json.loads(self.cases.read_text())["cases"], rows=[row]
             ),
         }
         self.save()
@@ -200,16 +203,33 @@ class PreparationAcceptanceTests(unittest.TestCase):
 
     def test_retained_material_comparison_detects_changes_beyond_counts(self):
         from tools.compare_preparation import compare_replays
+        from tools.reproduce_preparation import _record_attempt
         import shutil
 
         copied = self.root / "copied"
         shutil.copytree(self.replay, copied)
         matching = compare_replays(self.replay, copied)
         self.assertEqual(matching["matched"], 1)
-        self.source.write_bytes(
-            self.source.read_bytes().replace(b"Body.", b"Changed body.")
+
+        def compiler(tree, entry, root, **kwargs):
+            return Build(entry, "pdflatex", root, success=False)
+
+        output = copied / "synthetic"
+        receipt = prepare_material(self.source, output, compiler=compiler)
+        with self.assertRaisesRegex(ValueError, "published attempt"):
+            mismatched = deepcopy(self.results)
+            mismatched["rows"][0].update(
+                material=Path(receipt["out"]).name, status="partial", exit=2
+            )
+            (copied / "results.json").write_text(json.dumps(mismatched))
+            compare_replays(self.replay, copied)
+        results = deepcopy(self.results)
+        _record_attempt(
+            output,
+            CompletedProcess([], 2, json.dumps(receipt).encode(), b""),
+            results["rows"][0],
         )
-        prepare_material(self.source, copied / "synthetic", compiler=self.compiler)
+        (copied / "results.json").write_text(json.dumps(results))
         changed = compare_replays(self.replay, copied)
         self.assertEqual(changed["matched"], 0)
         self.assertIn("stable_artifacts", changed["rows"][0]["differences"])

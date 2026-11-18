@@ -53,11 +53,7 @@ def normalize_latex(text, document, references, bibliography=None):
         "schema": PROFILE,
         "transformations": dict(Counter(e["operation"] for e in edits)),
         "source_mapping": "verified",
-        "syntax_parse": _syntax_check(
-            normalized,
-            legacy_bounds="observed_guards" not in document,
-            dialect=document.get("dialect"),
-        ),
+        "syntax_parse": _syntax_check(normalized, dialect=document.get("dialect")),
         "document_coordinate_space": "entry.tex",
         "complete": False,
         "native_compile": "not_run",
@@ -73,11 +69,11 @@ def normalize_latex(text, document, references, bibliography=None):
     return normalized.encode(), mapping, report
 
 
-def _syntax_check(text, *, legacy_bounds=False, dialect=None):
+def _syntax_check(text, *, dialect=None):
     from . import harvmac
 
     text = harvmac.parse_view(text) if dialect else text
-    text, _ = syntax_view(text, allow_observed_bounds=legacy_bounds)
+    text, _ = syntax_view(text)
     try:
         _, start, length = LatexWalker(
             text,
@@ -218,8 +214,7 @@ def _append(pieces, segments, text, start, end, output_pos, edit=None):
 def _bbl_edits(document, references, bibliography):
     if not bibliography or references.get("mode") != "classic":
         return []
-    # Legacy v4 mappings remain verifiable under their recorded surface policy.
-    if "syntax_complete" in document and _multiple_bibliographies(document):
+    if _multiple_bibliographies(document):
         return []
     classes = [
         n["arguments"][-1]

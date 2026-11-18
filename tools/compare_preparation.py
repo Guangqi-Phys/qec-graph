@@ -119,11 +119,6 @@ def _compare_paper(paper, baseline, current, before, after):
     old_path = replay_material_root(baseline, before)
     new_path = replay_material_root(current, after)
     if before["status"] == "failed" and after["status"] == "failed":
-        if any(
-            root is not None and (root / "manifest.json").exists()
-            for root in (old_path, new_path)
-        ):
-            raise ValueError("Failed replay row conflicts with retained material")
         return {
             "paper": paper,
             "differences": [],
@@ -131,8 +126,8 @@ def _compare_paper(paper, baseline, current, before, after):
         }
     if "failed" in {before["status"], after["status"]}:
         return {"paper": paper, "differences": ["preparation_outcome"]}
-    old = material_signature(old_path, before.get("material_manifest_sha256"))
-    new = material_signature(new_path, after.get("material_manifest_sha256"))
+    old = material_signature(old_path, before["material_manifest_sha256"])
+    new = material_signature(new_path, after["material_manifest_sha256"])
     return {"paper": paper, "differences": [key for key in old if old[key] != new[key]]}
 
 
