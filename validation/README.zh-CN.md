@@ -28,7 +28,7 @@
 检查只对实际运行它的源码修订和环境构成证据。测试通过不代表论文定理为真、
 距离界已被数学验证，或 Lean 声明已语义匹配。
 
-当前[准备验收报告](preparation_acceptance.json)由完整 `compile-prepare-v20` 回放自动生成，
+历史提交 [cb37129 的准备验收报告](preparation_acceptance.json)由完整 `compile-prepare-v20` 回放自动生成，
 逐包重新打开材料、重算计数和来源绑定语法 probe，并核对语料/代码快照。
 先运行不带 `--check` 的 `report_preparation.py` 生成报告，再用相同参数加 `--check`
 检查漂移；检查不编译、不调用模型。已提交报告的 `replay.argv` 保存实际支持文件路径、
@@ -41,7 +41,8 @@ manifest 哈希，已有的 ready 发布可以继续保留。
 [交接评审](../docs/reviews/review-2026-11-18-prepared-extraction/01-contract-gap-and-rollout.zh-CN.md)
 记录真实语料结果和科学验收状态。
 
-固定语料为 47 篇 TeX 和一个 PDF 反例。报告列出来源保真、书目结构、最终 TeX 诊断、
+完整回放需要准备 `test-sources/arxiv-sources/` 中的外部清单、原始包及历史报告列出的支持文件。
+干净检出提供入口配置和探针配置。固定语料为 47 篇 TeX 和一个 PDF 反例。报告列出来源保真、书目结构、最终 TeX 诊断、
 已验证投影、规范化重编译和编译轮数。这些是机械准备检查。固定 machine 副本的研究评测
 仍因注册表 schema 不兼容受阻。
 
@@ -59,7 +60,7 @@ manifest 哈希，已有的 ready 发布可以继续保留。
 
 复杂度回归门禁为 `python tools/check_complexity.py`；修改
 `validation/complexity_baseline.json` 必须明确评审。基线记录旧债务，不代表现有函数简单。
-当前门禁保留 85 个复杂度超过 10 的历史函数，没有新增回归。此前 16 个遗漏上限的
+门禁输出当前复杂度超过 10 的历史函数数量以及超出冻结上限的变化。此前 16 个遗漏上限的
 明确评审保留在 `59a0b9f:validation/preparation_acceptance.json`，不冒充本次的新验收。
 新增编译/准备函数的复杂度均不超过 10。
 

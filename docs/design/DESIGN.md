@@ -122,15 +122,14 @@ flowchart TB
 | Layer | Modules | Rule |
 |---|---|---|
 | Entry points | `qecgraph/cli`, `qecgraph/mcp/server.py`, `qecgraph/source/splitter.py` | May import application modules; package import must not load the CLI |
-| Application | `store.py`, `workspace.py`, `workspace_*.py`, `corpus.py`, `registry.py`, `review.py`, `query.py`, `domain/*` | Own transactions and policy; do not import development layers |
+| Application | `store.py`, `workspace.py`, `workspace_*.py`, `registry.py`, `query.py`, `domain/*` | Own transactions and policy; do not import development layers |
 | Kernel | `core/graph.py`, `core/transactions.py`, `core/coordinates.py`, `source/*`, `validators/*` | Pure or local side effects; no tests/tools/validation imports |
 | Output | `render/human.py`, `domain/status.py`, `domain/software.py`, `mcp/*` | Render/read from a pinned release; never write back through `human/` |
 
 The architecture test in `tests/contracts/tooling/test_architecture.py` enforces the import boundary.
 Implementation now lives under `core/`, `source/`, `domain/`, `render/`, and `mcp/`;
-`store.py`, `workspace.py` and `corpus.py` remain cohesive service modules pending a later
-split. `qecgraph/splitter.py` and `qecgraph/mcp_server.py` are thin compatibility shims for
-the documented module entry points.
+`store.py` and `workspace.py` own snapshot and workspace publication. The splitter
+and MCP executable modules are `qecgraph.source.splitter` and `qecgraph.mcp.server`.
 
 ---
 
@@ -202,7 +201,7 @@ Duplicate labels are ambiguous and must be resolved with an exact ID. Missing re
 
 | Schema | Use | Location |
 |---|---|---|
-| `qecgraph.research` | Current workspace research records (27 kinds, 47 typed relations) | `qecgraph/validators/schemas/research.schema.json` |
+| `qecgraph.research` | Workspace research records, including the derived `ai_extraction` kind | `qecgraph/validators/schemas/research.schema.json` |
 | `qecgraph.graph` | Extraction graph and SourceGraph/LemmaGraph/DataGraph projections | `qecgraph/validators/schemas/graph.schema.json` |
 | `qecgraph.annotations` | Human/AI additions to an extraction store | packaged schema |
 
@@ -262,7 +261,7 @@ Check weight always binds to the actual check-matrix representation and check se
 
 ### 4.4 Relations and edge states
 
-The canonical relation registry is `qecgraph.research.RELATIONS` / graph validation, not this prose. Common edges:
+Source-graph edge validation lives in `qecgraph/validators/__init__.py`. Research relation fields are declared in the research schema, with target kinds mapped by `qecgraph.domain.research.RELATIONS`. Common edges:
 
 - structural: `contains`, `defined_in`, `includes`, `uses_resource`;
 - textual: `references`, `cites`, `describes`;
@@ -684,7 +683,11 @@ follow §16.8. [Handoff review](../reviews/review-2026-11-18-prepared-extraction
 
 ## 6. Review, evidence, and query eligibility
 
-A review decision is an object with actor/kind, time, scope, rationale, decision, and exact input bindings (record IDs/revisions/content hashes, source versions, assets, proposal). Bindings cover the changed records and their explicit reference closure; an unrelated record revision does not invalidate a decision, while a changed dependency does. `apply` publishes a new revision atomically after checking those bindings; repeated application is idempotent. A review does not become true because a test passed, and a schema pass does not become mathematical verification.
+Review evidence is carried by explicit research revisions and source annotation
+sidecars. Research imports validate and publish explicit records under the writer
+lock. Eligibility uses the recorded bindings to the source and referenced
+revisions, and retains stale or unbound evidence for audit. AI extraction
+remains proposed. Scientific acceptance requires the separate checks in §16.8.
 
 A `claim.subject_id` must resolve to a registered subject. A dangling subject is a validation error; a wrong subject kind (for a distance estimate, not a quantum code, check-matrix representation, circuit, family, construction or classical code) is a warning rather than silent disappearance.
 
@@ -724,12 +727,12 @@ Any failure must leave the old release readable, the original package recoverabl
 - The lock protects local processes, not NFS or distributed writers. Do not claim power-loss durability or multi-writer support.
 - `human_stale` is a derived-view failure, not a machine-release rollback. Re-render from the pinned release.
 
-### 7.3 Incremental and watch
+### 7.3 Incremental extraction
 
 - Per-file pylatexenc AST caching is content-addressed and validated; no pickle/arbitrary loading. Parse errors are not cached.
 - Every run re-discovers includes/resources and rebuilds semantic projections, graph views, review status, and SQLite. A cache hit never revives a stale review.
 - Macro/environment/include-set/config/processor changes conservatively fall back to full parsing; mtime is not trusted.
-- `watch` is content polling around the same ingest. Temporary files, output stores and caches are ignored; batch saves are debounced. It does not introduce a second extractor.
+- `sync` processes the inbox and resumes recoverable jobs. `rebuild` also reconciles the archive inventory.
 - Incremental and full runs must produce identical semantic output for the same final input. Performance claims are measurements, not guarantees.
 
 ### 7.4 Exit behavior
@@ -828,6 +831,8 @@ paper (`work_id`), under `human/YYYY/MM/Surname_First_Two_thoughts.md`.
 - Publication remains per-file atomic, not a vault-wide transaction. A failure
   reports `human_stale`; rerunning `qec-graph human build` completes publication
   and cleanup without rolling back the machine release. Rendering does not call AI.
+  `status` reports the renderer's recorded release. Use `human build` to restore a
+  generated note removed from the vault.
 - Notes are a one-way reading view, never query/MCP/embedding input or an
   authority. Corrections belong in explicit structured machine revisions.
 
@@ -849,7 +854,6 @@ Mapping summary:
 - tree-sitter/AST → `pylatexenc` structural extraction (not a TeX engine);
 - reference resolution → labels/includes/citations plus explicit typed edges;
 - graph query/context → bounded, evidence-filtered traversal;
-- watch/sync → content polling around the same ingestion pipeline;
 - AI tools → one read-only query layer exposed through CLI, Python and MCP.
 
 [leanblueprint](https://github.com/PatrickMassot/leanblueprint) annotations (`uses`, `proves`, `lean`, `leanok`) are preserved as author observations/claims; they are not proof-term dependencies, build evidence or semantic equivalence.
@@ -917,7 +921,7 @@ These are limits of the current release, not permission to fill gaps with plausi
 
 - The test suite and `tools/reproduce*.py` are the executable checks; `validation/README.md` lists the current checks.
 - `python -m unittest discover -s tests -v`, `python tools/reproduce.py --out build/reproduce`, and the CLI/MCP checks are the standard local gates.
-- CI runs ruff, mypy, advisory pyright and the unit-test layer only. Integration/contract tests, coverage, distribution, installed-wheel, Docker and isolation checks are local/manual checks.
+- CI runs Ruff, complexity checks, mypy, advisory Pyright, unittest discovery with branch coverage, and end-to-end reproduction. Dedicated jobs run native TeX under bubblewrap and smoke-test the research Compose profile. Distribution checks also run in the release workflow.
 - Any change to identity, source coordinates, evidence semantics, review binding, publication order, or MCP scope requires a new invariant test and a migration note when compatibility is affected.
 - A design change is complete only when this document, the implementation, the tests and the validation claim agree. Do not leave a second contradictory design page in the active tree.
 
@@ -1134,7 +1138,7 @@ A local paper without a public URL remains available through research tools.
 
 ### 16.3 Retrieval, enumeration and coverage
 
-Default keyword discovery uses a cached BM25 index of passage text, QEC term normalization, source-bound snippets and overlap suppression. Headers are a fallback only when no passage matches. Whole-file/section/metadata/bibliography hits are excluded unless their kind is requested; paper rounds improve diversity. This is lexical relevance, not semantic verification.
+Default keyword discovery uses a cached BM25 index of passage text, QEC term normalization, source-bound snippets and overlap suppression. Headers are a fallback only when no passage matches. Whole-file/section/metadata/bibliography hits are excluded unless their kind is requested; results retain relevance order across papers. This is lexical relevance, not semantic verification.
 
 Keyword retrieval, optional vector candidates and typed field/relationship
 queries share one pinned release. Hybrid ranking merges candidates and avoids

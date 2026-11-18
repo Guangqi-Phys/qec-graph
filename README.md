@@ -181,7 +181,7 @@ validation leaves the previous release readable. Human notes are never knowledge
 |---|---|
 | Ingestion | TeX/gzip/tar/tar.gz/ZIP detection, safe unpacking, SHA-256 blobs and receipts, entry-point selection |
 | Provenance | UTF-8 byte hashes, Unicode codepoint half-open spans, 1-based lines, stable IDs and revisions |
-| Research model | `qecgraph.research` records, 27 kinds, 47 typed relations, field evidence, explicit unknown/conflict states |
+| Research model | `qecgraph.research` records, typed record kinds and relations, field evidence, explicit unknown/conflict states |
 | Review evidence | Explicit record revisions and hash-bound eligibility, with stale evidence excluded by default |
 | Query | Exact filters, bounded context, dependency/impact traversal, code/performance/software queries |
 | MCP | Eight research tools or two generic search/fetch tools; registered resources, budgets and one pinned release per session |

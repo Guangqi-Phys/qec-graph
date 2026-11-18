@@ -9,7 +9,7 @@ inside each layer.
 ```text
 tests/
 ├── unit/          # pure parsing, graph/domain rules, schema checks
-├── integration/   # store, workspace, corpus, MCP, CLI, rendering
+├── integration/   # store, workspace, MCP, CLI, rendering
 ├── contracts/     # docs, packaging, architecture and tooling contracts
 ├── fixtures/      # shared input fixtures
 ├── golden/        # pinned arXiv manifest and instructions
@@ -18,12 +18,12 @@ tests/
 
 | Layer | Functional group | Files | Focus |
 |---|---|---|---|
-| Unit | Parsing | `unit/parsing/test_parser.py`, `unit/parsing/test_source_package.py` | TeX parsing, archive safety, source spans |
-| Unit | AI | `unit/domain/test_ai_config.py`, `test_ai_client.py`, `test_ai_provider.py`, `test_ai_skills.py`, `test_ai_normalize.py`, `test_ai_normalize_runner.py`, `test_ai_extract.py`, `test_ai_prefetch.py` | Provider config, structured output, skills, normalization and concurrent prefetch |
-| Unit | Domain | `unit/domain/test_semantic.py`, `unit/domain/test_qec_validation.py`, `unit/domain/test_validators.py`, `unit/domain/test_schemas.py` | Graph/evidence rules, QEC checks, schema contracts |
-| Integration | Pipeline | `integration/pipeline/test_pipeline.py`, `test_publication.py`, `test_registry.py`, `test_splitter.py` | Snapshot, publication, registry, splitting |
-| Integration | Workspace | `integration/workspace/test_workspace.py`, `test_workspace_migration.py`, `test_workspace_query.py`, `test_incremental.py`, `test_watch.py`, `test_status.py` | Init/sync/rebuild, migration, queries, incremental/watch, status |
-| Integration | MCP/CLI/rendering | `integration/mcp/test_mcp.py`, `integration/mcp/test_ai_tools.py`, `integration/cli/test_cli.py`, `integration/rendering/test_human.py` | Read-only MCP, CLI, Obsidian rendering |
+| Unit | Parsing | `unit/parsing/` | TeX, archive safety, source coordinates and preparation syntax |
+| Unit | Domain and AI | `unit/domain/` | Research evidence, schemas, provider and extraction behavior |
+| Unit | Search and rendering | `unit/query/`, `unit/rendering/` | Lexical ranking, progress and output |
+| Integration | Pipeline | `integration/pipeline/` | Snapshot publication, native compilation, sandbox, material and prepared extraction |
+| Integration | Workspace | `integration/workspace/` | Registry, archive ingestion, recovery, knowledge, retrieval, query and status |
+| Integration | MCP, CLI and rendering | `integration/mcp/`, `integration/cli/`, `integration/rendering/` | Read-only stdio, installed commands and Obsidian notes |
 | Contract | Docs | `contracts/docs/test_docs.py`, `contracts/docs/test_docs_bilingual.py` | Status/TOC/link contracts and English/Chinese parity |
 | Contract | Packaging | `contracts/packaging/test_distribution.py`, `contracts/packaging/test_installer.py` | Metadata, installer, packaged distribution |
 | Contract | Architecture/tooling | `contracts/tooling/test_architecture.py`, `contracts/tooling/test_tools.py` | Import boundaries/public API and every `tools/*.py --help` path |
@@ -44,6 +44,16 @@ python -m unittest discover -s tests
 
 Fixtures live in `tests/fixtures/`; pinned-source instructions are in
 `tests/golden/README.md`.
+
+Native TeX integration is opt-in locally. Install TeX Live, Poppler, and the
+platform sandbox, then run:
+
+```sh
+QECGRAPH_TEST_TEX=1 python -m unittest tests.integration.pipeline.test_compilation_sandbox tests.integration.pipeline.test_compilation -v
+```
+
+The independent sandbox probe also runs during ordinary discovery where a
+supported sandbox is available. The opt-in CI job requires the sandbox to work.
 
 ## References
 

@@ -133,14 +133,14 @@ flowchart TB
 | 层 | 模块 | 规则 |
 |---|---|---|
 | 入口 | `qecgraph/cli`、`qecgraph/mcp/server.py`、`qecgraph/source/splitter.py` | 可导入应用模块；包导入不得加载 CLI |
-| 应用 | `store.py`、`workspace.py`、`workspace_*.py`、`corpus.py`、`registry.py`、`review.py`、`query.py`、`domain/*` | 拥有事务和策略；不得导入开发层 |
+| 应用 | `store.py`、`workspace.py`、`workspace_*.py`、`registry.py`、`query.py`、`domain/*` | 拥有事务和策略；不得导入开发层 |
 | 内核 | `core/graph.py`、`core/transactions.py`、`core/coordinates.py`、`source/*`、`validators/*` | 纯逻辑或本地副作用；不得导入 tests/tools/validation |
 | 输出 | `render/human.py`、`domain/status.py`、`domain/software.py`、`mcp/*` | 从固定 release 渲染/读取；不得通过 `human/` 写回 |
 
 `tests/contracts/tooling/test_architecture.py` 强制执行导入边界。实现现在位于
-`core/`、`source/`、`domain/`、`render/`和 `mcp/`；`store.py`、
-`workspace.py`、`corpus.py` 继续保持为内聚服务模块，后续再拆。
-`qecgraph/splitter.py` 和 `qecgraph/mcp_server.py` 是文档化模块入口的薄兼容 shim。
+`core/`、`source/`、`domain/`、`render/` 和 `mcp/`。`store.py` 与
+`workspace.py` 负责快照和工作区发布。切割和 MCP 的可执行模块为
+`qecgraph.source.splitter` 和 `qecgraph.mcp.server`。
 
 ---
 
@@ -215,7 +215,7 @@ workspace/
 
 | Schema | 用途 | 位置 |
 |---|---|---|
-| `qecgraph.research` | 当前 workspace 研究记录（27 kinds、47 typed relations） | `qecgraph/validators/schemas/research.schema.json` |
+| `qecgraph.research` | 工作区研究记录，包含派生的 `ai_extraction` 类型 | `qecgraph/validators/schemas/research.schema.json` |
 | `qecgraph.graph` | 抽取图及 SourceGraph/LemmaGraph/DataGraph 投影 | `qecgraph/validators/schemas/graph.schema.json` |
 | `qecgraph.annotations` | 对抽取 store 的人工/AI 增补 | packaged schema |
 
@@ -279,7 +279,7 @@ scope（`stabilizer`/`gauge`/`measured`）和 min/max/mean/histogram。在 sympl
 
 ### 4.4 关系和边状态
 
-规范关系 registry 是 `qecgraph.research.RELATIONS` / graph validation，不是这段 prose。
+来源图边由 `qecgraph/validators/__init__.py` 校验。研究记录的关系字段由 research schema 声明，目标类型由 `qecgraph.domain.research.RELATIONS` 映射。
 常见边：
 
 - 结构：`contains`、`defined_in`、`includes`、`uses_resource`；
@@ -633,11 +633,9 @@ python tools/extract_prepared.py build/prepared/paper --out build/extracted/pape
 
 ## 6. 审核、证据和查询资格
 
-审核决定是一个对象，带 actor/kind、time、scope、rationale、decision 和精确输入
-绑定（record IDs/revisions/content hashes、source versions、assets、proposal）。
-绑定覆盖被改动记录及其显式引用闭包；无关记录的修订不会使决定失效，依赖记录变化会。
-`apply` 在检查这些绑定后原子发布新修订；重复 apply 幂等。测试通过不会使审核
-变成真，schema 通过也不会变成数学验证。
+审核证据保存在显式研究修订和来源 annotation sidecar 中。导入研究记录时在写锁内验证并发布。
+查询资格按来源和引用修订的记录绑定判断，失效或未绑定的证据保留以供审核。
+AI 提取保持提议状态，科学验收适用 §16.8。
 
 `claim.subject_id` 必须解析到已注册主体。悬空 subject 是验证错误；错误的主体 kind
 （对距离论断而言，不是 quantum code、check-matrix representation、circuit、family、construction 或
@@ -688,12 +686,12 @@ claim 仍可恢复，空 claim 目录在 writer lock 下清理。
 - 锁保护本地进程，不保护 NFS 或分布式 writer。不声称掉电持久性或 multi-writer 支持。
 - `human_stale` 是派生视图失败，不是机器 release 回滚。从固定 release 重新渲染。
 
-### 7.3 增量和 watch
+### 7.3 增量提取
 
 - 每文件 pylatexenc AST 缓存按内容寻址并验证；不使用 pickle/任意加载。parse error 不缓存。
 - 每次运行重新发现 includes/resources，并重建 semantic projections、graph views、review status 和 SQLite。缓存命中绝不复活 stale review。
 - macro/environment/include-set/config/processor 变化保守回退到完整解析；不信任 mtime。
-- `watch` 是同一 ingest 外的内容轮询。临时文件、输出 store 和缓存被忽略；批量保存去抖。它不引入第二个 extractor。
+- `sync` 处理输入并恢复可重试任务。`rebuild` 还核对整个归档库存。
 - 对同一最终输入，增量和全量运行必须产生相同语义输出。性能声称是测量，不是保证。
 
 ### 7.4 退出行为
@@ -784,6 +782,7 @@ Python、CLI 和 MCP 共享。MCP protocol errors 和 business-query errors 保�
   vault 或未登记的同名目标时，渲染在修改笔记前停止。
 - 发布仍是逐文件原子，不是整个 vault 的原子事务。中断时报告 `human_stale`，重新运行
   `qec-graph human build` 完成发布和清理，machine release 不回滚。渲染不会调用 AI。
+  `status` 返回渲染器记录的 release。若笔记被移除，运行 `human build` 恢复。
 - 人类笔记只是单向阅读视图，不作为查询、MCP 或 embedding 输入，也不成为权威数据；
   更正通过 machine 层的显式结构化修订完成。
 
@@ -809,7 +808,6 @@ Colby Mchenry），用于 extraction/storage/resolution/query/watch 边界。没
 - tree-sitter/AST → `pylatexenc` structural extraction（不是 TeX 引擎）；
 - reference resolution → labels/includes/citations 加显式 typed edges；
 - graph query/context → 有界、证据过滤的 traversal；
-- watch/sync → 同一 ingestion pipeline 外的内容轮询；
 - AI tools → 一个只读 query layer，通过 CLI、Python 和 MCP 暴露。
 
 [leanblueprint](https://github.com/PatrickMassot/leanblueprint) 注解（`uses`、
@@ -879,7 +877,7 @@ build evidence 或 semantic equivalence。
 
 - 测试套件和 `tools/reproduce*.py` 是可执行检查；`validation/README.md` 列出当前检查。
 - `python -m unittest discover -s tests -v`、`python tools/reproduce.py --out build/reproduce` 和 CLI/MCP 检查是标准本地门禁。
-- CI 只运行 ruff、mypy、advisory pyright 和 unit 测试层。integration/contract 测试、覆盖率、distribution、installed-wheel、Docker 和隔离检查是本地/手动检查。
+- CI 执行 Ruff、复杂度检查、mypy、提示型 Pyright，以及覆盖三个测试层的 unittest 发现、分支覆盖率和端到端复现。独立作业用 bubblewrap 执行真实 TeX，并试跑研究用 Compose 配置。发布工作流也运行分发检查。
 - 任何 identity、source coordinates、evidence semantics、review binding、publication order 或 MCP scope 变化都要求新 invariant test，并在兼容性受影响时写迁移说明。
 - 只有本文、实现、测试和 validation claim 一致时，设计变更才算完成。不要把第二份矛盾设计页留在活动文档树中。
 

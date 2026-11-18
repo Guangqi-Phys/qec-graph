@@ -17,12 +17,12 @@ tests/
 
 | 层级 | 功能组 | 文件 | 重点 |
 |---|---|---|---|
-| Unit | 解析 | `unit/parsing/test_parser.py`、`unit/parsing/test_source_package.py` | TeX 解析、归档安全、来源区间 |
-| Unit | AI | `unit/domain/test_ai_config.py`、`test_ai_client.py`、`test_ai_provider.py`、`test_ai_skills.py`、`test_ai_normalize.py`、`test_ai_normalize_runner.py`、`test_ai_extract.py`、`test_ai_prefetch.py` | Provider 配置、结构化输出、skills、规范化和并发 prefetch |
-| Unit | 领域 | `unit/domain/test_semantic.py`、`unit/domain/test_qec_validation.py`、`unit/domain/test_validators.py`、`unit/domain/test_schemas.py` | 图/证据规则、QEC 检查、Schema 契约 |
-| Integration | Pipeline | `integration/pipeline/test_pipeline.py`、`test_publication.py`、`test_registry.py`、`test_splitter.py` | 快照、发布、registry、切割 |
-| Integration | 工作区 | `integration/workspace/test_workspace.py`、`test_workspace_migration.py`、`test_workspace_query.py`、`test_incremental.py`、`test_watch.py`、`test_status.py` | init/sync/rebuild、迁移、查询、增量/watch、状态 |
-| Integration | MCP/CLI/渲染 | `integration/mcp/test_mcp.py`、`integration/mcp/test_ai_tools.py`、`integration/cli/test_cli.py`、`integration/rendering/test_human.py` | 只读 MCP、CLI、Obsidian 渲染 |
+| Unit | 解析 | `unit/parsing/` | TeX、归档安全、来源坐标与准备语法 |
+| Unit | 领域和 AI | `unit/domain/` | 研究证据、schema、provider 与提取行为 |
+| Unit | 搜索与输出 | `unit/query/`、`unit/rendering/` | 词项排序、进度和输出 |
+| Integration | 流水线 | `integration/pipeline/` | 快照发布、真实编译、沙箱、材料与冻结材料提取 |
+| Integration | 工作区 | `integration/workspace/` | 注册表、归档导入、恢复、知识、检索、查询和状态 |
+| Integration | MCP、CLI 与渲染 | `integration/mcp/`、`integration/cli/`、`integration/rendering/` | 只读 stdio、已安装命令与 Obsidian 笔记 |
 | Contract | 文档 | `contracts/docs/test_docs.py`、`contracts/docs/test_docs_bilingual.py` | 状态/目录/链接契约和中英一致性 |
 | Contract | 分发包 | `contracts/packaging/test_distribution.py`、`contracts/packaging/test_installer.py` | 元数据、安装器、分发包 |
 | Contract | 架构/工具 | `contracts/tooling/test_architecture.py`、`contracts/tooling/test_tools.py` | 导入边界/公共 API 和所有 `tools/*.py --help` 路径 |
@@ -42,6 +42,14 @@ python -m unittest discover -s tests
 ```
 
 fixtures 在 `tests/fixtures/`；固定来源说明在 `tests/golden/README.zh-CN.md`。
+
+真实 TeX 集成测试需要在本地显式开启。安装 TeX Live、Poppler 和平台沙箱后运行：
+
+```sh
+QECGRAPH_TEST_TEX=1 python -m unittest tests.integration.pipeline.test_compilation_sandbox tests.integration.pipeline.test_compilation -v
+```
+
+默认发现也会在支持的平台执行独立沙箱探针。开启真实编译的 CI 作业要求沙箱可用。
 
 ## 参考
 

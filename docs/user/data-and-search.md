@@ -389,7 +389,10 @@ space during ingestion and queries; dimensions alone are insufficient.
 
 `qec_search` accepts `mode: "keyword"` (the BM25 default), `"vector"` or `"hybrid"`.
 `kind` and exact `source_version_id` restrict candidates before ranking. Results
-include index identity and coverage. Hybrid mode reports keyword fallback when
+include index identity and coverage. Keyword ranks all-term matches before partial
+matches, then uses BM25 score across papers. Workspace CLI `search` uses the graph
+text index for direct graph lookup. Use `query-tool qec_search` or MCP for passage
+discovery with the ranking described here. Hybrid mode reports keyword fallback when
 embeddings are unavailable; vector-only mode returns an explicit error. Source
 and record results are discovery candidates, never proof of a hard condition.
 After explicit research-record imports, refresh the projection with sync.

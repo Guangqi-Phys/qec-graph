@@ -163,7 +163,7 @@ release 保持可读。人类笔记永不作为知识输入。
 |---|---|
 | 导入 | TeX/gzip/tar/tar.gz/ZIP 识别、安全解包、SHA-256 blob 和 receipt、入口点选择 |
 | 来源保真 | UTF-8 字节哈希、Unicode codepoint 半开区间、行号从 1 开始、稳定 ID 和修订 |
-| 研究模型 | `qecgraph.research` 记录、27 kinds、47 typed relations、字段证据、显式 unknown/conflict 状态 |
+| 研究模型 | `qecgraph.research` 记录、类型化记录与关系、字段证据、显式 unknown/conflict 状态 |
 | 审核证据 | 显式记录修订和哈希绑定，查询默认排除失效证据 |
 | 查询 | 精确过滤、有界上下文、依赖/影响遍历、code/performance/software 查询 |
 | MCP | 8 个研究工具或 2 个通用 search/fetch 工具。支持已登记资源、预算与每会话固定 release |

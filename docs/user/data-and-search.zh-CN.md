@@ -341,6 +341,8 @@ allow_source_upload = false
 
 `qec_search` 支持 `mode: "keyword"`（默认使用 BM25）、`"vector"` 或 `"hybrid"`。
 `kind` 和精确 `source_version_id` 在排序前过滤。结果报告索引身份与覆盖。
+关键词模式先排全词命中，再在同类命中中按 BM25 跨论文排序。工作区 CLI
+`search` 使用图文本索引直接查找图节点。`query-tool qec_search` 和 MCP 使用这里的段落发现排序。
 embedding 不可用时 hybrid 明确报告关键词回退，纯向量模式返回错误。
 原文和记录搜索结果都是发现候选，不证明硬条件成立。显式导入研究记录后用 sync 刷新投影。
 写事务发布前检查 `max_chunks` 与 `max_total_chars`，失败时仍可发布来源。运行 rebuild 可重新生成旧格式或损坏的派生索引。

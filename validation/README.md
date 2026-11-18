@@ -31,7 +31,7 @@ A check is evidence only for the exact source revision and environment in which
 it ran. A passing test does not make a paper's theorem true, a distance bound
 mathematically verified, or a Lean declaration semantically matched.
 
-The current [preparation acceptance report](preparation_acceptance.json) is generated
+The historical [preparation acceptance report for cb37129](preparation_acceptance.json) is generated
 from the full `compile-prepare-v20` replay, with every material bundle reopened,
 counts and source-bound syntax probes recalculated, and corpus/code snapshots
 checked. Use `report_preparation.py` without `--check` to create a report first;
@@ -49,6 +49,9 @@ again with `--check` to verify the source units and any saved proposal citations
 offline. The [handoff review](../docs/reviews/review-2026-11-18-prepared-extraction/01-contract-gap-and-rollout.zh-CN.md)
 records the real-corpus comparison and the scientific acceptance status.
 
+The full replay requires the external manifest and packages under
+`test-sources/arxiv-sources/`, plus the pinned support assets listed in the
+historical report. A clean checkout provides the entry and probe configuration.
 The regression corpus contains 47 TeX inputs and one PDF negative case. The report
 includes source fidelity, bibliography structure, final TeX diagnostics, verified
 projections, normalized recompilation and pass counts. These are mechanical
@@ -73,8 +76,8 @@ and per-skill precision samples remain outstanding.
 The complexity regression gate is `python tools/check_complexity.py`. Changes to
 `validation/complexity_baseline.json` require explicit review; it records legacy
 debt and does not mean the existing functions are simple.
-The current gate retains 85 legacy functions over complexity 10, with no new
-regressions. The earlier explicit review of 16 omitted ceilings is retained at
+The gate prints the current count of legacy functions over complexity 10
+and any changes beyond the frozen ceilings. The earlier explicit review of 16 omitted ceilings is retained at
 `59a0b9f:validation/preparation_acceptance.json`; it is not a new validation claim.
 New compilation/preparation functions remain at complexity 10 or below.
 
