@@ -651,6 +651,49 @@ require explicit upload opt-in; they are not imported or invoked by the compile-
 workflow. The static parser remains independent, and no automatic workspace migration
 or semantic extraction is introduced by this offline tool.
 
+### 5.5 Extraction from frozen preparation
+
+`tools/extract_prepared.py` implements the offline handoff for `compile-prepare-v20`.
+It opens a verified `qecgraph.prepare/3` bundle and writes one
+`qecgraph.prepared_extraction/1` JSON file. The authoritative output schema is
+[prepared-extraction.schema.json](../../qecgraph/validators/schemas/prepared-extraction.schema.json).
+
+```sh
+python tools/extract_prepared.py build/prepared/paper --out build/extracted/paper.json
+python tools/extract_prepared.py build/prepared/paper --out build/extracted/paper.json --check
+```
+
+| Field | Authority and use |
+| --- | --- |
+| `input` | Material manifest SHA-256, rule version, source tree, entry and mapping hashes, original preparation status and capabilities. Package hash is null when the preparation input was a directory. |
+| `source` | Literal metadata candidates, outline, ordered source units, file and asset inventory, references, coverage and diagnostics. The program copies usable evidence from partial materials and preserves that status. |
+| `source.units` | Entry ranges, prepared node IDs or derived range IDs, exact TeX and ordered source spans. Formulas, environments, captions and literal table cells preserve author structure. Parameter tuples carry typed literal values and candidate status. |
+| `semantic` | Explicitly requested skill results. An absent key means the skill was unrequested. A completed skill contains a proposed artifact and verified original-source locations. Missing evidence, budget limits and provider or validation failures have explicit task statuses. |
+
+The program reads syntax from the prepared document and addresses `entry.tex`
+in Unicode codepoints. Its source spans address the authoritative original or the
+verified byte projection. Projected coordinates retain enclosing original byte
+locators. Table cell ranges and literal reference targets keep their prepared
+meaning. Reopening the extraction checks its input binding and recalculates the
+source data and saved proposal citations.
+
+The default path uses local deterministic extraction. An explicit `--skill`
+uses the existing `extract_theorems`, `extract_assumptions`, `extract_data` or
+`extract_thoughts` contract with `--workspace` supplying enabled proposal and source
+upload settings. `--section` accepts an outline node ID to bound the request to a
+particular section. The adapter builds numbered evidence from active original
+text and maps citations back to the original files. The skill schemas, budgets,
+source checks and correction behavior from §15 apply. Each accepted result is
+proposed and available for subsequent evidence review.
+
+Workspace publication from the new handoff is a separate integration stage.
+First bind the verified extraction to a registered source version and expose all
+source spans in reading and search handles. Then stage typed records or proposals
+with the proper evidence and review status. Publish via §7 and verify MCP and
+nine-question rendering against the same fixed release. The current offline tool
+publishes the extraction file. Machine release validation and scientific acceptance
+follow §16.8. [Handoff review](../reviews/review-2026-11-18-prepared-extraction/01-contract-gap-and-rollout.zh-CN.md)
+
 ## 6. Review, evidence, and query eligibility
 
 A review decision is an object with actor/kind, time, scope, rationale, decision, and exact input bindings (record IDs/revisions/content hashes, source versions, assets, proposal). Bindings cover the changed records and their explicit reference closure; an unrelated record revision does not invalidate a decision, while a changed dependency does. `apply` publishes a new revision atomically after checking those bindings; repeated application is idempotent. A review does not become true because a test passed, and a schema pass does not become mathematical verification.
@@ -930,7 +973,7 @@ API keys are redacted and the configuration file is created mode `0600`.
 | Versioned skill packs | Implemented |
 | Source-mapped normalization | Implemented for ambiguous packages |
 | Parser-first structure recovery | Implemented for eligible original TeX entries, with proposed block kinds |
-| Theorem/assumption/data/thought proposals | Runs when explicitly allowed to upload and credentials are configured; written as `machine/ai/proposals`; explicit review decisions are recorded, conversion to canonical research records is not automatic |
+| Theorem/assumption/data/thought proposals | With upload permission and credentials, the workspace writes `machine/ai/proposals` and projects the items into queryable `ai_extraction` rows with AI origin. Authoritative domain records and review decisions use their own evidence and review contracts. |
 
 The four semantic extraction skills use v7: a shared safety system message, numbered plain-text evidence with file mappings, and the skill task after that evidence. Provider prefix-cache savings have not been measured. Requests
 contain the main projection plus the selected entry's registered TeX file

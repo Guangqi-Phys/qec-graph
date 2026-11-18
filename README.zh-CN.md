@@ -25,6 +25,7 @@ curl -fsSL https://raw.githubusercontent.com/Guangqi-Phys/qec-graph/main/install
 ```sh
 python tools/prepare_compiled.py source.tar.gz --out build/prepared/paper
 python tools/prepare_compiled.py --out build/prepared/paper --check
+python tools/extract_prepared.py build/prepared/paper --out build/extracted/paper.json
 ```
 
 需要本地 TeX 工具，产出含 `normalized.tex`、独立来源映射校验和派生文件重编译证据的材料包，
@@ -33,6 +34,8 @@ python tools/prepare_compiled.py --out build/prepared/paper --check
 书目条目与最终 TeX 日志一并保留。TeX 拒绝 BBL 格式或报告未定义引用键时，材料标为 partial。
 交叉引用歧义保留全部候选即可准备完成；缺失目标仍阻止 ready，ready 不保证每个引用都有唯一目标。
 不调用模型、不生成科研记录。参见[准备层边界与产物](docs/design/DESIGN.zh-CN.md#54-离线来源准备)。
+提取命令读取已验证的 v20 材料，交付带原文定位的结构、引用及字面候选，也可按需生成语义提议。
+[从固定准备材料提取](docs/design/DESIGN.zh-CN.md#55-从固定准备材料提取)
 下方工作区命令仍采用现有的导入与抽取行为。
 
 在一个空目录中运行，或只保留 `inputs/`。有其他条目时 `init` 会在写入前停止。

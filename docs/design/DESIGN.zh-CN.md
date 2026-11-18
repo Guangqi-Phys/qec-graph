@@ -603,6 +603,39 @@ python tools/compare_preparation.py --baseline build/preparation-v19/final \
 `--ai-structure`）与 v9 格式方案 skill 仍要求显式上传许可；先编译路线不导入或调用它们。
 静态 parser 保持独立；本离线工具不引入 workspace 自动迁移或科研语义抽取。
 
+### 5.5 从固定准备材料提取
+
+`tools/extract_prepared.py` 实现 `compile-prepare-v20` 的离线交接。程序读取已验证的
+`qecgraph.prepare/3` 材料目录，产出单个 `qecgraph.prepared_extraction/1` JSON 文件。
+输出以 [prepared-extraction.schema.json](../../qecgraph/validators/schemas/prepared-extraction.schema.json) 为权威契约。
+
+```sh
+python tools/extract_prepared.py build/prepared/paper --out build/extracted/paper.json
+python tools/extract_prepared.py build/prepared/paper --out build/extracted/paper.json --check
+```
+
+| 字段 | 权威来源与用途 |
+| --- | --- |
+| `input` | 固定材料 manifest、源树、entry 和映射哈希，保留准备规则版本、状态和能力。目录输入的包哈希为 null。 |
+| `source` | 字面元数据候选、目录、有序来源单元、文件和附件清单、引用、覆盖及诊断。partial 材料有可用证据时也会交付，并保留原状态。 |
+| `source.units` | entry 范围、语法节点或派生范围 ID、精确 TeX 及有序来源片段。公式、环境、图注和表格单元保留作者结构。参数元组保存字面值和 candidate 状态。 |
+| `semantic` | 显式选择的技能结果。缺少键表示未请求。成功项是 proposed 提议并携带核验后的原文定位。证据不足、预算超限或模型响应失败分别标记。 |
+
+程序以准备好的文档语法为准，使用 `entry.tex` 的 Unicode codepoint 范围。
+来源片段分别定位原文件或经验证的字节投影，投影保留其覆盖的原始字节范围。
+表格单元范围和字面引用目标沿用准备阶段语义。复核时重新核对输入绑定、程序结果及提议引证。
+
+默认执行离线程序提取。显式传入 `--skill` 时可以选择 `extract_theorems`、
+`extract_assumptions`、`extract_data` 或 `extract_thoughts`。`--workspace` 提供
+已启用提议和允许上传的配置。`--section` 接收目录节点 ID，可把请求限定到某一节。
+程序从活动原文生成编号证据，把引用映回原文件。沿用 §15 的技能 schema、预算、
+原文校验和纠错限制。验收的模型结果作为 proposed 交付，供后续证据审核。
+
+从新交付格式接入工作区发布是独立阶段。先绑定登记的来源版本，让阅读和检索 handle
+保留完整来源片段。再按各自的证据和审核状态暂存类型化记录或提议。按 §7 发布，
+用同一固定 release 核对 MCP 与九问渲染。当前离线入口产出提取文件，机器发布验证和
+科学验收沿用 §16.8。[交接评审](../reviews/review-2026-11-18-prepared-extraction/01-contract-gap-and-rollout.zh-CN.md)
+
 ## 6. 审核、证据和查询资格
 
 审核决定是一个对象，带 actor/kind、time、scope、rationale、decision 和精确输入
@@ -888,7 +921,7 @@ Provider 在 `qecgraph.toml` 中选择（OpenAI、Anthropic、OpenRouter 或本�
 | 版本化 skill packs | 已实现 |
 | 来源映射规范化 | 已实现于歧义文献包 |
 | 软件优先的结构回退 | 已实现于符合条件的原始 TeX 入口，块分类保留为 proposed |
-| 定理/假设/数据/思路 proposal | 显式允许上传并配置凭据后写入 `machine/ai/proposals`；审核决定会记录，但不会自动转换为权威研究记录 |
+| 定理/假设/数据/思路 proposal | 允许上传并配置凭据后，工作区写入 `machine/ai/proposals`，投影为具有 AI 来源的可查询 `ai_extraction` 行。权威领域记录与审核决定各自遵循证据和审核契约。 |
 
 四个语义抽取 skill 使用 v7：共用安全 system、带文件映射的编号纯文本证据，以及证据之后的 skill 任务。provider 前缀缓存收益尚未测量。请求包含主投影及已选入口登记的 TeX 文件集合，
 包括嵌套正文与附录。每个文件都核对归档和来源快照，以明确行号、独立路径、哈希和

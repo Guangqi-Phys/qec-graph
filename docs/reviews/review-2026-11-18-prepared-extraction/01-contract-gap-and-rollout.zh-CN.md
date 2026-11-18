@@ -57,3 +57,54 @@
 本次交付覆盖从已准备材料到可检验的离线提取和可选语义提议。工作区、查询、MCP 与九问
 渲染的现有接口继续运作。切换机器发布输入是下一条边界，需要其读写侧语义及固定 release
 验证。本次使用 v20 材料回放和固定 machine 副本评测记录这一边界的状态。
+
+## 实施与验证
+
+| 提交 | 交付 |
+| --- | --- |
+| `8b097d0` | `qecgraph.prepared_extraction/1` 的 JSON Schema。 |
+| `bd5d7f1` | 实现 `tools/extract_prepared.py`、v20 输入绑定、原文字节定位和来源单元。字面图注在需要时从已准备的 macro 位置读取有界的平衡参数。 |
+| `26f2ae3` | 接上四个既有语义技能。活动证据按 entry 行号编号，语义提议引用可映回原文件。显式选择和上传许可均通过后才发请求。 |
+| `ae89da1` | 参数提及携带字面数值或符号以及括号形式。 |
+| `293a439` | 离线复核只收集技能 schema 中用于引证的字段。 |
+
+使用 `build/preparation-followup/final` 与同次留出回放的现存材料。每个输入的 manifest 哈希
+都与 v20 回放记录相同。逐个比对所有提取单元和 entry 片段，并将片段映回已校验的原文件
+或投影范围。原准备状态、书目和交叉引用候选随结果复制。
+
+| 输入与证据 | 固定语料 | 留出语料 |
+| --- | ---: | ---: |
+| 可信材料交付数 | 47 | 6 |
+| 材料状态 ready / partial | 44 / 3 | 4 / 2 |
+| 有可用结构 | 46 | 4 |
+| 无材料的输入 | 1 | 2 |
+| 经逐项复核的来源单元 | 82,675 | 4,006 |
+| 经逐项复核的来源片段 | 82,849 | 4,006 |
+| 含字节投影的单元 | 1,258 | 0 |
+| 真实模型调用 | 0 | 0 |
+
+固定语料的来源单元包括 1,430 个标题节点、40,034 个公式、228 个显式陈述环境、
+335 个表格结构、637 个图注和 416 个参数提及。两篇书目运行失败的 partial 能产出正文
+单元。编译失败的 partial 交付原文件清单、阶段状态和诊断。
+
+测试覆盖跨文件范围、引用歧义、仅接收 v20、参数字面值、无权限和预算超限。假模型
+测试验证限节提取、活动原文映射、伪造引用拒绝和离线复验，协议沿用原技能版本。
+启用本地 TeX 的全量测试通过 639 项。Ruff、mypy、复杂度检查和双语文档测试通过，
+Pyright 为 0 errors 和 83 条既有警告。
+
+原有工作区端到端复现通过。前后均得到 36 个节点、99 条边、11 条搜索命中和 16 个
+上下文节点。合成知识评测执行 15 次查询，工具和基准错误均为 0。
+固定真实 machine 副本在同一 release 上仍报
+`Registry state schema mismatch`，退出 1，固定 state 哈希核对相同。
+机器发布接入及 §16.8 的独立科学验收仍待完成，当前验收可确认统一文件和证据定位。
+
+```sh
+.venv/bin/python tools/extract_prepared.py build/preparation-followup/final/0903.0566v1 \
+  --out build/prepared-extraction/fixed/0903.0566v1.json --check
+QECGRAPH_TEST_TEX=1 .venv/bin/python -m unittest discover -s tests -v
+.venv/bin/python tools/reproduce.py --out build/prepared-extraction/reproduce
+.venv/bin/python tools/reproduce_knowledge.py --out build/prepared-extraction/synthetic-knowledge.json
+.venv/bin/python tools/reproduce_knowledge.py --machine build/preparation-v10/machine-copy \
+  --release aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22 \
+  --out build/prepared-extraction/machine.json
+```

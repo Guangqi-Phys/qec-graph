@@ -17,6 +17,7 @@ results so stale reports cannot be mistaken for a claim about the current code.
 | Compile-first preparation, zero AI | `python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/preparation-replay --entries validation/preparation_entries.json --cases validation/preparation_cases.json` |
 | Recalculate/check preparation acceptance | `python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifest.json --replay build/preparation-replay --cases validation/preparation_cases.json --out build/preparation-acceptance.json --check` |
 | Stable preparation material preservation | `python tools/compare_preparation.py --baseline /path/to/baseline-replay --current /path/to/current-replay --out build/preparation-comparison.json` |
+| Extract from a frozen v20 material | `python tools/extract_prepared.py build/prepared/paper --out build/extracted/paper.json` |
 | End-to-end extraction and query reproduction | `python tools/reproduce.py --out build/reproduce` |
 | Direct reading / search / task context evidence | `python tools/reproduce_knowledge.py --out build/knowledge-synthetic.json --include-payloads` |
 | Registered real-source reading (read-only) | `python tools/reproduce_knowledge.py --machine /path/to/machine --out build/knowledge-real.json --include-payloads` |
@@ -39,6 +40,14 @@ model calls. The committed report's `replay.argv` records the support paths, ent
 hints and probe configuration. The comparison pins v19 at `9bd6e73`. Replay rows
 record the attempted output directory and manifest hash independently of a prior
 ready publication.
+The saved acceptance report binds the entire execution-source inventory at its
+recorded revision. Use that revision for the historical report check and
+`prepare_compiled.py --check` for individual material verification.
+
+Prepared extraction reuses the retained v20 materials. Run the extraction command
+again with `--check` to verify the source units and any saved proposal citations
+offline. The [handoff review](../docs/reviews/review-2026-11-18-prepared-extraction/01-contract-gap-and-rollout.zh-CN.md)
+records the real-corpus comparison and the scientific acceptance status.
 
 The regression corpus contains 47 TeX inputs and one PDF negative case. The report
 includes source fidelity, bibliography structure, final TeX diagnostics, verified

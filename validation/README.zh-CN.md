@@ -15,6 +15,7 @@
 | 编译优先准备，零模型 | `python tools/reproduce_preparation.py --manifest test-sources/arxiv-sources/manifest.json --out build/preparation-replay --entries validation/preparation_entries.json --cases validation/preparation_cases.json` |
 | 重算/检查准备验收 | `python tools/report_preparation.py --manifest test-sources/arxiv-sources/manifest.json --replay build/preparation-replay --cases validation/preparation_cases.json --out build/preparation-acceptance.json --check` |
 | 稳定准备材料行为保持 | `python tools/compare_preparation.py --baseline /path/to/baseline-replay --current /path/to/current-replay --out build/preparation-comparison.json` |
+| 从固定 v20 材料提取 | `python tools/extract_prepared.py build/prepared/paper --out build/extracted/paper.json` |
 | 端到端抽取和查询复现 | `python tools/reproduce.py --out build/reproduce` |
 | 直接阅读 / 搜索 / 任务上下文证据 | `python tools/reproduce_knowledge.py --out build/knowledge-synthetic.json --include-payloads` |
 | 已登记真实来源阅读（只读） | `python tools/reproduce_knowledge.py --machine /path/to/machine --out build/knowledge-real.json --include-payloads` |
@@ -33,6 +34,12 @@
 检查漂移；检查不编译、不调用模型。已提交报告的 `replay.argv` 保存实际支持文件路径、
 入口和 probe 配置。比较基线固定为 v19 的 `9bd6e73`。每行绑定当次回放产物的目录和
 manifest 哈希，已有的 ready 发布可以继续保留。
+已保存的验收报告绑定对应提交的完整执行源码清单。历史报告复核使用登记的提交，
+单份材料核验使用 `prepare_compiled.py --check`。
+
+提取复用已保留的 v20 材料。同一提取命令加 `--check` 可以离线复核来源单元与已保存的提议引证。
+[交接评审](../docs/reviews/review-2026-11-18-prepared-extraction/01-contract-gap-and-rollout.zh-CN.md)
+记录真实语料结果和科学验收状态。
 
 固定语料为 47 篇 TeX 和一个 PDF 反例。报告列出来源保真、书目结构、最终 TeX 诊断、
 已验证投影、规范化重编译和编译轮数。这些是机械准备检查。固定 machine 副本的研究评测

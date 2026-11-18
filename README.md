@@ -28,6 +28,7 @@ For the standalone compile-first preparation workflow, run from a source checkou
 ```sh
 python tools/prepare_compiled.py source.tar.gz --out build/prepared/paper
 python tools/prepare_compiled.py --out build/prepared/paper --check
+python tools/extract_prepared.py build/prepared/paper --out build/extracted/paper.json
 ```
 
 This requires local TeX tools and produces a verified, source-mapped material
@@ -41,6 +42,9 @@ Cross-reference ambiguity is prepared with all candidates preserved; missing tar
 still block ready. Ready does not promise a unique target for every reference.
 It makes no model requests or
 scientific records. See [preparation boundaries and artifacts](docs/design/DESIGN.md#54-offline-source-preparation).
+The extraction command reads a verified v20 bundle and writes source-bound
+structure, references and literal candidates. Semantic proposals can be selected
+with the same evidence. [Prepared extraction](docs/design/DESIGN.md#55-extraction-from-frozen-preparation)
 The workspace commands below retain their existing import/extraction behavior.
 
 Run these commands in an empty folder, or one containing only `inputs/`. Other
