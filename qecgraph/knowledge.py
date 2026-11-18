@@ -496,9 +496,14 @@ class KnowledgeView:
     def search_units(self):
         units = []
         for node in self.nodes.values():
-            text = self.file_text(node) if node['kind'] == 'source_file' else node.get('reading_text', reading_projection(node['latex'])[0])
-            if node['kind'] == 'document':
+            if node['kind'] == 'source_file':
+                text = self.file_text(node)
+            elif node['kind'] == 'document':
                 text = self.session.state['works'][node['provenance']['work_id']]['title']
+            elif 'reading_text' in node:
+                text = node['reading_text']
+            else:
+                text = reading_projection(node['latex'])[0]
             role = node.get('source_role')
             if node['kind'] == 'paragraph' and re.match(r'\s*\\(?:title|author|keywords|affiliation|email)\b', node.get('latex', '')):
                 role = 'metadata'  # Class-specific metadata macros can share a paragraph.

@@ -7,6 +7,7 @@ from .core.transactions import WriterBusy, writer_lock
 from .domain.ai_records import stage_ai_records
 from .llm.review import proposal_issues
 from .retrieval import configuration, stage_index
+from .workspace_query import WorkspaceSession
 
 
 def publish_semantic(workspace, cfg, release, materials, digests, ai_results, limits, client, *, rebuild):
@@ -37,9 +38,17 @@ def external_retrieval(cfg):
     return settings['enabled'] and settings['provider'] != 'local'
 
 
+def _stage_retrieval(registry, state, settings, *, repair):
+    stage_index(
+        registry.root, state, settings,
+        search_units=lambda: WorkspaceSession(registry.root, _candidate_state=state).knowledge.search_units,
+        repair=repair,
+    )
+
+
 def stage_local_retrieval(registry, state, cfg, *, repair=False):
     if not external_retrieval(cfg):
-        stage_index(registry, state, cfg.get('retrieval', {}), repair=repair)
+        _stage_retrieval(registry, state, cfg.get('retrieval', {}), repair=repair)
 
 
 def publish_external_retrieval(workspace, cfg, release, *, rebuild, workspace_locked):
@@ -47,7 +56,7 @@ def publish_external_retrieval(workspace, cfg, release, *, rebuild, workspace_lo
     previous = state.get('retrieval_index')
     # Immutable vector objects and the candidate binding can be prepared while
     # another writer publishes. Only the binding publication needs a lock.
-    stage_index(workspace.registry, state, cfg['retrieval'], repair=rebuild)
+    _stage_retrieval(workspace.registry, state, cfg['retrieval'], repair=rebuild)
     if previous == state.get('retrieval_index'):
         return release, None
     try:

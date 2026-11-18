@@ -178,19 +178,17 @@ def _store_vectors(machine, cfg, pending, *, repair):
 
 
 @task('Preparing retrieval index')
-def _stage_index(registry, state, raw_config, *, repair=False):
+def _stage_index(machine, state, raw_config, *, search_units, repair=False):
     """Prepare immutable objects and update the caller’s candidate binding."""
     cfg = configuration(raw_config)
     if not cfg['enabled']:
         state.pop('retrieval_index', None)
         return
-    from .workspace_query import WorkspaceSession
-    session = WorkspaceSession(registry.root, _candidate_state=state)
-    units = session.knowledge.search_units
+    units = search_units()
     model = identity(cfg)
     binding = corpus_binding(units)
     try:
-        previous = read_index(registry.root, state['retrieval_index'], verify_vectors=repair) if state.get('retrieval_index', {}).get('sha256') else None
+        previous = read_index(machine, state['retrieval_index'], verify_vectors=repair) if state.get('retrieval_index', {}).get('sha256') else None
     except RetrievalFormatError:
         previous = None
     except (OSError, ValueError, KeyError, TypeError):
@@ -217,7 +215,7 @@ def _stage_index(registry, state, raw_config, *, repair=False):
                 pending[digest] = part
             chunks.append({'unit_key': unit_key(unit), 'char_start': start, 'char_end': start + len(part),
                            'text_sha256': digest})
-    reusable.update(_store_vectors(registry.root, cfg, pending, repair=repair))
+    reusable.update(_store_vectors(machine, cfg, pending, repair=repair))
     for chunk in chunks:
         chunk['vector_sha256'] = reusable[str(chunk['text_sha256'])]
     phase('Writing retrieval index')
@@ -225,7 +223,7 @@ def _stage_index(registry, state, raw_config, *, repair=False):
                   'corpus_sha256': binding, 'unit_count': len(units), 'chunks': chunks,
                   'coverage': 'Complete registered search text; chunk offsets address derived search text, not source'}
     digest = hash_text(canonical(projection))
-    path = _managed(registry.root, 'retrieval/indexes/' + digest + '.json')
+    path = _managed(machine, 'retrieval/indexes/' + digest + '.json')
     if repair and path.exists():
         # Restore only this derived, content-addressed projection under the writer lock.
         atomic_bytes(path, (canonical(projection) + '\n').encode('utf-8'))
@@ -234,10 +232,10 @@ def _stage_index(registry, state, raw_config, *, repair=False):
     state['retrieval_index'] = {'sha256': digest, 'corpus_sha256': binding, 'identity': model}
 
 
-def stage_index(registry, state, raw_config, *, repair=False):
+def stage_index(machine, state, raw_config, *, search_units, repair=False):
     """Optional projection failures cannot veto a valid source publication."""
     try:
-        _stage_index(registry, state, raw_config, repair=repair)
+        _stage_index(machine, state, raw_config, search_units=search_units, repair=repair)
     except (OSError, ValueError) as exc:
         state['retrieval_index'] = {'status': 'stale',
             'reason': 'Optional retrieval projection unavailable (' + type(exc).__name__ + '); rebuild to retry'}

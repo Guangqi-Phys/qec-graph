@@ -63,12 +63,6 @@ class WorkspaceSession:
         self.assets = {uri for r in self.visible.values() for uri in references(r)}
         self._source_nodes = {n['id']: n for n in self.graph.source.graph['nodes']
                               if n['origin'] == 'parser' and n.get('source')}
-        self.resources = {self._resource_uri(identifier): identifier for identifier in self._source_nodes}
-        self._resource_bindings = sorted(self.resources.items())
-        self._paper_resources = {f'qec://paper/{hash_text(version)}': node['id']
-                                 for version, node in self.knowledge.documents.items()}
-        if self.profile is not None:
-            self._resource_bindings = sorted(self._paper_resources.items())
         self._normalizations = {
             (material['source_version_id'], material['source_snapshot_id']): material
             for material in self.state.get('materials', {}).values() if material.get('normalization_id')
@@ -85,6 +79,19 @@ class WorkspaceSession:
         mappings = self._encodings.get((span['source_version_id'], span['snapshot_id']), {})
         mapping = mappings.get(span['path'])
         return original_range(mapping, span) if mapping else None
+
+    @cached_property
+    def resources(self):
+        return {self._resource_uri(identifier): identifier for identifier in self._source_nodes}
+
+    @cached_property
+    def _paper_resources(self):
+        return {f'qec://paper/{hash_text(version)}': node['id']
+                for version, node in self.knowledge.documents.items()}
+
+    @cached_property
+    def _resource_bindings(self):
+        return sorted((self.resources if self.profile is None else self._paper_resources).items())
 
     def _resource_uri(self, occurrence):
         node = self._source_nodes[occurrence]
