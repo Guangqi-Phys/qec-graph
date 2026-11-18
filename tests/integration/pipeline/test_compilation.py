@@ -23,12 +23,13 @@ from qecgraph.source.package import SourceTree
 class LocalCompilerTests(unittest.TestCase):
     def assert_ready(self, result):
         if result["status"] != "ready":
-            logs = Path(result["out"]) / "build/logs"
-            diagnostic = {
+            output = Path(result["out"])
+            logs = {
                 path.name: path.read_text(errors="replace")[-2500:]
-                for path in sorted(logs.glob("*.log"))
+                for path in sorted((output / "build/logs").glob("*.log"))
             }
-            self.fail(f"Unexpected preparation result: {result} with build logs {diagnostic}")
+            diagnostics = json.loads((output / "diagnostics.json").read_bytes())
+            self.fail(f"Unexpected preparation result: {result}; diagnostics {diagnostics}; build logs {logs}")
 
     def test_repeated_reference_targets_are_ready_and_preserved_after_native_compile(self):
         raw = (

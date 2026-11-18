@@ -139,6 +139,7 @@ def _trusted_dependency(path, root):
             root / "texmf",
             root / "cache",
             "/usr/local/texlive",
+            "/usr/local/share/texmf",
             "/usr/share/texlive",
             "/usr/share/texmf",
             "/var/lib/texmf",
