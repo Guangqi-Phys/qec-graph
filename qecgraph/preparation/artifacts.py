@@ -53,6 +53,22 @@ def json_bytes(value) -> bytes:
     ).encode()
 
 
+class ArtifactJSON:
+    """Decode metadata once per validation or read of an artifact bundle."""
+
+    def __init__(self, files: dict[str, bytes], *, manifest=None):
+        self.files = files
+        self._decoded = {} if manifest is None else {"manifest.json": manifest}
+
+    def __getitem__(self, name):
+        if name not in self._decoded:
+            self._decoded[name] = json.loads(self.files[name])
+        return self._decoded[name]
+
+    def get(self, name, default=None):
+        return self[name] if name in self.files else default
+
+
 def safe_path(name: str) -> str:
     path = PurePosixPath(name)
     if (

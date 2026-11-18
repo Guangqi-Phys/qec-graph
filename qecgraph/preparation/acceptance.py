@@ -270,21 +270,12 @@ def _verified_row(root, row, sample, material):
     document = material["document"]
     references = material["references"]
     normalized = material["normalization"] or {}
-    build = _listed_json(root, manifest, "build.json", {})
-    version_path = "build/logs/engine-version.log"
-    version = (
-        (root / version_path).read_text().splitlines()[0]
-        if version_path in manifest["artifacts"]
-        else None
-    )
-    diagnostics = _listed_json(root, manifest, "diagnostics.json", []) + references.get(
-        "diagnostics", []
-    )
-    view = _listed_json(root, manifest, "build-view.json", {})
+    diagnostics = material["diagnostics"] + references.get("diagnostics", [])
+    view = material["build_view"]
     return {
         **row,
-        "engine": build.get("engine"),
-        "engine_version": version,
+        "engine": material["build"].get("engine"),
+        "engine_version": material["engine_version"],
         "source_tree_sha256": manifest["source_tree_sha256"],
         "entry": manifest["entry"],
         "source_fidelity": check["source_fidelity"],
@@ -357,14 +348,6 @@ def _match_row(row, material):
         k: normalized.get(k) for k in row.get("normalization", {})
     }:
         raise ValueError("Replay normalization result differs from material evidence")
-
-
-def _listed_json(root, manifest, name, default):
-    return (
-        json.loads((root / name).read_bytes())
-        if name in manifest["artifacts"]
-        else default
-    )
 
 
 def _verify_rows(replay, results, samples, cases_path):

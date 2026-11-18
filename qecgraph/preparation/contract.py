@@ -7,7 +7,7 @@ from pathlib import Path
 
 from ..source.package import SourceTree
 
-from .artifacts import SCHEMA as SCHEMA, SourceIndex as SourceIndex
+from .artifacts import ArtifactJSON, SCHEMA as SCHEMA, SourceIndex as SourceIndex
 from .artifacts import (
     digest as digest,
     json_bytes as json_bytes,
@@ -18,46 +18,50 @@ from .bibliography_runtime import bibliography_runtime, bibliography_runtime_fai
 
 def validate_material(files: dict[str, bytes]) -> dict:
     """Validate bytes, tree, token tiling and exact source locators, without TeX."""
-    manifest = _check_manifest(files)
+    return _validate(ArtifactJSON(files), files["entry.tex"].decode("utf-8"))
+
+
+def _validate(evidence: ArtifactJSON, text: str) -> dict:
+    manifest = evidence["manifest.json"]
+    _check_manifest(evidence.files, manifest)
     from .projection import check_projection
 
-    check_projection(files)
-    document = json.loads(files["content.json"])
-    text = files["entry.tex"].decode("utf-8")
-    sources = _SourceEvidence(files)
+    check_projection(evidence)
+    document = evidence["content.json"]
+    sources = _SourceEvidence(evidence)
     _check_syntax(document, text, sources)
-    _check_reference_origins(files, sources)
-    _check_bibliography_runtime(files, manifest)
+    _check_reference_origins(evidence, sources)
+    _check_bibliography_runtime(evidence, manifest)
     from .harvmac import check_dialect
 
-    check_dialect(files, document)
+    check_dialect(evidence, document)
     _check_environment_declarations(
-        files, document, text, sources, manifest.get("rule_version")
+        evidence, document, text, sources, manifest.get("rule_version")
     )
     from .crossrefs import check_reference_candidates
 
-    check_reference_candidates(files, document, text, manifest)
+    check_reference_candidates(evidence, document, text, manifest)
     from .view_contract import check_view
 
-    check_view(files, document, text)
-    _check_normalized(files, document, text)
+    check_view(evidence, document, text)
+    _check_normalized(evidence, document, text)
     if "preparation_capabilities" in manifest:
         from .capabilities import preparation_capabilities
 
         expected = preparation_capabilities(
-            json.loads(files["build.json"]),
+            evidence["build.json"],
             document,
-            json.loads(files["coverage.json"]),
-            json.loads(files["references.json"]),
+            evidence["coverage.json"],
+            evidence["references.json"],
         )
         if manifest["preparation_capabilities"] != expected:
             raise ValueError("Preparation capabilities do not match retained evidence")
     if manifest["status"] == "ready":
         if not (
             document["nodes"]
-            and json.loads(files["build.json"])["success"]
-            and json.loads(files["coverage.json"])["complete"]
-            and json.loads(files["references.json"])["complete"]
+            and evidence["build.json"]["success"]
+            and evidence["coverage.json"]["complete"]
+            and evidence["references.json"]["complete"]
         ):
             raise ValueError("Ready material has an incomplete prerequisite")
     return {
@@ -67,10 +71,11 @@ def validate_material(files: dict[str, bytes]) -> dict:
     }
 
 
-def _check_bibliography_runtime(files, manifest):
+def _check_bibliography_runtime(evidence, manifest):
     if manifest.get("rule_version") != "compile-prepare-v20":
         return
-    references = json.loads(files["references.json"])
+    files = evidence.files
+    references = evidence["references.json"]
     if references.get("mode") in {"classic", "biblatex"}:
         expected = bibliography_runtime(files, manifest["entry"], prefix="build/")
         if references.get("runtime") != expected:
@@ -82,7 +87,7 @@ def _check_bibliography_runtime(files, manifest):
             raise ValueError(
                 "Bibliography completeness does not match retained evidence"
             )
-    normalized = json.loads(files["normalization.json"])
+    normalized = evidence["normalization.json"]
     if normalized["native_compile"] == "complete" and (
         normalized["complete"] or "error" not in normalized
     ):
@@ -114,7 +119,7 @@ def _check_syntax(document, text, sources):
     _validate_roots(document, by_id, len(text))
 
 
-def _check_environment_declarations(files, document, text, sources, rule_version):
+def _check_environment_declarations(evidence, document, text, sources, rule_version):
     if "environment_label_declarations" not in document:
         return
     from .environments import declaration_options
@@ -126,21 +131,23 @@ def _check_environment_declarations(files, document, text, sources, rule_version
             raise ValueError(
                 "Environment declaration does not copy its original source"
             )
-    build = json.loads(files.get("build.json", b"{}"))
+    build = evidence.get("build.json", {})
     paths = build.get("inputs", [r["origin"]["path"] for r in records])
     from .projection import working_tree, decorate_origins
 
+    files = evidence.files
+    projection = evidence.get("source-projection.json", {"verified": False})
     for expected_records in declaration_options(
-        working_tree(files), paths, rule_version=rule_version
+        working_tree(files, projection=projection), paths, rule_version=rule_version
     ):
-        decorate_origins(expected_records, files)
+        decorate_origins(expected_records, files, projection=projection)
         if expected_records == records:
             break
     else:
         raise ValueError(
             "Environment label declarations do not match consumed source grammar"
         )
-    references = json.loads(files.get("references.json", b"{}"))
+    references = evidence.get("references.json", {})
     expected = _environment_labels(
         document["nodes"], references.get("observed_labels", []), text, records
     )
@@ -155,11 +162,11 @@ def _check_environment_declarations(files, document, text, sources, rule_version
         )
 
 
-def _check_normalized(files, document, text):
+def _check_normalized(evidence, document, text):
     from .normalized import validate_normalized
 
+    files, manifest = evidence.files, evidence["manifest.json"]
     if "normalized.tex" not in files:
-        manifest = json.loads(files["manifest.json"])
         if (
             str(manifest.get("rule_version", "")).startswith("compile-prepare-v")
             and manifest["rule_version"]
@@ -168,7 +175,7 @@ def _check_normalized(files, document, text):
         ):
             raise ValueError("Ready preparation is missing normalized LaTeX")
         return
-    mapping = json.loads(files["normalized-map.json"])
+    mapping = evidence["normalized-map.json"]
     origin = mapping.get("bibliography")
     bibliography = (
         (safe_path(origin["path"]), files[safe_path(origin["path"])])
@@ -180,12 +187,11 @@ def _check_normalized(files, document, text):
         files["normalized.tex"].decode("utf-8"),
         mapping,
         document,
-        json.loads(files["references.json"]),
+        evidence["references.json"],
         bibliography,
     )
-    manifest = json.loads(files["manifest.json"])
     if manifest["status"] == "ready":
-        report = json.loads(files["normalization.json"])
+        report = evidence["normalization.json"]
         if not (
             report["complete"]
             and report["native_compile"] == "complete"
@@ -195,10 +201,11 @@ def _check_normalized(files, document, text):
             raise ValueError("Ready normalized LaTeX has not passed its round trip")
 
 
-def _check_reference_origins(files, sources):
+def _check_reference_origins(evidence, sources):
+    files = evidence.files
     if "references.json" not in files:
         return
-    references = json.loads(files["references.json"])
+    references = evidence["references.json"]
     for field in ("entries", "original_bib_entries", "external_labels"):
         for record in references.get(field, []):
             span = record.get("origin", {})
@@ -225,8 +232,7 @@ def _check_reference_origins(files, sources):
             raise ValueError("Compiled label observation does not match consumed AUX")
 
 
-def _check_manifest(files):
-    manifest = json.loads(files["manifest.json"])
+def _check_manifest(files, manifest):
     if manifest.get("schema") != SCHEMA or manifest.get("status") not in {
         "ready",
         "partial",
@@ -236,7 +242,6 @@ def _check_manifest(files):
         if digest(files[safe_path(path)]) != expected:
             raise ValueError("Material artifact hash changed")
     _check_originals(files, manifest)
-    return manifest
 
 
 def _check_originals(files, manifest):
@@ -311,38 +316,37 @@ def read_material(root: Path, *, expected_manifest_sha256: str | None = None) ->
         if any(p.is_symlink() for p in (path, *path.parents) if p.is_relative_to(root)):
             raise ValueError("Linked material artifact")
         files[name] = path.read_bytes()
-    check = validate_material(files)
+    evidence = ArtifactJSON(files, manifest=manifest)
+    entry = files["entry.tex"].decode("utf-8")
+    check = _validate(evidence, entry)
+    engine_log = files.get("build/logs/engine-version.log", b"").splitlines()
     return {
         "manifest": manifest,
-        "document": json.loads(files["content.json"]),
-        "entry_tex": files["entry.tex"].decode("utf-8"),
-        "references": json.loads(files["references.json"]),
-        "coverage": json.loads(files["coverage.json"]),
+        "document": evidence["content.json"],
+        "entry_tex": entry,
+        "references": evidence["references.json"],
+        "coverage": evidence["coverage.json"],
         "validation": check,
         "normalized_tex": files.get("normalized.tex", b"").decode("utf-8"),
-        "normalized_map": json.loads(files["normalized-map.json"])
-        if "normalized-map.json" in files
-        else None,
-        "normalization": json.loads(files["normalization.json"])
-        if "normalization.json" in files
-        else None,
-        "source_projection": json.loads(files["source-projection.json"])
-        if "source-projection.json" in files
-        else None,
-        "source_map": json.loads(files["source-map.json"])
-        if "source-map.json" in files
-        else None,
+        "normalized_map": evidence.get("normalized-map.json"),
+        "normalization": evidence.get("normalization.json"),
+        "source_projection": evidence.get("source-projection.json"),
+        "source_map": evidence.get("source-map.json"),
+        "build": evidence.get("build.json", {}),
+        "engine_version": engine_log[0].decode() if engine_log else None,
+        "build_view": evidence.get("build-view.json", {}),
+        "diagnostics": evidence.get("diagnostics.json", []),
     }
 
 
 class _SourceEvidence:
     """Read-scoped indexes; validation never reuses evidence from a previous bundle."""
 
-    def __init__(self, files):
-        self.files = files
+    def __init__(self, evidence):
+        self.files = evidence.files
         self.indices = {}
         self.paths = {}
-        self.projection = json.loads(files.get("source-projection.json", b"null"))
+        self.projection = evidence.get("source-projection.json")
 
     def index(self, path, encoding):
         key = (path, encoding)

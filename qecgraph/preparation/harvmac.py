@@ -203,22 +203,23 @@ def annotate_node(item, text):
         )
 
 
-def check_dialect(files, document):
+def check_dialect(evidence, document):
     if not document.get("dialect"):
         return
-    import json
     from types import SimpleNamespace
     from .projection import working_tree, decorate_origins
     from .harvmac_refs import adapt, compiled_entries, cross_references
 
-    report = json.loads(files["build.json"])
+    files = evidence.files
+    projection = evidence.get("source-projection.json", {"verified": False})
+    report = evidence["build.json"]
     build = SimpleNamespace(**report, entry=document["entry"])
-    tree = working_tree(files)
+    tree = working_tree(files, projection=projection)
     if identify(build, tree) != document["dialect"]:
         raise ValueError(
             "Harvmac grammar is not supported by the native build evidence"
         )
-    current = json.loads(files["references.json"])
+    current = evidence["references.json"]
     raw = files.get("build/files/refs.tmp", files.get("sources/refs.tmp", b""))
     diagnostics = [
         d for d in current["diagnostics"] if d["code"] != "harvmac_bibliography_unbound"
@@ -226,7 +227,7 @@ def check_dialect(files, document):
     expected = adapt(
         build, tree, {"diagnostics": diagnostics}, compiled=compiled_entries(raw)
     )
-    decorate_origins(expected, files)
+    decorate_origins(expected, files, projection=projection)
     if any(current.get(k) != v for k, v in expected.items()):
         raise ValueError(
             "Harvmac bibliography does not match consumed source and compiled text"

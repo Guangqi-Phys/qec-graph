@@ -1,7 +1,6 @@
 """Check native guard evidence, source instrumentation and view projection without TeX."""
 
 import copy
-import json
 from pathlib import PurePosixPath
 import re
 from types import SimpleNamespace
@@ -16,29 +15,32 @@ from ..source.assembly import assemble_files, EntryCoordinates, document_bounds
 from ..source.package import SourceTree
 
 
-def check_view(files, document, text):
+def check_view(evidence, document, text):
     expected_hash = document.get("build_view_sha256")
     if expected_hash is None:
         if document.get("observed_guards"):
             raise ValueError("Observed guards are missing their native build evidence")
         return
+    files = evidence.files
     raw = files.get("build-view.json", b"")
     if digest(raw) != expected_hash:
         raise ValueError("Native build-view identity mismatch")
-    view = json.loads(raw)
+    view = evidence["build-view.json"]
     if view["schema"] != SCHEMA:
         raise ValueError("Unsupported native build-view schema")
-    tree = working_tree(files)
+    projection = evidence.get("source-projection.json", {"verified": False})
+    tree = working_tree(files, projection=projection)
     if view["source_tree_sha256"] != tree.digest:
         raise ValueError("Native build view belongs to another original source tree")
     if view["guards"]:
-        _check_probe(files, view, tree)
-    _check_projection(files, document, text, tree, view)
+        _check_probe(evidence, view, tree)
+    _check_projection(evidence, document, text, tree, view, projection)
 
 
-def _check_probe(files, view, tree):
-    manifest = json.loads(files["manifest.json"])
-    build = json.loads(files["build.json"])
+def _check_probe(evidence, view, tree):
+    files = evidence.files
+    manifest = evidence["manifest.json"]
+    build = evidence["build.json"]
     original = SimpleNamespace(
         entry=manifest["entry"],
         inputs=build["inputs"],
@@ -98,8 +100,8 @@ def _check_pdf_text(files, view):
         raise ValueError("Native guard probe changed the per-page PDF text")
 
 
-def _check_projection(files, document, text, tree, view):
-    build = json.loads(files["build.json"])
+def _check_projection(evidence, document, text, tree, view, projection):
+    build = evidence["build.json"]
     assembly = assemble_files(
         tree.files,
         document["entry"],
@@ -110,11 +112,11 @@ def _check_projection(files, document, text, tree, view):
     )
     harvmac.adapt_assembly(assembly, document.get("dialect"))
     if assembly.text != text or json_bytes(assembly.source_map()) != json_bytes(
-        json.loads(files["source-map.json"])
+        evidence["source-map.json"]
     ):
         raise ValueError("Build-view assembly does not match original-source mapping")
     masks, guards = project_view(assembly, view)
-    decorate_origins(guards, files)
+    decorate_origins(guards, evidence.files, projection=projection)
     coordinates = EntryCoordinates(assembly)
     parse_text, inactive = syntax_view(
         harvmac.parse_view(coordinates.copy_text())

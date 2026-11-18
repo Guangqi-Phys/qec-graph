@@ -119,27 +119,31 @@ def prepare_projection(build, tree, support, compiler, artifacts):
     return projected
 
 
-def working_tree(files):
+def working_tree(files, *, projection=None):
     original = {
         p.removeprefix("sources/"): raw
         for p, raw in files.items()
         if p.startswith("sources/")
     }
-    report = json.loads(files.get("source-projection.json", b'{"verified":false}'))
-    if report["verified"]:
+    if projection is None:
+        projection = json.loads(
+            files.get("source-projection.json", b'{"verified":false}')
+        )
+    if projection["verified"]:
         original.update(
             {
                 r["path"]: files["projected-sources/" + safe_path(r["path"])]
-                for r in report["files"]
+                for r in projection["files"]
             }
         )
     return SourceTree("working_sources", original)
 
 
-def check_projection(files):
+def check_projection(evidence):
+    files = evidence.files
     if "source-projection.json" not in files:
         return
-    report = json.loads(files["source-projection.json"])
+    report = evidence["source-projection.json"]
     if report["schema"] != SCHEMA:
         raise ValueError("Unsupported source projection schema")
     original = SourceTree(
@@ -149,10 +153,10 @@ def check_projection(files):
         raise ValueError("Source projection original identity mismatch")
     if not report["verified"]:
         return
-    build = json.loads(files["build.json"])
+    build = evidence["build.json"]
     _eligibility(build["engine"], original, build["inputs"])
     projected, records = candidate_tree(original, build["inputs"])
-    document = json.loads(files["content.json"])
+    document = evidence["content.json"]
     if document["nodes"] and document.get("source_projection_sha256") != digest(
         files["source-projection.json"]
     ):
@@ -203,10 +207,13 @@ def bind_origins(document, references, artifacts):
         document["capabilities"]["source_spans"] = "projected_with_original_byte_ranges"
 
 
-def decorate_origins(value, artifacts):
-    report = json.loads(artifacts.get("source-projection.json", b'{"verified":false}'))
-    if report["verified"]:
-        records = {r["path"]: r for r in report["files"]}
+def decorate_origins(value, artifacts, *, projection=None):
+    if projection is None:
+        projection = json.loads(
+            artifacts.get("source-projection.json", b'{"verified":false}')
+        )
+    if projection["verified"]:
+        records = {r["path"]: r for r in projection["files"]}
         _decorate(value, records, artifacts, {})
 
 

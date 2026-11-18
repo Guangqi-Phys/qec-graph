@@ -1,7 +1,6 @@
 """Source label locations, including literal wrappers confirmed by consumed AUX."""
 
 from collections import Counter
-import json
 import re
 
 from .reference_syntax import group
@@ -10,7 +9,7 @@ from .options import fields, mask_comments
 from .artifacts import CROSS_REFERENCE_POLICY as CROSS_REFERENCE_POLICY
 
 
-def check_reference_candidates(files, document, text, manifest):
+def check_reference_candidates(evidence, document, text, manifest):
     """Rebuild all candidates; preserving ambiguity never permits dropping a target."""
     policy = document.get("cross_reference_policy")
     if (
@@ -23,9 +22,13 @@ def check_reference_candidates(files, document, text, manifest):
             )
     if policy == CROSS_REFERENCE_POLICY:
         _check_prepared_targets(document, manifest)
-    if policy is None or "references.json" not in files or document.get("dialect"):
+    if (
+        policy is None
+        or "references.json" not in evidence.files
+        or document.get("dialect")
+    ):
         return  # Legacy bundles retain their original gate; Harvmac checks its grammar.
-    references = json.loads(files["references.json"])
+    references = evidence["references.json"]
     labels, rows = cross_references(
         document["nodes"],
         references.get("external_labels", []),
