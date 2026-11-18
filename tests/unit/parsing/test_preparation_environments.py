@@ -142,8 +142,8 @@ class EnvironmentDeclarationTests(unittest.TestCase):
             rb"\begin{document}Body.\end{document}"
         )
         tree = SourceTree("tex", {"main.tex": main})
-        empty, declared = declaration_options(
-            tree, ["main.tex"], rule_version="compile-prepare-v19"
+        empty, declared = list(
+            declaration_options(tree, ["main.tex"], rule_version="compile-prepare-v19")
         )
         self.assertEqual(empty, [])
         self.assertEqual([record["environment"] for record in declared], ["box"])
