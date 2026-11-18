@@ -127,23 +127,10 @@ class CLIContractTests(unittest.TestCase):
             self.assertIn('usage: qec-graph mcp serve', help_result.stdout)
             self.assertIn('--machine', help_result.stdout)
 
-            with patch.dict('os.environ', {'QECGRAPH_DEPRECATIONS': '0'}):
-                quiet_alias = run('mcp-config', *scope)
-            with patch.dict('os.environ', {'QECGRAPH_DEPRECATIONS': '1'}):
-                warned_alias = run('mcp-config', *scope)
-                canonical = run('mcp', 'config', *scope)
-                shortcut = run('status', '--json', *scope)
-            self.assertEqual(quiet_alias.returncode, 0)
-            self.assertEqual(warned_alias.returncode, 0)
-            self.assertEqual(canonical.returncode, 0)
-            self.assertEqual(quiet_alias.stderr, '')
-            self.assertIn('use qec-graph mcp config', warned_alias.stderr)
-            self.assertEqual(canonical.stderr, '')
-            self.assertEqual(shortcut.stderr, '')
-            config = json.loads(canonical.stdout)
-            self.assertEqual(json.loads(warned_alias.stdout), config)
+            result = run('mcp', 'config', *scope)
+            self.assertEqual((result.returncode, result.stderr), (0, ''))
+            config = json.loads(result.stdout)
             self.assertIn('serve', config['mcpServers']['qecgraph']['args'])
-            self.assertIn('mcp-config', run('help', 'aliases').stdout)
 
 
     def test_structured_cli_errors_keep_status_and_stream_contract(self):
@@ -293,7 +280,7 @@ class CLIContractTests(unittest.TestCase):
         self.assertIn('qec-graph query search HGP', run('help', 'query', 'search').stdout)
         self.assertIn('130  interrupted', run('help', 'errors').stdout)
         self.assertIn('MCP reserves stdout', run('help', 'json').stdout)
-        for module, program in (('splitter', 'qec-latex-split'), ('mcp_server', 'qecgraph-mcp')):
+        for module, program in (('source.splitter', 'qec-latex-split'), ('mcp.server', 'qecgraph-mcp')):
             result = subprocess.run([sys.executable, '-m', f'qecgraph.{module}', '--help'], text=True,
                                     capture_output=True, timeout=5)
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -312,7 +299,7 @@ class CLIContractTests(unittest.TestCase):
             ['show', 'thm:x', '--store', '/nonexistent', '--release', 'r'],
             ['validate', '--workspace', '.', '--snapshot', 'a' * 64],
             ['search', 'x', '--store', '/nonexistent', '--source-version-id', 'v'],
-            ['codes', '--corpus', '/nonexistent', '--release', 'r'],
+            ['query', 'codes', '--corpus', '/nonexistent', '--release', 'r'],
         ]
         for arguments in cases:
             with self.subTest(arguments=arguments):
@@ -329,7 +316,9 @@ class CLIContractTests(unittest.TestCase):
                    ['query', 'codes', '--corpus', '.'],
                    ['mcp', 'config', '--workspace', '.', '--profile', 'legacy'],
                    ['review', 'decide', 'example'], ['review', 'list'], ['review-list'],
-                   ['register'], ['recover-store'], ['validate-corpus'])
+                   ['register'], ['recover-store'], ['validate-corpus'],
+                   ['codes'], ['serve-mcp'], ['mcp-config'], ['human-build'], ['software-import-seed'],
+                   ['software-coverage'], ['software-refresh'], ['help', 'aliases'])
         for arguments in retired:
             with self.subTest(arguments=arguments), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
                 self.assertEqual(main(arguments), 64)

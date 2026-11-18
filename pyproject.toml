@@ -29,7 +29,6 @@ Issues = "https://github.com/Guangqi-Phys/qec-graph/issues"
 Changelog = "https://github.com/Guangqi-Phys/qec-graph/blob/main/CHANGELOG.md"
 
 [project.scripts]
-qecgraph = "qecgraph.cli:main"
 qec-graph = "qecgraph.cli:main"
 qec-latex-split = "qecgraph.source.splitter:main"
 qecgraph-mcp = "qecgraph.mcp.server:main"

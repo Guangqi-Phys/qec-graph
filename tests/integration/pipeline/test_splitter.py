@@ -16,7 +16,7 @@ import unittest
 from qecgraph import split_project
 from qecgraph.cli import main as graph_main
 from qecgraph.query import context, dependencies, show
-from qecgraph.splitter import main as standalone_main
+from qecgraph.source.splitter import main as standalone_main
 from qecgraph.store import ingest, load_graph, validate_snapshot
 
 
@@ -268,7 +268,7 @@ class SplitterIntegrationTests(unittest.TestCase):
         environment["PYTHONPATH"] = str(PACKAGE_ROOT) + os.pathsep + environment.get("PYTHONPATH", "")
         commands = [
             [sys.executable, "-m", "qecgraph", "split", *self.arguments()],
-            [sys.executable, "-m", "qecgraph.splitter", *self.arguments()],
+            [sys.executable, "-m", "qecgraph.source.splitter", *self.arguments()],
         ]
         results = []
         for command in commands:

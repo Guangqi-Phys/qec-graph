@@ -448,7 +448,3 @@ class CommandProgress:
             outcome += ' | ' + ('ERROR: ' if code == 2 else '') + self._text(message)
         print(outcome, file=target, flush=True)
         return code
-
-
-# Keep the import used by older CLI integrations available.
-WorkspaceProgress = CommandProgress

@@ -2,13 +2,12 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
 
 from .. import __version__
 from ..core.progress import hide
-from .progress import WorkspaceProgress
 from .errors import QecError, UsageError
+from .progress import CommandProgress
 
 
 def _input_problem(row):
@@ -82,7 +81,7 @@ def print_doctor(result):
 
 
 def emit_report(result, *, quiet=False, exit_code=None, compact=False):
-    """Write the report and use its declared or legacy extraction exit code."""
+    """Write the report and derive the exit code when omitted."""
     if exit_code is None:
         if 'ok' in result:
             exit_code = 1 if not result['ok'] else 2 if result['data'].get('extraction_status') == 'partial' else 0
@@ -94,7 +93,7 @@ def emit_report(result, *, quiet=False, exit_code=None, compact=False):
 
 
 def report_error(error: QecError, command: str | None, *, json_mode: bool,
-                 progress: WorkspaceProgress | None = None) -> int:
+                 progress: CommandProgress | None = None) -> int:
     if json_mode:
         stream = sys.stderr if command == 'serve-mcp' else sys.stdout
         print_json(error.envelope(command), compact=True, stream=stream)
@@ -107,10 +106,3 @@ def report_error(error: QecError, command: str | None, *, json_mode: bool,
         # commands without requesting the versioned CLI envelope.
         print_json({'error': str(error)}, compact=True, stream=sys.stderr)
     return error.exit_code
-
-
-def report_alias(alias: tuple[str, str] | None) -> None:
-    preference = os.environ.get('QECGRAPH_DEPRECATIONS')
-    if alias and (preference == '1' or preference != '0' and sys.stderr.isatty()):
-        old, current = alias
-        print(f'warning: qec-graph {old} is deprecated; use qec-graph {current}.', file=sys.stderr)

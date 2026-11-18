@@ -117,17 +117,8 @@ _GROUPS = {
 
 _SHORTCUTS = {'init', 'sync', 'rebuild', 'status', 'validate', 'search', 'show',
               'deps', 'impact', 'context', 'doctor', 'snapshot'}
-_GROUP_ONLY = {'query-performance', 'query-software',
-               'ai-test', 'ai-status', 'ai-config', 'ai-proposals'}
-_LEGACY_PATHS = {command: f'{group} {verb}' for group, (_, actions) in _GROUPS.items()
-                 for verb, command in actions.items() if command not in _SHORTCUTS | _GROUP_ONLY}
-
-
-def _print_aliases():
-    print('Legacy commands remain available. These grouped names are preferred:\n')
-    for name, replacement in sorted(_LEGACY_PATHS.items()):
-        display = name
-        print(f'  {display:22} {replacement}')
+_GROUP_PATHS = {command: f'{group} {verb}' for group, (_, actions) in _GROUPS.items()
+                for verb, command in actions.items()}
 
 
 def _add_snapshot_actions(parser, add_action):
@@ -153,7 +144,7 @@ def _register_commands(add):
     add('version', help='Show the installed QEC Graph version')
     help_command = add('help', help='Show help for a specific command')
     help_command.add_argument('topic', nargs='*', metavar='command',
-        help='Command path or topic: workspace sync, errors, json, or aliases')
+        help='Command path or topic: workspace sync, errors, or json')
     doctor = add('doctor', help='Inspect workspace health without writing files')
     doctor.add_argument('--workspace',
         help='Path to the QEC workspace; omit to use local discovery where supported')
@@ -295,7 +286,7 @@ def _build_parser(entrypoint=None):
                              description='LaTeX source blocks and typed QEC graphs with explicit evidence checks',
                              epilog='Examples:\n  qec-graph init --workspace ./qec\n  qec-graph sync --dry-run\n'
                                     '  qec-graph query search HGP --workspace ./qec\n\n'
-                                    f'Legacy commands: qec-graph help aliases\nGuide: {GUIDE_URL}')
+                                    f'Guide: {GUIDE_URL}')
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     sub = parser.add_subparsers(dest='command', required=True, metavar='<command>')
     topics: dict[tuple[str, ...], argparse.ArgumentParser] = {}
@@ -311,7 +302,7 @@ def _build_parser(entrypoint=None):
 
     def add(name, *, help):
         # Build options once. The public parents API reuses those definitions
-        # for the grouped command and any existing flat entry point.
+        # for the grouped command and its shortcut, if any.
         options = _ArgumentParser(prog=f'qec-graph {name}', add_help=False, global_options=False)
         definitions[name] = options, help
         return options
@@ -331,17 +322,16 @@ def _build_parser(entrypoint=None):
 
     _register_commands(add)
     for name, (options, description) in definitions.items():
-        if name in _GROUP_ONLY:
+        if name in _GROUP_PATHS and name not in _SHORTCUTS:
             continue
         prog = entrypoint[1] if entrypoint and entrypoint[0] == name else f'qec-graph {name}'
-        listing = {} if name in _LEGACY_PATHS else {'help': description}
-        topics[name,] = sub.add_parser(name, parents=[options], prog=prog, **listing,
+        topics[name,] = sub.add_parser(name, parents=[options], prog=prog, help=description,
                                        description=description, epilog=command_epilog(name, prog))
         add_leaf_actions((name,), name)
     for name, (_, actions) in _GROUPS.items():
         for action, command in actions.items():
             options, description = definitions[command]
-            prog = f'qec-graph {name} {action}'
+            prog = entrypoint[1] if entrypoint and entrypoint[0] == command else f'qec-graph {name} {action}'
             nested = groups[name].add_parser(action, parents=[options], prog=prog, help=description,
                                               description=description, epilog=command_epilog(command, prog))
             nested.set_defaults(command=command)
@@ -403,21 +393,14 @@ def parse_command(argv: list[str], *, entrypoint: tuple[str, str] | None = None)
             topics[topic].print_help()
         elif len(topic) == 1 and topic[0] in TOPICS:
             print(f'{TOPICS[topic[0]]}\n\nGuide: {GUIDE_URL}')
-        elif topic == ('aliases',):
-            _print_aliases()
         else:
             error = UsageError(f'Unknown help topic {" ".join(topic)!r}')
             error.command = 'help'
             raise error
         return None
-    flat_name = name
-    args.alias = None
-    if entrypoint is None and not hasattr(args, 'action') and flat_name in _LEGACY_PATHS:
-        display = flat_name
-        args.alias = (display, _LEGACY_PATHS[flat_name])
-    args.display_command = next((f'{group} {verb}' for group, (_, actions) in _GROUPS.items()
-                                 for verb, command in actions.items()
-                                 if command == args.command and command not in _SHORTCUTS), args.command)
+    args.display_command = args.command
+    if args.command not in _SHORTCUTS:
+        args.display_command = _GROUP_PATHS.get(args.command, args.command)
     if args.command == 'inputs':
         args.display_command += ' ' + args.input_action
     args.verbose = args.verbose and not args.quiet

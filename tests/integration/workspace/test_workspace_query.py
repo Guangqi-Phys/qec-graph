@@ -423,7 +423,7 @@ class WorkspaceQueryTests(unittest.TestCase):
                                               'qec_find_performance', exact_inputs)
 
     def test_resources_are_fixed_uri_bindings_not_file_names(self):
-        from qecgraph.mcp_server import MCPServer
+        from qecgraph.mcp.server import MCPServer
         (self.root / 'inputs/second').write_bytes(TEX.replace(b'Hello', b'Second source'))
         release = self.ws.sync()['release_id']
         server = MCPServer(WorkspaceSession(self.ws.registry.root, max_results=1))

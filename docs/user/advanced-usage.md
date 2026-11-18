@@ -233,21 +233,10 @@ server environment to log request frame sizes on stderr. Internal error
 diagnostics include a numeric request ID or a short hash of a string ID.
 Request text, tool arguments, and source passages stay out of those diagnostics.
 
-Related commands also have grouped names. For example, `workspace sync`,
-`query search`, and `mcp serve` use the same options and handlers as `sync`,
-`search`, and `serve-mcp`. The `lean` group is experimental/deferred and is
-not part of the supported workflow. Use
-`qec-graph help mcp serve` for options and an example on a grouped command.
-`qec-graph help errors` and `qec-graph help json` describe script output.
-The original `review <file>` still works; use `review propose <file>` for the grouped
-form. If a review file is named like an action, pass `./filename` to make
-the intent clear.
-
-`qec-graph help aliases` lists older names and their replacements. Older
-names remain supported and emit a notice on an interactive stderr, or when
-`QECGRAPH_DEPRECATIONS=1`. Set `QECGRAPH_DEPRECATIONS=0` to turn notices off.
-Common shortcuts such as `sync`, `status`, `validate`, and `search` do not
-emit notices.
+`workspace sync` and `query search` share handlers with the shortcuts `sync`
+and `search`. Run `qec-graph help mcp serve` to see options and an example
+for the MCP server. `qec-graph help errors` and `qec-graph help json`
+describe script output.
 
 `--quiet` hides progress and successful reports while keeping failures and
 explicit `--json` reports. Use `--color never` to disable color in the summary

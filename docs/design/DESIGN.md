@@ -758,7 +758,9 @@ Returned results include the scope identity, source/evidence status, and truncat
 
 ### 8.2 CLI
 
-The CLI is grouped by noun (`workspace`, `query`, `review`, `mcp`, `human`, `software`, `maintain`, `snapshot`, `inputs`, `doctor`, `version`, `help`). Flat legacy names remain available with deprecation notices. Global options include `--json`, `--quiet`, `--verbose`, `--debug`, `--color`, `--progress`, and `--version`.
+The CLI groups workspace, query, MCP, human rendering, software and maintenance actions.
+Common actions such as `sync`, `status` and `search` also have documented shortcuts.
+Global options include `--json`, `--quiet`, `--verbose`, `--debug`, `--color`, `--progress`, and `--version`.
 
 Human output is concise and stateful: workspace/release, indexed/pending/failed/quarantined counts, human-view state, and a next action. `--json` is the only machine-output switch; TTY detection affects styling, not the data model. Errors are actionable and never raw Python/OS/TOML tracebacks unless `--debug` is requested.
 

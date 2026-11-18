@@ -11,7 +11,7 @@ from .commands.workspace import uses_workspace, workspace_action
 from .errors import InternalError, Interrupted, UsageError, classify
 from .parser import parse_command
 from .progress import ACTIVITIES, CommandProgress
-from .render import print_json, report_alias, report_error
+from .render import print_json, report_error
 
 
 def main(argv: Sequence[str] | None = None, *, entrypoint: tuple[str, str] | None = None) -> int:
@@ -29,7 +29,6 @@ def main(argv: Sequence[str] | None = None, *, entrypoint: tuple[str, str] | Non
         elif not args.quiet:
             print(f'qec-graph {__version__}')
         return 0
-    report_alias(args.alias)
     workspace_command = uses_workspace(args)
     mode = args.progress
     if args.command == 'serve-mcp' and mode == 'auto' and sys.stderr.isatty():

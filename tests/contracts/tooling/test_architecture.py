@@ -45,7 +45,7 @@ class ArchitectureBoundaryTests(unittest.TestCase):
 
     def test_importing_read_surfaces_does_not_load_cli_or_lean(self):
         code = (
-            'import qecgraph, qecgraph.mcp_server, qecgraph.splitter, qecgraph.store, qecgraph.workspace\n'
+            'import qecgraph, qecgraph.mcp.server, qecgraph.source.splitter, qecgraph.store, qecgraph.workspace\n'
             'assert "qecgraph.cli" not in __import__("sys").modules\n'
             'assert not any(name.startswith("qecgraph.lean") for name in __import__("sys").modules)\n'
         )
@@ -54,11 +54,11 @@ class ArchitectureBoundaryTests(unittest.TestCase):
                                 text=True, capture_output=True, timeout=60)
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_public_compatibility_names_remain_available(self):
+    def test_public_entrypoints_are_callable(self):
         from qecgraph.mcp.ai_tools import TOOL_NAMES
         from qecgraph.cli import main as cli_main
-        from qecgraph.mcp_server import main as mcp_main
-        from qecgraph.splitter import main as splitter_main
+        from qecgraph.mcp.server import main as mcp_main
+        from qecgraph.source.splitter import main as splitter_main
         from qecgraph.store import ingest
         from qecgraph.workspace import Workspace
 

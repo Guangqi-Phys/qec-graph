@@ -203,17 +203,9 @@ stdout，脚本在成功和失败时都解析同一流。`mcp serve` 把 stdout 
 `QECGRAPH_LOG_LEVEL=DEBUG`，可把请求帧大小写到 stderr。内部错误诊断包含
 数字请求 ID 或字符串 ID 的短哈希。请求文本、工具参数和来源段落不进入诊断。
 
-相关命令也有分组名。例如 `workspace sync`、`query search` 和 `mcp serve`
-与 `sync`、`search`、`serve-mcp` 使用相同选项和处理器。`lean` 组是实验性/
-延期的，不属于受支持流程。用 `qec-graph help mcp serve` 查看分组命令的选项
-和示例。`qec-graph help errors` 和 `qec-graph help json` 描述脚本输出。
-原来的 `review <file>` 仍可用；分组形式用 `review propose <file>`。如果 review
-文件名与动作同名，传 `./filename` 明确意图。
-
-`qec-graph help aliases` 列出旧名称及替代命令。旧名称仍受支持，并在交互式
-stderr 或 `QECGRAPH_DEPRECATIONS=1` 时发出提示。设置
-`QECGRAPH_DEPRECATIONS=0` 关闭提示。`sync`、`status`、`validate` 和 `search`
-等常用快捷命令不提示。
+`workspace sync` 和 `query search` 分别与快捷命令 `sync` 和 `search`
+共用处理器。用 `qec-graph help mcp serve` 查看 MCP 服务器的选项和示例。
+`qec-graph help errors` 和 `qec-graph help json` 说明脚本输出。
 
 `--quiet` 隐藏进度和成功报告，保留失败及显式 `--json` 报告。`--color never`
 关闭摘要颜色，`--color always` 强制开启。默认 `auto` 下，非空 `NO_COLOR`

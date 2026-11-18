@@ -12,7 +12,7 @@ from unittest.mock import patch
 from qecgraph.workspace import Workspace
 from qecgraph.workspace_query import WorkspaceSession
 from qecgraph.knowledge import RESEARCH_TOOLS
-from qecgraph.mcp_server import MAX_REQUEST_BYTES, MCPServer, PROTOCOL_VERSION, serve_stdio
+from qecgraph.mcp.server import MAX_REQUEST_BYTES, MCPServer, PROTOCOL_VERSION, serve_stdio
 from tests.support import ROOT
 
 
@@ -134,7 +134,7 @@ class MCPTests(unittest.TestCase):
                   for p in self.store.rglob('*') if p.is_file()}
         messages = [initialization(), {'jsonrpc': '2.0', 'method': 'notifications/initialized'}, request(2, 'tools/list'),
                     request(3, 'tools/call', {'name': 'qec_get_context', 'arguments': {'identifier': self.identifier}})]
-        proc = subprocess.run([sys.executable, '-m', 'qecgraph', 'serve-mcp', '--machine', str(self.store)],
+        proc = subprocess.run([sys.executable, '-m', 'qecgraph', 'mcp', 'serve', '--machine', str(self.store)],
                                input=''.join(json.dumps(item) + '\n' for item in messages), capture_output=True, text=True, timeout=10)
         self.assertEqual(proc.returncode, 0, proc.stderr)
         responses = [json.loads(line) for line in proc.stdout.splitlines()]
@@ -153,7 +153,7 @@ class MCPTests(unittest.TestCase):
         summary = json.loads(proc.stdout)
         self.assertEqual(summary['status'], 'passed')
         self.assertGreaterEqual(summary['checks'], 5)
-        config = subprocess.run([sys.executable, '-m', 'qecgraph', 'mcp-config', '--machine', str(self.store)],
+        config = subprocess.run([sys.executable, '-m', 'qecgraph', 'mcp', 'config', '--machine', str(self.store)],
                                  capture_output=True, text=True, timeout=10)
         self.assertEqual(config.returncode, 0, config.stderr)
         server = json.loads(config.stdout)['mcpServers']['qecgraph']

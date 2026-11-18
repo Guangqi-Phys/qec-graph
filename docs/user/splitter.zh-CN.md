@@ -65,7 +65,7 @@ python3 -m qecgraph split examples/paper/main.tex \
   --project-id qec-demo \
   --out work/qec-demo
 
-python3 -m qecgraph.splitter examples/paper/main.tex \
+python3 -m qecgraph.source.splitter examples/paper/main.tex \
   --project-id qec-demo \
   --out work/qec-demo
 ```
