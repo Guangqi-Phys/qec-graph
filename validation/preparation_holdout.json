@@ -1,0 +1,80 @@
+{
+  "source_list": "https://arxiv.org/list/quant-ph/2024-06?skip=0&show=25",
+  "rule": "First eight positions on the monthly index, all source versions v1. Frozen before preparing any holdout paper.",
+  "selected": [
+    "2406.00137v1",
+    "2406.00176v1",
+    "2406.00193v1",
+    "2406.00266v1",
+    "2406.00267v1",
+    "2406.00268v1",
+    "2406.00296v1",
+    "2406.00350v1"
+  ],
+  "samples": [
+    {
+      "arxiv_id": "2406.00137v1",
+      "download_url": "https://arxiv.org/src/2406.00137v1",
+      "package": "packages/2406.00137v1.tar.gz",
+      "size_bytes": 8899553,
+      "sha256": "afdd8f55a5a174c78106adeb79733bc4ca1e98aa7b41fc90b92db7e199bff7b5",
+      "format": "tar_gzip"
+    },
+    {
+      "arxiv_id": "2406.00176v1",
+      "download_url": "https://arxiv.org/src/2406.00176v1",
+      "package": "packages/2406.00176v1.tar.gz",
+      "size_bytes": 581815,
+      "sha256": "25fd329f1b6bd5e27d81a6a26eef1ab88c847304026ad2cbca15d61069290f83",
+      "format": "tar_gzip"
+    },
+    {
+      "arxiv_id": "2406.00193v1",
+      "download_url": "https://arxiv.org/src/2406.00193v1",
+      "package": "packages/2406.00193v1.tar.gz",
+      "size_bytes": 3778535,
+      "sha256": "522211c8999b5a4682234b988aa8cca0e6a236c1f3104a20c32a002a20512318",
+      "format": "tar_gzip"
+    },
+    {
+      "arxiv_id": "2406.00266v1",
+      "download_url": "https://arxiv.org/src/2406.00266v1",
+      "package": "packages/2406.00266v1.tar.gz",
+      "size_bytes": 31847,
+      "sha256": "240457ed95b4e77533fb19e12799090edc8ba9b5917987e3fd8b893f888e0b68",
+      "format": "tex_gzip"
+    },
+    {
+      "arxiv_id": "2406.00267v1",
+      "download_url": "https://arxiv.org/src/2406.00267v1",
+      "package": "packages/2406.00267v1.tar.gz",
+      "size_bytes": 883888,
+      "sha256": "5c7fc3280e7e34d52babc9a3c73315d80362f3fb0da0910de89ccf3be01b473f",
+      "format": "tar_gzip"
+    },
+    {
+      "arxiv_id": "2406.00268v1",
+      "download_url": "https://arxiv.org/src/2406.00268v1",
+      "package": "packages/2406.00268v1.tar.gz",
+      "size_bytes": 1057402,
+      "sha256": "3649fad93e18edcd82610e94842ea780d3682b7ac14d15d1fcc0b772202fa174",
+      "format": "tar_gzip"
+    },
+    {
+      "arxiv_id": "2406.00296v1",
+      "download_url": "https://arxiv.org/src/2406.00296v1",
+      "package": "packages/2406.00296v1.pdf",
+      "size_bytes": 927841,
+      "sha256": "86aad61c10e84f59d856d73c57ff3cd098a44dd41d19e6a99aa9c03740a6b5c7",
+      "format": "pdf"
+    },
+    {
+      "arxiv_id": "2406.00350v1",
+      "download_url": "https://arxiv.org/src/2406.00350v1",
+      "package": "packages/2406.00350v1.tar.gz",
+      "size_bytes": 110113,
+      "sha256": "49b73c90469e9e0c15d8c027332493fe1c3a5f1678e8c42c2dadfd4e14e1f132",
+      "format": "tar_gzip"
+    }
+  ]
+}
