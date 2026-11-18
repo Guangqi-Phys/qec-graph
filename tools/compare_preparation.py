@@ -20,7 +20,6 @@ STABLE_ARTIFACTS = {
     "normalized.tex",
     "normalized-map.json",
     "source-map.json",
-    "references.json",
     "coverage.json",
     "diagnostics.json",
 }
@@ -48,6 +47,9 @@ def material_signature(root, expected_manifest_sha256=None):
         if key not in {"build_view_sha256", "source_projection_sha256"}
     }
     normalized = material["normalization"] or {}
+    references = dict(material["references"])
+    if "runtime" in references:
+        references["runtime"] = _runtime_signature(references["runtime"])
     return {
         "manifest": {key: manifest.get(key) for key in MANIFEST_FIELDS},
         "stable_artifacts": {
@@ -57,6 +59,7 @@ def material_signature(root, expected_manifest_sha256=None):
             or path.startswith(("sources/", "projected-sources/"))
         },
         "content": digest(json_bytes(document)),
+        "references": digest(json_bytes(references)),
         "normalization": {
             key: normalized.get(key)
             for key in (
@@ -67,8 +70,18 @@ def material_signature(root, expected_manifest_sha256=None):
                 "transformations",
             )
         },
+        "normalized_bibliography_runtime": _runtime_signature(
+            normalized.get("bibliography_runtime")
+        ),
         "validation": material["validation"],
     }
+
+
+def _runtime_signature(value):
+    if value is None:
+        return None
+    # read_material has already verified each log hash against its own bundle.
+    return {key: item for key, item in value.items() if key != "log_sha256"}
 
 
 def _rows(root):
