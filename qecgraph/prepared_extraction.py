@@ -283,7 +283,7 @@ def excluded_ranges(document):
     marked.extend(
         tuple(n["range"])
         for n in document["nodes"]
-        if n["kind"] == "comment" or n["region"] == "bibliography"
+        if n["kind"] in {"comment", "opaque"} or n["region"] == "bibliography"
     )
     merged: list[tuple[int, int]] = []
     for a, b in sorted(marked):

@@ -111,9 +111,10 @@
     "task": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status"],
+      "required": ["status", "section"],
       "properties": {
         "status": {"enum": ["proposed", "no_evidence", "budget_exceeded", "failed"]},
+        "section": {"type": ["string", "null"]},
         "evidence": {
           "type": "object",
           "additionalProperties": false,
@@ -137,11 +138,20 @@
             "unresolved": {"type": "array"}
           }
         },
+        "references": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array", "minItems": 1, "items": {"$ref": "#/$defs/span"}
+          }
+        },
         "error": {"type": "string", "minLength": 1}
       },
       "if": {"properties": {"status": {"const": "proposed"}}},
-      "then": {"required": ["evidence", "proposal"], "not": {"required": ["error"]}},
-      "else": {"required": ["error"], "not": {"required": ["proposal"]}}
+      "then": {"required": ["evidence", "proposal", "references"], "not": {"required": ["error"]}},
+      "else": {
+        "required": ["error"],
+        "not": {"anyOf": [{"required": ["proposal"]}, {"required": ["references"]}]}
+      }
     }
   }
 }
