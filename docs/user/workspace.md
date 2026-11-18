@@ -98,25 +98,22 @@ actual file. Unrelated manuscripts in the same archive are excluded. Missing
 files and budget failures remain explicit; a request is never silently truncated.
 Thought answers use short, searchable key sentences as quotations (preferably
 under 240 characters, at most 480); explanations and conditions stay in the AI
-answer. New extraction uses skill v5; existing proposals remain readable.
+answer. The current extraction skill is v7.
 Generated knowledge and human notes use English throughout: questions, answers,
 topic tags, bibliography, unresolved explanations and catalog descriptions. AI
-output containing Chinese is rejected before caching or publication. Run `sync`
-to re-extract legacy Chinese proposals; completed English proposals are reused.
+output containing Chinese is rejected before caching or publication. An enabled
+`sync` retries missing or invalid proposals and reuses conforming ones.
 Human notes render offline from the same new release. Original evidence is not translated.
 An invalid response gets at most one correction request with the same evidence
 and checks. A second rejection remains pending for a later sync.
 
 The Claude Code provider uses bare mode with tools, MCP and session persistence
-disabled. Set `ANTHROPIC_API_KEY` and remove custom CLI arguments when upgrading
-a workspace that used the local subscription login.
+disabled. Configure its credentials through `ANTHROPIC_API_KEY`.
 
 Failed AI extraction remains pending after the structural release commits. A
 later `sync` retries the failed skills from the archive. Rebuild verifies and
-reuses committed normalization maps even with AI disabled. For an older release,
-rebuild can bind a historical map when the saved plan and archive reproduce the
-exact projection. An unconfirmed fallback still needs an explicit entry point or
-a new plan.
+reuses hash-bound normalization maps even with AI disabled. Ambiguous source
+roots require an explicit entry point or a validated normalization plan.
 
 Daily use is `qec-graph sync`, `qec-graph status` and `qec-graph validate`.
 The terminal updates one progress line and ends with success or an error. `sync`
@@ -214,9 +211,8 @@ keeps full names. The original arXiv package name determines `YYYY/MM/` first:
 `arXiv-2611.12971v2.tar.gz` goes into `2026/11/`, regardless of the manuscript date
 or download time. Version suffixes do not change that initial submission month.
 Non-arXiv names fall back to the source date; missing or conflicting months use
-`unknown`. Sync/rebuild snapshots receipt filenames into the machine release;
-run `qec-graph sync` once to backfill an older workspace, then `human build` uses
-only that fixed release. Full-name note paths are removed as new paths publish.
+`unknown`. Sync and rebuild publish receipt filenames in the machine release.
+`human build` uses those names from the selected release.
 Missing author/title use `UnknownAuthor`/`Untitled_Paper`; filename collisions
 receive a short work-ID hash. Multiple versions of one work share one note;
 answers retain their own source versions. [Full contract](../design/DESIGN.md#9-human-view)

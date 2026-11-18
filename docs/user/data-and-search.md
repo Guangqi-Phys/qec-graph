@@ -169,7 +169,7 @@ quoted bibliographic metadata and main topics for the note's Obsidian properties
 Skill v4 reads numbered body/appendix files and quotes short key sentences
 (preferably under 240 characters, at most 480 for new extraction), keeping
 explanations in the answer. Existing proposals remain readable.
-Human/private notes are never inputs. [Layout and migration](workspace.md#obsidian-and-machine-isolation)
+Search reads the pinned machine release. [Layout and file ownership](workspace.md#obsidian-and-machine-isolation)
 
 ### Fields, revisions, and evidence
 
@@ -277,7 +277,7 @@ exact quotations and source references and remains a proposal, including when
 `attribution` is `author_explicit`. A review decision does not automatically
 convert it to a `research_thought` record.
 
-The current [skill v5](../../qecgraph/llm/skills/extract_thoughts/SKILL.md) specifies
+The current [skill v7](../../qecgraph/llm/skills/extract_thoughts/SKILL.md) specifies
 the extraction procedure, all nine category boundaries and a complete JSON
 example. It directs the model to distinguish the initial problem, its motivation,
 the method and the outcome, then check intuition, assumptions, open questions,
@@ -292,12 +292,10 @@ curated, evidence-bound research records. Program checks enforce the schema,
 valid source ranges and verbatim quotations; they do not establish that a
 category or interpretation is scientifically correct.
 
-v0.6.2 shipped skill v1. Current skill v5 requires English for all generated
-answers, metadata, topic tags and `unresolved` entries. New output is checked for
-Chinese text before publication, and all human questions and labels are English.
-`sync` re-extracts legacy Chinese proposals. Completed English proposals retain
-their version and source bindings; a skill version change alone does not rerun
-them. Human notes consume the same machine results without another AI call.
+The output contract requires English answers, metadata, topic tags and
+`unresolved` entries. An opted-in `sync` retries invalid or missing proposals.
+Conforming proposals retain their recorded skill version and source binding.
+Human notes read the same machine results without another AI call.
 
 Search bound thought proposals through the research profile:
 

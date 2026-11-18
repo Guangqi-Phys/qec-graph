@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the installed RFC-002 CLI in a new directory outside the source tree."""
+"""Verify the installed workspace and MCP CLI in a clean directory."""
 from __future__ import annotations
 
 import argparse
@@ -86,71 +86,83 @@ def verify(binary, workspace, real_source=None):
     assert status['counts']['registered'] == status['counts']['processed'] == (3 if real_source else 2)
     assert status['human']['rendered_release_id'] == expected_release and status['human']['status'] == 'current'
     assert run('validate', ['validate', '--json'])['valid']
-    review = run('review_list', ['review', 'list'])
-    assert len(review['proposals']) >= (3 if real_source else 1)
+    scope = ['--machine', 'machine', '--release', expected_release]
+    golden = {'[[13,1,3]]': ('quantum', 'quantum_logical_count', 13, 1, None, None)}
     if real_source:
-        golden = {'[[15,1,2,5]]': ('quantum', 'subsystem_log_dimensions', 15, 1, 2, None),
-                  '[15,8,6]': ('classical', 'classical_seed_parameters', 15, None, None, 8),
-                  '((n,K,R,d))': ('quantum', 'subsystem_dimensions', None, None, None, None)}
-        for notation, expected in golden.items():
-            assert any(row['data']['reported_notation'] == notation
-                       and tuple(row['data'].get(field) for field in ('code_type', 'parameter_kind', 'n',
-                                                                     'k', 'r', 'k_classical')) == expected
-                       and row['data']['distance_interpretation'] is None for row in review['proposals']), notation
-    search_args = {'query': 'CSS code', 'limit': 10}
-    (workspace / 'args.json').write_text(json.dumps(search_args), encoding='utf-8')
-    args = ['qecgraph_search', '--workspace', '.', '--arguments', 'args.json']
-    cli = run('query_tool_search', ['query-tool', *args])
+        golden.update({'[[15,1,2,5]]': ('quantum', 'subsystem_log_dimensions', 15, 1, 2, None),
+                       '[15,8,6]': ('classical', 'classical_seed_parameters', 15, None, None, 8),
+                       '((n,K,R,d))': ('quantum', 'subsystem_dimensions', None, None, None, None)})
+    for index, (notation, expected) in enumerate(golden.items(), 1):
+        matches = run(f'find_notation_{index}', ['search', notation, '--kind', 'code_parameters_mention',
+                                                  *scope])['data']['results']
+        records = (run(f'read_notation_{index}_{i}', ['show', row['id'], '--revision', row['revision'],
+                                                     *scope])['data']['entity']['data']
+                   for i, row in enumerate(matches, 1))
+        assert any(data['reported_notation'] == notation
+                   and tuple(data.get(field) for field in ('code_type', 'parameter_kind', 'n',
+                                                          'k', 'r', 'k_classical')) == expected
+                   and data['distance_interpretation'] is None for data in records), notation
+
+    def query_tool(label, tool, arguments):
+        file = workspace / f'{label}.json'
+        file.write_text(json.dumps(arguments), encoding='utf-8')
+        return run(label, ['query-tool', tool, *scope, '--arguments', file.name])
+
+    search_args = {'query': 'CSS code', 'limit': 10, 'detail': 'full'}
+    cli = query_tool('query_tool_search', 'qec_search', search_args)
     assert cli['ok'] and cli['data']['results']
-    direct = run('search', ['search', 'CSS code', '--workspace', '.', '--limit', '10'])
-    assert direct == cli
-    reading = run('reading_search', ['search', 'CSS code', '--workspace', '.', '--limit', '10',
+    software = run('local_software', ['query', 'software', '--query', 'Stim', *scope])
+    assert software['ok'] and software['data']['results']
+    reading = run('reading_search', ['search', 'CSS code', *scope, '--limit', '10',
                                     '--view', 'reading'])
     assert reading['data']['view'] == 'reading'
     assert any('CSS code' in row['reading_excerpt'] for row in reading['data']['results'])
-    occurrence = next(r['id'] for r in cli['data']['results'] if r.get('source'))
-    (workspace / 'source-args.json').write_text(json.dumps({'identifier': occurrence}), encoding='utf-8')
-    span = run('get_exact_source', ['query-tool', 'qec_get_source', '--workspace', '.', '--arguments', 'source-args.json'])['data']
+    occurrence = next(r['id'] for r in cli['data']['results'] if r.get('resource_uri'))
+    span = query_tool('get_exact_source', 'qec_fetch', {'identifier': occurrence, 'view': 'raw'})['data']
     protocol = '2025-06-18'
     frames = [
         {'id': 1, 'method': 'initialize', 'params': {'protocolVersion': protocol, 'capabilities': {},
                                                     'clientInfo': {'name': 'qecgraph-release-client', 'version': '1'}}},
         {'method': 'notifications/initialized'},
         {'id': 2, 'method': 'tools/list'},
-        {'id': 3, 'method': 'tools/call', 'params': {'name': 'qecgraph_search', 'arguments': search_args}},
-        {'id': 4, 'method': 'tools/call', 'params': {'name': 'qecgraph_search',
+        {'id': 3, 'method': 'tools/call', 'params': {'name': 'qec_search', 'arguments': search_args}},
+        {'id': 4, 'method': 'tools/call', 'params': {'name': 'qec_search',
                                                    'arguments': {'query': 'RFC002-PERSONAL-CANARY-9212'}}},
-        {'id': 5, 'method': 'tools/call', 'params': {'name': 'qec_find_software', 'arguments': {'query': 'Stim'}}},
+        {'id': 5, 'method': 'tools/call', 'params': {'name': 'qec_status', 'arguments': {}}},
         {'id': 6, 'method': 'resources/list'},
         {'id': 7, 'method': 'resources/read', 'params': {'uri': span['resource_uri']}},
         {'id': 8, 'method': 'resources/read', 'params': {'uri': 'file:///human/notes/private-validation-note.md'}},
-        {'id': 9, 'method': 'tools/call', 'params': {'name': 'qecgraph_search',
-                                                   'arguments': {**search_args, 'view': 'reading'}}},
+        {'id': 9, 'method': 'tools/call', 'params': {'name': 'qec_fetch',
+                                                   'arguments': {'identifier': occurrence, 'view': 'raw'}}},
     ]
-    stdio = run('mcp_stdio', ['mcp', 'serve', '--machine', 'machine', '--release', expected_release],
+    stdio = run('mcp_stdio', ['mcp', 'serve', *scope],
                 stdin=''.join(json.dumps({'jsonrpc': '2.0', **frame}) + '\n' for frame in frames), json_output=False)
     replies = {r['id']: r.get('result', r.get('error')) for r in (json.loads(line) for line in stdio.splitlines())}
     assert replies[1]['protocolVersion'] == protocol
-    assert len(replies[2]['tools']) >= 11
+    assert {tool['name'] for tool in replies[2]['tools']} == {
+        'qec_list_papers', 'qec_search', 'qec_fetch', 'qec_get_context',
+        'qec_query_codes', 'qec_query_performance', 'qec_trace', 'qec_status',
+    }
     assert replies[3]['structuredContent'] == cli
     assert replies[4]['structuredContent']['data']['results'] == []
-    assert replies[5]['structuredContent']['data']['results']
+    assert replies[5]['structuredContent']['data']['scope']['release_id'] == expected_release
     assert replies[6]['resources']
     content, = replies[7]['contents']
-    assert content['text'] == span['latex'] and content['_meta']['content_sha256'] == span['content_sha256']
+    assert content['text'] == span['text'] and content['_meta']['content_sha256'] == span['content_sha256']
     assert replies[8]['code'] == -32002
-    assert replies[9]['structuredContent'] == reading
+    assert replies[9]['structuredContent']['data'] == span
     assert 'private-validation-note' not in stdio and 'RFC002-PERSONAL-CANARY-9212' not in stdio
     assert note.read_text(encoding='utf-8') == 'RFC002-PERSONAL-CANARY-9212'
     notes = list((workspace / 'human').rglob('*_thoughts.md'))
     assert len(notes) == (2 if real_source else 1)
-    assert all(expected_release in page.read_text(encoding='utf-8') for page in notes)
+    history = json.loads((workspace / '.qecgraph/human-published.json').read_text(encoding='utf-8'))
+    assert history['release_id'] == expected_release
     assert all(page.read_text(encoding='utf-8').startswith('---\ntags:') for page in notes)
     assert not (workspace / 'human/Index.md').exists()
     return {'passed': True, 'platform': platform.platform(), 'package_version': package_version,
             'release_id': expected_release, 'protocol_version': protocol, 'checks': checks,
             'source_count': first['counts']['registered'], 'software_projects': coverage['projects'],
-            'code_mention_proposals': len(review['proposals']),
+            'code_mention_checks': len(golden),
             'real_source': ({'url': 'https://arxiv.org/src/quant-ph/0610153v1', 'sha256': SUBSYSTEM_SHA,
                              'entrypoint': 'subsys.tex', 'scope': 'structural and three notation golden checks, not mathematical verification'}
                             if real_source else None),

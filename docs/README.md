@@ -91,6 +91,7 @@ knowledge content use English. Original sources and quotations preserve their la
 - [Preparation read path and declaration evidence (review 08, Chinese)](reviews/review-2026-11-17-compile-prepare-testing/08-read-path-optimization-and-declaration-evidence.zh-CN.md)
 - [2026-11-18 preparation fixes, measurements and holdout (review 10, Chinese)](reviews/review-2026-11-17-compile-prepare-testing/10-preparation-follow-up.zh-CN.md)
 - [2026-11-18 prepared extraction handoff and validation (Chinese)](reviews/review-2026-11-18-prepared-extraction/01-contract-gap-and-rollout.zh-CN.md)
+- [2026-11-18 repository cleanup review and validation (Chinese)](reviews/review-2026-11-18-repository-cleanup/01-scope-and-plan.zh-CN.md)
 
 There are no redirect-only or archive pages. Superseded design and user pages
 live in Git history. Dated review records remain in `docs/reviews/` and must not

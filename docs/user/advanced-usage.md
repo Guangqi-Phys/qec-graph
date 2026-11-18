@@ -254,11 +254,9 @@ first author's surname; the original arXiv package's `YYMM` sets the folder
 (e.g. `2611.12971v2.tar.gz` → `2026/11/`). Run `qec-graph human build`
 to regenerate notes from the current machine release without calling AI.
 
-The v0.6.3 layout replaces the v0.6.2 entity-page vault. The first
-migration deletes the entire managed old `human/`, including `notes/`, without a
-backup. There are no indexes, tombstones or other generated human files. Keep
-personal notes elsewhere. Publication/recovery state stays in `.qecgraph/`.
-[Layout, missing metadata and migration](workspace.md#obsidian-and-machine-isolation)
+Keep personal notes outside the generated vault. Publication and recovery state
+live in `.qecgraph/`. The renderer uses the current history to replace and retire
+generated notes. [Layout and file ownership](workspace.md#obsidian-and-machine-isolation)
 
 Use `qec-graph software import-seed` to load the bundled software catalog and `qec-graph software coverage` to inspect it. [Research queries](workspace.md#research-queries-and-review)
 

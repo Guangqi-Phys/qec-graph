@@ -783,7 +783,6 @@ The typed JSON envelope (`ok/data` or `error/code/message/details/scope`) is sha
 
 `human/` contains only one generated ThoughtsGraph Markdown note per registered
 paper (`work_id`), under `human/YYYY/MM/Surname_First_Two_thoughts.md`.
-This layout ships in **v0.6.3**; v0.6.2 used the earlier vault.
 
 - Each note contains the nine questions from [Human.md](Human.md), AI answers,
   verbatim supporting quotations and source-version/line references. Missing
@@ -1080,25 +1079,20 @@ require opt-in traversal; citations and thought links do not become proof edges.
 
 The [skill](../../qecgraph/llm/skills/extract_thoughts/SKILL.md) defines category
 boundaries, source-reading steps, attribution and exact line references with a
-worked example. Conditions remain attached to outcomes and missing categories
-are explicit in `unresolved`. Skill v3 introduced optional `paper` metadata: title, ordered authors, date, public link and
-main topics. Each value carries a verbatim quotation and source line references;
-dates and URLs receive additional checks. Old packages without `paper` still
-validate. Cross-record relations require separate curation. Validation checks
-format and quotations, not scientific correctness or the truth of metadata.
-Skill v4 reads numbered multi-file evidence and asks for short, searchable key
-sentences, preferably under 240 characters. New thought/metadata quotations
-over 480 characters or batches over 18 central thoughts are rejected before caching; explanations and qualifications
-belong in the answer with context references. Old packages retain their original
-quotation lengths and remain readable. v0.6.2 shipped v1; v2 refined
-instructions, v3 extended the output schema, and v4 improves evidence input and
-quotation instructions without changing the output fields. Skill v5 requires English
-for all generated answers, metadata, topic tags and unresolved explanations. All
-AI responses pass a CJK-content guard before caching or publication; mathematical
-notation and accented Latin names remain supported. All nine human questions,
-labels and fallback messages, and the bundled software catalog, are English.
-Sync detects legacy proposals containing Chinese and re-extracts those skills;
-completed English proposals are reused. After a tool-only snapshot upgrade,
+worked example. Conditions stay with outcomes and missing categories go in
+`unresolved`. Optional `paper` metadata covers title, ordered authors, date,
+public link and main topics. Each value carries an exact quotation and source
+lines. Dates and URLs receive additional checks. Cross-record relations require
+separate curation.
+
+The skill reads numbered multi-file evidence. A proposal may contain up to 18
+thoughts and each quotation up to 480 characters. Explanations and qualifications
+belong in the answers with their source references. Generated answers, metadata,
+topics and unresolved explanations pass the English output guard. These checks
+establish structural conformance and citation integrity. Scientific assessment
+requires review of the evidence.
+
+An opted-in sync retries proposals that fail current validation. After a tool-only snapshot upgrade,
 reuse requires an identical entry, source tree and complete evidence-file hash
 set, plus citation validation against the new snapshot. The copied proposal
 retains its original model, prompt, skill version and proposed status, and records
@@ -1239,7 +1233,12 @@ thousand/ten-thousand-paper production validation remain outside this iteration.
 
 Stage 2 is implemented: document/file/section reads, strict version selection, field/source coverage and selectable MCP profiles. Full source files are read from registered snapshots with hash verification, including text outside parsed blocks.
 
-Stage 3 is implemented: nine thought categories, quotation-bound records and relations, `extract_thoughts` proposals and generated thought pages. With explicit source-upload permission and `[ai].extract_proposals = true`, sync runs four extraction skills (including thoughts); batches missing a skill obtain it on the next sync. Completed English skills are not automatically rerun on version changes; legacy Chinese proposals are re-extracted to satisfy the English output policy. `qec_search(include_proposals=true, kind="research_thought_proposal")` discovers proposed thoughts without promoting them to records; exact `qec_fetch` retains their proposed state.
+Stage 3 covers nine thought categories, quotation-bound research records and
+relations, `extract_thoughts` proposals and generated notes. With explicit
+source-upload permission and `[ai].extract_proposals = true`, sync runs the four
+extraction skills for missing or invalid proposals. Conforming proposals retain
+their recorded skill version. `qec_search` can discover
+`research_thought_proposal` items and `qec_fetch` reads them with their proposed status.
 
 Stage 4 is implemented: `[retrieval].enabled = true` builds a hash-bound projection during sync/rebuild before publication. The local model is an offline lexical baseline; `openai_compatible` supports explicit remote embeddings with environment credentials and upload permission. Model revision, dimension, tokenizer and chunk configuration bind caches. New source text reuses unchanged chunk vectors; optional index construction failure publishes a stale binding with keyword fallback, while invalid source/record integrity still preserves the previous release. Research search supports keyword/vector/hybrid modes, pre-ranking filters, pagination, visible fallback and integrity-checked rebuild. Vector offsets refer to derived search text; authoritative citation coordinates come from fetch.
 

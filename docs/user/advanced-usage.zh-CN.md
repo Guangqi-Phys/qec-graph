@@ -220,10 +220,8 @@ tags 是文章主要主题。文件名只取一作姓，目录优先取 arXiv �
 `2611.12971v2.tar.gz` → `2026/11/`。运行 `qec-graph human build` 从当前 machine release
 重建，不调用 AI。
 
-这是 v0.6.3 的布局，替代 v0.6.2 的实体页 vault。首次迁移直接删除整个旧
-受管理 `human/`，包括 `notes/`，不做备份。不再生成索引、墓碑页或其他文件，个人笔记
-请放在别处。管理状态保存在 `.qecgraph/`。
-[布局、缺失元数据与迁移规则](workspace.zh-CN.md#obsidian-和机器访问隔离)
+个人笔记放在生成的 vault 之外。发布和恢复状态放在 `.qecgraph/`，渲染器按现行记录
+替换和清理生成的笔记。[布局和文件归属](workspace.zh-CN.md#obsidian-和机器访问隔离)
 
 用 `qec-graph software import-seed` 加载自带软件目录，用 `qec-graph software coverage` 查看覆盖。[研究查询](workspace.zh-CN.md#研究查询和审核)
 

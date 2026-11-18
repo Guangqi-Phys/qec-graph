@@ -47,8 +47,7 @@ qec-graph validate
 
 Successful imports keep the original package in `archive/`; failed packages stay
 in `inputs/` for retry. Open `human/` in Obsidian to read one thoughts note per
-paper under `YYYY/MM/`. Human notes are never search inputs. This v0.6.3
-layout deletes the old managed human contents without a backup on migration;
-[read the layout guide](workspace.md#obsidian-and-machine-isolation).
+paper under `YYYY/MM/`. Searches read the machine release.
+[Note layout and file ownership](workspace.md#obsidian-and-machine-isolation)
 
 [Advanced usage](advanced-usage.md) · [Data and search](data-and-search.md) · [Workspace guide](workspace.md)

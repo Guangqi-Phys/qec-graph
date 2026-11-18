@@ -61,12 +61,12 @@ qec-graph validate
 任务、重试和并发包的请求次数；`max_batch_cost_usd` 累计已报告费用，缺价和在途
 请求使其不能成为硬美元上限。`sync --dry-run` 不调用 provider。
 
+反复失败的包可用 `qec-graph inputs quarantine <name>` 处理。
+
 成功导入后原始包留在 `archive/`，收件箱副本被清除。把 `human/` 作为 Obsidian
 vault 打开，按 `YYYY/MM/` 浏览每篇论文的 `一作姓_文章前两个词_thoughts.md`，
-包含九个问题、AI 回答和主题标签。此布局已随 v0.6.3 发布；
-从 v0.6.2 旧布局迁移时直接删除旧 `human/` 内容，不做备份。
-[布局与迁移规则](docs/user/workspace.zh-CN.md#obsidian-和机器访问隔离)。反复失败的包用
-`qec-graph inputs quarantine <name>` 处理。
+包含九个问题、AI 回答和主题标签。
+[笔记布局和文件归属](docs/user/workspace.zh-CN.md#obsidian-和机器访问隔离)
 
 ## AI 抽取
 
@@ -164,7 +164,7 @@ release 保持可读。人类笔记永不作为知识输入。
 | 导入 | TeX/gzip/tar/tar.gz/ZIP 识别、安全解包、SHA-256 blob 和 receipt、入口点选择 |
 | 来源保真 | UTF-8 字节哈希、Unicode codepoint 半开区间、行号从 1 开始、稳定 ID 和修订 |
 | 研究模型 | `qecgraph.research` 记录、27 kinds、47 typed relations、字段证据、显式 unknown/conflict 状态 |
-| 审核 | proposal/diff、显式 decide、哈希绑定 apply、stale review 检测 |
+| 审核证据 | 显式记录修订和哈希绑定，查询默认排除失效证据 |
 | 查询 | 精确过滤、有界上下文、依赖/影响遍历、code/performance/software 查询 |
 | MCP | 8 个研究工具或 2 个通用 search/fetch 工具。支持已登记资源、预算与每会话固定 release |
 | 知识检索 | 完整原文/章节/目录读取、可选本地或外部 embedding、混合搜索、任务上下文与覆盖报告 |

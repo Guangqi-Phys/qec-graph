@@ -74,12 +74,12 @@ enabled once upload is allowed; set `extract_proposals = false` to skip those sk
 `max_batch_cost_usd` tracks reported costs; missing prices and in-flight requests
 prevent a hard dollar cap. `sync --dry-run` makes no provider calls.
 
-Successful imports keep the original package in `archive/` and clear its inbox
-copy. Open `human/` in Obsidian and browse `YYYY/MM/*_thoughts.md`: one file
-per paper with nine research questions, AI answers and topic tags. This layout
-ships in v0.6.3; upgrading from the v0.6.2 layout deletes the
-old `human/` contents without a backup. [Layout and migration](docs/user/workspace.md#obsidian-and-machine-isolation)
 Use `qec-graph inputs quarantine <name>` for a package that keeps failing.
+
+Successful imports keep the original package in `archive/` and clear its inbox
+copy. Open `human/` in Obsidian and browse one `YYYY/MM/*_thoughts.md` note
+per paper with nine research questions, AI answers and topic tags.
+[Note layout and file ownership](docs/user/workspace.md#obsidian-and-machine-isolation)
 
 ## AI extraction
 
@@ -148,7 +148,7 @@ QEC Graph organizes the same sources and records through four connected views:
 ThoughtsGraph uses source-quoted `research_thought` records and typed links.
 Author statements and editorial interpretations stay distinct; AI output remains
 proposed. Generated data, catalog descriptions and human notes use English.
-`sync` replaces legacy Chinese AI proposals with newly extracted English results.
+An opted-in `sync` retries proposals that fail the current extraction contract.
 All four views share identities and provenance. See
 [graph roles and thought queries](docs/user/data-and-search.md#how-the-four-graphs-work-together).
 
@@ -182,7 +182,7 @@ validation leaves the previous release readable. Human notes are never knowledge
 | Ingestion | TeX/gzip/tar/tar.gz/ZIP detection, safe unpacking, SHA-256 blobs and receipts, entry-point selection |
 | Provenance | UTF-8 byte hashes, Unicode codepoint half-open spans, 1-based lines, stable IDs and revisions |
 | Research model | `qecgraph.research` records, 27 kinds, 47 typed relations, field evidence, explicit unknown/conflict states |
-| Review | Proposal/diff, explicit decide, hash-bound apply, stale review detection |
+| Review evidence | Explicit record revisions and hash-bound eligibility, with stale evidence excluded by default |
 | Query | Exact filters, bounded context, dependency/impact traversal, code/performance/software queries |
 | MCP | Eight research tools or two generic search/fetch tools; registered resources, budgets and one pinned release per session |
 | Knowledge retrieval | Full source/section/outline reads, optional local or external embeddings, hybrid search, task contexts and coverage reports |
