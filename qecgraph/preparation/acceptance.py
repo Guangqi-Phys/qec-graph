@@ -74,45 +74,64 @@ def replay_material_root(root, row):
     return root / name
 
 
-def check_cases(root, cases, materials=None, *, rows=()):
-    results = []
-    cache = materials if materials is not None else {}
-    attempts = {row["paper"]: row for row in rows}
-    for case in cases:
-        paper = case["paper"]
-        attempt = attempts.get(paper, {"paper": paper, "status": "ready"})
-        folder = replay_material_root(root, attempt)
-        if folder is None:
-            results.append({"paper": paper, "anchor": case["anchor"], "passed": False})
-            continue
-        if paper not in cache:
-            cache[paper] = read_material(
-                folder, expected_manifest_sha256=attempt.get("material_manifest_sha256")
-            )
-        raw = (folder / "sources" / safe_path(case["file"])).read_bytes()
-        if digest(raw) != case["source_sha256"]:
-            raise ValueError("Syntax probe source hash mismatch")
-        positions = {
-            m.start() for m in re.finditer(re.escape(case["anchor"]), raw.decode())
-        }
-        matches = [
-            n
-            for n in cache[paper]["document"]["nodes"]
-            if n["kind"] == case["kind"]
-            and n["name"] == case["name"]
-            and any(
-                s["path"] == case["file"] and s["chars"][0] in positions
-                for s in n["source_spans"]
-            )
-        ]
-        results.append(
-            {"paper": paper, "anchor": case["anchor"], "passed": bool(matches)}
+def _read_attempt(root, row):
+    folder = replay_material_root(root, row)
+    if row["status"] == "failed":
+        return folder, None
+    if folder is None:
+        raise ValueError("Missing replay material")
+    return folder, read_material(
+        folder, expected_manifest_sha256=row.get("material_manifest_sha256")
+    )
+
+
+def _group_cases(cases):
+    grouped = {}
+    for index, case in enumerate(cases):
+        grouped.setdefault(case["paper"], []).append((index, case))
+    return grouped
+
+
+def _check_case(folder, case, material):
+    result = {"paper": case["paper"], "anchor": case["anchor"], "passed": False}
+    if material is None:
+        return result
+    raw = (folder / "sources" / safe_path(case["file"])).read_bytes()
+    if digest(raw) != case["source_sha256"]:
+        raise ValueError("Syntax probe source hash mismatch")
+    positions = {
+        m.start() for m in re.finditer(re.escape(case["anchor"]), raw.decode())
+    }
+    result["passed"] = any(
+        n["kind"] == case["kind"]
+        and n["name"] == case["name"]
+        and any(
+            s["path"] == case["file"] and s["chars"][0] in positions
+            for s in n["source_spans"]
         )
+        for n in material["document"]["nodes"]
+    )
+    return result
+
+
+def check_cases(root, cases, *, rows=()):
+    results = {}
+    attempts = {row["paper"]: row for row in rows}
+    for paper, group in _group_cases(cases).items():
+        attempt = attempts.get(paper, {"paper": paper, "status": "ready"})
+        folder, material = _read_attempt(root, attempt)
+        results.update((i, _check_case(folder, c, material)) for i, c in group)
+        del material
+    return _probe_summary(results)
+
+
+def _probe_summary(results):
+    ordered = [results[i] for i in sorted(results)]
     return {
         "scope": "Mechanical syntax/source checks, not scientific accuracy or human acceptance",
-        "passed": sum(r["passed"] for r in results),
-        "total": len(results),
-        "cases": results,
+        "passed": sum(r["passed"] for r in ordered),
+        "total": len(ordered),
+        "cases": ordered,
     }
 
 
@@ -123,16 +142,13 @@ def generate_report(manifest_path, replay, *, cases_path=None, baseline=None):
         json.loads((replay / "results.json").read_bytes()),
     )
     _check_replay(results, raw, corpus, cases_path)
-    materials = {}
-    rows = [
-        _verified_row(replay, row, sample, materials)
-        for row, sample in _samples(results, corpus, manifest_path)
-    ]
+    rows, probes = _verify_rows(
+        replay, results, _samples(results, corpus, manifest_path), cases_path
+    )
     if counts(rows) != results["counts"]:
         raise ValueError(
             "Replay counts do not match independently verified material rows"
         )
-    probes = _verify_probes(results, replay, cases_path, materials)
     metadata = results["run_metadata"]
     report = {
         "schema": "qecgraph.preparation_acceptance/1",
@@ -234,21 +250,13 @@ def _samples(results, corpus, manifest_path):
         yield row, sample
 
 
-def _verified_row(replay, row, sample, materials=None):
-    root = replay_material_root(replay, row)
-    if row["status"] == "failed":
+def _verified_row(root, row, sample, material):
+    if material is None:
         if (root is not None and (root / "manifest.json").exists()) or not row.get(
             "error"
         ):
             raise ValueError("Failed replay row conflicts with published material")
         return {**row, "expected_negative": sample.get("format") == "pdf"}
-    if materials is None:
-        materials = {}
-    if row["paper"] not in materials:
-        materials[row["paper"]] = read_material(
-            root, expected_manifest_sha256=row.get("material_manifest_sha256")
-        )
-    material = materials[row["paper"]]
     manifest, check = material["manifest"], material["validation"]
     _match_row(row, material)
     if (
@@ -359,20 +367,26 @@ def _listed_json(root, manifest, name, default):
     )
 
 
-def _verify_probes(results, replay, cases_path, materials=None):
-    if cases_path is None:
-        if "syntax_probes" in results:
-            raise ValueError("Replay probes have no frozen configuration")
-        return None
-    probes = check_cases(
-        replay,
-        json.loads(cases_path.read_bytes())["cases"],
-        materials,
-        rows=results["rows"],
-    )
+def _verify_rows(replay, results, samples, cases_path):
+    if cases_path is None and "syntax_probes" in results:
+        raise ValueError("Replay probes have no frozen configuration")
+    cases = json.loads(cases_path.read_bytes())["cases"] if cases_path else []
+    groups = _group_cases(cases)
+    rows, verdicts = [], {}
+    for row, sample in samples:
+        folder, material = _read_attempt(replay, row)
+        rows.append(_verified_row(folder, row, sample, material))
+        verdicts.update(
+            (i, _check_case(folder, c, material))
+            for i, c in groups.pop(row["paper"], ())
+        )
+        del material
+    if groups:
+        raise ValueError("Syntax probe paper is absent from the frozen corpus")
+    probes = _probe_summary(verdicts) if cases_path else None
     if probes != results.get("syntax_probes"):
         raise ValueError("Replay probe claims differ from independent source checks")
-    return probes
+    return rows, probes
 
 
 def _comparison(baseline, report):
@@ -392,6 +406,6 @@ def _comparison(baseline, report):
         "gate_change_note": (
             "The versioned preparation gate is unchanged. Counts alone do not establish behavior preservation; compare retained syntax, source mappings, references and failure outcomes. No scientific extraction quality is evaluated."
             if baseline["rule_version"] == report["rule_version"]
-            else "The user-approved v19 preparation gate accepts cross-reference ambiguity with every known candidate retained and independently checked. Unique binding remains partial; missing targets and all other prerequisites still block ready. Newly ready papers reflect this preparation policy change, not resolved author intent or improved scientific extraction quality."
+            else "The preparation rule version changed. Inspect the status transitions and retained evidence under both versions before comparing readiness."
         ),
     }
