@@ -41,7 +41,7 @@ def packaged_validator(name, *, check_formats=True):
 
 def validate_endpoint(source_kind, target_kind, relation):
     if relation.startswith('catalog:'):
-        return  # Legacy semantics are retained, never upgraded to typed proof edges.
+        return  # Standalone catalog links are outside the proof relation vocabulary.
     endpoints = ENDPOINTS.get(relation)
     if endpoints is not None:
         sources, targets = endpoints

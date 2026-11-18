@@ -175,6 +175,6 @@ def render_pages(session):
         sections.append(f'<!-- qecgraph work_sha256={hash_text(work_id)} -->')
         rendered = '\n\n'.join(sections) + '\n'
         require_english(path, 'note path')
-        require_english(rendered, 'human note; run sync to refresh legacy AI proposals')
+        require_english(rendered, 'human note')
         pages[path] = rendered.encode('utf-8')
     return pages, targets

@@ -4,14 +4,12 @@
 
 > [English](workspace.md) · **中文**
 
-本说明对应已发布的 `0.6.3` 版本。已有的 `qecgraph`、`qec-latex-split`、
-`qecgraph-mcp` 及 SourceGraph、LemmaGraph、DataGraph 命令继续可用；Lean 执行功能已移除，见[系统设计](../design/DESIGN.zh-CN.md#10-lean-路线已移除)。
-本说明描述受支持的工作流；[系统设计](../design/DESIGN.zh-CN.md)定义契约。
-[验证索引](../../validation/README.zh-CN.md)列出当前可执行检查；历史运行产物保留在
-Git history。
+本说明覆盖当前代码的 `qec-graph`、`qec-latex-split` 和 `qecgraph-mcp`。
+系统设计定义合同，验证索引列出可执行检查。
+[系统设计](../design/DESIGN.zh-CN.md) · [验证索引](../../validation/README.zh-CN.md)
 
-> [!WARNING]
-> 人类笔记不作为检索输入。新布局迁移时直接删除旧生成器管理的整个 `human/`，不做备份；详见下文。
+> [!NOTE]
+> 检索读取机器 release。个人笔记放在生成的 vault 之外。
 
 非 UTF-8 TeX 支持显式的 Latin-1、Latin-9 和 Windows-1252 声明。也可在工作区配置的 `[encodings]` 中用归档 SHA-256 作键、受支持的编码名称作值，再运行 `rebuild`。原始归档保持原样。来源读取会标明 UTF-8 派生文本，并给出原始字节范围。
 
@@ -188,11 +186,9 @@ sync/rebuild 会将回执包名纳入机器快照；旧库先运行一次 `qec-g
 发生在 `sync`，升级 skill 不会自动重抽已经完成的批次。没有答案时明确显示缺失。
 不再生成索引、实体页、原文预览、墓碑页或 `notes/`。个人笔记放在 `human/` 外面。
 
-**从 v0.6.2 旧布局迁移：** v0.6.3 首次渲染时识别旧管理历史，直接删除整个
-旧 `human/`，包括原有 `notes/`，不读取其中内容，也不生成备份，然后只输出论文笔记。
-没有管理记录的外部 vault 会被拒绝。之后文件名变化时删除旧的受管理笔记。
-状态和恢复日志放在 `.qecgraph/`；每份文件原子写入，中断显示 `human_stale`，重新运行
-`qec-graph human build` 即可继续完成，不回滚 machine release。
+渲染器按 `.qecgraph/` 中的现行历史替换和清理已登记的笔记。遇到格式不受支持的历史
+或无登记的 vault 时，在修改笔记前停止。旧工作区可以在新目录按现行流程发布输入后再渲染。
+发布中断时报告 `human_stale`。重新运行 `qec-graph human build` 可从待完成的记录恢复。
 
 单独授予 agent 和 MCP 机器发布目录，避免授予整个工作区。
 Linux 可用仓库的 `compose.mcp-isolated.yaml`。从已安装 QEC Graph 的 Python 环境

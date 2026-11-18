@@ -4,17 +4,13 @@
 
 > **English** · [中文](workspace.zh-CN.md)
 
-`0.6.3` is the published release described by this guide. The existing `qecgraph`,
-`qec-latex-split` and `qecgraph-mcp` commands and the SourceGraph, LemmaGraph and
-DataGraph views remain available; Lean execution has been removed,
-see [the system design](../design/DESIGN.md#10-lean-integration-removed).
-This guide describes the supported workflow; [the system design](../design/DESIGN.md)
-defines the contract. The [validation index](../../validation/README.md) lists the
-current executable checks; historical run artifacts remain in Git history.
+This guide covers `qec-graph`, `qec-latex-split` and `qecgraph-mcp` on the
+current checkout. The system design defines the contract and the validation
+index lists the executable checks. [System design](../design/DESIGN.md)
+· [Validation index](../../validation/README.md)
 
-> [!WARNING]
-> Human notes are never search inputs. The new thoughts-only layout deletes
-> the managed old `human/` tree without a backup; see the migration below.
+> [!NOTE]
+> Search reads the machine release. Keep personal notes outside the rendered vault.
 
 For non-UTF-8 TeX, QEC Graph supports explicit Latin-1, Latin-9 and Windows-1252 declarations. A workspace can also set `[encodings]` with the archive SHA-256 as the key and a supported encoding name as the value, then run `rebuild`. The original archive is preserved. Source reads identify the UTF-8 projection and give exact original byte ranges.
 
@@ -231,13 +227,12 @@ automatically re-extracted after a skill upgrade. Missing answers stay explicit.
 There are no generated indexes, entity pages, source previews, tombstones or
 `notes/` directory. Personal notes belong outside `human/`.
 
-**Migration from the v0.6.2 layout:** the first render with v0.6.3 detects the old renderer history and deletes the whole old
-`human/`, including its old `notes/`, without reading contents or creating a
-backup. It then publishes only the paper notes. An unregistered external vault
-is refused. Later builds delete obsolete managed notes when filenames change.
-State and recovery journals live in `.qecgraph/`; each note is written atomically.
-A partial failure reports `human_stale`; rerun `qec-graph human build` to finish,
-without rolling back the machine release.
+The renderer uses the current history in `.qecgraph/` to replace and retire its
+notes. Unsupported history or an unregistered vault stops rendering before any
+notes change. For an older workspace, create a fresh workspace and render from
+material published by the current workflow. A write interrupted mid-publication
+reports `human_stale`. Rerun `qec-graph human build` to complete it from the
+pending history.
 
 Grant the machine release directory to agents and MCP only; do not grant the
 whole workspace. On Linux, use `compose.mcp-isolated.yaml` from the repository.

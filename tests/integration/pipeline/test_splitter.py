@@ -239,6 +239,16 @@ class SplitterIntegrationTests(unittest.TestCase):
         self.assertEqual(directory_hashes(external), before)
         self.assertFalse((self.store / "CURRENT.json").exists())
 
+    def test_snapshot_validation_rejects_even_a_link_to_identical_output_bytes(self):
+        self.demo()
+        snapshot = Path(self.split()["snapshot"])
+        output = next((snapshot / "nodes").rglob("*.json"))
+        copy = output.with_suffix(".copy")
+        output.rename(copy)
+        output.symlink_to(copy.name)
+        with self.assertRaises(OSError):
+            validate_snapshot(snapshot)
+
     def test_partial_import_keeps_valid_fragments_and_both_entrypoints_return_two(self):
         self.paper.mkdir()
         source = (

@@ -27,7 +27,7 @@ EXAMPLES = {
     'review-list': '--workspace ./qec',
     'mcp-config': '--workspace ./qec',
     'serve-mcp': '--machine ./qec/machine',
-    'query-tool': 'qec_find_performance --arguments filters.json --workspace ./qec',
+    'query-tool': 'qec_query_performance --arguments filters.json --workspace ./qec',
     'check-css': '--hx HX.json --hz HZ.json --enumerate-distance',
     'check-experiment': 'experiment-and-metric.json',
     'codes': '--workspace ./qec --n-max 100 --limit 10',

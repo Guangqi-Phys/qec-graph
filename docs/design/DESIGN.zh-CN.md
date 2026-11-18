@@ -781,9 +781,8 @@ Python、CLI 和 MCP 共享。MCP protocol errors 和 business-query errors 保�
 - `human/` 不再生成索引、实体页、原文预览、manifest、墓碑页或私人笔记目录。
   管理状态和未完成发布日志位于 `.qecgraph/human-{published,pending}.json`。
   个人笔记放在 `human/` 之外；生成笔记在重建时会被替换。
-- 迁移依据旧生成器的管理历史识别旧布局：**直接删除整个旧 `human/`，包括旧 `notes/`，
-  不读取其中内容，也不建立备份**。新内容先准备完成，再清理旧目录。没有管理记录的外部
-  vault 会被拒绝。后续重建只删除过时的受管理笔记和空年月目录，拒绝覆盖未登记的同名文件。
+- 构建只删除现行管理历史登记的过时笔记及空年月目录。遇到格式不受支持的历史、无登记的
+  vault 或未登记的同名目标时，渲染在修改笔记前停止。
 - 发布仍是逐文件原子，不是整个 vault 的原子事务。中断时报告 `human_stale`，重新运行
   `qec-graph human build` 完成发布和清理，machine release 不回滚。渲染不会调用 AI。
 - 人类笔记只是单向阅读视图，不作为查询、MCP 或 embedding 输入，也不成为权威数据；
@@ -839,7 +838,7 @@ build evidence 或 semantic equivalence。
 | G11 | 显式 data relations 可扩展 matrix, check-matrix, metric and evidence context。 |
 | G12 | Partial extraction、truncation、unresolved targets 和 stale reviews 可观察。 |
 | G13 | 失败发布保持旧 release 可读、输入可恢复。 |
-| G14 | 人类笔记和私人笔记不作为知识输入。旧 human 文件按 §9 迁移规则直接删除，不读取内容。 |
+| G14 | 人类笔记和私人笔记在知识输入之外。渲染器只管理自身登记的笔记路径（§9）。 |
 | G15 | Workspace/MCP 会话不能混用两个 releases。 |
 
 ### 12.2 必需失败案例
@@ -1067,7 +1066,8 @@ machine release 中同一个哈希绑定的 `extract_thoughts` 包。Sync 先发
 
 ### 16.4 少量稳定接口与任务上下文
 
-CLI 默认八个 research 工具；显式 legacy workspace 与 store/corpus 接口继续兼容，通用 profile 共用核心：
+MCP 服务与 `query-tool` 默认提供八个 research 工具。本地 CLI 按相同的固定 release
+提供专项图导航与软件查询。通用 MCP profile 共用读取核心。
 
 | 研究工具 | 职责 |
 |---|---|
@@ -1164,7 +1164,8 @@ python tools/eval_retrieval.py --machine /path/to/copied-machine --cases validat
 
 自带 cases 只检查 smoke；独立人工金标使用各自冻结的路径与 release。不得悄悄重建原库或刷新审核哈希以通过检查。前后数字只比较可比的方法；当前代码的 literal/BM25 对照不等于历史代码回放。
 
-普通变更可以独立于版本 tag 合入 main。建议维护者采用每周最多一次普通发布、紧急安全修复例外的政策，尚需维护者采纳。未来破坏性 machine 迁移必须先有可审阅 dry-run、备份/恢复方案，并在执行前获得明确批准；§9 中此前确认的旧 human 不读取、不备份删除仍是限定例外。本轮不创建版本/tag。
+普通变更可以独立于版本 tag 合入 main。旧 machine 或快照合同不受支持时，从权威来源
+和精确研究记录在新的工作区重建派生数据。
 
 ## 附录 A — 决策记录（替代当前行为的独立 ADR）
 
@@ -1173,10 +1174,10 @@ python tools/eval_retrieval.py --machine /path/to/copied-machine --cases validat
 | **D1 — 一个 workspace，一个 writer** | Immutable release + POSIX lock + atomic pointer；没有 distributed writer。 | 本地恢复必须可审计。 | 分布式写者或原地可变 state。 | 保留锁与不可变发布；并发需先验证 CAS/恢复协议。 |
 | **D2 — 证据分层，不是评分** | Source/claim/review/computation/build 状态保持分离；默认过滤排除非活动状态。 | 主张和证据含义不同。 | 单一 confidence/verified 分数。 | 单值会掩盖未支持假设和失效证据。 |
 | **D3 — 只读 agents** | 固定 scope、有预算的 CLI/Python/MCP reads；没有 path/SQL/shell 访问；只有 stdout protocol。 | Agent 需要有界可重放读取。 | 任意文件系统/SQL 工具。 | 固定资源减少范围错误，machine-only 挂载实现访问边界。 |
-| **D4 — 人类视图隔离** | 从固定 machine release 为每篇论文生成一份 thoughts；human 不作为输入；逐文件原子发布、旧布局清理与 `human_stale` 恢复。 | 私人笔记不能成为机器证据。 | 双向 vault 导入。 | 单向渲染防止混入；保留明确批准的旧 human 删除例外。 |
+| **D4 — 人类视图隔离** | 从固定 machine release 为每篇论文生成一份 thoughts，逐文件原子发布，支持 `human_stale` 恢复。 | 私人笔记在机器证据之外。 | 双向 vault 导入。 | 管理历史把文件所有权限制在生成笔记。 |
 | **D5 — Lean 集成已移除** | 工作区专注论文知识库。 | 论文原文保持不变。 | 保留实验执行能力。 | 移除构建和工具链依赖。 |
 | **D6 — CodeGraph 仅供参考** | 架构比较，不复制代码，不导入性能声称；保留归属。 | 代码智能可提供架构参考。 | 引入引擎或继承性能承诺。 | 工作负载不同；保留归属并独立测量本项目。 |
-| **D7 — 兼容优先于重写** | Store/corpus 继续受支持；machine 迁移保留数据；human 布局重置在 §9 明确说明。 | 旧记录和审核哈希必须可读。 | 立即替换所有 API/格式。 | 兼容会保留重复；批准迁移后再退役。 |
+| **D7 — 现行派生格式** | 独立快照、工作区 release、准备物料和渲染历史使用各自的现行合同。 | 每个格式有单一读取端和发布端。 | 运行时支持多个版本。 | 格式不受支持时，从权威输入重建派生输出。 |
 | **D8 — Schema 所有权单一** | Packaged schemas 是规范；未知版本不重新解释。 | 可编辑的重复 schema 会漂移。 | 同时维护根目录和打包副本。 | 打包资源负责校验；拒绝未知版本。 |
 
 ## 附录 B — 主要参考

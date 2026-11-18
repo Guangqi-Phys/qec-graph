@@ -823,11 +823,9 @@ This layout ships in **v0.6.3**; v0.6.2 used the earlier vault.
   directory are generated in `human/`. Renderer state and pending publication
   journals live in `.qecgraph/human-{published,pending}.json`. Keep personal notes
   outside `human/`; generated notes are replaced on rebuild.
-- Migration recognizes the old renderer's history and **deletes the entire old
-  `human/` tree, including old `notes/`, without reading their contents or making
-  a backup**. All new content is prepared first. An unrelated, unregistered vault
-  is refused. Subsequent builds remove only obsolete managed notes and empty
-  year/month directories; unowned destination collisions are refused.
+- Builds remove obsolete notes registered in the current renderer history and
+  their empty year/month directories. An unsupported history, unregistered vault
+  or unowned destination collision stops the operation before it changes notes.
 - Publication remains per-file atomic, not a vault-wide transaction. A failure
   reports `human_stale`; rerunning `qec-graph human build` completes publication
   and cleanup without rolling back the machine release. Rendering does not call AI.
@@ -878,7 +876,7 @@ Mapping summary:
 | G11 | Explicit data relations can expand matrix, check-matrix, metric and evidence context. |
 | G12 | Partial extraction, truncation, unresolved targets and stale reviews are observable. |
 | G13 | A failed publication leaves the previous release readable and inputs recoverable. |
-| G14 | Human/private notes are never knowledge inputs. Legacy human files are deleted without reading them during the documented migration (§9). |
+| G14 | Human and private notes are outside the knowledge inputs. The renderer owns only its registered note paths (§9). |
 | G15 | A workspace/MCP session cannot mix two releases. |
 
 ### 12.2 Required failure cases
@@ -1284,7 +1282,9 @@ python tools/eval_retrieval.py --machine /path/to/copied-machine --cases validat
 
 The bundled cases exercise the smoke gate only; independently labeled cases must use their own frozen path and release. Do not silently rebuild the original workspace or refresh review hashes to obtain a pass. Report pre/post metrics only for genuinely comparable methods; a literal-versus-BM25 comparison on current code is not a replay of historical code.
 
-Routine changes may merge to main independently of release tags. Proposed maintainer policy is at most one ordinary release per week, with urgent security fixes excepted; the maintainer must adopt that policy. Future destructive machine migrations require a reviewable dry-run, a backup/recovery route and explicit approval before execution. The previously confirmed legacy human deletion without reading or backup remains the narrow exception in §9. This review creates no version/tag.
+Routine changes may merge to main independently of release tags. Use authoritative
+sources and exact research records to rebuild derived artifacts in a new workspace
+when an older machine or snapshot contract is unsupported.
 
 ## Appendix A — Decision record (supersedes the standalone ADRs for current behavior)
 
@@ -1293,10 +1293,10 @@ Routine changes may merge to main independently of release tags. Proposed mainta
 | **D1 — One workspace, one writer** | Immutable release + POSIX lock + atomic pointer; no distributed writer. | Local recovery must remain auditable. | Distributed writers or in-place mutable state. | Retain lock + immutable publish; concurrency waits for a tested CAS/recovery protocol. |
 | **D2 — Evidence is layered, not a score** | Source/claim/review/computation/build states remain separate; default filtering excludes inactive states. | Claims and evidence have different meanings. | One confidence/verified score. | A scalar hides unsupported assumptions and stale evidence. |
 | **D3 — Read-only agents** | Fixed-scope, budgeted CLI/Python/MCP reads; no path/SQL/shell access; stdout protocol only. | Agents need bounded, repeatable reads. | Arbitrary filesystem/SQL tools. | Fixed resources reduce scope errors; machine-only mounts enforce access. |
-| **D4 — Human view isolation** | One thoughts note per paper from a pinned release; no human content used as input; per-file atomic publication and legacy cleanup; `human_stale` recovery. | Private notes must never become machine evidence. | Bidirectional vault ingestion. | One-way rendering prevents contamination; the explicit legacy deletion exception remains. |
+| **D4 — Human view isolation** | One thoughts note per paper from a pinned release with per-file atomic publication and `human_stale` recovery. | Private notes must stay outside machine evidence. | Bidirectional vault ingestion. | The history limits file ownership to generated notes. |
 | **D5 — Lean integration removed** | The workspace focuses on the paper knowledge base. | Original paper sources remain intact. | Keep experimental execution. | Remove build and toolchain dependencies. |
 | **D6 — CodeGraph is reference only** | Architecture comparison, no copied code, no imported performance claims; attribution retained. | Code intelligence offers architectural ideas. | Vendor the engine or adopt performance claims. | Its workload differs; preserve attribution and measure this project separately. |
-| **D7 — Compatibility over a rewrite** | Store/corpus remain supported; machine migrations preserve data. The human layout reset is explicitly documented in §9. | Existing records and review hashes must remain readable. | Immediate replacement of all APIs/formats. | Compatibility costs duplication; retire only with an approved migration. |
+| **D7 — Current derived formats** | Standalone snapshots, workspace releases, preparation material and renderer history use their current contracts. | Each format has one reader and one publisher. | Multiple active format versions. | Rebuild derived outputs from authoritative input when a contract is unsupported. |
 | **D8 — Schema ownership is singular** | Packaged schemas are canonical; unknown schemas are rejected, not reinterpreted. | Editable duplicate schemas can diverge. | Maintain root and packaged copies. | Packaged resources own validation; reject unknown versions. |
 
 ## Appendix B — Primary references

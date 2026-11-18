@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from .core.progress import phase, task, track
 
-import errno
 import hashlib
 import json
 import os
@@ -23,10 +22,12 @@ from . import PARSER_VERSION, __version__
 from .source.extraction import RULE_VERSION
 from .core.graph import build_graph, canonical, hash_text, node_filename, read_json, strict_json_loads, views
 from .core.coordinates import SourceLines
+from .core.fs import managed_path
 from .core.transactions import ManagedDataError, atomic_json, publish_pointer, read_pointer, writer_lock
 
 
 CURRENT_FORMAT = 'qecgraph.current'
+SNAPSHOT_FORMAT = 3
 
 
 def _is_snapshot_id(value):
@@ -62,7 +63,7 @@ def extraction_tool_identity():
 
 def extraction_semantics(tool_identity):
     """Only declared extraction semantics affect identity; build bytes are provenance."""
-    return {'snapshot_format': 3, 'parser_version': tool_identity.get('parser_version', PARSER_VERSION),
+    return {'snapshot_format': SNAPSHOT_FORMAT, 'parser_version': tool_identity.get('parser_version', PARSER_VERSION),
             'rule_version': tool_identity.get('rule_version', RULE_VERSION)}
 
 
@@ -441,7 +442,7 @@ def source_span_index(graph):
 
 
 def _snapshot_database_path(snapshot):
-    path = safe_relative(snapshot, "graph.sqlite")
+    path = managed_path(snapshot, "graph.sqlite")
     if not path.is_file():
         raise ValueError("Expected a regular snapshot output: graph.sqlite")
     for suffix in ("-wal", "-shm", "-journal"):
@@ -494,16 +495,9 @@ def _read_snapshot_file(path, copy_to, relative):
     return data
 
 
-def _hash_snapshot_output(root, relative, directory_fd, copy_to):
+def _hash_snapshot_output(relative, directory_fd, copy_to):
     name = relative.rpartition("/")[2]
-    try:
-        output = _open_regular_snapshot_file(name, dir_fd=directory_fd)
-    except OSError as exc:
-        if exc.errno != errno.ELOOP:
-            raise
-        # Older standalone stores may use links that resolve inside the snapshot.
-        output = _open_regular_snapshot_file(_safe_relative_to_resolved(root, relative))
-    with output:
+    with _open_regular_snapshot_file(name, dir_fd=directory_fd) as output:
         if copy_to is not None:
             digest = hashlib.sha256()
             with _snapshot_copy_path(copy_to, relative).open("xb") as destination:
@@ -532,9 +526,9 @@ def _validate_output_hashes(root, outputs, captured, required, copy_to):
                         if relative.startswith("/"):
                             raise ValueError("Expected a relative archive path")
                         if directory_fd is None:
-                            directory = _safe_relative_to_resolved(root, folder)
+                            directory = managed_path(root, folder)
                             directory_fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
-                        digest = _hash_snapshot_output(root, relative, directory_fd, copy_to)
+                        digest = _hash_snapshot_output(relative, directory_fd, copy_to)
                     if digest != output["sha256"]:
                         raise ValueError(f"Snapshot file changed: {relative}")
                     expected_digest = required.get(relative)
@@ -549,30 +543,67 @@ def _validate_output_hashes(root, outputs, captured, required, copy_to):
             raise ValueError(f"Required snapshot outputs missing: {', '.join(sorted(missing))}")
 
 
+def _validate_snapshot_span(node, span, text, lines):
+    start, end = span["char_start"], span["char_end"]
+    if not (0 <= start <= end <= len(text)) or text[start:end] != node["latex"]:
+        raise ValueError(f"Invalid source slice for {node['id']}")
+    if span["line_start"] != lines.line_at(start):
+        raise ValueError(f"Invalid start line for {node['id']}")
+    if span["line_end"] != lines.line_at(max(start, end - 1)):
+        raise ValueError(f"Invalid end line for {node['id']}")
+    if hash_text(node["latex"]) != node["content_sha256"]:
+        raise ValueError("Fragment hash mismatch")
+
+
+def _validate_snapshot_nodes(graph, sources, required):
+    source_lines = {}
+    nodes = {n["id"]: n for n in graph["nodes"]}
+    if len(nodes) != len(graph["nodes"]):
+        raise ValueError("Duplicate node IDs")
+    for node in nodes.values():
+        if span := node.get("source"):
+            path = span["path"]
+            text = sources[path]
+            if path not in source_lines:
+                source_lines[path] = SourceLines(text)
+            _validate_snapshot_span(node, span, text, source_lines[path])
+        if node["verification_status"] == "verified":
+            raise ValueError("This extractor must not claim mathematical verification")
+        if record_path := node.get("record_path"):
+            required.setdefault(record_path, None)
+        if fragment_path := node.get("fragment_path"):
+            fragment_hash = node["content_sha256"] if span else hash_text(node["latex"])
+            if required.setdefault(fragment_path, fragment_hash) != fragment_hash:
+                raise ValueError(f"Conflicting snapshot output bindings: {fragment_path}")
+    return nodes
+
+
 def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_hashes=None, copy_to=None):
     """Validate captured bytes, optionally writing them to a private staging directory."""
     from .validators import validate_graph_types
     snapshot = Path(snapshot)
     expected = expected_snapshot_id or snapshot.name
     output_root = snapshot.resolve()
-    manifest_path = _safe_relative_to_resolved(output_root, "manifest.json")
+    manifest_path = managed_path(output_root, "manifest.json")
     manifest_bytes = _read_snapshot_file(manifest_path, copy_to, "manifest.json")
     if manifest_hashes is not None:
         manifest_hash = hashlib.sha256(manifest_bytes).hexdigest()
         if expected in manifest_hashes and manifest_hashes[expected] != manifest_hash:
             raise SnapshotChanged("Snapshot manifest changed within the pinned session")
     manifest = strict_json_loads(manifest_bytes.decode("utf-8"), source=str(manifest_path))
-    graph_path = _safe_relative_to_resolved(output_root, "graph.json")
+    fingerprint = manifest["fingerprint_inputs"]
+    if not isinstance(fingerprint, dict) or fingerprint.get("snapshot_format") != SNAPSHOT_FORMAT:
+        raise ValueError("Unsupported snapshot format; rebuild from the source files")
+    graph_path = managed_path(output_root, "graph.json")
     graph_bytes = _read_snapshot_file(graph_path, copy_to, "graph.json")
     graph = strict_json_loads(graph_bytes.decode("utf-8"), source=str(graph_path))
     validate_graph_types(graph)
     if graph["snapshot_id"] != expected or manifest["snapshot_id"] != expected:
         raise ValueError("Snapshot identity mismatch")
-    fingerprint = manifest["fingerprint_inputs"]
     if hash_text(canonical(fingerprint)) != expected:
         raise ValueError("Snapshot fingerprint mismatch")
     config_relative = "inputs/parser_config.json"
-    config_path = _safe_relative_to_resolved(output_root, config_relative)
+    config_path = managed_path(output_root, config_relative)
     config_bytes = _read_snapshot_file(config_path, copy_to, config_relative)
     config = strict_json_loads(config_bytes.decode("utf-8"), source=str(config_path))
     source_hash = _project_source_hash(graph["entry"], manifest["source_files"], manifest["resources"], config)
@@ -582,50 +613,20 @@ def load_validated_snapshot(snapshot, expected_snapshot_id=None, *, manifest_has
     captured = {"graph.json": hashlib.sha256(graph_bytes).hexdigest(),
                 config_relative: hashlib.sha256(config_bytes).hexdigest()}
     sources = {}
-    source_root = _safe_relative_to_resolved(output_root, "sources")
+    source_root = managed_path(output_root, "sources")
     for source in manifest["source_files"]:
         path = source["path"]
         relative = "sources/" + path
-        raw = _read_snapshot_file(_safe_relative_to_resolved(source_root, path), copy_to, relative)
+        raw = _read_snapshot_file(managed_path(source_root, path), copy_to, relative)
         digest = hashlib.sha256(raw).hexdigest()
         if digest != source["sha256"]:
             raise ValueError("Source hash mismatch")
         sources[path] = raw.decode("utf-8")
         captured[relative] = digest
-    shared_sources = sources.keys() if fingerprint["snapshot_format"] >= 3 else ()
-    required = {("sources/" if row["path"] in shared_sources else "assets/") + row["path"]: row["sha256"]
+    required = {("sources/" if row["path"] in sources else "assets/") + row["path"]: row["sha256"]
                 for row in manifest["resources"]}
     required["graph.sqlite"] = None
-    source_lines = {}
-    nodes = {n["id"]: n for n in graph["nodes"]}
-    if len(nodes) != len(graph["nodes"]):
-        raise ValueError("Duplicate node IDs")
-    for node in nodes.values():
-        span = node.get("source")
-        if span:
-            path = span["path"]
-            text = sources[path]
-            start, end = span["char_start"], span["char_end"]
-            if not (0 <= start <= end <= len(text)) or text[start:end] != node["latex"]:
-                raise ValueError(f"Invalid source slice for {node['id']}")
-            if path not in source_lines:
-                source_lines[path] = SourceLines(text)
-            lines = source_lines[path]
-            if span["line_start"] != lines.line_at(start):
-                raise ValueError(f"Invalid start line for {node['id']}")
-            end_line = lines.line_at(max(start, end - 1))
-            if span["line_end"] != end_line:
-                raise ValueError(f"Invalid end line for {node['id']}")
-            if hash_text(node["latex"]) != node["content_sha256"]:
-                raise ValueError("Fragment hash mismatch")
-        if node["verification_status"] == "verified":
-            raise ValueError("This extractor must not claim mathematical verification")
-        if record_path := node.get("record_path"):
-            required.setdefault(record_path, None)
-        if fragment_path := node.get("fragment_path"):
-            fragment_hash = node["content_sha256"] if span else hash_text(node["latex"])
-            if required.setdefault(fragment_path, fragment_hash) != fragment_hash:
-                raise ValueError(f"Conflicting snapshot output bindings: {fragment_path}")
+    nodes = _validate_snapshot_nodes(graph, sources, required)
     if ('structure_recovery' in graph or 'structure_recovery_sha256' in fingerprint
             or graph['extraction_status'] == 'recovered_proposed'):
         _validate_recovered_structure(graph, fingerprint, sources, manifest['resources'])

@@ -214,40 +214,41 @@ class HumanTests(unittest.TestCase):
         self.assertIn('link: "https://example.org/paper"', next(iter(self.generated().values())).decode())
         self.assertFalse((self.root / '.qecgraph/human-pending.json').exists())
 
-    def test_legacy_tree_deleted_without_reading_notes_or_creating_backup(self):
+    def test_unsupported_history_does_not_touch_the_vault(self):
         release = self.ws.sync()['release_id']
         vault = self.root / 'human'
         (vault / 'notes').mkdir(parents=True)
         (vault / 'notes/private.md').write_bytes(b'never read this content')
         (vault / 'notes/linked').symlink_to(self.note)
         (vault / 'Index.md').write_text('old index')
-        atomic_json(self.root / '.qecgraph/human-published.json',
+        history = self.root / '.qecgraph/human-published.json'
+        atomic_json(history,
                     {'format': 'qecgraph.human', 'release_id': release, 'pages': [], 'entity_pages': {}})
+        recorded = history.read_bytes()
         from qecgraph.render.human import _read_regular
         def read(path, limit):
             self.assertFalse(Path(path).is_relative_to(vault))
             return _read_regular(path, limit)
         with patch('qecgraph.render.human._read_regular', side_effect=read):
             result = build_human(self.root, release)
-        self.assertEqual(result['status'], 'current', result)
-        self.assertEqual(list(self.generated()), ['2025/06/Lovelace_Surface_codes_thoughts.md'])
-        self.assertFalse((vault / 'notes').exists())
-        self.assertFalse(any('backup' in p.name for p in self.root.iterdir()))
+        self.assertEqual(result['status'], 'human_stale', result)
+        self.assertIn('Unsupported or invalid renderer history', result['error'])
+        self.assertEqual(history.read_bytes(), recorded)
+        self.assertEqual((vault / 'Index.md').read_text(), 'old index')
+        self.assertEqual((vault / 'notes/private.md').read_bytes(), b'never read this content')
+        self.assertTrue((vault / 'notes/linked').is_symlink())
+        self.assertEqual(list(vault.rglob('*_thoughts.md')), [])
         self.assertEqual(self.note.read_bytes(), b'private\x00note')
 
-    def test_legacy_migration_survives_failure_after_deletion(self):
+    def test_first_publication_recovers_from_pending_history(self):
         release = self.ws.sync()['release_id']
-        vault = self.root / 'human'
-        vault.mkdir()
-        (vault / 'Index.md').write_text('old index')
-        atomic_json(self.root / '.qecgraph/human-published.json',
-                    {'format': 'qecgraph.human', 'release_id': release, 'pages': [], 'entity_pages': {}})
         with patch('qecgraph.render.human.atomic_bytes', side_effect=OSError('interrupted publication')):
             self.assertEqual(build_human(self.root, release)['status'], 'human_stale')
-        with patch('qecgraph.render.human.shutil.rmtree', wraps=__import__('shutil').rmtree) as remove:
-            result = build_human(self.root, release)
-            self.assertEqual(result['status'], 'current', result)
-            self.assertFalse(any(args[0][0] == vault for args in remove.call_args_list))
+        pending = self.root / '.qecgraph/human-pending.json'
+        self.assertTrue(pending.is_file())
+        result = build_human(self.root, release)
+        self.assertEqual(result['status'], 'current', result)
+        self.assertFalse(pending.exists())
         self.assertEqual(len(self.generated()), 1)
 
     def test_unowned_vault_and_new_note_collision_are_not_overwritten(self):
@@ -286,7 +287,7 @@ class HumanTests(unittest.TestCase):
             self.assertEqual(build_human(self.root, newest)['status'], 'human_stale')
         self.assertEqual(len(written), 1)
         self.assertEqual(self.ws.registry.read()[1], newest)
-        status = WorkspaceSession(self.ws.registry.root).invoke('qec_workspace_status', {})['data']
+        status = WorkspaceSession(self.ws.registry.root).invoke('qec_status', {})['data']
         self.assertEqual(status['operational_status']['human']['status'], 'human_stale')
         self.assertEqual(self.note.read_bytes(), b'private\x00note')
         self.assertEqual(build_human(self.root, newest)['status'], 'current')

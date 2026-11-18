@@ -5,7 +5,7 @@
 - 先读 `README.md`、`docs/README.md` 和 `docs/design/DESIGN.md`。历史任务书和 P0–P5 验收不再作为当前规范。执行用户当前指定范围；范围内持续实现，不停在计划。
 - `docs/reviews/` 是永久保留的审核、回复与决策记录。文档过时、设计合并、项目清理或“删除无用文件”的一般要求，均不授权删除此目录及其内容；只有用户明确指定删除相应 review 文件时才能删除。保留记录不代表其中的旧结论是当前规范。
 - 先复现现有工具。测试命令是 `python -m unittest discover -s tests -v`，端到端命令是 `python tools/reproduce.py --out build/reproduce`。
-- 项目名 qec-graph，Python 包名 qecgraph。文件切割与图谱共用解析结果和来源模型。保持现有 CLI 的兼容性；破坏性变化必须提供迁移。
+- 项目名 qec-graph，Python 包名 qecgraph。文件切割与图谱共用解析结果和来源模型。保持现行公开命令的功能，记录入口变更和从权威来源重建的方式。
 - 当前代码支持单论文 store、版本注册表和工作区（当前协议见 `docs/design/DESIGN.md` §7）。不要将目录中路线图、模板或 Schema 设计误报为已实现功能。
 
 ## 工作区（DESIGN §7）
@@ -17,15 +17,15 @@
 - `human/YYYY/MM/一作姓_文章前两个词_thoughts.md` 每篇论文一份，文件名只取一作 last name。
   年月优先取归档包名的 arXiv YYMM（2611.12971 → 2026/11）；包名随机器 release 发布，
   渲染不读实时回执、不以包名改写论文身份。文件头依次是 tags/link/title/author，author 保留全名。
-  正文只含九问、回答及出处；状态放 `.qecgraph/`，个人笔记放 human 外。按已确认的迁移要求，
-  旧生成器管理的整个 human（包括旧 notes）直接删除，不读内容、不备份；不删除无管理记录的外部 vault。
+  正文只含九问、回答及出处；状态放 `.qecgraph/`，个人笔记放 human 外。清理仅限现行历史登记的生成笔记。
+  格式不受支持或没有管理记录的已有 vault 会保留文件，并报告渲染失败。
 
 ## 数据的权威来源
 
 - 原始论文/TeX/数据、人工整理的 JSON 记录与 sidecar、Lean 源码分别承担自己的权威字段。由它们生成的快照、SQLite、向量索引不可手改。
 - 同一个字段只有一个可编辑的权威来源。YAML 模板不能与 JSON 记录长期双向维护同一内容。
 - 保留原始资产、来源版本、哈希和稳定 ID。对象身份不等于内容哈希，不以 `[n,k,d]` 作为码的身份。
-- 历史 Schema 样例仅存于 Git 历史；必须通过显式导入器和迁移连接，不能将旧 JSON 当成新版 Schema。当前规范位于 `qecgraph/validators/schemas/`。
+- 历史 Schema 样例仅存于 Git 历史。派生数据从权威输入用现行流程重建。当前规范位于 `qecgraph/validators/schemas/`。
 
 ## 语义边界
 

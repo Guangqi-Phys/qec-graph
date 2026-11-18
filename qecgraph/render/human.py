@@ -1,12 +1,11 @@
 """Publish one Obsidian thoughts note per paper from a pinned machine release."""
 from __future__ import annotations
 
-import json
 from pathlib import Path
 import re
-import shutil
 import tempfile
 
+from ..core.graph import strict_json_loads
 from ..core.progress import phase, track
 from ..core.transactions import atomic_bytes, atomic_json, writer_lock
 from ..workspace import HEX, Workspace, now
@@ -15,7 +14,6 @@ from ..workspace_query import WorkspaceSession
 from .thoughts import render_pages
 
 FORMAT = 'qecgraph.human.thoughts'
-LEGACY_FORMAT = 'qecgraph.human'
 NOTE = re.compile(r'(?:[0-9]{4}|unknown)/(?:0[1-9]|1[0-2]|unknown)/[\w-]+_thoughts\.md')
 
 
@@ -29,24 +27,24 @@ def _operational(ws, release, human_status, last_release):
                                  'rendered_release_id': last_release}})
 
 
-
 def _history(ws, name):
     path = ws.path('.qecgraph/' + name + '.json')
-    if not path.exists():
-        return {'release_id': None, 'pages': [], 'retired': []}
-    data = json.loads(_read_regular(path, 20 << 20))
-    if (not isinstance(data, dict) or data.get('format') not in {FORMAT, LEGACY_FORMAT}
+    try:
+        raw = _read_regular(path, 20 << 20)
+    except FileNotFoundError:
+        return None
+    data = strict_json_loads(raw.decode('utf-8'), source=str(path))
+    if (not isinstance(data, dict) or data.get('format') != FORMAT
             or not isinstance(data.get('release_id'), str) or not HEX.fullmatch(data['release_id'])):
-        raise ValueError('Invalid renderer history')
-    if data['format'] == LEGACY_FORMAT:
-        # Legacy paths are never followed. The whole old human tree is removed
-        # during migration, including notes/, without reading private contents.
-        return data
-    for field in ('pages', 'retired'):
-        paths = data.get(field, [])
+        raise ValueError('Unsupported or invalid renderer history')
+    fields = {'pages', 'retired'} if name == 'human-pending' else {'pages'}
+    if set(data) != fields | {'format', 'release_id', 'work_pages'}:
+        raise ValueError('Invalid renderer history fields')
+    for field in fields:
+        paths = data[field]
         if not isinstance(paths, list) or any(not isinstance(p, str) or not NOTE.fullmatch(p) for p in paths):
             raise ValueError('Renderer history has an unowned path')
-    bindings = data.get('work_pages')
+    bindings = data['work_pages']
     if (not isinstance(bindings, dict) or set(bindings.values()) != set(data['pages'])
             or len(bindings) != len(data['pages']) or not all(isinstance(k, str) and k for k in bindings)):
         raise ValueError('Invalid renderer paper bindings')
@@ -77,14 +75,12 @@ def build_human(workspace=None, release=None):
         try:
             past = _history(ws, 'human-published')
             interrupted = _history(ws, 'human-pending')
-            last_release = past['release_id']
+            last_release = past['release_id'] if past else None
             _operational(ws, latest, 'human_stale', last_release)
-            histories = (past, interrupted)
-            current = [h for h in histories if h.get('format') == FORMAT]
-            legacy = not current and any(h.get('format') == LEGACY_FORMAT for h in histories)
-            previous = {p for h in current for p in [*h['pages'], *h.get('retired', [])]}
+            histories = [history for history in (past, interrupted) if history is not None]
+            previous = {p for h in histories for p in [*h['pages'], *h.get('retired', [])]}
             vault = ws.path('human')
-            if not current and not legacy and vault.exists() and any(vault.iterdir()):
+            if not histories and vault.exists() and any(vault.iterdir()):
                 raise ValueError('human/ contains files outside the renderer history')
             session = WorkspaceSession(ws.registry.root, latest)
             phase('Preparing Obsidian thoughts notes')
@@ -100,27 +96,19 @@ def build_human(workspace=None, release=None):
                 stage = Path(staging)
                 changed = set()
                 for relative, raw in track(pages.items(), 'Staging Obsidian notes', unit='notes'):
-                    if not legacy:
-                        destination = ws.path('human/' + relative)
-                        if relative not in previous and destination.exists():
-                            raise ValueError('A thought note would overwrite a file outside the renderer history')
-                        try:
-                            if _read_regular(destination, len(raw)) == raw:
-                                continue
-                        except (OSError, ValueError):
-                            pass
+                    destination = ws.path('human/' + relative)
+                    if relative not in previous and destination.exists():
+                        raise ValueError('A thought note would overwrite a file outside the renderer history')
+                    try:
+                        if _read_regular(destination, len(raw)) == raw:
+                            continue
+                    except (OSError, ValueError):
+                        pass
                     target = stage / relative
                     target.parent.mkdir(parents=True, exist_ok=True)
                     target.write_bytes(raw)
                     changed.add(relative)
-                if legacy and vault.exists():
-                    # User-requested migration: delete the old tree, no backup.
-                    # rmtree unlinks child symlinks; ws.path rejects a linked root.
-                    phase('Removing the managed legacy view')
-                    shutil.rmtree(vault)
                 vault.mkdir(parents=True, exist_ok=True)
-                # A new-format pending state also marks legacy deletion complete.
-                # Until it exists, an interrupted deletion is safe to retry.
                 atomic_json(ws.path('.qecgraph/human-pending.json'), {**state, 'retired': retired})
                 for relative in track(sorted(changed), 'Publishing Obsidian notes', unit='notes'):
                     atomic_bytes(ws.path('human/' + relative), (stage / relative).read_bytes())

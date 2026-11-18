@@ -348,8 +348,8 @@ class KnowledgeView:
                                    'status': edge.get('status'), 'preview': target.get('latex', '')[:240]})
         return {'macro_definitions': macros, 'referenced_targets': references[:10],
                 'omitted_count': omitted + max(0, len(references) - 10),
-                'interpretation': 'Literal declarations and reference previews; no expansion, scope resolution or proof inference. '
-                                  'Rebuild older snapshots to collect macro declarations.'}
+                'interpretation': 'Literal macro declarations and citation/reference previews. '
+                                  'Scope, expansion and proof validity are outside this view.'}
 
     def fetch_view(self, args):
         if args.get('view') != 'graph':
@@ -501,7 +501,7 @@ class KnowledgeView:
                 text = self.session.state['works'][node['provenance']['work_id']]['title']
             role = node.get('source_role')
             if node['kind'] == 'paragraph' and re.match(r'\s*\\(?:title|author|keywords|affiliation|email)\b', node.get('latex', '')):
-                role = 'metadata'  # Older snapshots predate typed title/author blocks.
+                role = 'metadata'  # Class-specific metadata macros can share a paragraph.
             units.append({**self.summary(node), 'source_role': role,
                           'passage_text': text,
                           'paper_title': self.papers[node['provenance']['source_version_id']]['title'],
