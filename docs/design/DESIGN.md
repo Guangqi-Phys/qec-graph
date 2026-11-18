@@ -261,7 +261,7 @@ Check weight always binds to the actual check-matrix representation and check se
 
 ### 4.4 Relations and edge states
 
-Source-graph edge validation lives in `qecgraph/validators/__init__.py`. Research relation fields are declared in the research schema, with target kinds mapped by `qecgraph.domain.research.RELATIONS`. Common edges:
+Source-graph kinds and edge contracts live in `qecgraph/core/relations.py` and are enforced by `qecgraph/validators/__init__.py`. Research relation fields are declared in the research schema, with target kinds mapped by `qecgraph.domain.research.RELATIONS`. Common edges:
 
 - structural: `contains`, `defined_in`, `includes`, `uses_resource`;
 - textual: `references`, `cites`, `describes`;

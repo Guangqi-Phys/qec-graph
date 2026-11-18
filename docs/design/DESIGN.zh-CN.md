@@ -279,7 +279,7 @@ scope（`stabilizer`/`gauge`/`measured`）和 min/max/mean/histogram。在 sympl
 
 ### 4.4 关系和边状态
 
-来源图边由 `qecgraph/validators/__init__.py` 校验。研究记录的关系字段由 research schema 声明，目标类型由 `qecgraph.domain.research.RELATIONS` 映射。
+来源图的节点类型和边契约定义在 `qecgraph/core/relations.py`，由 `qecgraph/validators/__init__.py` 校验。研究记录的关系字段由 research schema 声明，目标类型由 `qecgraph.domain.research.RELATIONS` 映射。
 常见边：
 
 - 结构：`contains`、`defined_in`、`includes`、`uses_resource`；

@@ -21,10 +21,14 @@ def module_imports(path):
 
 
 class ArchitectureBoundaryTests(unittest.TestCase):
-    def test_shared_services_do_not_depend_on_mcp_or_workspace_helpers(self):
-        for name in ('core/fs.py', 'core/errors.py', 'knowledge.py', 'knowledge_context.py', 'retrieval.py'):
+    def test_kernel_and_shared_services_do_not_import_higher_layers(self):
+        shared = ('core/fs.py', 'core/errors.py', 'knowledge.py', 'knowledge_context.py', 'retrieval.py')
+        boundaries = dict.fromkeys(shared, {'mcp.ai_tools', 'workspace'})
+        boundaries['retrieval.py'] = boundaries['retrieval.py'] | {'workspace_query'}
+        boundaries.update({'core/graph.py': {'validators'}, 'core/relations.py': {'validators'}})
+        for name, forbidden in boundaries.items():
             for module, _, line in module_imports(PACKAGE / name):
-                self.assertNotIn(module, {'mcp.ai_tools', 'workspace'}, f'{name}:{line}')
+                self.assertNotIn(module.removeprefix('qecgraph.'), forbidden, f'{name}:{line}')
 
     def test_runtime_package_does_not_import_development_layers(self):
         for path in PACKAGE.rglob('*.py'):
@@ -71,8 +75,6 @@ class ArchitectureBoundaryTests(unittest.TestCase):
             'qecgraph_search', 'qecgraph_show', 'qecgraph_context',
             'qecgraph_deps', 'qecgraph_impact',
         ))
-
-
 
     def test_default_discovery_collects_query_and_assembly_regressions(self):
         def ids(suite):
