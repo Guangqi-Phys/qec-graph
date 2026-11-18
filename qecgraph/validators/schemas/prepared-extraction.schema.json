@@ -90,6 +90,24 @@
         "latex": {"type": "string", "minLength": 1},
         "source_spans": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/span"}},
         "data": {"type": "object"}
+      },
+      "if": {"properties": {"kind": {"const": "code_parameters_mention"}}},
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["status", "notation", "values"],
+            "properties": {
+              "status": {"const": "candidate"},
+              "notation": {"enum": ["square_brackets", "double_square_brackets", "double_parentheses"]},
+              "values": {
+                "type": "array", "minItems": 3, "maxItems": 4,
+                "items": {"type": ["integer", "string"]}
+              }
+            }
+          }
+        }
       }
     },
     "span": {

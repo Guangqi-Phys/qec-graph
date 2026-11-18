@@ -40,6 +40,11 @@ _FLOATS = {
     "algorithm": "algorithm",
     "algorithmic": "algorithm",
 }
+_NOTATION = {
+    "sq": "double_square_brackets",
+    "round": "double_parentheses",
+    "single": "square_brackets",
+}
 
 
 class PreparedSource:
@@ -311,11 +316,19 @@ def _notation_units(source, units):
             if (a, b) in seen or (index >= 0 and blocked[index][1] > a):
                 continue
             seen.add((a, b))
+            form = match.lastgroup
+            values = [token.strip() for token in match[form].split(",")]
             yield _unit(
                 source,
                 f"notation:{a}:{b}",
                 "code_parameters_mention",
                 None,
                 [a, b],
-                {"status": "candidate", "notation": match.lastgroup},
+                {
+                    "status": "candidate",
+                    "notation": _NOTATION[form],
+                    "values": [
+                        int(value) if value.isdecimal() else value for value in values
+                    ],
+                },
             )

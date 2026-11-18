@@ -77,6 +77,7 @@ class PreparedExtractionTests(unittest.TestCase):
         self.assertEqual(
             units["code_parameters_mention"]["data"]["status"], "candidate"
         )
+        self.assertEqual(units["code_parameters_mention"]["data"]["values"], [7, 1, 3])
         self.assertEqual(units["statement"]["source_spans"][0]["path"], "body.tex")
         for row in extracted["units"]:
             start, end = row["entry_range"]
