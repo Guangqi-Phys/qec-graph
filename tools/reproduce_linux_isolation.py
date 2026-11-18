@@ -57,7 +57,9 @@ def _workspace(root):
     inbox.mkdir()
     (inbox / 'sample.tex').write_text(
         '\\documentclass{article}\n\\begin{document}\n' + PHRASE + '\n\\end{document}\n', encoding='utf-8')
-    result = json.loads(_run([sys.executable, '-I', '-m', 'qecgraph', 'init', '--json', '--no-human'], cwd=root))
+    cli = [sys.executable, '-I', '-m', 'qecgraph']
+    _run([*cli, 'init', '--json'], cwd=root)
+    result = json.loads(_run([*cli, 'sync', '--json', '--no-human'], cwd=root))
     if result['status'] != 'published' or result['counts']['processed'] != 1:
         raise RuntimeError('Fixture ingestion did not publish one source')
     notes = root / 'human/notes'
@@ -80,8 +82,8 @@ def _requests():
         {'id': 1, 'method': 'initialize', 'params': {'protocolVersion': '2025-06-18', 'capabilities': {},
                                                     'clientInfo': {'name': 'linux-isolation-replay', 'version': '1'}}},
         {'method': 'notifications/initialized'},
-        {'id': 2, 'method': 'tools/call', 'params': {'name': 'qecgraph_search', 'arguments': {'query': PHRASE}}},
-        {'id': 3, 'method': 'tools/call', 'params': {'name': 'qecgraph_search', 'arguments': {'query': CANARY}}},
+        {'id': 2, 'method': 'tools/call', 'params': {'name': 'qec_search', 'arguments': {'query': PHRASE}}},
+        {'id': 3, 'method': 'tools/call', 'params': {'name': 'qec_search', 'arguments': {'query': CANARY}}},
         {'id': 4, 'method': 'resources/read', 'params': {'uri': 'file:///human/notes/private.md'}},
     ]
     return ''.join(json.dumps({'jsonrpc': '2.0', **message}) + '\n' for message in messages)

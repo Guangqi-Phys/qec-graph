@@ -37,12 +37,14 @@ def verify(python, root):
     inbox = root / 'inputs'
     inbox.mkdir()
     (inbox / 'fixture').write_bytes(b'\\documentclass{article}\n\\begin{document}\nIsolation fixture\n\\end{document}\n')
-    initial = subprocess.check_output([str(python), '-I', '-B', '-m', 'qecgraph', 'init', '--json'],
-                                      cwd=root, text=True, timeout=30)
-    initialized = json.loads(initial)
-    assert initialized['human']['status'] == 'current'
-    release = initialized['release_id']
+    cli = [str(python), '-I', '-B', '-m', 'qecgraph']
+    initialized = json.loads(subprocess.check_output([*cli, 'init', '--json'], cwd=root, text=True, timeout=30))
+    assert initialized['status'] == 'initialized'
+    synced = json.loads(subprocess.check_output([*cli, 'sync', '--json'], cwd=root, text=True, timeout=30))
+    assert synced['counts']['processed'] == 1 and synced['human']['status'] == 'current'
+    release = synced['release_id']
     private = root / 'human/notes/private.md'
+    private.parent.mkdir()
     private.write_text('ISOLATION-PROBE-43af', encoding='utf-8')
     machine = root / 'machine'
     cmd = command(python, machine)
@@ -53,7 +55,7 @@ def verify(python, root):
         {'id': 1, 'method': 'initialize', 'params': {'protocolVersion': '2025-06-18', 'capabilities': {},
                                                     'clientInfo': {'name': 'isolation-replay', 'version': '1'}}},
         {'method': 'notifications/initialized'},
-        {'id': 2, 'method': 'tools/call', 'params': {'name': 'qecgraph_search', 'arguments': {'query': 'Isolation fixture'}}},
+        {'id': 2, 'method': 'tools/call', 'params': {'name': 'qec_search', 'arguments': {'query': 'Isolation fixture'}}},
     ]
     result = subprocess.run([*cmd, '-m', 'qecgraph', 'mcp', 'serve', '--machine', str(machine), '--release', release], cwd=root,
                             input=''.join(json.dumps({'jsonrpc': '2.0', **r}) + '\n' for r in requests),
