@@ -21,3 +21,30 @@
 4. 以可核实的失败样本推进后续改进。准备和工作区的桥接需先确定发布协议、源包绑定、具体投影和失败恢复。候选查询需要显式 opt-in 和可复查引用。存储改造需量化每类副本占用并核查读取端和回滚。科学 `Usable` 门禁需要独立人工标注，当前无此证据。
 
 工作区的评测只使用已登记机器数据的副本，固定 release，关闭模型。原始来源按字节验证。修改中的排序与评测工具可随代码回滚，无数据迁移。独立记录本次实测、遗漏和环境限制。
+
+## 首批整改与复核记录
+
+实现由 `3701a99` 开始，文档与入口校验由 `31ff0d2` 补齐。恢复三个漏测用例，PTY 动画以输出事件同步。容器入口改用已安装的 `qec-graph`。新增 Linux 原生 TeX 与容器 CI 作业，现有矩阵保留分支覆盖率门禁和 XML 工件。准备阶段的内部 `KeyError`、`TypeError` 和 `AttributeError` 继续向上报告，故障注入确认先前的 ready 发布可读取。公开工具 schema 已拒绝 `coordinate: null`，因此报告 02 所述的公开调用异常未复现。实现仍显式校验坐标选择，CLI 保留诊断编号。
+
+| 检查 | 整改前 | 整改后 |
+| --- | --- | --- |
+| 本机 `python -m unittest discover -s tests -v` | 582 项，12 跳过 | 589 项，默认 11 项真实 TeX 测试跳过，隔离探针通过。设置 `QECGRAPH_TEST_TEX=1` 后 589 项全部通过 |
+| `python tools/reproduce.py --out build/full-pipeline-remediation/reproduce` | 4 源文件、29 片段、36 节点、99 边 | 同一结构计数，11 个搜索命中、16 个上下文节点，发布校验通过 |
+| 五篇、八道检索工程题 | BM25 Recall@5/10 均为 0.875，MRR@10 为 0.750，`correlated-rankings` 在前十之外 | Recall@5/10 均为 1.000，MRR@10 为 0.775，该题第 5 名。两次运行的工具错误均为 0 |
+| 五篇知识读取 | 10 探针、50 调用、0 失败 | 同前 |
+| 34 篇知识读取 | 67 探针、335 调用，2 次全文预算拒绝计为失败 | 仍记录两次预算拒绝，`baseline_errors` 为 0，退出码为 0 |
+| 48 项准备回放和 20 个语法探针 | 44 ready、3 partial、1 failed，46 项编译及来源保真检查通过 | 计数相同，20/20 探针通过，48/48 稳定材料对照一致。新验收报告的 `--check` 通过 |
+
+复核使用 macOS arm64、项目 Python 3.15.2、TeX Live 2026。准备回放前后为 `1c800aa` 和 `e1bcbc9`，共用输入清单 SHA-256 `153f4e78fc1546f8d6f5bd883e4c45f0a6967e6ca17ca712ffaa16b05d92a35b`。失败项为 PDF 反例 `1208.0928v1`、原生 TeX 编译错误 `1804.03719v1`，以及 BBL 不兼容的 `2303.15933v1` 与 `2605.30298v1`。规范化重编译和 PDF 文本比对两次均有 46 项通过。本次报告和旧报告分别绑定生成时的代码哈希。新报告为 `preparation-reviewed-acceptance.json`，SHA-256 为 `ac58c4f5c5d93bee011b9a5923b44a8001ba12395c0b4e02ac117cc5479fc7a7`。
+
+从旧机器副本读取已登记的来源与资源，根据快照清单逐项核对 SHA-256 后，在隔离目录重新打包并离线导入。重建得到新 release `203427876de57e2cc9af9dbf3268caf1e4a33e1388c713cc41ca07ddd39b9b61`。在评测用副本中按旧新版本对应关系替换来源版本 ID，沿用文件哈希与字符范围。前后比较共用这份新 release 与题集哈希 `7318aaac0ba34ef16e0f1cd8d622a0e8e32995c8804b2aadf3c44d6fc40c030f`。已登记旧 release 和冻结题集保留原样。
+
+34 篇对照固定为 `b694c0858805f07d238806260576463c6d98e4cce46d7927f227bb9bad68e1fc`。报告 02 的 bivariate bicycle 探针两次都有 1,733 条命中，目标论文在前十中均占两席。排序回归已覆盖全词优先，前十相关性仍需独立标签。该 release 有 271 条码参数提及和 34 条论文记录，两项严格 DataGraph 查询均为 0。machine 占盘约 314 MiB，其中来源快照约 312 MiB。按文件逻辑字节计，快照中的 `graph.sqlite` 共 72.71 MiB，三种图视图 JSON 共 46.09 MiB，`nodes/` 共 28.02 MiB。瘦身前需核对快照完整性验证和各读者依赖。
+
+本地日志、评测 JSON、机器重建映射及当前准备验收报告在 `build/full-pipeline-remediation/`。已实跑 Ruff、mypy、Pyright、复杂度、覆盖率、Markdown、wheel/sdist、MCP 及工作区复现。MCP 复现 7 项通过，本机默认分支覆盖率报告为 84.68%。Docker 研究 Compose 使用本地 Python 3.13 基础镜像完成了入口和切割测试，远端作业也用默认镜像通过。
+
+Linux CI 暴露了本机基线之外的两个问题。模拟编译的冻结字节测试依赖宿主的 Poppler 探测，现在从测试固定该探测结果。真实 TeX 作业则验证了 Debian BibTeX 的 alternatives 路径、Harvmac 的 DVI 转 PDF，以及系统 TeX 树中 Harvmac 依赖的哈希绑定。CI 逐字节校验 Harvmac 上游下载，12 项隔离测试全部通过。Python 3.11/3.13 的四个 Linux 和 macOS 矩阵作业，以及 Compose 作业也通过。 [CI 运行](https://github.com/Guangqi-Phys/qec-graph/actions/runs/44255105223) · [Harvmac 上游](https://www.ctan.org/pkg/harvmac)
+
+## 后续验收
+
+准备材料接入工作区、带原文定位的 DataGraph 候选、快照瘦身和全仓类型收紧留在后续批次。旧 release 需要对应历史读者或权威来源重建。科学可用性、真实模型质量和 Lean 验证缺少本次验收证据。

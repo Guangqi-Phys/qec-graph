@@ -58,6 +58,10 @@ projections, normalized recompilation and pass counts. These are mechanical
 preparation checks. The fixed machine-copy research evaluation remains blocked by
 its registry schema.
 
+The full-pipeline remediation review records the new preparation replay and a
+source-only rebuild of the five-paper retrieval evaluation on a current release.
+[Full-pipeline remediation evidence](../docs/reviews/review-2026-11-18-full-pipeline-evaluation/03-remediation-plan.zh-CN.md)
+
 [The holdout manifest](preparation_holdout.json) freezes eight additional public
 inputs from the arXiv June 2024 Quantum Physics index. Put the manifest beside a
 `packages/` directory containing the downloads from its recorded URLs and verify

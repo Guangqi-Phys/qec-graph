@@ -46,6 +46,9 @@ manifest 哈希，已有的 ready 发布可以继续保留。
 已验证投影、规范化重编译和编译轮数。这些是机械准备检查。固定 machine 副本的研究评测
 仍因注册表 schema 不兼容受阻。
 
+本轮全流程整改记录了最新准备回放，以及将五篇机器副本来源离线重建到现行版本后的检索评测。
+[全流程整改证据](../docs/reviews/review-2026-11-18-full-pipeline-evaluation/03-remediation-plan.zh-CN.md)
+
 [留出样本清单](preparation_holdout.json)冻结 arXiv 2024 年 6 月量子物理月榜上的八个公开
 输入。将清单放在下载目录的 `packages/` 旁，按其中的 URL 下载并校验哈希后回放。
 [后续评审](../docs/reviews/review-2026-11-17-compile-prepare-testing/10-preparation-follow-up.zh-CN.md)
