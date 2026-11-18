@@ -85,6 +85,8 @@ flowchart TD
 - [2026-11-17 原生方言、字节投影和分项能力（05）](reviews/review-2026-11-17-compile-prepare-testing/05-native-dialects-byte-projection-and-capabilities.zh-CN.md)
 - [2026-11-17 保留引用歧义的准备验收（06）](reviews/review-2026-11-17-compile-prepare-testing/06-preserved-reference-ambiguity-acceptance.zh-CN.md)
 - [2026-11-17 准备层架构与行为保持验收（07）](reviews/review-2026-11-17-compile-prepare-testing/07-preparation-architecture-and-behavior-preservation.zh-CN.md)
+- [准备层读取路径与声明证据（08）](reviews/review-2026-11-17-compile-prepare-testing/08-read-path-optimization-and-declaration-evidence.zh-CN.md)
+- [2026-11-18 准备层修复、测量与留出验证（10）](reviews/review-2026-11-17-compile-prepare-testing/10-preparation-follow-up.zh-CN.md)
 
 当前文档树没有重定向页或归档页。被替代的设计页和用户指南保留在 Git history 中。
 带日期的评审、回复与决策记录永久保留在 `docs/reviews/`，不得在文档或项目清理中删除。

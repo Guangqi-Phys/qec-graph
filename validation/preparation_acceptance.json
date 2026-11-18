@@ -1,7 +1,7 @@
 {
-  "bibliography_complete": 46,
+  "bibliography_complete": 44,
   "body_syntax_complete": 46,
-  "code_revision": "bf5a577f0d0eb046dadb5ab7c6ed5a5736e04053",
+  "code_revision": "cb371296d91d04ed89c4dd715543eb72cb657df4",
   "comparison": {
     "after": {
       "compiled": 46,
@@ -9,11 +9,11 @@
       "normalized_recompiled": 46,
       "normalized_text_equal": 46,
       "papers": 48,
-      "partial": 1,
-      "ready": 46,
+      "partial": 3,
+      "ready": 44,
       "source_fidelity": 46
     },
-    "baseline_code_revision": "6056c6a67b695218ba6d00d19dbdb6d4e4369264",
+    "baseline_code_revision": "9bd6e7347e5c514f3b705b6d44dfbd5eac5ef579",
     "baseline_rule_version": "compile-prepare-v19",
     "before": {
       "compiled": 46,
@@ -25,9 +25,12 @@
       "ready": 46,
       "source_fidelity": 46
     },
-    "gate_change_note": "The versioned preparation gate is unchanged. Counts alone do not establish behavior preservation; compare retained syntax, source mappings, references and failure outcomes. No scientific extraction quality is evaluated.",
+    "gate_change_note": "The preparation rule version changed. Inspect the status transitions and retained evidence under both versions before comparing readiness.",
     "newly_ready": [],
-    "ready_regressions": []
+    "ready_regressions": [
+      "2303.15933v1",
+      "2605.30298v1"
+    ]
   },
   "counts": {
     "compiled": 46,
@@ -35,17 +38,17 @@
     "normalized_recompiled": 46,
     "normalized_text_equal": 46,
     "papers": 48,
-    "partial": 1,
-    "ready": 46,
+    "partial": 3,
+    "ready": 44,
     "source_fidelity": 46
   },
   "criteria": "Native compilation, complete supported source syntax and bibliography bindings, exact source mapping, and normalized syntax/recompilation. Cross-references may remain ambiguous with all known candidates preserved; missing targets still block ready. Observed guards additionally require matching instrumented PDF text and validated native log evidence. Ready is not unique cross-reference resolution, portability or scientific correctness.",
-  "date": "2026-11-17T08:49:27.395585+00:00",
+  "date": "2026-11-18T01:08:56.381012+00:00",
   "generator": {
     "baseline": {
-      "commit": "6056c6a67b695218ba6d00d19dbdb6d4e4369264",
+      "commit": "9bd6e7347e5c514f3b705b6d44dfbd5eac5ef579",
       "path": "validation/preparation_acceptance.json",
-      "sha256": "2699ddcbaccbb4ada3b672f4239918eff6b8607bc3fb3df39c4d2b928cdf2caf"
+      "sha256": "8e8a59a81e1dcbcba05b861f8974e1347d0d7ea110613f73ee9b0aa0b821222b"
     },
     "command": "tools/report_preparation.py"
   },
@@ -56,8 +59,8 @@
     "tex_inputs": 47
   },
   "machine_evaluation": {
-    "evidence_path": "build/preparation-08/machine-evaluation.json",
-    "evidence_sha256": "a5b2e396c4a3c96aa5690ee2fa92e1de914db39c1662838da4036b03123eba84",
+    "evidence_path": "build/preparation-followup/machine-evaluation.json",
+    "evidence_sha256": "a125322de3d7c4a31ea91cd858bd6476f07c22322dd76d2294f315707cf7a516",
     "result": {
       "accepted": false,
       "command": [
@@ -68,20 +71,20 @@
         "--release",
         "aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22",
         "--out",
-        "build/preparation-08/machine-evaluation-raw.json"
+        "build/preparation-followup/machine-evaluation-raw.json"
       ],
       "error": "Traceback (most recent call last):\n  File \"/Users/guangqi/Workspace/qec-graph/tools/reproduce_knowledge.py\", line 155, in <module>\n    raise SystemExit(main())\n                     ~~~~^^\n  File \"/Users/guangqi/Workspace/qec-graph/tools/reproduce_knowledge.py\", line 140, in main\n    session = WorkspaceSession(args.machine, args.release, profile='research', max_chars=1000000)\n  File \"/Users/guangqi/Workspace/qec-graph/qecgraph/workspace_query.py\", line 45, in __init__\n    self.state, self.release = self.registry.read(release_id, verify=False)\n                               ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/guangqi/Workspace/qec-graph/qecgraph/registry.py\", line 83, in read\n    raise ManagedDataError(state_path, 'Registry state schema mismatch')\nqecgraph.core.transactions.ManagedDataError: Registry state schema mismatch: /Users/guangqi/Workspace/qec-graph/build/preparation-v10/machine-copy/states/aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22.json\n",
       "exit": 1,
+      "fixed_copy_state_unchanged": true,
       "fixed_state_sha256": "e9cccd58ebfbbea1a8539d7198c3640a385bdfb2f5bfef95534b74d794cc8a60",
       "model_calls": 0,
-      "original_machine_state_unchanged_and_equal": true,
       "release": "aabc5ef397e0300bc085ea687c8beb2a12ea82080f7d0536cd609f661ff5fa22",
       "status": "blocked_registry_schema"
     }
   },
   "model_calls": 0,
   "nonempty_syntax_bundles_validated": 46,
-  "normalization_complete": 46,
+  "normalization_complete": 44,
   "normalization_files": 46,
   "original_bundles_validated": 47,
   "preserved_reference_ambiguity": [
@@ -108,7 +111,6 @@
     "2207.06431v1",
     "2209.01119v1",
     "2209.05640v1",
-    "2303.15933v1",
     "2308.02321v1",
     "2308.07915v1",
     "2308.07915v2",
@@ -124,7 +126,6 @@
     "2605.29137v1",
     "2605.29554v1",
     "2605.29774v1",
-    "2605.30298v1",
     "2606.00045v1",
     "2606.30447v1",
     "2607.00222v1",
@@ -139,6 +140,9 @@
   ],
   "remaining_partial": [
     {
+      "bibliography_runtime": null,
+      "bibliography_structure_complete": false,
+      "build_convergence": null,
       "diagnostic_codes": [
         "compile_failed"
       ],
@@ -148,6 +152,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 2,
+      "material": "1804.03719v1",
+      "material_manifest_sha256": "47454cf9b0d9f17ca138ffc102f3212011a1c062bc36b5a6af1804eb78e1ceed",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -161,6 +167,8 @@
         "transformations": null
       },
       "normalization_file": false,
+      "normalized_bibliography_runtime": null,
+      "normalized_convergence": null,
       "package_sha256": "6d8398d5b0712b696ea25a5801b5cb950e82d57aa32c3f82a91ca5f7400d0039",
       "paper": "1804.03719v1",
       "preparation_capabilities": {
@@ -190,6 +198,292 @@
       "unmapped_conditions": [],
       "unresolved_cross_references": [],
       "warnings": []
+    },
+    {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [
+          "main.bbl"
+        ],
+        "log_sha256": "e831ffa642c31b6fffb783807a549464f5ee127fc9792bf1bfac46689ac0fa05",
+        "status": "incompatible_bbl",
+        "undefined_keys": [
+          "Chao2020optimizationof",
+          "Delfosse2021almostlineartime",
+          "Gidney2021faulttolerant",
+          "Gidney2021stimfaststabilizer",
+          "ahuja1990faster",
+          "berge1957two",
+          "bravyi2014efficient",
+          "das2020scalable",
+          "delfosse2020linear",
+          "dennis2002topological",
+          "edmonds1965maximum",
+          "edmonds1965paths",
+          "edmonds1973matching",
+          "fowler2012towards",
+          "fowler2013minimum",
+          "fowler2013optimal",
+          "galil1986efficient",
+          "gidney2020decorrelated",
+          "google2023suppressing",
+          "google_quantum_ai_team_2022_6804040",
+          "higgott2022fragile",
+          "higgott2022pymatching",
+          "huang2020fault",
+          "kolmogorov2009blossom",
+          "korte2011combinatorial",
+          "liyanage2023scalable",
+          "matouvsek2007understanding",
+          "mcewen2023relaxing",
+          "meinerz2022scalable",
+          "menshikov1986coincidence",
+          "qecsim",
+          "skoric2022parallel",
+          "sundaresan2022matching",
+          "tan2022scalable",
+          "terhal2015quantum",
+          "torlai2017neural",
+          "tutte1947factorization",
+          "wu2022fusionblossom",
+          "wu2022interpretation"
+        ]
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": true,
+        "status": "pass_limit",
+        "tex_passes": 3
+      },
+      "diagnostic_codes": [
+        "bibliography_runtime_failed",
+        "normalized_latex_roundtrip_failed"
+      ],
+      "engine": "pdflatex",
+      "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
+      "entry": "main.tex",
+      "entry_selection": "automatic",
+      "environment_declaration_count": 0,
+      "exit": 2,
+      "material": "2303.15933v1",
+      "material_manifest_sha256": "61ebff1e0d2bd728b49d372749a39e044feb270feb911939bdc23fbd73bd94c3",
+      "native_guard_view": {
+        "observed_guards": 0,
+        "verified": false
+      },
+      "nodes": 7878,
+      "normalization": {
+        "complete": false,
+        "native_compile": "complete",
+        "pdf_text": "equal",
+        "syntax_parse": "complete",
+        "transformations": {
+          "math_delimiter": 2052
+        }
+      },
+      "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [
+          "main.bbl"
+        ],
+        "log_sha256": "e64adde42d33d9858adacca6b698987467d709223290139f8dd47268532f1b3c",
+        "status": "incompatible_bbl",
+        "undefined_keys": [
+          "Chao2020optimizationof",
+          "Delfosse2021almostlineartime",
+          "Gidney2021faulttolerant",
+          "Gidney2021stimfaststabilizer",
+          "ahuja1990faster",
+          "berge1957two",
+          "bravyi2014efficient",
+          "das2020scalable",
+          "delfosse2020linear",
+          "dennis2002topological",
+          "edmonds1965maximum",
+          "edmonds1965paths",
+          "edmonds1973matching",
+          "fowler2012towards",
+          "fowler2013minimum",
+          "fowler2013optimal",
+          "galil1986efficient",
+          "gidney2020decorrelated",
+          "google2023suppressing",
+          "google_quantum_ai_team_2022_6804040",
+          "higgott2022fragile",
+          "higgott2022pymatching",
+          "huang2020fault",
+          "kolmogorov2009blossom",
+          "korte2011combinatorial",
+          "liyanage2023scalable",
+          "matouvsek2007understanding",
+          "mcewen2023relaxing",
+          "meinerz2022scalable",
+          "menshikov1986coincidence",
+          "qecsim",
+          "skoric2022parallel",
+          "sundaresan2022matching",
+          "tan2022scalable",
+          "terhal2015quantum",
+          "torlai2017neural",
+          "tutte1947factorization",
+          "wu2022fusionblossom",
+          "wu2022interpretation"
+        ]
+      },
+      "normalized_convergence": {
+        "rerun_requested": true,
+        "status": "pass_limit",
+        "tex_passes": 3
+      },
+      "package_sha256": "caad7becc67a31426b5d8d7547779be24fa645dcdc24141434501c2b33cfa2f1",
+      "paper": "2303.15933v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "partial",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
+      "reasons": [],
+      "source_dialect": null,
+      "source_fidelity": true,
+      "source_projection_verified": false,
+      "source_tree_sha256": "660930ccd3405e98d7b7a449585e163fb11dee8020feca405b6c778f760ac21e",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "normalized_latex": "partial",
+        "references": "partial",
+        "source_fidelity": "checked_at_publication"
+      },
+      "status": "partial",
+      "unmapped_conditions": [],
+      "unresolved_cross_references": [],
+      "warnings": []
+    },
+    {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [
+          "cohomology-moduli-stack-real-bundles.bbl"
+        ],
+        "log_sha256": "69177c05db2a8416f74fa62e5f98049f351c0a20bd6cf2c963d7b14071ac751e",
+        "status": "incompatible_bbl",
+        "undefined_keys": [
+          "arXiv:1612.08487",
+          "zbMATH01565334",
+          "zbMATH02187053",
+          "zbMATH02681780",
+          "zbMATH02714346",
+          "zbMATH03183062",
+          "zbMATH03235829",
+          "zbMATH03468033",
+          "zbMATH03803614",
+          "zbMATH03845739",
+          "zbMATH04210331",
+          "zbMATH05605320",
+          "zbMATH05827280",
+          "zbMATH05831562",
+          "zbMATH06141803",
+          "zbMATH06272210",
+          "zbMATH06355665",
+          "zbMATH06791174",
+          "zbMATH07144072"
+        ]
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": true,
+        "status": "pass_limit",
+        "tex_passes": 3
+      },
+      "diagnostic_codes": [
+        "bibliography_runtime_failed",
+        "normalized_latex_roundtrip_failed"
+      ],
+      "engine": "pdflatex",
+      "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
+      "entry": "cohomology-moduli-stack-real-bundles.tex",
+      "entry_selection": "automatic",
+      "environment_declaration_count": 0,
+      "exit": 2,
+      "material": "2605.30298v1",
+      "material_manifest_sha256": "5533d5bfe7ce404c5267e1197ae22b8581c292f1cc2aa48e90dc9b6f81af364e",
+      "native_guard_view": {
+        "observed_guards": 0,
+        "verified": false
+      },
+      "nodes": 8005,
+      "normalization": {
+        "complete": false,
+        "native_compile": "complete",
+        "pdf_text": "equal",
+        "syntax_parse": "complete",
+        "transformations": {
+          "math_delimiter": 1118
+        }
+      },
+      "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [
+          "cohomology-moduli-stack-real-bundles.bbl"
+        ],
+        "log_sha256": "69177c05db2a8416f74fa62e5f98049f351c0a20bd6cf2c963d7b14071ac751e",
+        "status": "incompatible_bbl",
+        "undefined_keys": [
+          "arXiv:1612.08487",
+          "zbMATH01565334",
+          "zbMATH02187053",
+          "zbMATH02681780",
+          "zbMATH02714346",
+          "zbMATH03183062",
+          "zbMATH03235829",
+          "zbMATH03468033",
+          "zbMATH03803614",
+          "zbMATH03845739",
+          "zbMATH04210331",
+          "zbMATH05605320",
+          "zbMATH05827280",
+          "zbMATH05831562",
+          "zbMATH06141803",
+          "zbMATH06272210",
+          "zbMATH06355665",
+          "zbMATH06791174",
+          "zbMATH07144072"
+        ]
+      },
+      "normalized_convergence": {
+        "rerun_requested": true,
+        "status": "pass_limit",
+        "tex_passes": 3
+      },
+      "package_sha256": "f180d4f1b277f4d4e73ff08dc8a25fc9953b8dbf17da51e83a4098c88eca173b",
+      "paper": "2605.30298v1",
+      "preparation_capabilities": {
+        "bibliography_bindings": "partial",
+        "body_syntax": "complete",
+        "cross_reference_bindings": "complete",
+        "cross_reference_preparation": "complete",
+        "schema": "qecgraph.preparation_capabilities/1",
+        "scope": "Preparation syntax only; no scientific extraction or semantic validation",
+        "unresolved_cross_references": []
+      },
+      "reasons": [],
+      "source_dialect": null,
+      "source_fidelity": true,
+      "source_projection_verified": false,
+      "source_tree_sha256": "929f6b316151ad0ebeece3e135351f7b1dfce32f53821bdc1fbb28312f9fb4d0",
+      "stages": {
+        "compile": "complete",
+        "conversion": "complete",
+        "normalized_latex": "partial",
+        "references": "partial",
+        "source_fidelity": "checked_at_publication"
+      },
+      "status": "partial",
+      "unmapped_conditions": [],
+      "unresolved_cross_references": [],
+      "warnings": []
     }
   ],
   "replay": {
@@ -199,7 +493,7 @@
       "--manifest",
       "test-sources/arxiv-sources/manifest.json",
       "--out",
-      "build/preparation-08/final",
+      "build/preparation-followup/final",
       "--entries",
       "validation/preparation_entries.json",
       "--support-dir",
@@ -212,7 +506,7 @@
       "2"
     ],
     "cases_sha256": "f0b3a3b8cf7a4f8641bd48db14cc1255a4637cdd5f111e604cb7685a6363fbbd",
-    "code_revision": "bf5a577f0d0eb046dadb5ab7c6ed5a5736e04053",
+    "code_revision": "cb371296d91d04ed89c4dd715543eb72cb657df4",
     "entries_sha256": "8e180d1330e36ebcd69f4d447efd43d789caa22ee11b1591c63f015eaf920a74",
     "execution_sources": {
       "qecgraph/__init__.py": "5164f48c394fbae38de8081269c4e4e15bd74ca8bc28368280c5a6d7c27f3918",
@@ -274,36 +568,38 @@
       "qecgraph/mcp/ai_tools.py": "88f825a441bc35d010faee59dd26125cc4d0a2883667eb250cc1bf2285b65700",
       "qecgraph/mcp/server.py": "f360de382149ba26bfe889d9a3c152f07999acb952108f270d9caedcbe27a6d0",
       "qecgraph/mcp_server.py": "60c1815f39ca5185ce5dd26cd90b010745a6c594a0dee07bdbb234d0acb00b2b",
-      "qecgraph/preparation/__init__.py": "5ada7f26fcee67decbc8e8f6d08709bef321fa59f3255b5835291f5e9b3a5e7d",
-      "qecgraph/preparation/acceptance.py": "73cd192cc0531e806b81b1e15ca56cdee79130576ffcb6dcb83c38a424f8b96c",
-      "qecgraph/preparation/artifacts.py": "4de60b151f1f920e7cc744bb1a287b4f9a3cb7162d51778ef15702dd7cbe3dd1",
+      "qecgraph/preparation/__init__.py": "e50af2f4bf68f7c63bfc87a27f9b6e7b687a02c63960832293e5e22e813c9a81",
+      "qecgraph/preparation/acceptance.py": "f4f63eaf2a67b25999484dac476825f5195dd6bb0776414396609be41bbf0264",
+      "qecgraph/preparation/artifacts.py": "d714ef2247b244538faec13e04af0b577016fb62097ad33a4324290b216faaa2",
+      "qecgraph/preparation/bibliography_runtime.py": "14c89201ebd4de7e4c830ddbbad580f7ab55135cebaf9f1fd6574c03e5569fb0",
       "qecgraph/preparation/branches.py": "af755328992d9ceeb1dc67c975f1a45e30a70a92440135e8931b3817a2023384",
-      "qecgraph/preparation/build.py": "b62d7f19309be8735c6c147ee9d8e30ac56883a2aac2f1d7711be90b423b4f76",
-      "qecgraph/preparation/build_view.py": "04ee278785999b945ca9b49d6534935e5b26738ba131d146e66137b5f9c635ae",
+      "qecgraph/preparation/build.py": "9ef8eef3e8fefbc41c999d687b9fd2d9717006da37ac2d70f20b5e471b4d697a",
+      "qecgraph/preparation/build_view.py": "81ee2127349fafb6b45a56cf4f81c71b844e7657991c50786773f6adfa35fb1c",
       "qecgraph/preparation/capabilities.py": "93e4901ef72af8292d9b909facec1734d2ccc25e090a951309f67f02c63d98a4",
       "qecgraph/preparation/citations.py": "e9ae220bc70ea57f8c4a000646684f0bdad0016d433968c9cdf9677091f8809d",
       "qecgraph/preparation/compatibility.py": "aceb884cac910bcc115125f12db0d51f0c532cec436dedbf28b71e47e0c690ce",
       "qecgraph/preparation/conditions.py": "11fe47b8a9edd6773bf85db49cf3e4ea440aa21ff114076ed6ea664260e4e4b9",
-      "qecgraph/preparation/contract.py": "9cf4dcd5b44cc3da9c8de7be787ad17096f9579ed876b950c25a808e1d003eeb",
+      "qecgraph/preparation/contract.py": "53a3c9b740b8a0ba2748000085c3b5ae7801b3bdf3e1914b211d9bc44f7913e9",
       "qecgraph/preparation/convert.py": "85fe0ee7c9bdcbb748412abf4855c0fa101fe5bb5781a1604ec3a48709322930",
-      "qecgraph/preparation/crossrefs.py": "56449921efd42b50bff5418f8345cf51c096c0c437e4a23964dfcc7cb1b8e82f",
+      "qecgraph/preparation/crossrefs.py": "4f6e3b46016ec3786808ada9bc9c73e172e5efd2514db4eef89f12ffa7e87db1",
       "qecgraph/preparation/entries.py": "226a4541b9535961c27acfef133b40916e659252ae33638287a91dad73ca5687",
-      "qecgraph/preparation/environments.py": "6401633a0ab413166c23fa249c0698c6af0f32aaddf02a23ee8f9eef7f9cac85",
-      "qecgraph/preparation/execution.py": "390445fbe5e041c4ce323a64cd4f86f38130e216ce6f0f567a191496aec012a3",
+      "qecgraph/preparation/environments.py": "0d9fcf870d15617bc278aa7ea1f5c885f96a7f31793e0ba0ac810016cd3f4f5f",
+      "qecgraph/preparation/execution.py": "fe5633731a0217964171484cf769cf9f61c9e45fdfa5586489ee90fb0c0c5800",
       "qecgraph/preparation/guard_syntax.py": "79d9f59f513ccb6ba698dac4bc344a73f55af5011c6b20333260990fa7a364e3",
-      "qecgraph/preparation/harvmac.py": "ced44c13bb0a22e8bd7d492be5642b981e49d123e72e99200fd3ffb6a64f0cc7",
+      "qecgraph/preparation/harvmac.py": "7c63944df11758179743f2d8f66cbebc654f58bec60fd67f16408f6d3af54e26",
       "qecgraph/preparation/harvmac_refs.py": "dbd50409992190ab444458dcde41990c162479504beda9a5c234d738274fa6b1",
-      "qecgraph/preparation/material.py": "e9dd3f970642a42e7c24ee378a88199b879301ff1e484d91d801355a88087588",
+      "qecgraph/preparation/material.py": "b65d7569577d09686dae7da3620d980e66a00d6fcc0531a48c530812bb2e9793",
       "qecgraph/preparation/normalized.py": "9186a17140be40ff231e4225ce6471727fc106d6734e2e6b0f2843f09c86820e",
       "qecgraph/preparation/options.py": "b76bcc9d7c0c79c03106f7346f48e85a8b38683b154a9c97cfc0d9ea02ad5f6f",
-      "qecgraph/preparation/pipeline.py": "2dfc54b9a6c5d09eb0d0cff34d9d8bf0ec0ae1978a099135e1ea4c2c76d82c0e",
-      "qecgraph/preparation/projection.py": "a8871386fc0df06c623d1d141815a6988d3be15598f03ab0d8f3894d67019b0b",
+      "qecgraph/preparation/pipeline.py": "868919a16c17dce359b9ae907bd4eddd364068f13718530bdaafa834abbf201f",
+      "qecgraph/preparation/projection.py": "97ba2e7bc6635acf82c4f72bf4618948e42a08a922f5b8d9927375317d3a5511",
       "qecgraph/preparation/reference_syntax.py": "95006ddad9786365c22fd20bef05a37732372358a784779cb1ceacfa63dc1179",
-      "qecgraph/preparation/references.py": "068ef3876806bddc477e10f77b3477849d97079628126cbfcfc71a94eb928c8e",
-      "qecgraph/preparation/roundtrip.py": "e9cfae94b0e96dc3c221822fc415e85a26c62250f502a2a9f70798d17eff0d41",
+      "qecgraph/preparation/references.py": "b89db4fd9b305818972788e41f3a08e24baaa05e1021371a9f97fcf347c9e1de",
+      "qecgraph/preparation/roundtrip.py": "e826b8fbfb071144c8a1833f1b3e7969bdec6c0de7b74a23b38c84702c8dea5d",
       "qecgraph/preparation/sandbox.py": "04795d4c445041f13ae63e26fb5d651fec169c06ea940fd6ce710c65934b14e3",
       "qecgraph/preparation/scopes.py": "12ab7874b6ef4589c900d25fdcf83f6155a75eb01983966bc39045a27c52b4b4",
-      "qecgraph/preparation/view_contract.py": "4f58964352f2d8971bf5a2a0b1d927666367d277b98f7e9184ecfe0d77c55483",
+      "qecgraph/preparation/tex_passes.py": "77b16dee1ecdfc77c1c18598453f4a37bd789bad0394912eaeca67c2897f21e9",
+      "qecgraph/preparation/view_contract.py": "1607d08a4fb8c6010ecf33dc4e1395d5bc8baec6bc017dba779ed45eabcc062e",
       "qecgraph/query.py": "b3acbc498d2333a39823611262e9091775321bb5aeda5026f667dc160fea0be2",
       "qecgraph/registry.py": "8ae7da35a4dc1633b6e83b55d975a3731454862f91e6efcd2de658adf8c0d36f",
       "qecgraph/render/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -341,17 +637,29 @@
       "qecgraph/workspace_publication.py": "d90aeede5710e53c7c41643594d2fd2332af99d297422425a34e10bd1f0bcc8a",
       "qecgraph/workspace_query.py": "a7587d8716029f36c74586eb1c99b6722629236a8bedd69adb802ff8031e914a",
       "tools/prepare_compiled.py": "895fd42b4a9d4d67fe2476821b98a64dd03aca89a58045809d4e73b284f704d1",
-      "tools/reproduce_preparation.py": "b55dbf1fdea12b6702be3ab97b3e99e78626d7db4d0f0be8c9730cd801673de8"
+      "tools/reproduce_preparation.py": "b45c948e38d1a651404e7dbd6720cce05294c515f705f37b5cae94be325881f7"
     },
     "platform": "macOS-27.2.1-arm64-arm-64bit-Mach-O",
     "python": "3.15.2",
-    "results_sha256": "4c78ec0fa56fbae4339e872d5ef911297c2fd3e6c952da0d6bf1a2432aec39b6",
-    "root": "build/preparation-08/final",
-    "rule_version": "compile-prepare-v19",
-    "started_at": "2026-11-17T08:49:27.395585+00:00"
+    "results_sha256": "407bf9739d9219415ec070f9b92fcc24d8ef5bee1cc796388a59c95fdeef1b07",
+    "root": "build/preparation-followup/final",
+    "rule_version": "compile-prepare-v20",
+    "started_at": "2026-11-18T01:08:56.381012+00:00"
   },
   "rows": [
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "93940211b409a2acd817da239ef01f69bda8989e51a69f702d8e147c4da46c3e",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -359,6 +667,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "0903.0566v1",
+      "material_manifest_sha256": "4ead330932f446f9f70a5ca87b55dad0737ceb5aa98dd05c0b966487df0a1e68",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -374,6 +684,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "d28645374d96965be9e0bebb5c9ad1f6c63ac423574dc70aa8e88881928e4d1f",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "256ea08a5d91cc3bc50fc14a271e77e337e2345a50a7b50f6568d48450a0ca65",
       "paper": "0903.0566v1",
       "preparation_capabilities": {
@@ -406,11 +727,24 @@
       "entry_selection": "automatic",
       "error": "Expected TeX source, not PDF, HTML or binary data",
       "expected_negative": true,
+      "material": null,
       "package_sha256": "7a0f2a7f3b5394b734b6695b83b3caf72d159bb2a16d14c7236c375b9aca6024",
       "paper": "1208.0928v1",
       "status": "failed"
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "e23fb0a7c03b0f9c5ca23ab7183ee14b3808f573c2e0d1a54ff37d4958e5f400",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "latex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -418,6 +752,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "1208.2317v1",
+      "material_manifest_sha256": "25ec64ff4aea99d9ee8d243ffc59c69fe7c6db91ff34da344bf7a47ab5eb1a1c",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -433,6 +769,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "e23fb0a7c03b0f9c5ca23ab7183ee14b3808f573c2e0d1a54ff37d4958e5f400",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "f597aae24ddd562b8e5e8c7fe82d91a9a83a494afeee169fbb8496eb55b0ffdc",
       "paper": "1208.2317v1",
       "preparation_capabilities": {
@@ -462,6 +809,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "ddfb5ab03120ba43734042dc8f25aa629b45a5fda9cd686829829722aaa2b94b",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -469,6 +828,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "1302.3428v1",
+      "material_manifest_sha256": "39e7833c11f54a60a7ade8ece8d21a643df639a6b43f1c3b62e102e1a10c4088",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -485,6 +846,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "823af60e477e98f9db23aa5a32269088e1b5191d9f2e5b176c4cc1682ed0af90",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "700cba0ce6979f58181aaa22b2edaedcfd352586399d8cf40ec118c04a95afb0",
       "paper": "1302.3428v1",
       "preparation_capabilities": {
@@ -514,6 +886,9 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": null,
+      "bibliography_structure_complete": false,
+      "build_convergence": null,
       "diagnostic_codes": [
         "compile_failed"
       ],
@@ -523,6 +898,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 2,
+      "material": "1804.03719v1",
+      "material_manifest_sha256": "47454cf9b0d9f17ca138ffc102f3212011a1c062bc36b5a6af1804eb78e1ceed",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -536,6 +913,8 @@
         "transformations": null
       },
       "normalization_file": false,
+      "normalized_bibliography_runtime": null,
+      "normalized_convergence": null,
       "package_sha256": "6d8398d5b0712b696ea25a5801b5cb950e82d57aa32c3f82a91ca5f7400d0039",
       "paper": "1804.03719v1",
       "preparation_capabilities": {
@@ -567,6 +946,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "b22199cdc5e9c64b746b1e226870bbc4db1eb8086002de734bb685020c8ad893",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -574,6 +965,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "1907.02554v1",
+      "material_manifest_sha256": "81ac057049ba9533835fe43063d6ca0b74efefc401570e1ec311d46926f1643d",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -589,6 +982,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "d8fa78af025376837a6c0223660172a8c4f013c2b0db423bfb6a4d6d65849197",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "01e3d3abec16b93f103d00e9fdc3712cd0bb61c5b46ddacbce71d4acb5186f7e",
       "paper": "1907.02554v1",
       "preparation_capabilities": {
@@ -618,6 +1022,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "30e1e8421be1427e14fdded4b81371156dbe5294a513e7829fe1f983356be979",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -625,6 +1041,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "1907.11157v1",
+      "material_manifest_sha256": "75d5bf6a1f3edec65b9412305ab0f108a98e0df7c39098bdfbf51165f05fb01c",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -640,6 +1058,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "c99f915ebadeba3bb193c10526d889abb77462217c666cecaa646c7179d7ad59",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "db4ba929252c87ab094d5e9d35debe03174701dd1d63b3a71af86851551a1bdd",
       "paper": "1907.11157v1",
       "preparation_capabilities": {
@@ -669,6 +1098,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "0ecab181ab975662cefbc29f101e3463f8b176f5d02a4543dcdd7cd898b9b79c",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -676,6 +1117,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2009.07851v3",
+      "material_manifest_sha256": "6705fa1e465eec8b918c315295d01ed53fa677850e7baf1bf1e769ef91fe088f",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -691,6 +1134,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "613e9d72228c5d7172c089fac4083ba95fe448a5d6f1800b1159fbeeec634320",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "8c48a66a14f447ffc8481a8732687d9e79d2be542835e3a252060523bef5397a",
       "paper": "2009.07851v3",
       "preparation_capabilities": {
@@ -720,6 +1174,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "f42c4d663e2265bb594480780d51f27684bfc05e47472a7522195170f248e002",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -727,6 +1193,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2012.04068v1",
+      "material_manifest_sha256": "425a19ac277431d2e71b53f02b52c7ae20cc70f11b91972425449b425552a2ea",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -742,6 +1210,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "91a812e2c202c0db7842e704fcf12018750e14c6f990bb037617fbf20aa4b04c",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "621e0d1abccfdfa76f951fafff447f619f718f46611c247baa78dcb3b03fba87",
       "paper": "2012.04068v1",
       "preparation_capabilities": {
@@ -786,6 +1265,18 @@
       ]
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "3b0e7085b846cd8dcddece5b2cd7fb821e14467ca03534d3bc88157995b3e9e1",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -793,6 +1284,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2012.09271v1",
+      "material_manifest_sha256": "f67540bacad0fc958e79ad46300e4677f802764f278a9e93534717f5b41cc1ba",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -808,6 +1301,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "1d0e3101a5a606049c8467762a635e9a7c7b1c39799b15f95034bbc064aa841d",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "24195340a2be98ff90506b83164f1ac1ff5fc86a054fad8d4a52f1c78456d837",
       "paper": "2012.09271v1",
       "preparation_capabilities": {
@@ -837,6 +1341,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "91e808a62c37d3ea5ec5c6d1d1f30cf8b527c7ad69c7891ad7be488d81ec079c",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -844,6 +1360,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2102.06132v1",
+      "material_manifest_sha256": "3bcda7350099a903de1bd97644b5f0ffe35c2487c5a362ffe4280d7a36571ab6",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -859,6 +1377,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "f20e1cc27e1b1977f2f72f94bfa541cde20603d5b605a6e5b319100d2a19a356",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "130d0eeada4f97430739d23efc1008b0571ddf38ed639aa339945aeb4a8c689e",
       "paper": "2102.06132v1",
       "preparation_capabilities": {
@@ -958,6 +1487,18 @@
       ]
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "c5b46d36487c6e25545be321ef720f3d76f44dd6e0e69d22e2f9fe393591c788",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -965,6 +1506,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2103.02202v1",
+      "material_manifest_sha256": "d9218905b965303aad59beffba8c374bbb2b057928ed0d487ddb227d6ce2fc08",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -980,6 +1523,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "012bd7e19d3081716de6064fdccfb8a0f67c36bf25aaff9ba66c448a1a322a41",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "c722b60c4d3080c8b81a77011c7edfe04664b3ed75bfeeee277fa3da2a157228",
       "paper": "2103.02202v1",
       "preparation_capabilities": {
@@ -1009,6 +1563,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "577d09786b8f4f240bc07f92936a8b819198933dff4d91d059dccb3fbfe47e9f",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -1016,6 +1582,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2103.06309v1",
+      "material_manifest_sha256": "8a78c56fde8e5323366a91306a084806643d4ff9d512b721edcec813702cd980",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -1031,6 +1599,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "f381dfe131b5fd2ef6316723cd6c01d030590e7de47a81e0b5e051bd53684288",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "f9ffda354a0e4855a99366ea515a7b725d67274ebdf198d671a7f85f478029a3",
       "paper": "2103.06309v1",
       "preparation_capabilities": {
@@ -1060,6 +1639,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "f2052b5d49abcb6c774059b10cfb761fe21c48033023b2f9a9613fb2154de1b4",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -1067,6 +1658,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2104.01180v1",
+      "material_manifest_sha256": "bf6e7cbfdca38c74b343823dc0abcec54637153198bcea8ed21b126e2b37fdf5",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -1082,6 +1675,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "c4d31f666ffb8988ce458919ba749db31581878c3004e3a1c2c5a19c6d815a1b",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "969797ee6ecb5871a0b11155858af794d631a0303547d2a0c8428997b7e5c6f4",
       "paper": "2104.01180v1",
       "preparation_capabilities": {
@@ -1111,6 +1715,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "808a86e5e0252f918b7ee3de4c5902a9dc0834ec111b728457605a337efc2194",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": true,
+        "status": "pass_limit",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -1118,6 +1734,8 @@
       "entry_selection": "configured",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2111.05176v1",
+      "material_manifest_sha256": "48496c9914c3927aaa5a8b0b4da33c416d29709e1353503faf37ffab743e2fb0",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -1133,6 +1751,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "0f957080eee54eb9cbf4611c5d45cd0e9d95fd24e4f28c162feeac4ba1b6939a",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": true,
+        "status": "pass_limit",
+        "tex_passes": 3
+      },
       "package_sha256": "f7af32eb9738b5ba342fc2fcc47605544236ebd6fe9acccba118f3c3d1cf8dee",
       "paper": "2111.05176v1",
       "preparation_capabilities": {
@@ -1164,6 +1793,18 @@
       ]
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "e09df923b7198acad389eaa27b6afcb64b865863507ae0b337e57a955298ffbc",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -1171,6 +1812,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2201.08309v1",
+      "material_manifest_sha256": "5efbe1ac700b87d708c5f5d07499c40689da5ac056aa16251a66c8cea1660c57",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -1186,6 +1829,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "9de83f4908099dc53ac9d8b59d3e0913f2ae50d8eb988f1accdf6401ac61d60d",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "b86af2d81370fce30c762389b1ffa971a5fd747922cdf24e5e555af4af081783",
       "paper": "2201.08309v1",
       "preparation_capabilities": {
@@ -1217,6 +1871,18 @@
       ]
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "dfa22951c4546c73f8127f91bd66aae1358ca71acff6443be063f4b1b63d99d2",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -1224,6 +1890,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2202.13641v1",
+      "material_manifest_sha256": "ba91dc8587d689d34fd9ba069b7c176b91d1a97ae6e3fd2d6871c84a984fae3c",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -1239,6 +1907,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "b62836016b3d8806a1e4096983a1b853d760349f263085058e332b7cd9bd2e6e",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "80bdb36621180b25c80353838a9b29fff7531352c53813e81014fea1792400e5",
       "paper": "2202.13641v1",
       "preparation_capabilities": {
@@ -1268,6 +1947,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "98988677e3946e7cda8f79c6f30de4f6f83ce27ab157790af119a5644d5609e5",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -1275,6 +1966,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2207.06431v1",
+      "material_manifest_sha256": "671d3afe736a7964c343fa2f0bd85f0410f7c6cf2a251a5eb703119a247582f0",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -1290,6 +1983,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "eddcb96ae9c9821375e6a6d8a44a812e0324a8ce0e2103f6f425e6e40cebd4ce",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "39fee3c6dc8a9032b3d93d34cf8de4184820bdbf5d9448329733ab1a22762309",
       "paper": "2207.06431v1",
       "preparation_capabilities": {
@@ -1319,6 +2023,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "6568ddfd7a4ab16c9e26e8c0f6c995164ce3e42250515685e6cd9af4f548b449",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -1326,6 +2042,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2209.01119v1",
+      "material_manifest_sha256": "5deaa3a04d4da93d43bbd035b671ba67b32397db899a6d9f26b61fa7c32ff995",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -1341,6 +2059,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "15cc3eea59d00f4cd1e6559b6ef1e93e7899ffd0ccd0b40722d5c030ae84b73c",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "4f3f49fdf8947eadd831dc1e397b567beb4609bb23f14a867a9948a7bec6df66",
       "paper": "2209.01119v1",
       "preparation_capabilities": {
@@ -1372,6 +2101,18 @@
       ]
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "5b7d6dbf88fbcf20d5409e3f5d3adfd8b74f0b75ae0ed1ab61d7c62602e9c915",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -1379,6 +2120,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2209.05640v1",
+      "material_manifest_sha256": "ee748b548a8ba63ca045235d618aa9510504bc3bc3339596da4480a600f5b8c8",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -1394,6 +2137,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "5b7d6dbf88fbcf20d5409e3f5d3adfd8b74f0b75ae0ed1ab61d7c62602e9c915",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "de7844219c8bd68dc03ee8e2683e60e2323bbb32261398f8e9c993d478f6eaad",
       "paper": "2209.05640v1",
       "preparation_capabilities": {
@@ -1423,20 +2177,79 @@
       "warnings": []
     },
     {
-      "diagnostic_codes": [],
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [
+          "main.bbl"
+        ],
+        "log_sha256": "e831ffa642c31b6fffb783807a549464f5ee127fc9792bf1bfac46689ac0fa05",
+        "status": "incompatible_bbl",
+        "undefined_keys": [
+          "Chao2020optimizationof",
+          "Delfosse2021almostlineartime",
+          "Gidney2021faulttolerant",
+          "Gidney2021stimfaststabilizer",
+          "ahuja1990faster",
+          "berge1957two",
+          "bravyi2014efficient",
+          "das2020scalable",
+          "delfosse2020linear",
+          "dennis2002topological",
+          "edmonds1965maximum",
+          "edmonds1965paths",
+          "edmonds1973matching",
+          "fowler2012towards",
+          "fowler2013minimum",
+          "fowler2013optimal",
+          "galil1986efficient",
+          "gidney2020decorrelated",
+          "google2023suppressing",
+          "google_quantum_ai_team_2022_6804040",
+          "higgott2022fragile",
+          "higgott2022pymatching",
+          "huang2020fault",
+          "kolmogorov2009blossom",
+          "korte2011combinatorial",
+          "liyanage2023scalable",
+          "matouvsek2007understanding",
+          "mcewen2023relaxing",
+          "meinerz2022scalable",
+          "menshikov1986coincidence",
+          "qecsim",
+          "skoric2022parallel",
+          "sundaresan2022matching",
+          "tan2022scalable",
+          "terhal2015quantum",
+          "torlai2017neural",
+          "tutte1947factorization",
+          "wu2022fusionblossom",
+          "wu2022interpretation"
+        ]
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": true,
+        "status": "pass_limit",
+        "tex_passes": 3
+      },
+      "diagnostic_codes": [
+        "bibliography_runtime_failed",
+        "normalized_latex_roundtrip_failed"
+      ],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
       "entry": "main.tex",
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
-      "exit": 0,
+      "exit": 2,
+      "material": "2303.15933v1",
+      "material_manifest_sha256": "61ebff1e0d2bd728b49d372749a39e044feb270feb911939bdc23fbd73bd94c3",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
       },
       "nodes": 7878,
       "normalization": {
-        "complete": true,
+        "complete": false,
         "native_compile": "complete",
         "pdf_text": "equal",
         "syntax_parse": "complete",
@@ -1445,10 +2258,63 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [
+          "main.bbl"
+        ],
+        "log_sha256": "e64adde42d33d9858adacca6b698987467d709223290139f8dd47268532f1b3c",
+        "status": "incompatible_bbl",
+        "undefined_keys": [
+          "Chao2020optimizationof",
+          "Delfosse2021almostlineartime",
+          "Gidney2021faulttolerant",
+          "Gidney2021stimfaststabilizer",
+          "ahuja1990faster",
+          "berge1957two",
+          "bravyi2014efficient",
+          "das2020scalable",
+          "delfosse2020linear",
+          "dennis2002topological",
+          "edmonds1965maximum",
+          "edmonds1965paths",
+          "edmonds1973matching",
+          "fowler2012towards",
+          "fowler2013minimum",
+          "fowler2013optimal",
+          "galil1986efficient",
+          "gidney2020decorrelated",
+          "google2023suppressing",
+          "google_quantum_ai_team_2022_6804040",
+          "higgott2022fragile",
+          "higgott2022pymatching",
+          "huang2020fault",
+          "kolmogorov2009blossom",
+          "korte2011combinatorial",
+          "liyanage2023scalable",
+          "matouvsek2007understanding",
+          "mcewen2023relaxing",
+          "meinerz2022scalable",
+          "menshikov1986coincidence",
+          "qecsim",
+          "skoric2022parallel",
+          "sundaresan2022matching",
+          "tan2022scalable",
+          "terhal2015quantum",
+          "torlai2017neural",
+          "tutte1947factorization",
+          "wu2022fusionblossom",
+          "wu2022interpretation"
+        ]
+      },
+      "normalized_convergence": {
+        "rerun_requested": true,
+        "status": "pass_limit",
+        "tex_passes": 3
+      },
       "package_sha256": "caad7becc67a31426b5d8d7547779be24fa645dcdc24141434501c2b33cfa2f1",
       "paper": "2303.15933v1",
       "preparation_capabilities": {
-        "bibliography_bindings": "complete",
+        "bibliography_bindings": "partial",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
         "cross_reference_preparation": "complete",
@@ -1464,16 +2330,28 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
-        "normalized_latex": "complete",
-        "references": "complete",
+        "normalized_latex": "partial",
+        "references": "partial",
         "source_fidelity": "checked_at_publication"
       },
-      "status": "ready",
+      "status": "partial",
       "unmapped_conditions": [],
       "unresolved_cross_references": [],
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "1a4b1e2b6f668f27da422b9c365335f815e6548df687b5d9e009660c814e931e",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -1481,6 +2359,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2308.02321v1",
+      "material_manifest_sha256": "2092e5bd3573f38f82ef93fa76af94707f5f0a09826225f81892bea906f29181",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -1496,6 +2376,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "d084ced1e6726d23f71740a08bb3df2fc50e5981961a9375ba762e70769bf5e2",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "9a958f85a621f43c7d3aa9e206293f7a96800be46de6def98bb5d6706a7b97dc",
       "paper": "2308.02321v1",
       "preparation_capabilities": {
@@ -1525,6 +2416,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "69fb9e58705a2540b80d1f6d5b30cc99c44ee578c66c849af3e802d48f03e72a",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -1532,6 +2435,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2308.07915v1",
+      "material_manifest_sha256": "8406a4fc76eb13f2ba330e19b95b2f9c27e92e06f7af52ff994cda3a98d35a8a",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -1547,6 +2452,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "cfa88cb2570ecdb449e4396f5faf75cc008f0ba4ab0af1959e645d22adc8ab3b",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "7d3408adda52719fd9c4411d8a626421dfa72feece374acbad5bf11fa5644d17",
       "paper": "2308.07915v1",
       "preparation_capabilities": {
@@ -1576,6 +2492,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "fdafe37252e9e04ef16309721f62c8130ef7dd8630ac20401f3504eaea5534c0",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -1583,6 +2511,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2308.07915v2",
+      "material_manifest_sha256": "4a2cc9d167a2aa02fc6cab34536ef6783afa3e836120034d7a66b7c713e1050b",
       "native_guard_view": {
         "observed_guards": 3,
         "verified": true
@@ -1599,6 +2529,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "6fb72d14a175d038c369d6a82252b4e7c37f5dd3e0a5c649264a95230691a080",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "d0dc3ffbb467a71630efa6b930913d19ee3d5356c42412930bc43dbd96306b2e",
       "paper": "2308.07915v2",
       "preparation_capabilities": {
@@ -1672,6 +2613,18 @@
       ]
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "99a49c38818117a4251f35e8b1a20ee0c11d15f2af602ec2525908421fec4a29",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -1679,6 +2632,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2408.13687v1",
+      "material_manifest_sha256": "08e7a767998dd31759c3194d7f9ac6f32c809b07a2339014b19e788c1cb7380a",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -1694,6 +2649,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "99a49c38818117a4251f35e8b1a20ee0c11d15f2af602ec2525908421fec4a29",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "ff7e1c7054f88935970319e2ac131de67d0a65d688c0ef492e275d55efa7a9f2",
       "paper": "2408.13687v1",
       "preparation_capabilities": {
@@ -1723,6 +2689,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "af2a6ee3fa2704efed0edd297e078f96213c79f7774fd8c396df4672669b33c5",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -1730,6 +2708,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2410.02885v1",
+      "material_manifest_sha256": "2d311e5fcef3fe4ec28ae936fcd6aefa9bd01899eef79c156239123de667a103",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -1745,6 +2725,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "af7c890c27b09072192bac32c53d1e5802f849395f181f4c419b5a9da0b50555",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "e6269e71c69b61e317a2bcd4a803bab9b6d6532d2a3fe4e5d908fb412c344787",
       "paper": "2410.02885v1",
       "preparation_capabilities": {
@@ -1774,6 +2765,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "dc21159dd6f3b8862ae66c2a580e152383bc7334edfaee392335fced7a22a6c9",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -1781,6 +2784,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2411.11822v1",
+      "material_manifest_sha256": "47a4e480b655c32c5aca2b770266e2a7712920d552127c3ed06b8c9c1dc17752",
       "native_guard_view": {
         "observed_guards": 3,
         "verified": true
@@ -1797,6 +2802,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "1d1a5f6ae21d0c1c01bebe2f82bf4c7eb24f9d8baea6828bf2ed6c7f62dbc6f2",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "eee7394f81deebacca404e0e95c84694287670691228f6b73afce00e298a9cc7",
       "paper": "2411.11822v1",
       "preparation_capabilities": {
@@ -1828,6 +2844,18 @@
       ]
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "a15a956ab09887d6e087f7e82f7eec2f1d2aa73bb8ed21a2418db0fa47c9c883",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -1835,6 +2863,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2412.14256v1",
+      "material_manifest_sha256": "487b6c63f2add64bee000ffa295a1fba7b6a95c9f01ecaa8c0375ec3a636eeb5",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -1850,6 +2880,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "3af854010d92eed1d25b548be5d22f440074cd90379d0a78dddf26ce8cc4380e",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "8cba24a512a54698d110bc81f3efcd655b7f4e5c7934c0700dac8954c3aaf2ca",
       "paper": "2412.14256v1",
       "preparation_capabilities": {
@@ -1879,6 +2920,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "03f943170c6bbf8107b64e7f28bd4edff98e27ce971d52aaefc0bf85881b7ea6",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -1886,6 +2939,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2509.03613v1",
+      "material_manifest_sha256": "828a11e845acc7fea46beec03200f7ac59f1251cfa3ccc3b422eee1bafbce8b4",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -1901,6 +2956,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "0fefafc7eefc794c81a5e4e08197c2e3f874eb2585366a74e37f8fb771c82ab4",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "686d73f31e3684c5c5192192daeb7ffeda0d5a66f532a4b7d7895f8a9376e865",
       "paper": "2509.03613v1",
       "preparation_capabilities": {
@@ -1930,6 +2996,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "83802554803a593493ed00d61ab7c121209164cdce9398b9da8816a7298b8aa1",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -1937,6 +3015,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2510.06495v2",
+      "material_manifest_sha256": "454899944b74d25f6c4761c0369d593f27dcc18c68b43ff0b164c40cd88c30c7",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -1952,6 +3032,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "83802554803a593493ed00d61ab7c121209164cdce9398b9da8816a7298b8aa1",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "414b5291ec22e54bee82e61f97e5cfda03f0eb79d99d42e4daaf457bff599c72",
       "paper": "2510.06495v2",
       "preparation_capabilities": {
@@ -1981,6 +3072,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "914d14483663b93f2fe8b42885349820a499419add2aeede7358613bf1801226",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -1988,6 +3091,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2511.01062v1",
+      "material_manifest_sha256": "8b617495a5a0b8f13fab1afbb44d0efcd623b1cc42d956789f50f3371554f981",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -2003,6 +3108,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "17388466b84285b9b1c0263282fa3812a0620ce3dff60a0c18f84e5f3632e94e",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "9f93e3ff14a4a27ed7884cd698c48bddb00fe424119ae1574c2ed17c174c089b",
       "paper": "2511.01062v1",
       "preparation_capabilities": {
@@ -2032,6 +3148,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "5000a54e41e910022ee9303408082450452b6e7878406f5dceb54540512f2943",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -2039,6 +3167,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2511.01062v2",
+      "material_manifest_sha256": "bb9837c62bc74f5cbc7d5a716daa194b29eb0d53869c2212f86c3712e33d7bda",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -2054,6 +3184,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "9fc58664e3ae85211c1d530c43291fd4688959dd6e5dd557b5d46562c305b621",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "bac94519760b3f83c9ebb9999612713ab5523367b8c70122c948c56eb5b3b478",
       "paper": "2511.01062v2",
       "preparation_capabilities": {
@@ -2083,6 +3224,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "b472756c996dbe2aa7cfe63bf2e1f7e74bcf2f35d69443ba1b953934f4c9f657",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -2090,6 +3243,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2512.07737v1",
+      "material_manifest_sha256": "5856c46898907de6a9f33f4c33b539de4c1da1fd8be49aa9077a9034c0302bac",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -2105,6 +3260,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "3d50e5c0293e0ca78402e49e795cb6eddbd1001f59af1830d30aeef68c0934b5",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "937cf5e26e6ebd61ec1912aeb52548e1396febc25226ccf0b256b871b2d9f80b",
       "paper": "2512.07737v1",
       "preparation_capabilities": {
@@ -2134,6 +3300,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "ab5b7cc6c333256339fda16bb65a1c33a8673545e96f25bf01fb598573201af8",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "pass_limit",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -2141,6 +3319,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 9,
       "exit": 0,
+      "material": "2605.29137v1",
+      "material_manifest_sha256": "c996e4ed472183c596d9e5945821faaeaac18c78b2e14ccd434ef0cf6d9dba9d",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -2156,6 +3336,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "d3d9164d0360a0e4fbf1164a88e8115adac184cb4dbf1b23fbf72ed1f7b773f1",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "d0e9f8936a687fd9f90b026891004d0ca68732b92aa2db9c5e1c5c66c54dd3af",
       "paper": "2605.29137v1",
       "preparation_capabilities": {
@@ -2187,6 +3378,18 @@
       ]
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "468d50d0760e85644600ad493201aecb49d2fb7aa12b3e148d866e8c29911cab",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "diagnostic_codes": [],
       "engine": "xelatex",
       "engine_version": "XeTeX 3.141592653-2.6-0.999998 (TeX Live 2026)",
@@ -2194,6 +3397,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2605.29554v1",
+      "material_manifest_sha256": "390277d5a0e0ebaedb8f5c849a9df7dbce25fe95fc7027cd7e44ebc35af2aceb",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -2209,6 +3414,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "f4b34b09a2d5dde9c6dd8bc304e2d7773282a4d09f2800b487ce169b97ed020b",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "f21b456235b3e23ba4cb4431cf5f166dff192f02e2ddabf69095ebc43e0606b1",
       "paper": "2605.29554v1",
       "preparation_capabilities": {
@@ -2238,6 +3454,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "44b683a90eed20bc3c57e7f6f3d61eb4ebcaa97ab44334f7dfaf386045321368",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "xelatex",
       "engine_version": "XeTeX 3.141592653-2.6-0.999998 (TeX Live 2026)",
@@ -2245,6 +3473,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2605.29774v1",
+      "material_manifest_sha256": "8c9a12bbf9f62389024dbf31f66899d97051794d54f54e0b9b02eb13738626cc",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -2260,6 +3490,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "44b683a90eed20bc3c57e7f6f3d61eb4ebcaa97ab44334f7dfaf386045321368",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "0674026d677625396ef510e6b1e1edf3c9006f9ea7a22c36e51616b6bdc23141",
       "paper": "2605.29774v1",
       "preparation_capabilities": {
@@ -2289,20 +3530,59 @@
       "warnings": []
     },
     {
-      "diagnostic_codes": [],
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [
+          "cohomology-moduli-stack-real-bundles.bbl"
+        ],
+        "log_sha256": "69177c05db2a8416f74fa62e5f98049f351c0a20bd6cf2c963d7b14071ac751e",
+        "status": "incompatible_bbl",
+        "undefined_keys": [
+          "arXiv:1612.08487",
+          "zbMATH01565334",
+          "zbMATH02187053",
+          "zbMATH02681780",
+          "zbMATH02714346",
+          "zbMATH03183062",
+          "zbMATH03235829",
+          "zbMATH03468033",
+          "zbMATH03803614",
+          "zbMATH03845739",
+          "zbMATH04210331",
+          "zbMATH05605320",
+          "zbMATH05827280",
+          "zbMATH05831562",
+          "zbMATH06141803",
+          "zbMATH06272210",
+          "zbMATH06355665",
+          "zbMATH06791174",
+          "zbMATH07144072"
+        ]
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": true,
+        "status": "pass_limit",
+        "tex_passes": 3
+      },
+      "diagnostic_codes": [
+        "bibliography_runtime_failed",
+        "normalized_latex_roundtrip_failed"
+      ],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
       "entry": "cohomology-moduli-stack-real-bundles.tex",
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
-      "exit": 0,
+      "exit": 2,
+      "material": "2605.30298v1",
+      "material_manifest_sha256": "5533d5bfe7ce404c5267e1197ae22b8581c292f1cc2aa48e90dc9b6f81af364e",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
       },
       "nodes": 8005,
       "normalization": {
-        "complete": true,
+        "complete": false,
         "native_compile": "complete",
         "pdf_text": "equal",
         "syntax_parse": "complete",
@@ -2311,10 +3591,43 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [
+          "cohomology-moduli-stack-real-bundles.bbl"
+        ],
+        "log_sha256": "69177c05db2a8416f74fa62e5f98049f351c0a20bd6cf2c963d7b14071ac751e",
+        "status": "incompatible_bbl",
+        "undefined_keys": [
+          "arXiv:1612.08487",
+          "zbMATH01565334",
+          "zbMATH02187053",
+          "zbMATH02681780",
+          "zbMATH02714346",
+          "zbMATH03183062",
+          "zbMATH03235829",
+          "zbMATH03468033",
+          "zbMATH03803614",
+          "zbMATH03845739",
+          "zbMATH04210331",
+          "zbMATH05605320",
+          "zbMATH05827280",
+          "zbMATH05831562",
+          "zbMATH06141803",
+          "zbMATH06272210",
+          "zbMATH06355665",
+          "zbMATH06791174",
+          "zbMATH07144072"
+        ]
+      },
+      "normalized_convergence": {
+        "rerun_requested": true,
+        "status": "pass_limit",
+        "tex_passes": 3
+      },
       "package_sha256": "f180d4f1b277f4d4e73ff08dc8a25fc9953b8dbf17da51e83a4098c88eca173b",
       "paper": "2605.30298v1",
       "preparation_capabilities": {
-        "bibliography_bindings": "complete",
+        "bibliography_bindings": "partial",
         "body_syntax": "complete",
         "cross_reference_bindings": "complete",
         "cross_reference_preparation": "complete",
@@ -2330,16 +3643,28 @@
       "stages": {
         "compile": "complete",
         "conversion": "complete",
-        "normalized_latex": "complete",
-        "references": "complete",
+        "normalized_latex": "partial",
+        "references": "partial",
         "source_fidelity": "checked_at_publication"
       },
-      "status": "ready",
+      "status": "partial",
       "unmapped_conditions": [],
       "unresolved_cross_references": [],
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "4ea666f9f7c758f1d782c78c2216d15ee880aee6f4d24ad6d66c6abb5bd5dbf2",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -2347,6 +3672,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2606.00045v1",
+      "material_manifest_sha256": "b4587d3bb27fe761ab938add6c492cd3f8d2ae2bec7ae8658bfafbee136b6bd6",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -2362,6 +3689,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "1bcfdd3606daff928ee6ee8bc1d2737f8e3b793e8595b5d41ed0480ca0f9420a",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "71472bc4545e8a30beedefc968fab90ddfc1dff28166cc2584a3b814d03865a2",
       "paper": "2606.00045v1",
       "preparation_capabilities": {
@@ -2391,6 +3729,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "b33f994be840ee269888cd4abadf80f4e0e2b5f462799414f01bbe86f230babf",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -2398,6 +3748,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2606.30447v1",
+      "material_manifest_sha256": "1594d15363d34d207904aa36a1c780531228d7d224673d049dcf23812b88f5a6",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -2413,6 +3765,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "b33f994be840ee269888cd4abadf80f4e0e2b5f462799414f01bbe86f230babf",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "ba189214d54f3f9fc786f1720ba5e5235d15d683b6734fec3f5a24a3a998c7a4",
       "paper": "2606.30447v1",
       "preparation_capabilities": {
@@ -2442,6 +3805,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "ec3654812d6059f2e518fe28206d0b49beef1c65de07c37b1cdc749be62a6f8b",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -2449,6 +3824,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2607.00222v1",
+      "material_manifest_sha256": "a747670de50c8cf95d612491d3f834cca86a5e944954ea88f54f7d1ce684b37f",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -2464,6 +3841,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "645c1b8810dfd650202e3fe99db4a2a11f44a9d0dbb2508e86678ccc0b261e26",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "fa67a91955643baeb91331b7f724f421fb2ecdb0166519e1712a7648f4303c8b",
       "paper": "2607.00222v1",
       "preparation_capabilities": {
@@ -2493,6 +3881,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "1f7756b90bb46a560c1cc45ec8d241a4344bf17db2fc1edde1a70eb13e14840e",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "pass_limit",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -2500,6 +3900,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 1,
       "exit": 0,
+      "material": "2607.00262v1",
+      "material_manifest_sha256": "8f07a3e300c39204acd893936eb05f6cdf93c83fc367e90a3a528729503b328e",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -2515,6 +3917,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "6bb8bc821144176cc98e9ddd1480537d14b88f98612b769ef405b1716ad6016a",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "941063b27e9cf951aa1626b7f65b92f40b34a3625d39ba89213676f63a90f240",
       "paper": "2607.00262v1",
       "preparation_capabilities": {
@@ -2544,6 +3957,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "7f2f73ad0135ca475dd564740cbd7291b6b252b0656c42ad019c6f535ea5a498",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "pass_limit",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -2551,6 +3976,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2607.29382v2",
+      "material_manifest_sha256": "f8b5a5779f80b1b7f85573cac09f000dba7af8c7dabfb13de5a63894eac4c386",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -2566,6 +3993,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "3353dadb2415a5f6296652cc66f7e432e842ec2bb7c4fe342b1ff50488998f76",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "package_sha256": "5097bbbf80685c973281afe92127c5e0e609e1b407371d3970a93408192bd339",
       "paper": "2607.29382v2",
       "preparation_capabilities": {
@@ -2595,6 +4033,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "8ba0bca028fd55b9ac7ae005f661a0069153906cb6137c4dca0b195bf8ae8c5c",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "pdflatex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -2602,6 +4052,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "2609.22572v1",
+      "material_manifest_sha256": "de3e561fc41c1e4dfc15b447a713f7335d9d72478ee022fbf3cac4a46fb5d09c",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -2617,6 +4069,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "8ba0bca028fd55b9ac7ae005f661a0069153906cb6137c4dca0b195bf8ae8c5c",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "12bb3e1bf392956808f34d0a09820795c179f01b3333d4477a0c87ad9a3bf1cc",
       "paper": "2609.22572v1",
       "preparation_capabilities": {
@@ -2646,6 +4109,13 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": null,
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "unavailable",
+        "tex_passes": 3
+      },
       "diagnostic_codes": [],
       "engine": "etex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -2653,6 +4123,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "hep-th_9407087v1",
+      "material_manifest_sha256": "1a3e97d0595777333f82f59538af963ea92f7c613a9817a4d4df4ed3fb2a07aa",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -2666,6 +4138,17 @@
         "transformations": {}
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "6eda181073b2e1fe4cecb84c43bf9520eb7c70b8cf4365cc64c64ced5a3afe99",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "unavailable",
+        "tex_passes": 3
+      },
       "package_sha256": "9a84cef701c8a76e3cd734ebe5b113f1839e991276e012aee236794dc8353d55",
       "paper": "hep-th/9407087v1",
       "preparation_capabilities": {
@@ -2705,6 +4188,18 @@
       ]
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "d37f7b9fd2e246228cfc9ff50ed616ed2186456359fba370f6e55db75a7f1552",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "diagnostic_codes": [],
       "engine": "latex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -2712,6 +4207,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "quant-ph_0001106v1",
+      "material_manifest_sha256": "66df6eb78277ab949bfc629bbfaf6ae7d0c24063fd368ca04ad54f9ea74ce08a",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -2728,6 +4225,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "9b0af5e96e0a206396178b6d86764768fa078712a4c803b0fea86d9a8fa1ce18",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "525bb123ba15c14b05ae36d09da433858f3d198e6b250a09ce43a833e209af74",
       "paper": "quant-ph/0001106v1",
       "preparation_capabilities": {
@@ -2757,6 +4265,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "61e180d6170cbc15d8938d680b3ff6765789ebeb63ffdbb57547428c2844eff9",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "diagnostic_codes": [],
       "engine": "latex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -2764,6 +4284,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "quant-ph_0110143v1",
+      "material_manifest_sha256": "937eadc4c6008282dd5f4192a68e270c17379894953d03ce224f66a033cdfe07",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -2779,6 +4301,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "22ca08b2bedd23ad36f1ecf9d484731ed5aa08f153b9f7935105e91649d2e64d",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "70bf59629e09a0e71e71e9fe1c6be4323aa3c0fe2c48629fda49cdc2b71cf7a1",
       "paper": "quant-ph/0110143v1",
       "preparation_capabilities": {
@@ -2808,6 +4341,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "3c689926129019dc8f87147f097a1e46e319d576c392558827393a1b3dff8e10",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "diagnostic_codes": [],
       "engine": "latex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -2815,6 +4360,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "quant-ph_9604034v1",
+      "material_manifest_sha256": "e821073fdeaf31412c7aafce2fda24576bd0414ae75c02bd5fe8bee1404408df",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -2830,6 +4377,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "1117708929f90f6cae5fa68889f41f3e19a16535a179cd2e769c4978f211ba51",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "153b7dfa555b0d21148c2ef383b426c4d5a9eb4117b7d2fb33db8c6569bb202a",
       "paper": "quant-ph/9604034v1",
       "preparation_capabilities": {
@@ -2859,6 +4417,18 @@
       "warnings": []
     },
     {
+      "bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "bdc17f97442c48d69ea49f828ec8655dcecf848b6423d7f7190fa3fc212947e2",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "bibliography_structure_complete": true,
+      "build_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "diagnostic_codes": [],
       "engine": "latex",
       "engine_version": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
@@ -2866,6 +4436,8 @@
       "entry_selection": "automatic",
       "environment_declaration_count": 0,
       "exit": 0,
+      "material": "quant-ph_9605021v1",
+      "material_manifest_sha256": "998c103d35638c33cca517557773aad9fb237fac29e261a0898d0f13337b68ef",
       "native_guard_view": {
         "observed_guards": 0,
         "verified": false
@@ -2881,6 +4453,17 @@
         }
       },
       "normalization_file": true,
+      "normalized_bibliography_runtime": {
+        "incompatible_bbl_files": [],
+        "log_sha256": "56d3c2f64b55657d3825c9fe5f27d8b8b477701d6ae91e66e79ba79dae9b6186",
+        "status": "no_reported_failures",
+        "undefined_keys": []
+      },
+      "normalized_convergence": {
+        "rerun_requested": false,
+        "status": "converged",
+        "tex_passes": 2
+      },
       "package_sha256": "895def913b9e8bcb511297698487f35ab3baf581ca3f4e630057990beeab780a",
       "paper": "quant-ph/9605021v1",
       "preparation_capabilities": {
@@ -2910,7 +4493,7 @@
       "warnings": []
     }
   ],
-  "rule_version": "compile-prepare-v19",
+  "rule_version": "compile-prepare-v20",
   "schema": "qecgraph.preparation_acceptance/1",
   "scientific_acceptance": {
     "accepted": false,

@@ -31,27 +31,26 @@ it ran. A passing test does not make a paper's theorem true, a distance bound
 mathematically verified, or a Lean declaration semantically matched.
 
 The current [preparation acceptance report](preparation_acceptance.json) is generated
-from the full `compile-prepare-v19` replay, with every material bundle reopened,
+from the full `compile-prepare-v20` replay, with every material bundle reopened,
 counts and source-bound syntax probes recalculated, and corpus/code snapshots
 checked. Use `report_preparation.py` without `--check` to create a report first;
 repeat the same arguments with `--check` to detect drift without compilation or
-model calls. The committed report's `replay.argv` records the actual support paths,
-entry hints and probe configuration; the comparison pins the v19 baseline at
-`d5b2576`. Native tool outcomes remain in the bundles, not copied test-suite claims.
+model calls. The committed report's `replay.argv` records the support paths, entry
+hints and probe configuration. The comparison pins v19 at `9bd6e73`. Replay rows
+record the attempted output directory and manifest hash independently of a prior
+ready publication.
 
-This corpus contains 47 TeX inputs and one PDF negative case. The architecture
-refactor retains the v19 gate and 46 ready / 1 partial outcomes; stable material
-payload comparison complements counts. Three papers retain reference ambiguity,
-and unique binding counts are unchanged. Local read benchmarks cover four retained
-bundles, with three measurements each as documented in review 07. The report also lists
-body completeness, verified projections and native dialects. Coverage counts and
-remaining failures are mechanical preparation evidence, not scientific answer gold
-or mathematical validation. [Review 07](../docs/reviews/review-2026-11-17-compile-prepare-testing/07-preparation-architecture-and-behavior-preservation.zh-CN.md)
-records the comparable before/after numbers, executed checks, dependency provenance
-and outstanding work. The case-only asset match remains non-portable to a
-case-sensitive filesystem. The pinned machine-copy evaluation remains unaccepted
-because its registry schema is incompatible. Human.md and the original database
-are unchanged.
+The regression corpus contains 47 TeX inputs and one PDF negative case. The report
+includes source fidelity, bibliography structure, final TeX diagnostics, verified
+projections, normalized recompilation and pass counts. These are mechanical
+preparation checks. The fixed machine-copy research evaluation remains blocked by
+its registry schema.
+
+[The holdout manifest](preparation_holdout.json) freezes eight additional public
+inputs from the arXiv June 2024 Quantum Physics index. Put the manifest beside a
+`packages/` directory containing the downloads from its recorded URLs and verify
+each hash before replay. The [follow-up review](../docs/reviews/review-2026-11-17-compile-prepare-testing/10-preparation-follow-up.zh-CN.md)
+records the holdout outcomes, regression comparison, measurements and outstanding work.
 
 `validation/retrieval_qa.json` contains eight source-bound engineering questions for the
 review's five-paper release. Anchors were selected after viewing retrieved passages;

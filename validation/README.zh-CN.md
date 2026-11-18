@@ -27,21 +27,21 @@
 检查只对实际运行它的源码修订和环境构成证据。测试通过不代表论文定理为真、
 距离界已被数学验证，或 Lean 声明已语义匹配。
 
-当前[准备验收报告](preparation_acceptance.json)由完整 `compile-prepare-v19` 回放自动生成，
+当前[准备验收报告](preparation_acceptance.json)由完整 `compile-prepare-v20` 回放自动生成，
 逐包重新打开材料、重算计数和来源绑定语法 probe，并核对语料/代码快照。
 先运行不带 `--check` 的 `report_preparation.py` 生成报告，再用相同参数加 `--check`
 检查漂移；检查不编译、不调用模型。已提交报告的 `replay.argv` 保存实际支持文件路径、
-入口和 probe 配置；比较基线固定为 v19 的 `d5b2576`。原生工具结果保留在材料包中，
-不会复制旧测试套件的通过声明。
+入口和 probe 配置。比较基线固定为 v19 的 `9bd6e73`。每行绑定当次回放产物的目录和
+manifest 哈希，已有的 ready 发布可以继续保留。
 
-固定语料为 47 篇 TeX 和一个 PDF 反例。架构重构保持 v19 判据和 46 ready / 1 partial，
-除计数外另有稳定材料字节对照。三篇论文保留引用歧义，唯一引用绑定数不变。
-读取性能仅限 07 记录的四个保留包、各三次测量；报告另列正文完整数、可逆投影数和原生方言。
-覆盖数和失败原因是机械准备证据，
-不是科学答案金标或数学验收。[07 总结](../docs/reviews/review-2026-11-17-compile-prepare-testing/07-preparation-architecture-and-behavior-preservation.zh-CN.md)
-记录可比前后数字、实际检查、依赖来源及未完成事项。大小写资产匹配仍不能声称可移植到
-大小写敏感文件系统。固定 machine 副本评测仍因注册表 schema 不兼容而未验收。
-Human.md 和原始数据库均未修改。
+固定语料为 47 篇 TeX 和一个 PDF 反例。报告列出来源保真、书目结构、最终 TeX 诊断、
+已验证投影、规范化重编译和编译轮数。这些是机械准备检查。固定 machine 副本的研究评测
+仍因注册表 schema 不兼容受阻。
+
+[留出样本清单](preparation_holdout.json)冻结 arXiv 2024 年 6 月量子物理月榜上的八个公开
+输入。将清单放在下载目录的 `packages/` 旁，按其中的 URL 下载并校验哈希后回放。
+[后续评审](../docs/reviews/review-2026-11-17-compile-prepare-testing/10-preparation-follow-up.zh-CN.md)
+记录留出样本逐篇结果、回归对照、测量和未完成事项。
 
 `validation/retrieval_qa.json` 包含八道绑定评审中五篇论文固定来源的工程问题。
 锚点在查看检索片段后选择，所以这是导航 smoke，不是独立相关性金标。运行
