@@ -12,18 +12,10 @@ from urllib.parse import quote
 
 from .. import __version__
 from ..source.reading import reading_projection
+from .relations import ENDPOINTS, KNOWN_RELATIONS, MATHEMATICS, STATEMENTS
 
-STATEMENTS = {"lemma", "theorem", "proposition", "corollary", "conjecture", "claim", "statement_other"}
-MATHEMATICS = STATEMENTS | {"definition", "assumption", "notation", "proof", "equation"}
 DEPENDENCIES = {"depends_on_declared", "depends_on_reviewed"}
 CANDIDATES = {"depends_on_candidate"}
-KNOWN_RELATIONS = {
-    "contains", "defined_in", "includes", "references", "cites", "cites_paper", "uses_resource",
-    "depends_on_declared", "depends_on_candidate", "depends_on_reviewed",
-    "proof_of", "proof_of_candidate", "describes", "about",
-    "has_matrix", "has_check_matrix", "generated_by", "uses_circuit", "uses_noise",
-    "uses_decoder", "supports", "contradicts", "reports", "instance_of",
-}
 
 
 def canonical(value) -> str:
@@ -381,8 +373,6 @@ class _GraphBuilder:
                 self.diag("stale_annotation", f"Edge {source} -> {target} needs review")
 
     def lift_proof_dependencies(self) -> None:
-        from ..validators import ENDPOINTS
-
         # Lift references/uses from a proof to its proposed/declared statement.
         proof_links, containment, reference_edges = [], defaultdict(list), defaultdict(list)
         for position, item in enumerate(self.edges):
