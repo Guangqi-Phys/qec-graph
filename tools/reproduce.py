@@ -124,8 +124,8 @@ def main(argv=None) -> int:
                 Draft202012Validator.check_schema(schema)
                 validator = Draft202012Validator(schema)
                 if filename.startswith("graph"):
-                    for generated in (split,):
-                        validator.validate(json.loads((Path(generated["snapshot"]) / "graph.json").read_text(encoding="utf-8")))
+                    graph_path = Path(split["snapshot"]) / "graph.json"
+                    validator.validate(json.loads(graph_path.read_text(encoding="utf-8")))
                 else:
                     for filename2 in ("annotations.example.json", "catalog-links.example.json"):
                         validator.validate(json.loads((ROOT / "examples" / filename2).read_text(encoding="utf-8")))

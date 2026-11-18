@@ -92,17 +92,18 @@ def _load(path):
 
 def load_skills(extra_dir=None):
     skills = {}
-    for path in sorted(_BUNDLED.iterdir()):
-        if path.is_dir():
-            skill = _load(path)
-            skills[skill.name] = skill
+
+    def add(directory):
+        for path in sorted(directory.iterdir()):
+            if path.is_dir():
+                skill = _load(path)
+                skills[skill.name] = skill
+
+    add(_BUNDLED)
     if extra_dir is not None:
         extra = Path(extra_dir)
         if extra.is_dir():
-            for path in sorted(extra.iterdir()):
-                if path.is_dir():
-                    skill = _load(path)
-                    skills[skill.name] = skill
+            add(extra)
     if not skills:
         raise SkillError('no AI skills were found')
     return skills

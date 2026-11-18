@@ -199,9 +199,10 @@ class LLMClient:
                 outcome('failed', detail=redact(str(exc), self.secrets))
                 raise LLMError(redact(str(exc), self.secrets)) from None
             phase('AI response received', detail=_usage_summary(completion.usage))
-            spent += _usage_cost(completion.usage)
+            cost = _usage_cost(completion.usage)
+            spent += cost
             with self._batch_lock:
-                self._batch_cost += _usage_cost(completion.usage)
+                self._batch_cost += cost
                 if not any(key in completion.usage for key in ('cost', 'cost_usd', 'total_cost')):
                     self._unpriced_responses += 1
                 if self._batch_cost > self.config.max_batch_cost_usd:

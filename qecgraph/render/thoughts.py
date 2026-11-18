@@ -81,7 +81,7 @@ def _tag(value):
     return ('topic-' + value if value.isdecimal() else value) if value else None
 
 
-def _metadata(session, version, proposals):
+def _metadata(session, version):
     paper = session.knowledge.papers[version['id']]
     result = {field: paper[field] for field in ('title', 'authors', 'published_date', 'topics', 'link')}
     if 'title' not in paper['field_evidence']:
@@ -118,7 +118,7 @@ def render_pages(session):
     pages, targets, used = {}, {}, set()
     for work_id, versions in track(sorted(works.items()), 'Rendering paper thoughts', unit='papers'):
         versions.sort(key=_version_order)
-        metadata = _metadata(session, versions[0], proposals)
+        metadata = _metadata(session, versions[0])
         title = metadata['title'] or 'Untitled Paper'
         author = _surname(metadata['authors'][0]) if metadata['authors'] else 'UnknownAuthor'
         words = title.split()[:2]

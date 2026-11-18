@@ -114,7 +114,6 @@ class CommandProgress:
         self.tasks: dict[int, ProgressEvent] = {}
         self.phase_started: dict[int, float] = {}
         self.logged: dict[int, tuple[str, float, int]] = {}
-        self.last = None
         self.lines = 0
         self.line_widths: list[int] = []
         self.hidden = False
@@ -160,7 +159,6 @@ class CommandProgress:
                 if old is None or changed and not event.retain:
                     self.phase_started[event.task_id] = monotonic()
                 self.hidden = False
-                self.last = event
             else:
                 self.tasks.pop(event.task_id, None)
                 self.phase_started.pop(event.task_id, None)
@@ -203,9 +201,7 @@ class CommandProgress:
             return 79, 23
 
     def _state(self, state):
-        return {'finished': 'done', 'advanced': 'phase ended', 'partial': 'needs attention',
-                'reused': 'reused', 'running': 'running', 'queued': 'queued',
-                'failed': 'failed', 'interrupted': 'interrupted'}.get(state, state)
+        return {'finished': 'done', 'advanced': 'phase ended', 'partial': 'needs attention'}.get(state, state)
 
     def _marker(self, state):
         glyph = {'finished': '✓', 'reused': '↺', 'failed': '✗', 'interrupted': '!',
@@ -229,13 +225,15 @@ class CommandProgress:
         light = (1 - math.cos(frame * math.tau / 24)) / 2
         return self._amber('•' if self.unicode else '*', light)
 
-    def _meter(self, event, width, frame=0, elapsed=''):
+    def _meter(self, event, width, frame=0):
         """Four microscopic dot rows in one text row; luminance never changes the count."""
+        count = metrics(event)
         if not event.total:
-            return [fit(metrics(event), width)] if metrics(event) else []
-        count = metrics(event).strip()
-        beside = width >= cell_width(count) + 8
-        columns = min(12, max(4, width - cell_width(count) - 2) if beside else width)
+            return [fit(count, width)] if count else []
+        count = count.strip()
+        count_width = cell_width(count)
+        beside = width >= count_width + 8
+        columns = min(12, width - count_width - 2 if beside else width)
         filled = min(columns * 8, max(0, int(columns * 8 * event.completed / event.total)))
         cells = []
         # Braille's left column is bits 0,1,2,6; the right is bits 3,4,5,7.
@@ -328,8 +326,7 @@ class CommandProgress:
         else:
             label = fit(primary.label, max(0, available - 2), ellipsis)
             lines.append(f'{edge} {self._amber(spinner)} {self._paint(label, "1")}')
-            lines.extend(f'{edge}  {row}' for row in self._meter(
-                primary, available, frame, duration(now - self.phase_started.get(primary.task_id, now))))
+            lines.extend(f'{edge}  {row}' for row in self._meter(primary, available, frame))
             if primary.detail:
                 lines.append(f'{edge}  {fit(primary.detail, available, ellipsis)}')
 

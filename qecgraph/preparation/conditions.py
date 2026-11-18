@@ -22,7 +22,7 @@ DRAWING_ENVIRONMENTS = frozenset(
 def conditional_views(text, nodes, start, end, *, observed_guards=()):
     inactive, uncertain = condition_regions(text)
     views = []
-    literal = literal_false_ranges(text)
+    literal = {a for a, _ in literal_false_ranges(text)}
     observed = {g["header_range"][0]: g for g in observed_guards}
     for a, b in [*inactive, *uncertain]:
         raw = text[a:b]
@@ -41,7 +41,7 @@ def conditional_views(text, nodes, start, end, *, observed_guards=()):
         kind = "unmapped"
         if a in observed:
             kind = "native_observed_branch"
-        elif any(x == a for x, _ in literal):
+        elif a in literal:
             kind = "literal_false_guard"
         elif region == "document_boundary":
             kind = "unmapped"
@@ -49,9 +49,12 @@ def conditional_views(text, nodes, start, end, *, observed_guards=()):
             kind = region + "_syntax_preserved"
         elif _layout_guard(raw):
             kind = "layout_only"
-        elif _inside_bibliography(a, b, nodes) and _bibliography_helpers(raw):
+        elif (
+            _inside_environment(a, b, nodes, {"thebibliography"})
+            and _bibliography_helpers(raw)
+        ):
             kind = "bibliography_format_setup"
-        elif _inside_drawing(a, b, nodes):
+        elif _inside_environment(a, b, nodes, DRAWING_ENVIRONMENTS):
             kind = "drawing_payload"
         views.append(
             {
@@ -65,10 +68,10 @@ def conditional_views(text, nodes, start, end, *, observed_guards=()):
     return views
 
 
-def _inside_drawing(start, end, nodes):
+def _inside_environment(start, end, nodes, names):
     return any(
         node["kind"] == "environment"
-        and node["name"] in DRAWING_ENVIRONMENTS
+        and node["name"] in names
         and node["range"][0] <= start < end <= node["range"][1]
         for node in nodes
     )
@@ -76,15 +79,6 @@ def _inside_drawing(start, end, nodes):
 
 def _layout_guard(raw):
     return bool(re.fullmatch(r"\\ifCLASSOPTIONcaptionsoff\s*\\newpage\s*\\fi", raw))
-
-
-def _inside_bibliography(start, end, nodes):
-    return any(
-        n["kind"] == "environment"
-        and n["name"] == "thebibliography"
-        and n["range"][0] <= start < end <= n["range"][1]
-        for n in nodes
-    )
 
 
 def _bibliography_helpers(raw):

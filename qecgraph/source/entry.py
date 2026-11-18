@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from difflib import SequenceMatcher
 import hashlib
+from itertools import combinations
 import re
 from pathlib import PurePosixPath
 from typing import Mapping, Sequence
@@ -84,12 +85,11 @@ def _metadata(files: Mapping[str, bytes | str], name: str) -> dict | None:
 
 def _similar_titles(metadata: Mapping[str, dict], names: Sequence[str]) -> bool:
     """Every remaining title must match every other, without transitive bridges."""
-    for left in range(len(names)):
-        for right in range(left + 1, len(names)):
-            a = metadata[names[left]]['normalized_title']
-            b = metadata[names[right]]['normalized_title']
-            if not a or not b or SequenceMatcher(None, a, b).ratio() < _SIMILARITY:
-                return False
+    for left, right in combinations(names, 2):
+        a = metadata[left]['normalized_title']
+        b = metadata[right]['normalized_title']
+        if not a or not b or SequenceMatcher(None, a, b).ratio() < _SIMILARITY:
+            return False
     return len(names) > 1
 
 
@@ -147,7 +147,7 @@ def select_main_document(files: Mapping[str, bytes | str],
         key = (metadata[name]['digest'], str(PurePosixPath(name).parent))
         groups.setdefault(key, []).append(name)
     representatives = [
-        sorted(group, key=lambda name: (len(name), name))[0]
+        min(group, key=lambda name: (len(name), name))
         for group in groups.values()
     ]
     if len(representatives) == 1:
@@ -184,11 +184,10 @@ def _select_front_matter(metadata, representatives):
 
     # 4. Near-identical titles: prefer the variant with more literal authors.
     if _similar_titles(metadata, representatives):
-        group = representatives
-        if len({metadata[name]['normalized_title'] for name in group}) == 1:
+        if len({metadata[name]['normalized_title'] for name in representatives}) == 1:
             return None, 'ambiguous'
-        ranked = sorted(group, key=lambda name: (-metadata[name]['authors'],
-                                                 len(name), name))
+        ranked = sorted(representatives, key=lambda name: (-metadata[name]['authors'],
+                                                           len(name), name))
         best, runner_up = ranked[0], ranked[1]
         best_authors = metadata[best]['authors']
         if best_authors and best_authors > metadata[runner_up]['authors']:

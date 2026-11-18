@@ -87,22 +87,22 @@ class WorkspaceGraph:
                             'omitted_nodes': 0, 'omitted_edges': 0, 'omitted_search_results': 0,
                             'statement_complete': True if 'node' in result or 'nodes' in result else None}
 
-        def fitting(candidate):
-            return _length(candidate) <= maximum
+        def fitting():
+            return _length(result) <= maximum
 
         def prefix(items, assign):
             low, high = 0, len(items)
             while low < high:
                 middle = (low + high + 1) // 2
                 assign(items[:middle])
-                if fitting(result):
+                if fitting():
                     low = middle
                 else:
                     high = middle - 1
             assign(items[:low])
             return low
 
-        if not fitting(result):
+        if not fitting():
             if 'nodes' in result:
                 root = next(node for node in original_nodes if node['id'] == result['root_id'])
                 ordered = [root] + [node for node in original_nodes if node['id'] != root['id']]
@@ -124,7 +124,7 @@ class WorkspaceGraph:
                 incoming, outgoing = result.pop('incoming'), result.pop('outgoing')
                 result.update(incoming=[], outgoing=[], truncated=True, context_complete=False)
                 result['budget']['omitted_edges'] = len(incoming) + len(outgoing)
-                if not fitting(result):
+                if not fitting():
                     raise ToolError('BUDGET_ROOT_TOO_LARGE', 'The complete audit node does not fit; increase budget',
                                     {'scope': self.scope, 'statement_complete': False, 'max_chars': maximum})
                 kept_out = prefix(outgoing, lambda edges: result.update(outgoing=edges))
@@ -138,7 +138,7 @@ class WorkspaceGraph:
                 result['budget']['omitted_search_results'] = len(rows) - kept
         # Accounting fields themselves must fit too. Refuse rather than slice
         # a statement or silently exceed the advertised payload budget.
-        if not fitting(result):
+        if not fitting():
             raise ToolError('BUDGET_TOO_SMALL', 'Response metadata or complete selected blocks exceed this budget',
                             {'scope': self.scope, 'max_chars': maximum})
         return result
@@ -174,9 +174,7 @@ class WorkspaceGraph:
                 result['audit_view'] = True
             result['operation'] = action
             return {'ok': True, 'data': self._budget(result, arguments.get('max_chars', self.max_chars), output_metadata)}
-        except ToolError as exc:
-            return copy.deepcopy({'ok': False, 'error': {'code': exc.code, 'message': str(exc), 'details': exc.details, 'scope': self.scope}})
-        except query.SelectionError as exc:
+        except (ToolError, query.SelectionError) as exc:
             return copy.deepcopy({'ok': False, 'error': {'code': exc.code, 'message': str(exc),
                                                          'details': exc.details, 'scope': self.scope}})
         except (KeyError, TypeError) as exc:

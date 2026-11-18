@@ -3,12 +3,12 @@ import re
 import shlex
 import unittest
 from contextlib import redirect_stdout
-from urllib.parse import unquote, urlsplit
 
 from qecgraph.cli.parser import _build_parser, parse_command
 
-
+from tests.contracts.docs import local_link_targets
 from tests.support import ROOT
+
 CURRENT_DOCS = ('docs/README.md', 'docs/user/README.md', 'docs/user/quickstart.md',
                 'docs/user/advanced-usage.md', 'docs/user/data-and-search.md',
                 'docs/user/workspace.md', 'docs/user/splitter.md', 'docs/design/DESIGN.md',
@@ -22,7 +22,6 @@ USER_DOCS = ('README.md', 'README.zh-CN.md', *CURRENT_DOCS,
              'docs/operations/README.zh-CN.md', 'docs/operations/maintenance.zh-CN.md',
              'validation/README.md', 'validation/README.zh-CN.md',
              'CONTRIBUTING.md', 'SECURITY.md')
-LINK = re.compile(r'\[[^\]\n]+\]\(([^\s)]+)\)')
 INLINE_COMMAND = re.compile(r'`qec-graph ([^`\n]+)`')
 PUBLIC_REDIRECTS = set()
 
@@ -51,12 +50,7 @@ class DocumentationTests(unittest.TestCase):
 
     def test_current_documentation_links_resolve_in_the_source_distribution(self):
         for name in USER_DOCS:
-            page = ROOT / name
-            for link in LINK.findall(page.read_text(encoding='utf-8')):
-                url = urlsplit(link)
-                if url.scheme or url.netloc or not url.path:
-                    continue
-                target = (page.parent / unquote(url.path)).resolve()
+            for url, target in local_link_targets(ROOT / name):
                 with self.subTest(page=name, target=url.path):
                     self.assertTrue(target.is_relative_to(ROOT))
                     self.assertTrue(target.exists(), f'{name} links to missing {url.path}')
@@ -102,13 +96,8 @@ class DocumentationTests(unittest.TestCase):
     def test_current_docs_are_reachable_from_the_index(self):
         graph = {}
         for name in CURRENT_DOCS:
-            page = ROOT / name
             targets = set()
-            for link in LINK.findall(page.read_text(encoding='utf-8')):
-                url = urlsplit(link)
-                if url.scheme or url.netloc or not url.path:
-                    continue
-                target = (page.parent / unquote(url.path)).resolve()
+            for _, target in local_link_targets(ROOT / name):
                 if target.exists() and target.suffix == '.md':
                     try:
                         targets.add(str(target.relative_to(ROOT)))
@@ -127,14 +116,8 @@ class DocumentationTests(unittest.TestCase):
                          'current docs are not reachable from docs/README.md')
 
     def test_indexes_never_link_to_public_redirects(self):
-        for name in ('docs/README.md', 'docs/user/README.md', 'docs/operations/README.md',
-                     'docs/operations/README.md'):
-            page = ROOT / name
-            for link in LINK.findall(page.read_text(encoding='utf-8')):
-                url = urlsplit(link)
-                if url.scheme or url.netloc or not url.path:
-                    continue
-                target = (page.parent / unquote(url.path)).resolve()
+        for name in ('docs/README.md', 'docs/user/README.md', 'docs/operations/README.md'):
+            for _, target in local_link_targets(ROOT / name):
                 try:
                     relative = str(target.relative_to(ROOT))
                 except ValueError:

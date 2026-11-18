@@ -26,7 +26,7 @@ def observe_branches(build, tree, support, compiler):
         return report, {}
     prefix = "QECGRAPH-VIEW-" + secrets.token_hex(8) + "-"
     files, changed = _instrument(tree, guards, prefix)
-    files.update(_bibliography(build))
+    files.update(compiled_bibliography(build))
     derived_tree = SourceTree("observed_build_view", files)
     derived = compile_derived(build, derived_tree, "build-view", support, compiler)
 
@@ -70,9 +70,6 @@ def _candidates(build, tree):
             if len(result) > 128:
                 raise ValueError("Native guard observation limit exceeded")
     return result
-
-
-_bibliography = compiled_bibliography
 
 
 def _instrument(tree, guards, prefix):

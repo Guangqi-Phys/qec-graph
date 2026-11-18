@@ -25,11 +25,10 @@ def locate_citations(nodes, references, diagnostics, text, assembly, tree):
         for n in nodes
     )
     node_scopes = _node_scopes(nodes, references, diagnostics)
-    result, located = _literal_calls(
-        nodes, required, revtex, node_scopes, scope_commands(references)
-    )
+    extra = scope_commands(references)
+    result, located = _literal_calls(nodes, required, revtex, node_scopes, extra)
     wildcard_calls, wildcard_keys = _wildcard_calls(
-        nodes, references, required, node_scopes
+        nodes, references, required, node_scopes, extra
     )
     result.extend(wildcard_calls)
     located.update(wildcard_keys)
@@ -54,8 +53,7 @@ def locate_citations(nodes, references, diagnostics, text, assembly, tree):
     return result
 
 
-def _wildcard_calls(nodes, references, required, node_scopes):
-    extra = scope_commands(references)
+def _wildcard_calls(nodes, references, required, node_scopes, extra):
     wildcards = set(references.get("wildcard_sections", []))
     result, located = [], set()
     for node in nodes:
@@ -118,11 +116,10 @@ def _node_scopes(nodes, references, diagnostics):
 
 
 def _literal_calls(nodes, required, revtex, node_scopes, extra):
+    supported = CITATION_COMMANDS.union(extra)
     result, located = [], set()
     for node in nodes:
-        if node["kind"] != "macro" or node["name"] not in CITATION_COMMANDS | set(
-            extra
-        ):
+        if node["kind"] != "macro" or node["name"] not in supported:
             continue
         arguments = [a for a in node["arguments"] if a and a.startswith("{")]
         if not arguments or node["region"] not in {"body", "preamble"}:

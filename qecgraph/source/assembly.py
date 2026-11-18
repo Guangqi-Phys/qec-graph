@@ -11,7 +11,7 @@ The module accepts a mapping of POSIX relative paths to bytes (normally
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import bisect
 import hashlib
 import re
@@ -1125,12 +1125,12 @@ class Assembler:
             expanded_args = tuple(self._expand_literal(argument)
                                   for argument in directive.args)
             if expanded_args != directive.args:
-                event = _replace(event, expanded_args=expanded_args)
+                event = replace(event, expanded_args=expanded_args)
             resolution = self._resolve(rel, directive, expanded_args, context)
             if resolution is None:
                 add_original(start, stop)
                 uncertain = self._uncertain_reference(expanded_args)
-                event = _replace(
+                event = replace(
                     event,
                     outcome="uncertain_path" if uncertain else "dynamic_path",
                     out_byte_end=len(output), out_char_end=out_chars)
@@ -1142,14 +1142,14 @@ class Assembler:
             outcome = self._input_outcome(target, outcome)
             if outcome != "resolved":
                 add_original(start, stop)
-                event = _replace(event, outcome=outcome, out_byte_end=len(output),
+                event = replace(event, outcome=outcome, out_byte_end=len(output),
                                  out_char_end=out_chars)
                 events.append(event)
                 cursor = stop
                 continue
             if target in stack or target == rel:
                 add_original(start, stop)
-                event = _replace(event, outcome="cycle", out_byte_end=len(output),
+                event = replace(event, outcome="cycle", out_byte_end=len(output),
                                  out_char_end=out_chars)
                 events.append(event)
                 cursor = stop
@@ -1171,7 +1171,7 @@ class Assembler:
             output.extend(child_data)
             out_chars += len(child_data.decode("utf-8"))
             diagnostics.extend(child_diagnostics)
-            event = _replace(
+            event = replace(
                 event, outcome="resolved", target=target,
                 target_byte_start=target_base, target_byte_end=target_end,
                 target_char_start=len(self.files[target][:target_base].decode("utf-8")),
@@ -1355,12 +1355,6 @@ class Assembler:
         return f"{base}/{value}" if base else value
 
 
-def _replace(event: DirectiveEvent, **fields) -> DirectiveEvent:
-    data = event.__dict__.copy()
-    data.update(fields)
-    return DirectiveEvent(**data)
-
-
 def _shift_segment(segment: Segment, byte_offset: int, char_offset: int) -> Segment:
     return Segment(
         segment.path, segment.byte_start, segment.byte_end,
@@ -1381,7 +1375,7 @@ def _shift_event(event: DirectiveEvent, byte_offset: int, char_offset: int) -> D
         if value is not None:
             fields[key] = value + char_offset
     fields["depth"] = event.depth + 1
-    return _replace(event, **fields)
+    return replace(event, **fields)
 
 
 def assemble_files(files: Mapping[str, bytes], entry: str, *, scan_views=None, allowed_inputs=None) -> AssemblyResult:

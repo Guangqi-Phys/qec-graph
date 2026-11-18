@@ -85,9 +85,10 @@ def local_vector(text, dimension):
     vector: dict[str, float] = {}
     for token, count in counts.items():
         features = [token, *('~'+token[i:i+3] for i in range(max(0, len(token)-2)))]
+        weight = (1 + math.log(count)) / len(features)
         for feature in features:
             index = str(int(hashlib.sha256(feature.encode()).hexdigest()[:16], 16) % dimension)
-            vector[index] = vector.get(index, 0.0) + (1 + math.log(count)) / len(features)
+            vector[index] = vector.get(index, 0.0) + weight
     norm = math.sqrt(sum(x*x for x in vector.values()))
     return {i: x/norm for i, x in vector.items()} if norm else {}
 
@@ -203,6 +204,7 @@ def _stage_index(machine, state, raw_config, *, search_units, repair=False):
     reusable = {c['text_sha256']: c['vector_sha256'] for c in previous['chunks']} if previous and previous['identity'] == model else {}
     for unit in track(units, 'Indexing searchable source text', unit='passages'):
         text = unit['search_text']
+        key = unit_key(unit)
         total_chars += len(text)
         if total_chars > cfg['max_total_chars']:
             raise ValueError('Retrieval character budget exceeded; prior release retained')
@@ -213,7 +215,7 @@ def _stage_index(machine, state, raw_config, *, search_units, repair=False):
             digest = hash_text(part)
             if digest not in reusable:
                 pending[digest] = part
-            chunks.append({'unit_key': unit_key(unit), 'char_start': start, 'char_end': start + len(part),
+            chunks.append({'unit_key': key, 'char_start': start, 'char_end': start + len(part),
                            'text_sha256': digest})
     reusable.update(_store_vectors(machine, cfg, pending, repair=repair))
     for chunk in chunks:

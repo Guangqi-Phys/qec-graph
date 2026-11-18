@@ -256,8 +256,6 @@ def normalization_evidence(tree: SourceTree, inventory_data):
 
 def normalize_package(tree: SourceTree, client, *, extra_skills_dir=None, use_cache=True):
     """Return a source-faithful normalized entry, using AI only for ambiguity."""
-    from .skills import load_skill  # local import keeps the assembler dependency-light
-
     inventory_data = inventory(tree)
     roots = tree.entrypoints()
     if len(roots) == 1:
@@ -265,13 +263,12 @@ def normalize_package(tree: SourceTree, client, *, extra_skills_dir=None, use_ca
         return NormalizationResult(assemble(tree, plan), inventory_data, None, 1)
     if len(roots) == 0:
         raise NormalizationError('no complete TeX root was found')
+    from .providers.base import Message
+
     skill = load_skill('normalize_package', extra_skills_dir)
     evidence = normalization_evidence(tree, inventory_data)
-    messages = [
-        {'role': 'system', 'content': skill.system_prompt},
-        {'role': 'user', 'content': json.dumps(evidence, ensure_ascii=False, sort_keys=True)},
-    ]
-    from .providers.base import Message
+    messages = [Message('system', skill.system_prompt),
+                Message('user', json.dumps(evidence, ensure_ascii=False, sort_keys=True))]
     normalized: NormalizedSource | None = None
 
     def check_plan(plan):
@@ -283,8 +280,7 @@ def normalize_package(tree: SourceTree, client, *, extra_skills_dir=None, use_ca
         nonlocal normalized
         normalized = check_plan(plan)
 
-    ai_result = client.complete_json([Message(**message) for message in messages], skill.schema,
-                                     use_cache=use_cache, validate=validate)
+    ai_result = client.complete_json(messages, skill.schema, use_cache=use_cache, validate=validate)
     if normalized is None:
         normalized = check_plan(ai_result.data)
     return NormalizationResult(normalized, inventory_data, ai_result, skill.version)

@@ -87,10 +87,11 @@ class KnowledgeView:
             item = {'id': self.handles.get(row['id'], row['id']), 'kind': row.get('kind', 'paper'),
                     'title': row['title'][:80], 'paper': self.handles.get(paper.get('id'))}
             if 'excerpt' in row:
-                item.update(excerpt=row['excerpt'][:120], section_path=' > '.join(row.get('section_path', []))[:100])
+                excerpt = row['excerpt'][:120]
+                item.update(excerpt=excerpt, section_path=' > '.join(row.get('section_path', []))[:100])
                 if source := row.get('excerpt_source'):
-                    item.update(path=source['path'], lines=[source['line_start'], source['line_start'] + SourceLines(row['excerpt'][:120]).line_at(max(0, len(row['excerpt'][:120]) - 1)) - 1],
-                                char_range=[source['char_start'], source['char_start'] + min(120, len(row['excerpt']))])
+                    item.update(path=source['path'], lines=[source['line_start'], source['line_start'] + SourceLines(excerpt).line_at(max(0, len(excerpt) - 1)) - 1],
+                                char_range=[source['char_start'], source['char_start'] + len(excerpt)])
             for field in ('review_status', 'match', 'authors', 'year', 'topics', 'arxiv_id', 'matched_occurrence_id',
                           'arxiv_id_source', 'arxiv_candidates'):
                 if field in row:
@@ -186,10 +187,8 @@ class KnowledgeView:
                     if value:
                         result[field] = [r['value'] for r in value] if isinstance(value, list) else value['value']
                         result['field_evidence'][field] = {'status': 'ai_proposed', 'evidence': value}
-            files = sorted((n for (v, _), n in self.files.items() if v == version_id),
-                           key=lambda n: (n['data']['path'] != document['data']['entry'], n['data']['path']))
             extracted = set()
-            for file in files:
+            for file in self._document_files(document):
                 text = self.file_text(file)
                 fields = literal_metadata(text)
                 abstract = re.search(r'\\begin\s*\{abstract\}(.*?)\\end\s*\{abstract\}', text, re.S)
@@ -217,6 +216,12 @@ class KnowledgeView:
             result['year'] = int(result['published_date'][:4]) if result['published_date'] else None
             papers[version_id] = result
         return papers
+
+    def _document_files(self, document):
+        version = document['provenance']['source_version_id']
+        entry = document['data']['entry']
+        return sorted((file for (source_version, _), file in self.files.items() if source_version == version),
+                      key=lambda file: (file['data']['path'] != entry, file['data']['path']))
 
     def outline(self, node, args):
         version = node['provenance']['source_version_id']
@@ -394,11 +399,8 @@ class KnowledgeView:
         if node['kind'] == 'document':
             if 'char_start' in args or 'char_end' in args:
                 raise ToolError('INVALID_ARGUMENT', 'Select an exact source file for character ranges')
-            version = node['provenance']['source_version_id']
-            files = sorted((f for (v, _), f in self.files.items() if v == version),
-                           key=lambda f: (f['data']['path'] != node['data']['entry'], f['data']['path']))
             return {**self.summary(node), 'view': view,
-                    'files': [self.fetch({'identifier': f['id'], 'view': view}) for f in files],
+                    'files': [self.fetch({'identifier': f['id'], 'view': view}) for f in self._document_files(node)],
                     'reading_scope': 'Complete registered source files; TeX includes/macros are not expanded'}
         version = node['provenance']['source_version_id']
         file = node if node['kind'] == 'source_file' else self.files[(version, node['source']['path'])]
@@ -507,12 +509,12 @@ class KnowledgeView:
             role = node.get('source_role')
             if node['kind'] == 'paragraph' and re.match(r'\s*\\(?:title|author|keywords|affiliation|email)\b', node.get('latex', '')):
                 role = 'metadata'  # Class-specific metadata macros can share a paragraph.
+            paper = self.papers[node['provenance']['source_version_id']]
+            sections = self.section_path(node['id'])
             units.append({**self.summary(node), 'source_role': role,
-                          'passage_text': text,
-                          'paper_title': self.papers[node['provenance']['source_version_id']]['title'],
-                          'section_path': self.section_path(node['id']),
-                          'search_text': ' > '.join(self.section_path(node['id'])) + '\n' + ' '.join([self.papers[node['provenance']['source_version_id']]['title'],
-                                           *self.papers[node['provenance']['source_version_id']]['authors']]) + '\n' + node['title'] + '\n' + text})
+                          'passage_text': text, 'paper_title': paper['title'], 'section_path': sections,
+                          'search_text': '\n'.join((' > '.join(sections), ' '.join([paper['title'], *paper['authors']]),
+                                                    node['title'], text))})
         for record in self.session.visible.values():
             source = record['data'].get('source_ref') or {}
             units.append({'id': record['id'], 'revision': record['revision'], 'kind': record['kind'],
@@ -572,7 +574,8 @@ class KnowledgeView:
         if not lexical:
             lexical, matches = self.context_lexical.rank(args['query'], set(allowed))
         if mode == 'literal':
-            ranked = [k for k, u in allowed.items() if normalized(args['query']) in normalized(u['search_text'])]
+            needle = normalized(args['query'])
+            ranked = [k for k, u in allowed.items() if needle in normalized(u['search_text'])]
             status, method = self.retrieval.status(), 'literal normalized whitespace search'
         elif mode == 'keyword':
             ranked, status, method = lexical, self.retrieval.status(), 'BM25; all terms before partial matches'

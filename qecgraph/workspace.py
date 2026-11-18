@@ -300,9 +300,7 @@ class Workspace:
 
         try:
             digest = material['archive_sha256']
-            raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
-            if hashlib.sha256(raw).hexdigest() != digest:
-                raise ValueError('Archived source hash mismatch')
+            raw = self._archive_bytes(digest)
             mappings = material.get('encoding_mappings', {})
             entry_codec = mappings.get(material['entrypoint'], {}).get('encoding')
             tree = unpack(raw, limits, encoding=entry_codec)
@@ -334,11 +332,11 @@ class Workspace:
 
         failed_skills = {error.get('skill') for error in previous.get('errors', [])}
         completed = {item['skill'] for item in previous.get('written', [])} - failed_skills
-        sections = list(authored_sections(graph, {material['entrypoint']: normalized, **additional}))
+        sources = {material['entrypoint']: normalized, **additional}
+        sections = list(authored_sections(graph, sources))
         saved_sections = self._partial_sections(material, previous, failed_skills)
         results, errors = [], []
-        evidence = {path: source.sha256 for path, source in
-                    {material['entrypoint']: normalized, **additional}.items()}
+        evidence = {path: source.sha256 for path, source in sources.items()}
         for binding, old_snapshot in reusable:
             if binding['skill'] in completed:
                 continue
@@ -558,10 +556,7 @@ class Workspace:
 
     def _remove_claim(self, job):
         for name in ('payload', 'job.json', 'commit.json'):
-            try:
-                (job / name).unlink()
-            except FileNotFoundError:
-                pass
+            (job / name).unlink(missing_ok=True)
         try:
             job.rmdir()
         except FileNotFoundError:
@@ -588,7 +583,7 @@ class Workspace:
         path.rename(job / 'payload')
         return job, meta
 
-    def _restore(self, job, payload, name):
+    def _restore(self, payload, name):
         return _move_input(payload, self.root / 'inputs' / _inbox_name(name))
 
     def _quarantined_inputs(self):
@@ -663,6 +658,12 @@ class Workspace:
         immutable_json(self.path('archive/receipts/' + job.name + '.json'), receipt)
         return digest
 
+    def _archive_bytes(self, digest):
+        raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
+        if hashlib.sha256(raw).hexdigest() != digest:
+            raise ValueError('Archived source hash mismatch')
+        return raw
+
     def _recover_source(self, parsed, *, raw, entry, state, prior, source_id, client, report):
         from .llm.client import BudgetExceeded, ResponseSchemaError
         from .llm.errors import LLMError
@@ -720,9 +721,7 @@ class Workspace:
 
         normalization = None
         try:
-            raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
-            if hashlib.sha256(raw).hexdigest() != digest:
-                raise ValueError('Archived source hash mismatch')
+            raw = self._archive_bytes(digest)
             phase('Unpacking source package')
             encoding = cfg.get('encodings', {}).get(digest)
             tree = unpack(raw, limits, encoding=encoding)
@@ -743,8 +742,7 @@ class Workspace:
                     result.update(status='needs_entrypoint', entrypoint_candidates=candidates,
                                   reason=f'Configured entry not found in source tree: {entry}')
                     return self._keep_prior(result, prior)
-                if entry is None:
-                    entry, _method = select_main_document(extract_tree.files, candidates)
+                entry, _ = select_main_document(extract_tree.files, candidates)
                 if entry is None:
                     normalization_available = any((ai_client is not None, prior.get('normalization_id')))
                     if len(candidates) > 1 and not mappings and normalization_available:
@@ -853,7 +851,7 @@ class Workspace:
                 digest = self._archive(job, meta, limit)
             except (OSError, ValueError) as exc:
                 rows.append({'input': meta['name'], 'status': 'archive_failed', 'reason': str(exc),
-                             'input_consumed': False, 'restored': self._restore(job, job / 'payload', meta['name'])})
+                             'input_consumed': False, 'restored': self._restore(job / 'payload', meta['name'])})
                 continue
             claims.append((job, meta, digest))
         if rows:
@@ -909,7 +907,7 @@ class Workspace:
                         row['cleanup_error'] = str(exc)
                         row['status'] = 'committed_pending_cleanup'
                 else:
-                    row['restored'] = self._restore(job, payload, meta['name'])
+                    row['restored'] = self._restore(payload, meta['name'])
                     if not row['restored']:
                         row['retained_claim'] = job.name
             except (OSError, ValueError) as exc:
@@ -937,9 +935,7 @@ class Workspace:
             if not material.get('normalization_id'):
                 continue
             try:
-                raw = _read_regular(self.path('archive/blobs/sha256/' + digest), 128 << 20)
-                if hashlib.sha256(raw).hexdigest() != digest:
-                    raise ValueError('Archived source hash mismatch')
+                raw = self._archive_bytes(digest)
                 source, _ = load_normalization(self.registry.root, material, tree=unpack(raw, limits))
                 version = state['versions'][material['source_version_id']]
                 if (version['snapshot_id'] == material['source_snapshot_id']

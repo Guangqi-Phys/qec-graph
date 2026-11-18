@@ -31,7 +31,7 @@ def current_field(session, record, field):
 
 def _trace_projection(session, candidates):
     nodes = {_identity(n): answer_node(n, candidates)[0] for n in session.graph.source.graph['nodes']}
-    nodes.update({k: v for k, v in session.visible.items()})
+    nodes.update(session.visible)
     edges = []
     for edge in session.graph.source.graph['edges']:
         if eligible(edge, candidates):
@@ -127,9 +127,10 @@ def trace(session, args):
                 pending.append((target, level + 1))
             if edge not in selected:
                 selected.append(edge)
+    omitted.difference_update(seen)
     return {'root_id': root[0], 'root_revision': root[1], 'nodes': [nodes[k] for k in chosen],
             'edges': selected, 'unresolved': [u for identity in chosen for u in unresolved[identity]],
-            'truncated': bool(omitted-seen), 'omitted_frontier_count': len(omitted-seen),
+            'truncated': bool(omitted), 'omitted_frontier_count': len(omitted),
             'interpretation': 'Typed source/record associations; references and proximity are not proof dependencies'}
 
 
@@ -289,7 +290,8 @@ def filter_codes(session, rows, args):
             if not matrices:
                 continue
             if 'distance_estimates' in row:
-                matches = [c for c in row['distance_estimates'] if key(c['data']['subject_ref']) in {_identity(m) for m in matrices}]
+                matrix_ids = {_identity(matrix) for matrix in matrices}
+                matches = [c for c in row['distance_estimates'] if key(c['data']['subject_ref']) in matrix_ids]
                 if not matches:
                     continue
                 row = {**row, 'distance_estimates': matches}

@@ -9,7 +9,7 @@ import stat
 import tempfile
 from pathlib import Path
 
-from .core.fs import managed_path, regular_managed_path
+from .core.fs import SHA256_HEX, managed_path, regular_managed_path
 from .core.graph import canonical, hash_text, read_json
 from .store import current_snapshot, load_validated_snapshot, safe_relative
 from .core.transactions import ManagedDataError, atomic_bytes, immutable_json, publish_pointer, read_pointer
@@ -63,7 +63,7 @@ class Registry:
         if pointer_path is not None:
             pointer = read_pointer(pointer_path, CURRENT_FORMAT)
             revision = pointer.get('revision')
-        if not isinstance(revision, str) or len(revision) != 64 or any(c not in '0123456789abcdef' for c in revision):
+        if not isinstance(revision, str) or not SHA256_HEX.fullmatch(revision):
             if pointer_path is not None:
                 raise ManagedDataError(pointer_path, 'CURRENT does not identify a valid registry revision')
             raise ValueError('Invalid registry revision')
@@ -73,7 +73,7 @@ class Registry:
         except FileNotFoundError:
             pass
         else:
-            if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+            if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
                 raise ManagedDataError(state_path, 'Registry state must be a regular unlinked local file')
         try:
             state = read_json(state_path)

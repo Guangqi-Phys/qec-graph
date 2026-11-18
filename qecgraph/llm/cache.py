@@ -1,6 +1,7 @@
 """Content-addressed cache for validated model responses."""
 from __future__ import annotations
 
+from contextlib import suppress
 import hashlib
 import json
 import os
@@ -39,12 +40,9 @@ class ResponseCache:
     def put(self, key, value):
         with self.lock:
             self.root.mkdir(parents=True, exist_ok=True)
-            try:
+            with suppress(OSError):
                 os.chmod(self.root, 0o700)
-            except OSError:
-                pass
-            atomic_json(self.path(key), value)
-            try:
-                os.chmod(self.path(key), 0o600)
-            except OSError:
-                pass
+            path = self.path(key)
+            atomic_json(path, value)
+            with suppress(OSError):
+                os.chmod(path, 0o600)

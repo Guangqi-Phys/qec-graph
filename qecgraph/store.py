@@ -23,7 +23,7 @@ from . import PARSER_VERSION, __version__
 from .source.extraction import RULE_VERSION
 from .core.graph import build_graph, canonical, hash_text, node_filename, read_json, strict_json_loads, views
 from .core.coordinates import SourceLines
-from .core.fs import managed_path
+from .core.fs import SHA256_HEX, managed_path
 from .core.transactions import ManagedDataError, atomic_json, publish_pointer, read_pointer, writer_lock
 
 
@@ -32,7 +32,7 @@ SNAPSHOT_FORMAT = 3
 
 
 def _is_snapshot_id(value):
-    return isinstance(value, str) and len(value) == 64 and all(c in '0123456789abcdef' for c in value)
+    return isinstance(value, str) and SHA256_HEX.fullmatch(value) is not None
 
 
 def write_json(path, value):
@@ -77,9 +77,7 @@ def _safe_relative_to_resolved(root, relative):
     if relative.is_absolute():
         raise ValueError("Expected a relative archive path")
     path = (root / relative).resolve()
-    # Both paths are resolved on a POSIX filesystem. Compare whole components.
-    root_parts = root.parts
-    if path.parts[:len(root_parts)] != root_parts:
+    if not path.is_relative_to(root):
         raise ValueError(f"Path escapes root: {relative}")
     return path
 

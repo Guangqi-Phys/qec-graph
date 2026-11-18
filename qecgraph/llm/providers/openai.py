@@ -10,8 +10,8 @@ from urllib.parse import urlsplit
 from typing import Any, Mapping, Sequence
 
 from ..errors import ProviderError
-from .base import Completion, HttpResult, Message, Transport
-from .http import UrllibTransport
+from .base import Completion, Message, Transport
+from .http import UrllibTransport, post_json
 
 
 _UNSUPPORTED_STRICT_KEYWORDS = {'allOf', 'not', 'dependentRequired', 'dependentSchemas', 'if', 'then', 'else',
@@ -92,16 +92,8 @@ class OpenAICompatibleProvider:
             'Accept': 'application/json',
             **self.extra_headers,
         }
-        try:
-            result = self.transport.request('POST', self.endpoint, headers=headers,
-                                            body=json.dumps(payload).encode('utf-8'), timeout=timeout)
-        except ConnectionError:
-            raise ProviderError(f'{self.name}: transport failed', retryable=True) from None
-        self._raise_for_status(result)
-        try:
-            data = json.loads(result.body.decode('utf-8'))
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            raise ProviderError(f'{self.name}: provider returned invalid JSON') from None
+        result, data = post_json(self.transport, self.endpoint, name=self.name, headers=headers,
+                                 payload=payload, timeout=timeout)
         choices = data.get('choices')
         if not isinstance(choices, list) or not choices:
             raise ProviderError(f'{self.name}: provider returned no choices')
@@ -116,9 +108,3 @@ class OpenAICompatibleProvider:
         finish_reason = choices[0].get('finish_reason') if isinstance(choices[0], dict) else None
         return Completion(text=content, model=data.get('model') or model, usage=usage,
                           request_id=request_id, finish_reason=finish_reason)
-
-    def _raise_for_status(self, result: HttpResult):
-        if 200 <= result.status < 300:
-            return
-        retryable = result.status in {408, 409, 429} or result.status >= 500
-        raise ProviderError(f'{self.name}: HTTP {result.status}', status=result.status, retryable=retryable)

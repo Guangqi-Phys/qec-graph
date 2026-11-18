@@ -5,8 +5,14 @@ from pathlib import PurePosixPath
 import re
 from types import SimpleNamespace
 
-from .build_view import SCHEMA, _candidates, _instrument, _bibliography, _observations
-from .artifacts import digest, json_bytes, pdf_text_pages, pdf_text_hashes
+from .build_view import SCHEMA, _candidates, _instrument, _observations
+from .artifacts import (
+    compiled_bibliography,
+    digest,
+    json_bytes,
+    pdf_text_pages,
+    pdf_text_hashes,
+)
 from .guard_syntax import scan_views, project_view
 from .branches import syntax_view
 from .projection import working_tree, decorate_origins
@@ -61,7 +67,7 @@ def _check_probe(evidence, view, tree):
     if re.fullmatch(r"QECGRAPH-VIEW-[0-9a-f]{16}-", prefix) is None:
         raise ValueError("Invalid native guard marker prefix")
     instrumented, changed = _instrument(tree, expected, prefix)
-    instrumented.update(_bibliography(original))
+    instrumented.update(compiled_bibliography(original))
     if (
         SourceTree("observed_build_view", instrumented).digest
         != view["instrumented_tree_sha256"]

@@ -6,7 +6,7 @@ from typing import Any, Mapping, Sequence
 
 from ..errors import ProviderError
 from .base import Completion, Message, Transport
-from .http import UrllibTransport
+from .http import UrllibTransport, post_json
 
 
 class AnthropicProvider:
@@ -48,19 +48,8 @@ class AnthropicProvider:
             payload['system'] = system
         headers = {'x-api-key': self.api_key, 'anthropic-version': self.version,
                    'Content-Type': 'application/json', 'Accept': 'application/json'}
-        try:
-            result = self.transport.request('POST', self.endpoint, headers=headers,
-                                            body=json.dumps(payload).encode('utf-8'), timeout=timeout)
-        except ConnectionError:
-            raise ProviderError(f'{self.name}: transport failed', retryable=True) from None
-        if not 200 <= result.status < 300:
-            retryable = result.status in {408, 409, 429} or result.status >= 500
-            raise ProviderError(f'{self.name}: HTTP {result.status}',
-                                status=result.status, retryable=retryable)
-        try:
-            data = json.loads(result.body.decode('utf-8'))
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            raise ProviderError(f'{self.name}: provider returned invalid JSON') from None
+        result, data = post_json(self.transport, self.endpoint, name=self.name, headers=headers,
+                                 payload=payload, timeout=timeout)
         blocks = data.get('content')
         text = ''.join(block.get('text', '') for block in blocks
                        if isinstance(block, dict) and block.get('type') == 'text') if isinstance(blocks, list) else ''

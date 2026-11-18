@@ -3,8 +3,9 @@ import unicodedata
 import unittest
 from urllib.parse import unquote, urlsplit
 
-
+from tests.contracts.docs import local_link_targets
 from tests.support import ROOT
+
 PAIRS = (
     ('README.md', 'README.zh-CN.md'),
     ('docs/README.md', 'docs/README.zh-CN.md'),
@@ -22,7 +23,6 @@ PAIRS = (
     ('tests/README.md', 'tests/README.zh-CN.md'),
     ('tests/golden/README.md', 'tests/golden/README.zh-CN.md'),
 )
-LINK = re.compile(r'\[[^\]\n]+\]\(([^\s)]+)\)')
 
 
 def _github_slug(text):
@@ -139,12 +139,7 @@ class BilingualDocumentationTests(unittest.TestCase):
     def test_links_in_both_languages_resolve(self):
         for pair in PAIRS:
             for name in pair:
-                page = ROOT / name
-                for link in LINK.findall(page.read_text(encoding='utf-8')):
-                    url = urlsplit(link)
-                    if url.scheme or url.netloc or not url.path:
-                        continue
-                    target = (page.parent / unquote(url.path)).resolve()
+                for url, target in local_link_targets(ROOT / name):
                     with self.subTest(page=name, target=url.path):
                         self.assertTrue(target.is_relative_to(ROOT))
                         self.assertTrue(target.exists(), f'{name} links to missing {url.path}')

@@ -58,8 +58,7 @@ class WorkspaceSession:
         self._visible_by_id = {}
         for (identifier, _), record in self.visible.items():
             self._visible_by_id.setdefault(identifier, []).append(record)
-        self.scope = {'kind': 'workspace', 'workspace_id': self.state['workspace_id'], 'release_id': self.release}
-        self.scope['registry_revision'] = self.release
+        self.scope = {**self.graph.scope, 'registry_revision': self.release}
         self.assets = {uri for r in self.visible.values() for uri in references(r)}
         self._source_nodes = {n['id']: n for n in self.graph.source.graph['nodes']
                               if n['origin'] == 'parser' and n.get('source')}
@@ -344,9 +343,10 @@ class WorkspaceSession:
     @staticmethod
     def _paginate(rows, args, default_limit):
         offset, limit = args.get('offset', 0), args.get('limit', default_limit)
-        truncated = offset + limit < len(rows)
-        return {'results': rows[offset:offset+limit], 'truncated': truncated,
-                'continuation': offset+limit if truncated else None, 'total_matches': len(rows)}
+        end = offset + limit
+        truncated = end < len(rows)
+        return {'results': rows[offset:end], 'truncated': truncated,
+                'continuation': end if truncated else None, 'total_matches': len(rows)}
 
     @staticmethod
     def _fit_page(data, offset, maximum):
@@ -494,14 +494,15 @@ class WorkspaceSession:
             raise ToolError('INVALID_ARGUMENT', 'Coordinate selection needs both name and value')
         if isinstance(requested, float) and not isfinite(requested):
             raise ToolError('INVALID_ARGUMENT', 'Coordinate must be a finite number')
+
+        def get(binding):
+            return self.visible.get(key(binding)) if binding else None
+
         nearest = {}
         for record in self.visible.values():
             if record['kind'] != 'performance_data_point':
                 continue
             point = record['data']
-            def get(binding):
-                return self.visible.get(key(binding)) if binding else None
-
             experiment = get(point.get('experiment_ref'))
             noise_instance = get(point.get('noise_model_instance_ref'))
             metric = get(point.get('metric_ref'))

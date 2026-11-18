@@ -87,7 +87,6 @@ def adapt_references(build, tree, *, source_views=None, dialect=None):
     active = {
         s["id"]: "\n".join(aux[p] for p in s["aux"]) for s in scopes if s["active"]
     }
-    text = "\n".join(active.values())
     biblatex = bcf.is_file() and not bcf.is_symlink()
     if biblatex:
         requested = _bcf_requests(bcf.read_bytes(), include_wildcards=True)
@@ -103,7 +102,7 @@ def adapt_references(build, tree, *, source_views=None, dialect=None):
         _inline_entries(build, tree, entries, labels, diagnostics, source_views or {})
     requested, wildcards = _expand_wildcards(requested, entries, labels, diagnostics)
     result = _resolve(
-        requested, entries, originals, text, diagnostics, controls, biblatex, labels
+        requested, entries, originals, diagnostics, controls, biblatex, labels
     )
     result["wildcard_sections"] = sorted(wildcards)
     result["scopes"] = scopes
@@ -208,9 +207,7 @@ def _bind_inline(entry, bound, entries, diagnostics):
         )
 
 
-def _resolve(
-    requested, entries, originals, aux, diagnostics, controls, biblatex, labels
-):
+def _resolve(requested, entries, originals, diagnostics, controls, biblatex, labels):
     grouped = {}
     for entry in entries:
         grouped.setdefault((entry["section"], entry["key"]), []).append(entry)
