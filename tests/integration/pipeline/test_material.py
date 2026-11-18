@@ -276,6 +276,62 @@ class MaterialPipelineTests(unittest.TestCase):
                 )
             self.assertEqual(result["status"], "ready")
 
+    def test_stage_data_errors_keep_completed_build_and_source(self):
+        self.calls, self.succeeds = [], True
+        raw = rb"\documentclass{article}\begin{document}Body.\end{document}"
+
+        def compiler(tree, entry, root, **kwargs):
+            build = self.compiler(tree, entry, root, **kwargs)
+            build.artifacts["logs/fixture.log"] = b"Completed native build"
+            return build
+
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "main.tex"
+            source.write_bytes(raw)
+            for name, stage, error in (
+                ("adapt_references", "references", SyntaxError),
+                ("convert_source", "conversion", KeyError),
+                ("normalize_latex", "normalization", TypeError),
+                ("verify_roundtrip", "normalized_build", KeyError),
+            ):
+                with (
+                    self.subTest(stage=stage),
+                    patch(
+                        "qecgraph.preparation.pipeline." + name,
+                        side_effect=error("fixture"),
+                    ),
+                ):
+                    out = Path(temp) / stage
+                    self.assertEqual(
+                        prepare_material(source, out, compiler=compiler)["status"],
+                        "partial",
+                    )
+                    material = read_material(out)
+                    self.assertEqual(
+                        material["manifest"]["stages"]["compile"], "complete"
+                    )
+                    self.assertEqual((out / "original.package").read_bytes(), raw)
+                    self.assertEqual(
+                        (out / "build/logs/fixture.log").read_bytes(),
+                        b"Completed native build",
+                    )
+                    if name in {"normalize_latex", "verify_roundtrip"}:
+                        self.assertEqual(
+                            material["manifest"]["stages"]["conversion"], "complete"
+                        )
+                        self.assertEqual(
+                            material["normalization"]["failed_stage"], stage
+                        )
+                        self.assertEqual(
+                            material["normalization"]["error_type"], error.__name__
+                        )
+                    else:
+                        issue = json.loads((out / "diagnostics.json").read_bytes())[0]
+                        self.assertEqual(
+                            (issue["stage"], issue["error_type"]),
+                            (stage, error.__name__),
+                        )
+
     def test_failed_normalized_compile_is_partial_and_keeps_the_original_material(self):
         self.calls, self.succeeds = [], True
         with tempfile.TemporaryDirectory() as temp:

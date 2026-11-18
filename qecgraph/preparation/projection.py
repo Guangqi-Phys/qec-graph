@@ -153,7 +153,7 @@ def check_projection(files):
     _eligibility(build["engine"], original, build["inputs"])
     projected, records = candidate_tree(original, build["inputs"])
     document = json.loads(files["content.json"])
-    if document.get("source_projection_sha256") != digest(
+    if document["nodes"] and document.get("source_projection_sha256") != digest(
         files["source-projection.json"]
     ):
         raise ValueError("Prepared syntax has no bound source projection")

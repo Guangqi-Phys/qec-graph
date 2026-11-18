@@ -84,6 +84,12 @@ class PreparationEquivalenceTests(unittest.TestCase):
             for field in fields:
                 value.pop(field, None)
             manifest["artifacts"][name] = digest(json_bytes(value))
+        diagnostics = json.loads(files["diagnostics.json"])
+        for issue in diagnostics:
+            if issue["code"] == "preparation_failed":
+                issue.pop("stage", None)
+                issue.pop("error_type", None)
+        manifest["artifacts"]["diagnostics.json"] = digest(json_bytes(diagnostics))
         manifest["rule_version"] = "compile-prepare-v19"
         return {"manifest": manifest, "compiler_calls": len(calls)}
 

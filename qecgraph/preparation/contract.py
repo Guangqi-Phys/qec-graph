@@ -81,7 +81,9 @@ def _check_bibliography_runtime(files, manifest):
                 "Bibliography completeness does not match retained evidence"
             )
     normalized = json.loads(files["normalization.json"])
-    if normalized["native_compile"] == "complete":
+    if normalized["native_compile"] == "complete" and (
+        normalized["complete"] or "error" not in normalized
+    ):
         expected = bibliography_runtime(
             files, manifest["entry"], prefix="normalized-build/"
         )

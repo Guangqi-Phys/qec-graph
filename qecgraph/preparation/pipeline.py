@@ -25,6 +25,19 @@ from .entries import select_build_entry
 from ..source.package import read_bounded, Limits
 
 
+# Handle expected tool and malformed-data failures only while producing a stage.
+# Validation and publication remain outside this boundary.
+_STAGE_ERRORS = (
+    OSError,
+    ValueError,
+    RuntimeError,
+    LookupError,
+    TypeError,
+    AttributeError,
+    SyntaxError,
+)
+
+
 def prepare_material(
     source: Path,
     out: Path,
@@ -91,7 +104,7 @@ def _material(tree, entry, work, engine, support, compiler, loading):
         material.retain_build(build)
         if build.success:
             _prepare_compiled(build, tree, entry, support, compiler, material)
-    except (OSError, ValueError, RuntimeError, RecursionError) as exc:
+    except _STAGE_ERRORS as exc:
         material.fail(exc)
         if (work / "command.log").is_file():
             material.files["build/logs/last-command.log"] = (
@@ -101,13 +114,17 @@ def _material(tree, entry, work, engine, support, compiler, loading):
 
 
 def _prepare_compiled(build, tree, entry, support, compiler, material):
+    material.stage = "source_projection"
     working = prepare_projection(build, tree, support, compiler, material.files)
+    material.stage = "build_view"
     dialect = identify(build, working)
     view, view_files = _observe_view(build, working, support, compiler)
+    material.files.update(view_files)
+    material.stage = "references"
     material.references = adapt_references(
         build, working, source_views=scan_views(working, view), dialect=dialect
     )
-    material.files.update(view_files)
+    material.stage = "conversion"
     assembly, material.document, material.coverage = convert_source(
         working,
         entry,
@@ -118,9 +135,11 @@ def _prepare_compiled(build, tree, entry, support, compiler, material):
     )
     material.entry_data = assembly.data
     material.files["source-map.json"] = json_bytes(assembly.source_map())
+    material.stage = "normalization"
     material.normalization = _normalize_view(
         build, working, assembly, material, support, compiler
     )
+    material.stage = "origin_binding"
     bind_origins(material.document, material.references, material.files)
 
 
@@ -152,6 +171,7 @@ def _compiled_bbl(build, files):
 
 def _normalize_view(build, tree, assembly, material, support, compiler):
     report = {"complete": False, "native_compile": "not_run", "pdf_text": "not_run"}
+    stage = "normalization"
     try:
         data, mapping, report = normalize_latex(
             assembly.text,
@@ -161,11 +181,17 @@ def _normalize_view(build, tree, assembly, material, support, compiler):
         )
         material.files["normalized.tex"] = data
         material.files["normalized-map.json"] = json_bytes(mapping)
+        stage = "normalized_build"
         material.files.update(
             verify_roundtrip(build, tree, data, report, support, compiler)
         )
-    except (OSError, ValueError, RuntimeError, RecursionError) as exc:
-        report["error"] = str(exc)[:800]
+    except _STAGE_ERRORS as exc:
+        report.update(
+            complete=False,
+            error=str(exc)[:800],
+            error_type=type(exc).__name__,
+            failed_stage=stage,
+        )
     if not report["complete"]:
         material.diagnostics.append(
             {

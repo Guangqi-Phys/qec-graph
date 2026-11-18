@@ -21,6 +21,7 @@ _WARNING_CODES = frozenset(
 
 class Material:
     def __init__(self, tree):
+        self.stage = "compile"
         self.files = {"sources/" + path: raw for path, raw in tree.files.items()}
         self.document = {
             "schema": "qecgraph.prepared_syntax/1",
@@ -62,7 +63,12 @@ class Material:
 
     def fail(self, exc):
         self.diagnostics.append(
-            {"code": "preparation_failed", "message": str(exc)[:800]}
+            {
+                "code": "preparation_failed",
+                "stage": self.stage,
+                "error_type": type(exc).__name__,
+                "message": str(exc)[:800],
+            }
         )
         self.coverage = {
             "complete": False,
