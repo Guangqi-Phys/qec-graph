@@ -278,6 +278,27 @@ class AssembleTests(unittest.TestCase):
                          ["one/frag.tex"])
         self.assertTrue(result.coverage()["complete"])
 
+    def test_nested_optional_argument_and_inline_literal_keep_the_active_input(self):
+        source = {
+            "main.tex": rb"""\documentclass{article}
+\newenvironment{panel}[1][a[\]]]{\input{hidden}}{\input{hidden}}
+\begin{document}
+\iftrue
+\verb|\fi|
+\input{kept}
+\else
+\input{hidden}
+\fi
+\end{document}
+""",
+            "kept.tex": b"Retained.",
+        }
+        result = assemble_files(source, "main.tex")
+        event, = result.events
+        self.assertEqual((event.target, event.outcome), ("kept.tex", "resolved"))
+        self.assertIn(b"Retained.", result.data)
+        self.assertEqual(result.validate(source), [])
+
     def test_fi_inside_verbatim_does_not_end_the_conditional(self):
         source = {
             "main.tex": (b"\\documentclass{article}\n\\newcommand{\\DIR}{old}\n"

@@ -320,8 +320,9 @@ def _mask_comments(text: str) -> str:
     return "".join(out)
 
 
-def _read_group(text: str, index: int) -> tuple[str, int]:
-    if index >= len(text) or text[index] != "{":
+def _read_group(text: str, index: int, delimiters: str = "{}") -> tuple[str, int]:
+    opening, closing = delimiters
+    if index >= len(text) or text[index] != opening:
         return "", index
     depth = 0
     position = index
@@ -330,29 +331,9 @@ def _read_group(text: str, index: int) -> tuple[str, int]:
         if char == "\\":
             position += 2
             continue
-        if char == "{":
+        if char == opening:
             depth += 1
-        elif char == "}":
-            depth -= 1
-            if depth == 0:
-                return text[index + 1:position], position + 1
-        position += 1
-    return text[index + 1:], len(text)
-
-
-def _skip_bracket(text: str, index: int) -> tuple[str, int]:
-    if index >= len(text) or text[index] != "[":
-        return "", index
-    depth = 0
-    position = index
-    while position < len(text):
-        char = text[position]
-        if char == "\\":
-            position += 2
-            continue
-        if char == "[":
-            depth += 1
-        elif char == "]":
+        elif char == closing:
             depth -= 1
             if depth == 0:
                 return text[index + 1:position], position + 1
@@ -398,7 +379,7 @@ def _skip_definition(text: str, index: int, name: str) -> int:
         for _ in range(2):
             index = _skip_space(text, index)
             if index < len(text) and text[index] == "[":
-                _, index = _skip_bracket(text, index)
+                _, index = _read_group(text, index, "[]")
             else:
                 break
         index = _skip_space(text, index)
@@ -412,7 +393,7 @@ def _skip_definition(text: str, index: int, name: str) -> int:
         for _ in range(2):
             index = _skip_space(text, index)
             if index < len(text) and text[index] == "[":
-                _, index = _skip_bracket(text, index)
+                _, index = _read_group(text, index, "[]")
             else:
                 break
         for _ in range(2):
@@ -467,30 +448,13 @@ def _conditional_branches(text: str, index: int, kind: str,
         name = match.group(1)
         after = match.end()
         if name in {"verb", "verb*", "lstinline"}:
-            if after < limit:
-                delimiter = text[after]
-                newline = text.find(delimiter, after + 1, limit)
-                index = limit if newline < 0 else newline + 1
-            else:
-                index = after
+            index = _skip_inline(text, after, limit)
             continue
         if name == "begin":
-            environment, group_end = _parse_group(text, after)
-            if environment in LITERAL_ENVIRONMENTS:
-                closing = "\\end{" + environment + "}"
-                end = text.find(closing, group_end, limit)
-                index = limit if end < 0 else end + len(closing)
-                continue
-            index = group_end
+            index = _skip_begin(text, after, limit)
             continue
         if name == "newif":
-            probe = _skip_space(text, after)
-            flag = _CONTROL.match(text, probe)
-            if flag:
-                known.update({flag.group(1) + "true", flag.group(1) + "false"})
-                index = flag.end()
-            else:
-                index = probe
+            index = _register_newif(text, after, known)
             continue
         if name in _DECLARATIONS:
             definition = _definition_event(text, index, name)
@@ -588,7 +552,7 @@ def _parse_args(text: str, index: int, name: str) -> tuple[tuple[str, ...], int]
     for _ in range(count):
         index = _skip_space(text, index)
         if index < len(text) and text[index] == "[":
-            _, index = _skip_bracket(text, index)
+            _, index = _read_group(text, index, "[]")
             index = _skip_space(text, index)
         if index < len(text) and text[index] == "{":
             value, index = _read_group(text, index)
@@ -605,35 +569,26 @@ def _parse_args(text: str, index: int, name: str) -> tuple[tuple[str, ...], int]
 
 def _definition_event(text: str, index: int, name: str) -> _MacroDef | None:
     """Return a macro definition event, with None when the value is dynamic."""
-    if name in {"def", "gdef", "edef", "xdef"}:
-        match = _DEF_NAME.match(text, index)
-        if not match:
-            return None
-        literal = _LITERAL_MACRO.match(text, index)
-        value = None
-        if literal is not None:
-            value = literal.group(2) if literal.group(2) is not None else literal.group(4)
-            value = value.strip() if value is not None else None
-        return _MacroDef(match.group(1), value, index,
-                         global_scope=name in {"gdef", "xdef"})
-    if name in {"newcommand", "renewcommand", "providecommand",
-                "DeclareRobustCommand"}:
-        match = _NEWCOMMAND_NAME.match(text, index)
-        if not match:
-            return None
-        literal = _LITERAL_MACRO.match(text, index)
-        value = None
-        if literal is not None:
-            value = literal.group(2) if literal.group(2) is not None else literal.group(4)
-            value = value.strip() if value is not None else None
-        return _MacroDef(match.group(1), value, index,
-                         provide_only=name == "providecommand")
     if name == "let":
         match = _LET_NAME.match(text, index)
-        if not match:
-            return None
-        return _MacroDef(match.group(1), None, index)
-    return None
+        return _MacroDef(match.group(1), None, index) if match else None
+    if name in {"def", "gdef", "edef", "xdef"}:
+        pattern = _DEF_NAME
+    elif name in {"newcommand", "renewcommand", "providecommand", "DeclareRobustCommand"}:
+        pattern = _NEWCOMMAND_NAME
+    else:
+        return None
+    match = pattern.match(text, index)
+    if not match:
+        return None
+    literal = _LITERAL_MACRO.match(text, index)
+    value = None
+    if literal is not None:
+        value = literal.group(2) if literal.group(2) is not None else literal.group(4)
+        value = value.strip() if value is not None else None
+    return _MacroDef(match.group(1), value, index,
+                     global_scope=name in {"gdef", "xdef"},
+                     provide_only=name == "providecommand")
 
 
 def _scan(text: str) -> tuple[list, list[dict]]:
@@ -677,21 +632,10 @@ def _scan(text: str) -> tuple[list, list[dict]]:
             name = match.group(1)
             after = match.end()
             if name in {"verb", "verb*", "lstinline"}:
-                if after < stop:
-                    delimiter = text[after]
-                    end = text.find(delimiter, after + 1, stop)
-                    index = stop if end < 0 else end + 1
-                else:
-                    index = after
+                index = _skip_inline(text, after, stop)
                 continue
             if name == "begin":
-                environment, group_end = _parse_group(text, after)
-                if environment in LITERAL_ENVIRONMENTS:
-                    closing = "\\end{" + environment + "}"
-                    end = text.find(closing, group_end, stop)
-                    index = stop if end < 0 else end + len(closing)
-                    continue
-                index = group_end
+                index = _skip_begin(text, after, stop)
                 continue
             if name in {"iffalse", "iftrue"}:
                 else_start, fi_start, fi_end = _conditional_bounds(
@@ -757,14 +701,7 @@ def _scan(text: str) -> tuple[list, list[dict]]:
                 index = after
                 continue
             if name == "newif":
-                probe = _skip_space(text, after)
-                flag = _CONTROL.match(text, probe)
-                if flag:
-                    defined_names.update({flag.group(1) + "true",
-                                          flag.group(1) + "false"})
-                    index = flag.end()
-                else:
-                    index = probe
+                index = _register_newif(text, after, defined_names)
                 continue
             if name in _DECLARATIONS:
                 definition = _definition_event(text, index, name)
@@ -827,10 +764,32 @@ def mask_comments_and_definitions(text):
 
 
 def _parse_group(text: str, index: int) -> tuple[str, int]:
-    index = _skip_space(text, index)
-    if index < len(text) and text[index] == "{":
-        return _read_group(text, index)
-    return "", index
+    return _read_group(text, _skip_space(text, index))
+
+
+def _skip_through(text: str, start: int, closing: str, stop: int) -> int:
+    end = text.find(closing, start, stop)
+    return stop if end < 0 else end + len(closing)
+
+
+def _skip_inline(text: str, after: int, stop: int) -> int:
+    return _skip_through(text, after + 1, text[after], stop) if after < stop else after
+
+
+def _skip_begin(text: str, after: int, stop: int) -> int:
+    environment, group_end = _parse_group(text, after)
+    if environment in LITERAL_ENVIRONMENTS:
+        return _skip_through(text, group_end, "\\end{" + environment + "}", stop)
+    return group_end
+
+
+def _register_newif(text: str, after: int, names: set[str]) -> int:
+    probe = _skip_space(text, after)
+    flag = _CONTROL.match(text, probe)
+    if flag is None:
+        return probe
+    names.update({flag.group(1) + "true", flag.group(1) + "false"})
+    return flag.end()
 
 
 def document_bounds(text: str) -> tuple[int | None, int | None, int | None]:
@@ -868,20 +827,13 @@ def document_bounds(text: str) -> tuple[int | None, int | None, int | None]:
             name = match.group(1)
             after = match.end()
             if name in {"verb", "verb*", "lstinline"}:
-                if after < stop:
-                    delimiter = text[after]
-                    newline = text.find(delimiter, after + 1, stop)
-                    index = stop if newline < 0 else newline + 1
-                else:
-                    index = after
+                index = _skip_inline(text, after, stop)
                 continue
             if name in {"begin", "end"}:
                 environment, group_end = _parse_group(text, after)
                 environment = environment.strip()
                 if name == "begin" and environment in LITERAL_ENVIRONMENTS:
-                    closing = "\\end{" + environment + "}"
-                    newline = text.find(closing, group_end, stop)
-                    index = stop if newline < 0 else newline + len(closing)
+                    index = _skip_through(text, group_end, "\\end{" + environment + "}", stop)
                     continue
                 if (name == "begin" and environment == "document"
                         and begin_start is None):
@@ -895,14 +847,7 @@ def document_bounds(text: str) -> tuple[int | None, int | None, int | None]:
                 index = group_end
                 continue
             if name == "newif":
-                probe = _skip_space(text, after)
-                flag = _CONTROL.match(text, probe)
-                if flag:
-                    defined_names.update({flag.group(1) + "true",
-                                          flag.group(1) + "false"})
-                    index = flag.end()
-                else:
-                    index = probe
+                index = _register_newif(text, after, defined_names)
                 continue
             if name in _DECLARATIONS:
                 definition = _definition_event(text, index, name)
@@ -972,31 +917,13 @@ def condition_regions(text: str) -> tuple[list[tuple[int, int]],
             name = match.group(1)
             after = match.end()
             if name in {"verb", "verb*", "lstinline"}:
-                if after < stop:
-                    delimiter = text[after]
-                    newline = text.find(delimiter, after + 1, stop)
-                    index = stop if newline < 0 else newline + 1
-                else:
-                    index = after
+                index = _skip_inline(text, after, stop)
                 continue
             if name == "begin":
-                environment, group_end = _parse_group(text, after)
-                if environment in LITERAL_ENVIRONMENTS:
-                    closing = "\\end{" + environment + "}"
-                    end = text.find(closing, group_end, stop)
-                    index = stop if end < 0 else end + len(closing)
-                    continue
-                index = group_end
+                index = _skip_begin(text, after, stop)
                 continue
             if name == "newif":
-                probe = _skip_space(text, after)
-                flag = _CONTROL.match(text, probe)
-                if flag:
-                    defined.update({flag.group(1) + "true",
-                                    flag.group(1) + "false"})
-                    index = flag.end()
-                else:
-                    index = probe
+                index = _register_newif(text, after, defined)
                 continue
             if name in _DECLARATIONS:
                 definition = _definition_event(text, index, name)

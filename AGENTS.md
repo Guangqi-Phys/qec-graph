@@ -58,6 +58,14 @@
 - 涉及导入、解析、检索或知识质量的修改，完成后在 `~/Workspace/QEC-database` 的 machine 副本上运行适用评测，固定 release，报告可比的前后数字与失败；不读 human/私人笔记/凭据，不修改原库，不因评测默认调用模型。缺少数据或金标时明确记为未验收。Implemented 不等于 Usable，科学验收标准见 DESIGN §16.8。
 - 参考外部 CodeGraph 时记录 URL、实际 commit 与许可证，保留引用代码所需的归属说明。不凭 README 的性能宣传给本项目承诺。
 
+## Ponytail 精简规则
+
+- 先核对真实调用、公开入口和回归覆盖。优先删除确定无用的代码，再复用项目现有实现、标准库或已安装依赖。
+- 保留可读性、输入校验、来源保真、错误诊断和恢复路径。合并逻辑时保留调用端的语义差异。
+- 用最小改动完成整个请求。用有代表性的边界案例和适用的前后对照证明精简保留了功能与稳定性。
+
+规则参考 DietrichGebert/ponytail 固定修订（MIT）。[上游仓库规则](https://github.com/DietrichGebert/ponytail/blob/96608e078b2d5ea607c5c3b8b5a54d1c1fba6846/AGENTS.md)
+
 ## Lean
 
 - 维护原文、标准化陈述、形式化陈述之间的显式映射，保留假设与量词。
