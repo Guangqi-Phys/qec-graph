@@ -39,6 +39,8 @@ def observe_branches(build, tree, support, compiler):
         dependencies=derived.dependencies,
         diagnostics=derived.diagnostics,
     )
+    if convergence := getattr(derived, "convergence", None):
+        report["convergence"] = convergence
     if derived.success:
         _compare_pdf_text(build, derived, report)
     report["verified"] = derived.success and report["pdf_text"] == "equal"

@@ -124,6 +124,45 @@ class CompilationTests(unittest.TestCase):
         self.compile({"mainNotes.bib": b"@CONTROL{REVTEX42Control}"})
         self.assertFalse(any(c[0].endswith("bibtex") for c in self.commands))
 
+    def test_passes_observe_nested_aux_and_final_rerun_requests(self):
+        for nested, warnings, expected in (
+            (["a", "a"], ["Rerun to get references", ""], 2),
+            (["a", "b", "b"], ["", "", ""], 3),
+            (["a", "a", "a"], ["", "Please (re)run Biber", ""], 3),
+        ):
+            with self.subTest(nested=nested, warnings=warnings):
+                self.commands, self.aux = [], ""
+                self.original = (
+                    rb"\documentclass{article}\begin{document}Body.\end{document}"
+                )
+                sequence = iter(zip(nested, warnings, strict=True))
+
+                def runner(work, cwd, command, **options):
+                    result = self.fake(work, cwd, command, **options)
+                    if "-recorder" in command:
+                        aux, warning = next(sequence)
+                        (cwd / "sub").mkdir(exist_ok=True)
+                        (cwd / "sub/chapter.aux").write_text(aux)
+                        (cwd / "main.log").write_text(warning)
+                        (cwd / "main.fls").write_text(
+                            "OUTPUT main.aux\nOUTPUT main.pdf\nOUTPUT sub/chapter.aux\n"
+                        )
+                    return result
+
+                with (
+                    tempfile.TemporaryDirectory() as temp,
+                    patch("qecgraph.preparation.build.tool", side_effect=lambda n: n),
+                ):
+                    build = compile_tree(
+                        SourceTree("tex", {"main.tex": self.original}),
+                        "main.tex",
+                        Path(temp),
+                        runner=runner,
+                    )
+                self.assertTrue(build.success)
+                self.assertEqual(build.convergence["tex_passes"], expected)
+                self.assertEqual(build.convergence["status"], "converged")
+
     def test_arxiv_engine_is_allowlisted_and_comments_do_not_select_plain_tex(self):
         tree = SourceTree(
             "tex", {"m.tex": b"% \\input harvmac\n\\documentclass{article}"}

@@ -25,6 +25,8 @@ def verify_roundtrip(build, tree, normalized, report, support, compiler):
         diagnostics=derived.diagnostics,
         compatibility=getattr(derived, "compatibility", []),
     )
+    if convergence := getattr(derived, "convergence", None):
+        report["convergence"] = convergence
     report["derived_tree_sha256"] = derived_tree.digest
     if derived.success:
         report["bibliography_runtime"] = bibliography_runtime(

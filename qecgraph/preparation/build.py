@@ -194,15 +194,13 @@ def compile_tree(
     stdin = "b\n" if build.engine == "etex" else None
     execute(build, "engine-version", [tool(build.engine), "--version"], runner=runner)
     from .compatibility import initial_compile
+    from .tex_passes import finish_passes
 
     ok = initial_compile(build, tree, args, stdin=stdin, runner=runner)
     if ok:
         ok = _bibliography(build, tree, job, runner)
     if ok:
-        for index in (1, 2):
-            if not execute(build, f"tex-{index}", args, stdin=stdin, runner=runner):
-                ok = False
-                break
+        ok = finish_passes(build, job, args, stdin=stdin, runner=runner)
     if ok:
         ok = _pdf(build, job, runner)
     build.success = ok and (project / (job + ".pdf")).is_file()

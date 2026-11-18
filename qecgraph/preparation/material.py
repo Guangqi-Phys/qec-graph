@@ -59,6 +59,8 @@ class Material:
             "dependencies": build.dependencies,
             "compatibility": getattr(build, "compatibility", []),
         }
+        if convergence := getattr(build, "convergence", None):
+            self.build_report["convergence"] = convergence
         self.diagnostics.extend(build.diagnostics)
 
     def fail(self, exc):

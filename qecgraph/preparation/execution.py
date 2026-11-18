@@ -21,6 +21,7 @@ class Build:
     dependencies: list[dict] = field(default_factory=list)
     diagnostics: list[dict] = field(default_factory=list)
     compatibility: list[dict] = field(default_factory=list)
+    convergence: dict = field(default_factory=dict)
 
 
 def tool(name):

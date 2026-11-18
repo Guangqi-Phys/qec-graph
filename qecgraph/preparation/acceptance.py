@@ -276,6 +276,8 @@ def _verified_row(root, row, sample, material):
         **row,
         "engine": material["build"].get("engine"),
         "engine_version": material["engine_version"],
+        "build_convergence": material["build"].get("convergence"),
+        "normalized_convergence": normalized.get("convergence"),
         "source_tree_sha256": manifest["source_tree_sha256"],
         "entry": manifest["entry"],
         "source_fidelity": check["source_fidelity"],
